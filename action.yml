@@ -1,0 +1,84 @@
+name: 'Runtime PR Verification'
+description: 'Adds visual testing to React PRs using Gemini analysis and Firebase preview URLs'
+author: 'Loop Kitchen'
+
+branding:
+  icon: 'eye'
+  color: 'blue'
+
+inputs:
+  preview-url:
+    description: 'Firebase preview URL (e.g., https://project--pr-123-app.web.app)'
+    required: true
+  
+  firebase-credentials:
+    description: 'Base64 encoded Firebase service account JSON'
+    required: true
+  
+  storage-bucket:
+    description: 'Firebase Storage bucket name'
+    required: true
+  
+  github-token:
+    description: 'GitHub token for posting PR comments'
+    required: true
+  
+  gemini-bot-name:
+    description: 'Name of the Gemini bot that posts code reviews'
+    required: false
+    default: 'gemini-bot'
+  
+  firebase-project-id:
+    description: 'Firebase project ID (auto-detected from preview URL if not provided)'
+    required: false
+  
+  firebase-target:
+    description: 'Firebase hosting target (auto-detected from preview URL if not provided)'
+    required: false
+  
+  build-system:
+    description: 'Build system: vite or react (auto-detected from output folder if not provided)'
+    required: false
+  
+  test-timeout:
+    description: 'Maximum time to wait for tests to complete'
+    required: false
+    default: '5m'
+  
+  cleanup-days:
+    description: 'Number of days to keep screenshots in Firebase Storage'
+    required: false
+    default: '30'
+  
+  viewports:
+    description: 'Comma-separated list of viewport sizes (e.g., "1920x1080,768x1024,375x667")'
+    required: false
+    default: '1920x1080,768x1024,375x667'
+  
+  max-routes:
+    description: 'Maximum number of routes to test automatically'
+    required: false
+    default: '10'
+
+outputs:
+  status:
+    description: 'Test execution status: success, failure, or partial'
+  
+  screenshots-url:
+    description: 'Firebase Storage URL containing all screenshots'
+  
+  test-results:
+    description: 'JSON summary of test results'
+  
+  firebase-project:
+    description: 'Detected Firebase project ID'
+  
+  firebase-target:
+    description: 'Detected Firebase hosting target'
+  
+  build-system:
+    description: 'Detected build system (vite or react)'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

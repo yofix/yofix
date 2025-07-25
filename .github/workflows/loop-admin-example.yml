@@ -1,0 +1,153 @@
+# Example workflow for loop-admin repository
+# This demonstrates a simpler single-target Firebase setup
+
+name: Loop Admin PR Verification
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build and test
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        run: yarn test --watchAll=false --coverage
+        env:
+          CI: true
+
+      - name: Build application
+        run: yarn build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL_STAGING }}
+          REACT_APP_FIREBASE_CONFIG: ${{ vars.REACT_APP_FIREBASE_CONFIG }}
+
+  # Deploy to Firebase preview
+  deploy-preview:
+    name: Deploy Firebase Preview
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.preview_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build for deployment
+        run: yarn build
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL_STAGING }}
+          REACT_APP_FIREBASE_CONFIG: ${{ vars.REACT_APP_FIREBASE_CONFIG }}
+
+      - name: Deploy to Firebase Preview
+        id: deploy
+        run: |
+          # Deploy to 'loop-ad' target
+          firebase deploy --only hosting:loop-ad --project ${{ vars.FIREBASE_PROJECT_ID }}
+          PREVIEW_URL="https://${{ vars.FIREBASE_PROJECT_ID }}--pr-${{ github.event.number }}-loop-ad.web.app"
+          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+          echo "🚀 Admin preview deployed to: $PREVIEW_URL"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+  # Gemini AI code review
+  gemini-review:
+    name: Gemini Code Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gemini Code Review
+        uses: your-org/gemini-code-review@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          focus-areas: 'Admin interface, user management, data tables, forms'
+          exclude-paths: 'node_modules/**, build/**, **/*.test.ts'
+
+  # Runtime visual verification
+  runtime-verification:
+    name: Runtime PR Verification
+    needs: [deploy-preview, gemini-review]
+    runs-on: ubuntu-latest
+    if: needs.deploy-preview.outputs.preview_url != ''
+    steps:
+      - name: Run Visual Verification
+        uses: your-org/runtime-pr-verification@v1
+        with:
+          preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
+          firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+          storage-bucket: 'loop-admin-screenshots'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Configuration optimized for admin dashboard
+          viewports: '1920x1080:Desktop,1366x768:Laptop,1024x768:Tablet'
+          test-timeout: '8m'
+          max-routes: '15'
+          cleanup-days: '14'
+          gemini-bot-name: 'gemini-admin-reviewer'
+
+  # Security and accessibility checks
+  security-audit:
+    name: Security & Accessibility Audit
+    needs: [deploy-preview]
+    runs-on: ubuntu-latest
+    if: needs.deploy-preview.outputs.preview_url != ''
+    steps:
+      - name: Run Pa11y Accessibility Test
+        run: |
+          npx pa11y-ci --sitemap ${{ needs.deploy-preview.outputs.preview_url }}/sitemap.xml
+
+      - name: Run Security Headers Check
+        run: |
+          curl -I ${{ needs.deploy-preview.outputs.preview_url }} | grep -i security
+
+  # Notify on completion
+  notify-completion:
+    name: Notify Completion
+    needs: [runtime-verification, security-audit]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify Team
+        if: needs.runtime-verification.result == 'failure'
+        run: |
+          echo "Runtime verification failed - requires attention"
+          # Optional: Send Slack notification
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"🚨 Admin PR verification failed for #${{ github.event.number }}"}' \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}

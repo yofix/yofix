@@ -38,36 +38,34 @@ inputs:
   build-system:
     description: 'Build system: vite or react (auto-detected from output folder if not provided)'
     required: false
+    default: ''
   
   test-timeout:
-    description: 'Maximum time to wait for tests to complete'
+    description: 'Maximum time for tests to run (e.g., 5m, 300s)'
     required: false
     default: '5m'
   
   cleanup-days:
-    description: 'Number of days to keep screenshots in Firebase Storage'
+    description: 'Days to keep old screenshots before cleanup'
     required: false
     default: '30'
   
   viewports:
-    description: 'Comma-separated list of viewport sizes (e.g., "1920x1080,768x1024,375x667")'
+    description: 'Comma-separated viewport sizes (e.g., 1920x1080,768x1024,375x667)'
     required: false
     default: '1920x1080,768x1024,375x667'
   
   max-routes:
-    description: 'Maximum number of routes to test automatically'
+    description: 'Maximum number of routes to test'
     required: false
     default: '10'
 
 outputs:
   status:
-    description: 'Test execution status: success, failure, or partial'
+    description: 'Test execution status'
   
-  screenshots-url:
-    description: 'Firebase Storage URL containing all screenshots'
-  
-  test-results:
-    description: 'JSON summary of test results'
+  summary-url:
+    description: 'URL to the test results summary'
   
   firebase-project:
     description: 'Detected Firebase project ID'
@@ -76,8 +74,33 @@ outputs:
     description: 'Detected Firebase hosting target'
   
   build-system:
-    description: 'Detected build system (vite or react)'
+    description: 'Detected build system'
 
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: 'composite'
+  steps:
+    - name: Install Playwright browsers
+      shell: bash
+      run: |
+        echo "📦 Installing Playwright browsers..."
+        cd ${{ github.action_path }}
+        npx playwright install chromium --with-deps
+        echo "✅ Playwright browsers installed"
+        
+    - name: Run visual tests
+      shell: bash
+      run: |
+        node ${{ github.action_path }}/dist/index.js
+      env:
+        INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_FIREBASE-PROJECT-ID: ${{ inputs.firebase-project-id }}
+        INPUT_FIREBASE-TARGET: ${{ inputs.firebase-target }}
+        INPUT_BUILD-SYSTEM: ${{ inputs.build-system }}
+        INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}
+        INPUT_CLEANUP-DAYS: ${{ inputs.cleanup-days }}
+        INPUT_VIEWPORTS: ${{ inputs.viewports }}
+        INPUT_MAX-ROUTES: ${{ inputs.max-routes }}

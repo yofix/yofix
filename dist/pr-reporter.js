@@ -134,18 +134,17 @@ ${message}
         const videos = result.testResults.flatMap(t => t.videos);
         if (screenshots.length > 0 || videos.length > 0) {
             comment += `**Visual Evidence**: `;
-            if (screenshots.length > 0) {
-                comment += `📸 [${screenshots.length} screenshot${screenshots.length !== 1 ? 's' : ''}](${result.screenshotsUrl})`;
-            }
+            comment += `📸 ${screenshots.length} screenshot${screenshots.length !== 1 ? 's' : ''}`;
             if (videos.length > 0) {
-                if (screenshots.length > 0)
-                    comment += ' • ';
-                comment += `🎥 [${videos.length} video${videos.length !== 1 ? 's' : ''}](${result.screenshotsUrl})`;
+                comment += ` • 🎥 ${videos.length} video${videos.length !== 1 ? 's' : ''}`;
             }
             if (storageConsoleUrl) {
                 comment += ` • [Firebase Console](${storageConsoleUrl})`;
             }
             comment += '\n\n';
+        }
+        if (screenshots.length > 0) {
+            comment += this.generateEmbeddedScreenshots(screenshots);
         }
         comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
         if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
@@ -169,8 +168,8 @@ ${message}
                 comment += '\n';
             }
             if (test.screenshots.length > 0) {
-                comment += '   - 📸 Screenshots: ';
-                comment += test.screenshots.map(s => s.firebaseUrl ? `[${s.viewport.name}](${s.firebaseUrl})` : s.viewport.name).join(', ') + '\n';
+                comment += '   - 📸 Screenshots captured for: ';
+                comment += test.screenshots.map(s => s.viewport.name).join(', ') + '\n';
             }
             if (test.videos.length > 0 && test.videos[0]?.firebaseUrl) {
                 comment += `   - 🎥 Video: [View Recording](${test.videos[0].firebaseUrl})\n`;
@@ -240,26 +239,33 @@ ${message}
             return `${minutes}m ${seconds}s`;
         }
     }
-    generateScreenshotGallery(screenshots) {
+    generateEmbeddedScreenshots(screenshots) {
         if (screenshots.length === 0) {
             return '';
         }
-        let gallery = '### 📸 Screenshot Gallery\n\n';
-        const groupedByViewport = screenshots.reduce((acc, screenshot) => {
-            const key = screenshot.viewport.name;
-            if (!acc[key]) {
-                acc[key] = [];
+        let gallery = '### 📸 Screenshots\n\n';
+        const groupedByRoute = screenshots.reduce((acc, screenshot) => {
+            const route = screenshot.name.split('-').slice(0, -1).join('-') || 'home';
+            if (!acc[route]) {
+                acc[route] = [];
             }
-            acc[key].push(screenshot);
+            acc[route].push(screenshot);
             return acc;
         }, {});
-        for (const [viewport, viewportScreenshots] of Object.entries(groupedByViewport)) {
-            gallery += `#### ${viewport} (${viewportScreenshots[0].viewport.width}×${viewportScreenshots[0].viewport.height})\n\n`;
-            for (const screenshot of viewportScreenshots.slice(0, 3)) {
+        for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
+            gallery += `#### Route: \`/${route}\`\n\n`;
+            gallery += '<table>\n<tr>\n';
+            const sorted = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
+            for (const screenshot of sorted) {
                 if (screenshot.firebaseUrl) {
-                    gallery += `[![${screenshot.name}](${screenshot.firebaseUrl})](${screenshot.firebaseUrl})\n\n`;
+                    gallery += `<td align="center">\n`;
+                    gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
+                    gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
+                    gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}">\n`;
+                    gallery += `</td>\n`;
                 }
             }
+            gallery += '</tr>\n</table>\n\n';
         }
         return gallery;
     }

@@ -4,10 +4,14 @@
   "description": "Intelligent visual regression testing for React PRs using Claude AI",
   "main": "dist/index.js",
   "scripts": {
+    "postinstall": "playwright install chromium",
     "build": "tsc && ncc build dist/index.js -o dist-final --source-map && cp -r dist-final/* dist/ && rm -rf dist-final",
     "package": "npm run build && git add dist",
     "test": "jest",
     "test:local": "ts-node test/local-runner.ts",
+    "test:action": "act -j visual-test --secret-file .env.test",
+    "test:action:local": "ts-node test/test-action-locally.ts",
+    "pretest:action:local": "yarn build",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "clean": "rimraf dist"
@@ -37,6 +41,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@vercel/ncc": "^0.38.1",
     "commander": "^11.1.0",
+    "dotenv": "^16.4.5",
     "eslint": "^8.56.0",
     "jest": "^29.7.0",
     "rimraf": "^5.0.5",

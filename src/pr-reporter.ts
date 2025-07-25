@@ -131,18 +131,21 @@ ${message}
     
     if (screenshots.length > 0 || videos.length > 0) {
       comment += `**Visual Evidence**: `;
-      if (screenshots.length > 0) {
-        comment += `📸 [${screenshots.length} screenshot${screenshots.length !== 1 ? 's' : ''}](${result.screenshotsUrl})`;
-      }
+      comment += `📸 ${screenshots.length} screenshot${screenshots.length !== 1 ? 's' : ''}`;
       if (videos.length > 0) {
-        if (screenshots.length > 0) comment += ' • ';
-        comment += `🎥 [${videos.length} video${videos.length !== 1 ? 's' : ''}](${result.screenshotsUrl})`;
+        comment += ` • 🎥 ${videos.length} video${videos.length !== 1 ? 's' : ''}`;
       }
       if (storageConsoleUrl) {
         comment += ` • [Firebase Console](${storageConsoleUrl})`;
       }
       comment += '\n\n';
     }
+
+    // Embed screenshots directly
+    if (screenshots.length > 0) {
+      comment += this.generateEmbeddedScreenshots(screenshots);
+    }
+
 
     // Expandable details section
     comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
@@ -176,10 +179,8 @@ ${message}
       }
       
       if (test.screenshots.length > 0) {
-        comment += '   - 📸 Screenshots: ';
-        comment += test.screenshots.map(s => 
-          s.firebaseUrl ? `[${s.viewport.name}](${s.firebaseUrl})` : s.viewport.name
-        ).join(', ') + '\n';
+        comment += '   - 📸 Screenshots captured for: ';
+        comment += test.screenshots.map(s => s.viewport.name).join(', ') + '\n';
       }
       
       if (test.videos.length > 0 && test.videos[0]?.firebaseUrl) {
@@ -276,37 +277,50 @@ ${message}
   }
 
   /**
-   * Generate screenshot gallery HTML (for rich comments)
+   * Generate embedded screenshots for PR comment
    */
-  private generateScreenshotGallery(screenshots: Screenshot[]): string {
+  private generateEmbeddedScreenshots(screenshots: Screenshot[]): string {
     if (screenshots.length === 0) {
       return '';
     }
 
-    let gallery = '### 📸 Screenshot Gallery\n\n';
+    let gallery = '### 📸 Screenshots\n\n';
     
-    // Group screenshots by viewport
-    const groupedByViewport = screenshots.reduce((acc, screenshot) => {
-      const key = screenshot.viewport.name;
-      if (!acc[key]) {
-        acc[key] = [];
+    // Group screenshots by route
+    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
+      const route = screenshot.name.split('-').slice(0, -1).join('-') || 'home';
+      if (!acc[route]) {
+        acc[route] = [];
       }
-      acc[key].push(screenshot);
+      acc[route].push(screenshot);
       return acc;
     }, {} as Record<string, Screenshot[]>);
 
-    for (const [viewport, viewportScreenshots] of Object.entries(groupedByViewport)) {
-      gallery += `#### ${viewport} (${viewportScreenshots[0].viewport.width}×${viewportScreenshots[0].viewport.height})\n\n`;
+    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
+      gallery += `#### Route: \`/${route}\`\n\n`;
       
-      for (const screenshot of viewportScreenshots.slice(0, 3)) { // Limit to 3 per viewport
+      // Create a table for viewports
+      gallery += '<table>\n<tr>\n';
+      
+      // Sort by viewport size (desktop, tablet, mobile)
+      const sorted = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
+      
+      for (const screenshot of sorted) {
         if (screenshot.firebaseUrl) {
-          gallery += `[![${screenshot.name}](${screenshot.firebaseUrl})](${screenshot.firebaseUrl})\n\n`;
+          gallery += `<td align="center">\n`;
+          gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
+          gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
+          gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}">\n`;
+          gallery += `</td>\n`;
         }
       }
+      
+      gallery += '</tr>\n</table>\n\n';
     }
 
     return gallery;
   }
+
 
   /**
    * Generate compact status badge for quick overview

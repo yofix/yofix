@@ -1,0 +1,43 @@
+name: Test Action Locally
+on:
+  workflow_dispatch:
+  push:
+    branches: [test-action]
+
+jobs:
+  test-playwright-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+        
+      - name: Build action
+        run: yarn build
+        
+      - name: Test Playwright installation
+        run: |
+          # Check if browsers are installed
+          npx playwright --version
+          npx playwright list
+          
+  test-action-mock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test with mock data
+        uses: ./
+        with:
+          preview-url: https://react-vite-demo.vercel.app
+          firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
+          storage-bucket: test-bucket
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.TEST_CLAUDE_API_KEY }}

@@ -2,7 +2,6 @@ import * as core from '@actions/core';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-import { execSync } from 'child_process';
 
 import { FirebaseUrlHandler } from './firebase-url-handler';
 import { ClaudeRouteAnalyzer, RouteAnalysis } from './claude-route-analyzer';
@@ -111,17 +110,8 @@ async function run(): Promise<void> {
     
     core.info(`Generated ${tests.length} tests for React SPA verification`);
 
-    // 4. Install Playwright browsers if needed
-    core.info('📦 Step 4: Ensuring Playwright browsers are installed...');
-    try {
-      execSync('npx playwright install chromium', { stdio: 'inherit' });
-      core.info('✅ Playwright browsers installed successfully');
-    } catch (error) {
-      core.warning(`Failed to install Playwright browsers: ${error}`);
-    }
-
-    // 5. Run visual tests
-    core.info('🎭 Step 5: Running visual tests...');
+    // 4. Run visual tests
+    core.info('🎭 Step 4: Running visual tests...');
     const testTimeoutMs = parseTimeout(inputs.testTimeout);
     const runner = new VisualRunner(firebaseConfig, outputDir, testTimeoutMs);
     
@@ -129,8 +119,8 @@ async function run(): Promise<void> {
     const testResults = await runner.runTests(tests);
     await runner.cleanup();
 
-    // 6. Upload results to Firebase Storage
-    core.info('☁️ Step 6: Uploading results to Firebase Storage...');
+    // 5. Upload results to Firebase Storage
+    core.info('☁️ Step 5: Uploading results to Firebase Storage...');
     const storageConfig = FirebaseStorageManager.createDefaultConfig(inputs.storageBucket);
     const storageManager = new FirebaseStorageManager(
       firebaseConfig,
@@ -181,7 +171,7 @@ async function run(): Promise<void> {
     };
 
     // 7. Report results to PR
-    core.info('📝 Step 7: Posting results to PR...');
+    core.info('📝 Step 6: Posting results to PR...');
     const storageConsoleUrl = storageManager.generateStorageConsoleUrl();
     await reporter.postResults(verificationResult, storageConsoleUrl);
 

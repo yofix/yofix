@@ -111,6 +111,9 @@ export interface ActionInputs {
   cleanupDays: string;
   viewports: string;
   maxRoutes: string;
+  authEmail?: string;
+  authPassword?: string;
+  authLoginUrl?: string;
 }
 
 export interface FirebaseStorageConfig {

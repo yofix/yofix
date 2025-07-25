@@ -1,0 +1,39 @@
+name: Visual Testing with Authentication
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build and Preview
+        id: build_and_preview
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}'
+          expires: 7d
+          channelId: pr-${{ github.event.pull_request.number }}
+      
+      - name: Visual Testing with Authentication
+        uses: LoopKitchen/runtime-pr-verification@v2.0.8
+        with:
+          preview-url: ${{ steps.build_and_preview.outputs.details_url }}
+          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
+          storage-bucket: ${{ vars.FE_VAR_FIREBASE_STORAGE_BUCKET }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # Authentication credentials
+          auth-email: ${{ secrets.TEST_USER_EMAIL }}
+          auth-password: ${{ secrets.TEST_USER_PASSWORD }}
+          auth-login-url: '/login/password'
+          
+          # Optional: customize viewports for your app
+          viewports: '1920x1080,768x1024,375x667'
+          max-routes: '5'

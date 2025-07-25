@@ -3,6 +3,7 @@ import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { TestTemplate, TestResult, Screenshot, Video, ConsoleMessage, FirebaseConfig, Viewport, TestAction, TestAssertion } from './types';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { AuthHandler } from './auth-handler';
 
 export class VisualRunner {
   private browser: Browser | null = null;
@@ -10,11 +11,20 @@ export class VisualRunner {
   private firebaseConfig: FirebaseConfig;
   private outputDir: string;
   private testTimeout: number;
+  private authHandler: AuthHandler | null = null;
+  private isAuthenticated: boolean = false;
 
   constructor(firebaseConfig: FirebaseConfig, outputDir: string, testTimeoutMs: number = 300000) {
     this.firebaseConfig = firebaseConfig;
     this.outputDir = outputDir;
     this.testTimeout = testTimeoutMs;
+  }
+
+  /**
+   * Set authentication handler
+   */
+  setAuthHandler(authHandler: AuthHandler): void {
+    this.authHandler = authHandler;
   }
 
   /**
@@ -280,6 +290,19 @@ export class VisualRunner {
     switch (action.type) {
       case 'goto':
         core.info(`Navigating to: ${action.target}`);
+        
+        // Check if we need to authenticate first
+        if (this.authHandler && !this.isAuthenticated && !action.target!.includes('/login')) {
+          core.info('Authentication required, logging in first...');
+          const loginSuccess = await this.authHandler.login(page, this.firebaseConfig.previewUrl);
+          if (loginSuccess) {
+            this.isAuthenticated = true;
+            core.info('Authentication successful, proceeding to target URL');
+          } else {
+            throw new Error('Authentication failed');
+          }
+        }
+        
         await page.goto(action.target!, {
           waitUntil: 'networkidle',
           timeout

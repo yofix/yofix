@@ -115,6 +115,18 @@ async function run(): Promise<void> {
     const testTimeoutMs = parseTimeout(inputs.testTimeout);
     const runner = new VisualRunner(firebaseConfig, outputDir, testTimeoutMs);
     
+    // Set up authentication if credentials provided
+    if (inputs.authEmail && inputs.authPassword) {
+      core.info('🔐 Authentication credentials provided, enabling login support');
+      const { AuthHandler } = await import('./auth-handler');
+      const authHandler = new AuthHandler({
+        loginUrl: inputs.authLoginUrl || '/login/password',
+        email: inputs.authEmail,
+        password: inputs.authPassword
+      });
+      runner.setAuthHandler(authHandler);
+    }
+    
     await runner.initialize();
     const testResults = await runner.runTests(tests);
     await runner.cleanup();
@@ -264,7 +276,10 @@ function parseInputs(): ActionInputs {
     testTimeout: core.getInput('test-timeout') || '5m',
     cleanupDays: core.getInput('cleanup-days') || '30',
     viewports: core.getInput('viewports') || '1920x1080,768x1024,375x667',
-    maxRoutes: core.getInput('max-routes') || '10'
+    maxRoutes: core.getInput('max-routes') || '10',
+    authEmail: core.getInput('auth-email') || undefined,
+    authPassword: core.getInput('auth-password') || undefined,
+    authLoginUrl: core.getInput('auth-login-url') || '/login/password'
   };
 
   // Validate required inputs

@@ -45,9 +45,14 @@ class VisualRunner {
     constructor(firebaseConfig, outputDir, testTimeoutMs = 300000) {
         this.browser = null;
         this.context = null;
+        this.authHandler = null;
+        this.isAuthenticated = false;
         this.firebaseConfig = firebaseConfig;
         this.outputDir = outputDir;
         this.testTimeout = testTimeoutMs;
+    }
+    setAuthHandler(authHandler) {
+        this.authHandler = authHandler;
     }
     async initialize() {
         core.info('Initializing Playwright browser for React SPA testing...');
@@ -251,6 +256,17 @@ class VisualRunner {
         switch (action.type) {
             case 'goto':
                 core.info(`Navigating to: ${action.target}`);
+                if (this.authHandler && !this.isAuthenticated && !action.target.includes('/login')) {
+                    core.info('Authentication required, logging in first...');
+                    const loginSuccess = await this.authHandler.login(page, this.firebaseConfig.previewUrl);
+                    if (loginSuccess) {
+                        this.isAuthenticated = true;
+                        core.info('Authentication successful, proceeding to target URL');
+                    }
+                    else {
+                        throw new Error('Authentication failed');
+                    }
+                }
                 await page.goto(action.target, {
                     waitUntil: 'networkidle',
                     timeout

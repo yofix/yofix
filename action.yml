@@ -59,6 +59,19 @@ inputs:
     description: 'Maximum number of routes to test'
     required: false
     default: '10'
+  
+  auth-email:
+    description: 'Email for authentication (if app requires login)'
+    required: false
+  
+  auth-password:
+    description: 'Password for authentication (if app requires login)'
+    required: false
+  
+  auth-login-url:
+    description: 'Login page URL path'
+    required: false
+    default: '/login/password'
 
 outputs:
   status:

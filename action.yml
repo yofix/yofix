@@ -1,6 +1,6 @@
-name: 'Runtime PR Verification'
-description: 'Adds intelligent visual testing to React PRs using Claude AI analysis and Firebase preview URLs'
-author: 'Loop Kitchen'
+name: '@tryloop/visual-test'
+description: 'Intelligent visual regression testing for React PRs using Claude AI analysis'
+author: 'TryLoop'
 
 branding:
   icon: 'eye'

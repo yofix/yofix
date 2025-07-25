@@ -1,4 +1,4 @@
-# Runtime PR Verification Action
+# @tryloop/visual-test
 
 🚀 **Firebase-aware visual testing for React SPAs using Claude AI analysis**
 
@@ -43,7 +43,7 @@ jobs:
     needs: [deploy]
     runs-on: ubuntu-latest
     steps:
-      - uses: your-org/runtime-pr-verification@v1
+      - uses: LoopKitchen/runtime-pr-verification@v2
         with:
           preview-url: ${{ needs.deploy.outputs.preview_url }}
           firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
@@ -107,7 +107,7 @@ jobs:
     needs: [deploy-preview]
     runs-on: ubuntu-latest
     steps:
-      - uses: your-org/runtime-pr-verification@v1
+      - uses: LoopKitchen/runtime-pr-verification@v2
         with:
           preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
           firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
@@ -155,7 +155,7 @@ jobs:
     needs: [deploy-preview]
     runs-on: ubuntu-latest
     steps:
-      - uses: your-org/runtime-pr-verification@v1
+      - uses: LoopKitchen/runtime-pr-verification@v2
         with:
           preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
           firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
@@ -345,7 +345,7 @@ FIREBASE_STORAGE_BUCKET = "your-project-id.appspot.com"
 Override default test generation:
 
 ```yaml
-- uses: your-org/runtime-pr-verification@v1
+- uses: LoopKitchen/runtime-pr-verification@v2
   with:
     preview-url: ${{ needs.deploy.outputs.preview_url }}
     firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
@@ -371,7 +371,7 @@ strategy:
     environment: [staging, production]
     
 steps:
-  - uses: your-org/runtime-pr-verification@v1
+  - uses: LoopKitchen/runtime-pr-verification@v2
     with:
       preview-url: ${{ matrix.environment == 'staging' && needs.deploy.outputs.staging_url || needs.deploy.outputs.prod_url }}
       firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
@@ -395,7 +395,7 @@ Only run for UI changes:
       echo "ui-changes=false" >> $GITHUB_OUTPUT
     fi
 
-- uses: your-org/runtime-pr-verification@v1
+- uses: LoopKitchen/runtime-pr-verification@v2
   if: steps.ui-changes.outputs.ui-changes == 'true'
   with:
     # ... configuration
@@ -434,7 +434,7 @@ Failed to upload screenshot: Permission denied
 Enable verbose logging:
 
 ```yaml
-- uses: your-org/runtime-pr-verification@v1
+- uses: LoopKitchen/runtime-pr-verification@v2
   with:
     # ... other inputs
   env:

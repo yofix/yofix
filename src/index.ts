@@ -135,11 +135,35 @@ async function run(): Promise<void> {
     const uploadedScreenshots = await storageManager.uploadScreenshots(screenshots);
     const uploadedVideos = await storageManager.uploadVideos(videos);
     
+    // Debug: Log screenshot upload results
+    core.info(`Uploaded ${uploadedScreenshots.length} screenshots`);
+    const screenshotsWithUrls = uploadedScreenshots.filter(s => s.firebaseUrl);
+    core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
+    
+    // Update test results with uploaded screenshots that have Firebase URLs
+    const updatedTestResults = testResults.map(testResult => {
+      const updatedScreenshots = testResult.screenshots.map(screenshot => {
+        const uploaded = uploadedScreenshots.find(s => s.path === screenshot.path);
+        return uploaded || screenshot;
+      });
+      
+      const updatedVideos = testResult.videos.map(video => {
+        const uploaded = uploadedVideos.find(v => v.path === video.path);
+        return uploaded || video;
+      });
+      
+      return {
+        ...testResult,
+        screenshots: updatedScreenshots,
+        videos: updatedVideos
+      };
+    });
+    
     // Upload summary
     const summaryUrl = await storageManager.uploadSummary(
       uploadedScreenshots, 
       uploadedVideos, 
-      testResults
+      updatedTestResults
     );
 
     // Start cleanup of old artifacts (non-blocking)
@@ -149,24 +173,24 @@ async function run(): Promise<void> {
     );
 
     // 6. Generate verification result
-    const passedTests = testResults.filter(r => r.status === 'passed').length;
-    const failedTests = testResults.filter(r => r.status === 'failed').length;
-    const skippedTests = testResults.filter(r => r.status === 'skipped').length;
+    const passedTests = updatedTestResults.filter(r => r.status === 'passed').length;
+    const failedTests = updatedTestResults.filter(r => r.status === 'failed').length;
+    const skippedTests = updatedTestResults.filter(r => r.status === 'skipped').length;
     
     const verificationResult: VerificationResult = {
       status: failedTests === 0 ? 'success' : (passedTests > 0 ? 'partial' : 'failure'),
       firebaseConfig,
-      totalTests: testResults.length,
+      totalTests: updatedTestResults.length,
       passedTests,
       failedTests,
       skippedTests,
       duration: Date.now() - startTime,
-      testResults,
+      testResults: updatedTestResults,
       screenshotsUrl: summaryUrl || storageManager.generateStorageConsoleUrl(),
       summary: {
         componentsVerified: analysis.components,
         routesTested: analysis.routes,
-        issuesFound: testResults.flatMap(r => r.errors).slice(0, 10)
+        issuesFound: updatedTestResults.flatMap(r => r.errors).slice(0, 10)
       }
     };
 

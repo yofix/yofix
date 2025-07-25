@@ -5,7 +5,7 @@ export interface FirebaseConfig {
   previewUrl: string;
 }
 
-export interface GeminiAnalysis {
+export interface RouteAnalysisResult {
   hasUIChanges: boolean;
   changedPaths: string[];
   components: string[];
@@ -103,7 +103,7 @@ export interface ActionInputs {
   firebaseCredentials: string;
   storageBucket: string;
   githubToken: string;
-  geminiBotName: string;
+  claudeApiKey: string;
   firebaseProjectId?: string;
   firebaseTarget?: string;
   buildSystem?: 'vite' | 'react';

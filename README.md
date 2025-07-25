@@ -1,14 +1,14 @@
 # Runtime PR Verification Action
 
-🚀 **Firebase-aware visual testing for React SPAs using Gemini analysis**
+🚀 **Firebase-aware visual testing for React SPAs using Claude AI analysis**
 
-This GitHub Action adds runtime verification to your PR workflow by automatically testing React applications deployed to Firebase Hosting. It integrates with Gemini code review analysis to generate targeted visual tests, captures screenshots and videos, and posts comprehensive results back to your PR.
+This GitHub Action adds runtime verification to your PR workflow by automatically testing React applications deployed to Firebase Hosting. It uses Claude AI to intelligently analyze PR changes and determine which routes need visual testing, captures screenshots, and posts comprehensive results back to your PR.
 
 ## 🌟 Key Features
 
 - **🔥 Firebase Native**: Works seamlessly with Firebase Hosting preview deployments
 - **⚛️ React Optimized**: Specialized for React SPAs with Vite and Create React App support  
-- **🤖 Gemini Integration**: Parses AI code review analysis to generate relevant tests
+- **🧠 Claude AI Integration**: Intelligently analyzes PR file changes to determine contextual routes for testing
 - **📸 Visual Evidence**: Captures screenshots and videos across multiple viewports
 - **☁️ Integrated Storage**: Uploads results to your Firebase Storage bucket
 - **📝 Rich PR Comments**: Beautiful, collapsible PR comments with visual evidence
@@ -39,21 +39,17 @@ jobs:
           # Your Firebase deployment
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
 
-  gemini-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: your-org/gemini-code-review@v1
-
   visual-verification:
-    needs: [deploy, gemini-review]
+    needs: [deploy]
     runs-on: ubuntu-latest
     steps:
       - uses: your-org/runtime-pr-verification@v1
         with:
           preview-url: ${{ needs.deploy.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
           storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
 ```
 
 ### 2. Required Secrets & Variables
@@ -62,7 +58,8 @@ Set up these in your repository settings:
 
 ```bash
 # Secrets
-FIREBASE_SA_BASE64          # Base64 encoded Firebase service account JSON
+FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901          # Base64 encoded Firebase service account JSON
+CLAUDE_API_KEY             # Your Claude API key from Anthropic
 GITHUB_TOKEN               # Automatically provided by GitHub
 
 # Variables  
@@ -106,22 +103,14 @@ jobs:
           PREVIEW_URL="https://${{ vars.FIREBASE_PROJECT_ID }}--pr-${{ github.event.number }}-app.web.app"
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
 
-  gemini-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: your-org/gemini-review@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
   runtime-verification:
-    needs: [deploy-preview, gemini-review]
+    needs: [deploy-preview]
     runs-on: ubuntu-latest
     steps:
       - uses: your-org/runtime-pr-verification@v1
         with:
           preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
           storage-bucket: 'loop-frontend-screenshots'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # Auto-detects: firebase-target=app, build-system=vite
@@ -162,20 +151,14 @@ jobs:
           PREVIEW_URL="https://${{ vars.FIREBASE_PROJECT_ID }}--pr-${{ github.event.number }}-loop-ad.web.app"
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
 
-  gemini-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: your-org/gemini-review@v1
-
   runtime-verification:
-    needs: [deploy-preview, gemini-review]
+    needs: [deploy-preview]
     runs-on: ubuntu-latest
     steps:
       - uses: your-org/runtime-pr-verification@v1
         with:
           preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
           storage-bucket: 'loop-admin-screenshots'
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # Auto-detects: firebase-target=loop-ad, build-system=react
@@ -193,7 +176,6 @@ jobs:
 | `firebase-credentials` | ✅ | - | Base64 encoded service account JSON |
 | `storage-bucket` | ✅ | - | Firebase Storage bucket name |
 | `github-token` | ✅ | - | GitHub token for PR comments |
-| `gemini-bot-name` | ❌ | `gemini-bot` | Name of your Gemini review bot |
 | `firebase-project-id` | ❌ | *auto-detected* | Firebase project ID |
 | `firebase-target` | ❌ | *auto-detected* | Firebase hosting target |
 | `build-system` | ❌ | *auto-detected* | `vite` or `react` |
@@ -215,7 +197,7 @@ jobs:
 
 ## 🧪 Generated Tests
 
-The action automatically generates tests based on Gemini's analysis:
+The action automatically generates tests based on Claude's analysis:
 
 ### Component Tests
 - **Visibility**: Verifies React components render correctly
@@ -267,27 +249,31 @@ Firebase Storage Bucket:
 │   │   │   └── test-summary.json
 ```
 
-## 🤖 Gemini Integration
+## 🧠 Claude AI Integration
 
-### Supported Analysis Patterns
+### Intelligent Analysis
 
-The action parses Gemini comments for:
+Claude analyzes your PR changes to automatically determine:
 
-```markdown
-## Code Review Analysis
+- **File-based routing**: Maps `/pages/about.tsx` → `/about`
+- **Component dependencies**: Finds all routes using changed components
+- **Style impact**: Detects global CSS changes affecting multiple routes
+- **New/deleted routes**: Identifies route additions and removals
 
-**Components Modified**: `Header`, `LoginForm`, `Dashboard`
-**Routes Changed**: `/login`, `/dashboard`, `/settings`  
-**Risk Level**: Medium
-**Testing Suggestions**:
-- Verify login form validation
-- Test responsive header behavior
-- Check dashboard data loading
+### Example Analysis
+
+```json
+{
+  "routes": ["/checkout", "/cart", "/products"],
+  "reasoning": "Button component used across cart and products pages. New checkout page needs testing.",
+  "confidence": "high",
+  "changeType": "component"
+}
 ```
 
 ### Fallback Behavior
 
-If no Gemini comment is found, the action will:
+If Claude analysis fails, the action will:
 - Test the root route (`/`)
 - Perform basic React SPA verification
 - Capture responsive screenshots
@@ -362,7 +348,7 @@ Override default test generation:
 - uses: your-org/runtime-pr-verification@v1
   with:
     preview-url: ${{ needs.deploy.outputs.preview_url }}
-    firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+    firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
     storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
     github-token: ${{ secrets.GITHUB_TOKEN }}
     # Custom viewport configurations
@@ -388,7 +374,7 @@ steps:
   - uses: your-org/runtime-pr-verification@v1
     with:
       preview-url: ${{ matrix.environment == 'staging' && needs.deploy.outputs.staging_url || needs.deploy.outputs.prod_url }}
-      firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+      firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
       storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
       firebase-target: ${{ matrix.environment }}
@@ -487,7 +473,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🏷️ Version History
 
 - **v1.0.0**: Initial release with Firebase + React support
-- **v1.1.0**: Added Gemini integration and multi-viewport testing
+- **v1.1.0**: Added Claude AI integration and multi-viewport testing
 - **v1.2.0**: Enhanced error handling and performance optimization
 
 ---

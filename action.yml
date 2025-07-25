@@ -1,5 +1,5 @@
 name: 'Runtime PR Verification'
-description: 'Adds visual testing to React PRs using Gemini analysis and Firebase preview URLs'
+description: 'Adds intelligent visual testing to React PRs using Claude AI analysis and Firebase preview URLs'
 author: 'Loop Kitchen'
 
 branding:
@@ -23,10 +23,9 @@ inputs:
     description: 'GitHub token for posting PR comments'
     required: true
   
-  gemini-bot-name:
-    description: 'Name of the Gemini bot that posts code reviews'
-    required: false
-    default: 'gemini-bot'
+  claude-api-key:
+    description: 'Claude API key for intelligent route analysis'
+    required: true
   
   firebase-project-id:
     description: 'Firebase project ID (auto-detected from preview URL if not provided)'

@@ -88,9 +88,10 @@ jobs:
         uses: your-org/runtime-pr-verification@v1
         with:
           preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FIREBASE_SA_BASE64 }}
+          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
           storage-bucket: 'loop-frontend-screenshots'
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           # Optional: Override auto-detection
           firebase-project-id: ${{ vars.FIREBASE_PROJECT_ID }}
           firebase-target: ${{ needs.deploy-preview.outputs.firebase_target }}

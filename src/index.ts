@@ -4,12 +4,13 @@ import path from 'path';
 import os from 'os';
 
 import { FirebaseUrlHandler } from './firebase-url-handler';
-import { GeminiParser } from './gemini-parser';
+import { ClaudeRouteAnalyzer, RouteAnalysis } from './claude-route-analyzer';
 import { TestGenerator } from './test-generator';
 import { VisualRunner } from './visual-runner';
 import { FirebaseStorageManager } from './firebase-storage';
 import { PRReporter } from './pr-reporter';
-import { ActionInputs, VerificationResult, FirebaseStorageConfig, TestAction } from './types';
+import { ActionInputs, VerificationResult, FirebaseStorageConfig, TestAction, RouteAnalysisResult } from './types';
+import * as github from '@actions/github';
 
 /**
  * Main orchestrator for Runtime PR Verification
@@ -48,13 +49,37 @@ async function run(): Promise<void> {
     core.setOutput('firebase-target', firebaseConfig.target);
     core.setOutput('build-system', firebaseConfig.buildSystem);
 
-    // 2. Parse Gemini analysis
-    core.info('🤖 Step 2: Parsing Gemini analysis...');
-    const geminiParser = new GeminiParser(inputs.githubToken, inputs.geminiBotName);
-    let analysis = await geminiParser.getAnalysis();
+    // 2. Analyze PR with Claude AI
+    core.info('🧠 Step 2: Analyzing PR with Claude AI...');
+    const claudeAnalyzer = new ClaudeRouteAnalyzer(inputs.claudeApiKey, inputs.githubToken);
     
-    if (!analysis) {
-      core.warning('No Gemini analysis found, proceeding with basic testing');
+    let routeAnalysis: RouteAnalysis | undefined;
+    let analysis: RouteAnalysisResult;
+    
+    try {
+      const { context } = github;
+      const prNumber = context.payload.pull_request?.number;
+      if (!prNumber) {
+        throw new Error('No PR number found in context');
+      }
+      
+      routeAnalysis = await claudeAnalyzer.analyzeRoutes(prNumber);
+      core.info(`Claude identified ${routeAnalysis.routes.length} routes with ${routeAnalysis.confidence} confidence`);
+      core.info(`Reasoning: ${routeAnalysis.reasoning}`);
+      
+      // Convert Claude analysis to our legacy format
+      analysis = {
+        hasUIChanges: true,
+        changedPaths: [], // This will be populated by Claude analysis
+        components: [],
+        routes: routeAnalysis.routes,
+        testSuggestions: [`Visual testing for ${routeAnalysis.changeType} changes`],
+        riskLevel: routeAnalysis.confidence === 'high' ? 'low' : routeAnalysis.confidence === 'medium' ? 'medium' : 'high'
+      };
+    } catch (error) {
+      core.warning(`Claude analysis failed: ${error}. Proceeding with basic testing...`);
+      
+      // Fallback to basic analysis
       analysis = {
         hasUIChanges: true,
         changedPaths: [],
@@ -80,7 +105,7 @@ async function run(): Promise<void> {
     const tests = testGenerator.generateTests(analysis);
     
     if (tests.length === 0) {
-      throw new Error('No tests generated from Gemini analysis');
+      throw new Error('No tests generated from route analysis');
     }
     
     core.info(`Generated ${tests.length} tests for React SPA verification`);
@@ -208,7 +233,7 @@ function parseInputs(): ActionInputs {
     firebaseCredentials: core.getInput('firebase-credentials', { required: true }),
     storageBucket: core.getInput('storage-bucket', { required: true }),
     githubToken: core.getInput('github-token', { required: true }),
-    geminiBotName: core.getInput('gemini-bot-name') || 'gemini-bot',
+    claudeApiKey: core.getInput('claude-api-key', { required: true }),
     firebaseProjectId: core.getInput('firebase-project-id') || undefined,
     firebaseTarget: core.getInput('firebase-target') || undefined,
     buildSystem: (core.getInput('build-system') as 'vite' | 'react') || undefined,

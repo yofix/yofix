@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { GeminiAnalysis, TestTemplate, TestAction, TestAssertion, Viewport, FirebaseConfig } from './types';
+import { RouteAnalysisResult, TestTemplate, TestAction, TestAssertion, Viewport, FirebaseConfig } from './types';
 
 export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
@@ -11,10 +11,10 @@ export class TestGenerator {
   }
 
   /**
-   * Generate comprehensive test suite based on Gemini analysis
+   * Generate comprehensive test suite based on route analysis
    */
-  generateTests(analysis: GeminiAnalysis): TestTemplate[] {
-    core.info('Generating React SPA tests based on Gemini analysis...');
+  generateTests(analysis: RouteAnalysisResult): TestTemplate[] {
+    core.info('Generating React SPA tests based on route analysis...');
     
     const tests: TestTemplate[] = [];
 

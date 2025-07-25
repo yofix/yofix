@@ -68,12 +68,16 @@ class VisualRunner {
                     '--disable-backgrounding-occluded-windows'
                 ]
             });
+            const videoDir = path_1.default.join(this.outputDir, 'videos-temp');
+            await fs_1.promises.mkdir(videoDir, { recursive: true });
             this.context = await this.browser.newContext({
                 ignoreHTTPSErrors: true,
                 recordVideo: {
-                    dir: path_1.default.join(this.outputDir, 'videos'),
-                    size: { width: 1920, height: 1080 }
-                }
+                    dir: videoDir,
+                    size: { width: 1280, height: 720 }
+                },
+                viewport: { width: 1280, height: 720 },
+                deviceScaleFactor: 1
             });
             this.context.setDefaultTimeout(this.testTimeout);
             this.context.setDefaultNavigationTimeout(this.testTimeout);
@@ -124,6 +128,8 @@ class VisualRunner {
         const screenshots = [];
         let videos = [];
         try {
+            const hasVideo = page.video() !== null;
+            core.info(`Test "${test.name}" - Video recording: ${hasVideo ? 'enabled' : 'disabled'}`);
             if (test.viewport) {
                 await page.setViewportSize({
                     width: test.viewport.width,
@@ -173,25 +179,55 @@ class VisualRunner {
             });
             const video = page.video();
             if (video) {
-                const videoPath = await video.path();
-                const videoName = `${test.id}-${test.viewport?.name || 'default'}.webm`;
-                const finalVideoPath = path_1.default.join(this.outputDir, 'videos', videoName);
-                videos.push({
-                    name: videoName,
-                    path: finalVideoPath,
-                    duration: Date.now() - startTime,
-                    timestamp: startTime
-                });
+                core.info(`Video recording detected for test: ${test.name}`);
                 await page.close();
                 try {
-                    await fs_1.promises.mkdir(path_1.default.dirname(finalVideoPath), { recursive: true });
-                    await fs_1.promises.copyFile(videoPath, finalVideoPath);
+                    const videoPath = await video.path();
+                    core.info(`Video path obtained: ${videoPath}`);
+                    if (videoPath) {
+                        const videoName = `${test.id}-${test.viewport?.width}x${test.viewport?.height}.webm`;
+                        const finalVideoPath = path_1.default.join(this.outputDir, 'videos', videoName);
+                        await fs_1.promises.mkdir(path_1.default.dirname(finalVideoPath), { recursive: true });
+                        core.info('Waiting for video to be fully written...');
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        try {
+                            await fs_1.promises.access(videoPath);
+                            const sourceStats = await fs_1.promises.stat(videoPath);
+                            core.info(`Source video size: ${sourceStats.size} bytes`);
+                            if (sourceStats.size > 0) {
+                                await fs_1.promises.copyFile(videoPath, finalVideoPath);
+                                const stats = await fs_1.promises.stat(finalVideoPath);
+                                if (stats.size > 0) {
+                                    videos.push({
+                                        name: videoName,
+                                        path: finalVideoPath,
+                                        duration: Date.now() - startTime,
+                                        timestamp: startTime
+                                    });
+                                    core.info(`Video saved successfully: ${videoName} (${stats.size} bytes)`);
+                                }
+                                else {
+                                    core.warning(`Video file is empty after copy: ${videoName}`);
+                                }
+                            }
+                            else {
+                                core.warning(`Source video file is empty: ${videoPath}`);
+                            }
+                        }
+                        catch (videoError) {
+                            core.warning(`Failed to save video ${videoName}: ${videoError}`);
+                        }
+                    }
+                    else {
+                        core.warning('Video path is null');
+                    }
                 }
-                catch (videoError) {
-                    core.warning(`Failed to save video: ${videoError}`);
+                catch (error) {
+                    core.warning(`Failed to process video: ${error}`);
                 }
             }
             else {
+                core.info('No video recording for this test');
                 await page.close();
             }
             return {

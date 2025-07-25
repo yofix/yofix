@@ -132,19 +132,32 @@ class FirebaseStorageManager {
                     uploadedVideos.push(video);
                     continue;
                 }
+                const videoStats = await fs_1.promises.stat(video.path);
+                if (videoStats.size === 0) {
+                    core.warning(`Video file is empty: ${video.path}`);
+                    uploadedVideos.push(video);
+                    continue;
+                }
+                core.info(`Uploading video: ${video.name} (${videoStats.size} bytes)`);
                 const storagePath = this.generateStoragePath('videos', video.name);
                 const file = this.bucket.file(storagePath);
-                await file.save(await fs_1.promises.readFile(video.path), {
+                const videoContent = await fs_1.promises.readFile(video.path);
+                const contentType = video.name.endsWith('.mp4') ? 'video/mp4' : 'video/webm';
+                await file.save(videoContent, {
                     metadata: {
-                        contentType: 'video/webm',
+                        contentType: contentType,
+                        cacheControl: 'public, max-age=3600',
                         metadata: {
                             prNumber: this.prNumber.toString(),
                             duration: video.duration.toString(),
                             timestamp: video.timestamp.toString(),
+                            fileSize: videoStats.size.toString(),
                             firebaseProject: this.firebaseConfig.projectId,
-                            firebaseTarget: this.firebaseConfig.target
+                            firebaseTarget: this.firebaseConfig.target,
+                            mimeType: contentType
                         }
-                    }
+                    },
+                    resumable: false
                 });
                 const [signedUrl] = await file.getSignedUrl({
                     action: 'read',

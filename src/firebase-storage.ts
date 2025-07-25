@@ -147,7 +147,7 @@ export class FirebaseStorageManager {
     
     for (const video of videos) {
       try {
-        // Check if video file exists
+        // Check if video file exists and has content
         const videoExists = await fs.access(video.path).then(() => true).catch(() => false);
         if (!videoExists) {
           core.warning(`Video file not found: ${video.path}`);
@@ -155,21 +155,41 @@ export class FirebaseStorageManager {
           continue;
         }
 
+        // Check video file size
+        const videoStats = await fs.stat(video.path);
+        if (videoStats.size === 0) {
+          core.warning(`Video file is empty: ${video.path}`);
+          uploadedVideos.push(video);
+          continue;
+        }
+
+        core.info(`Uploading video: ${video.name} (${videoStats.size} bytes)`);
+
         const storagePath = this.generateStoragePath('videos', video.name);
         const file = this.bucket.file(storagePath);
         
-        // Upload file
-        await file.save(await fs.readFile(video.path), {
+        // Read video file content
+        const videoContent = await fs.readFile(video.path);
+        
+        // Determine content type based on file extension
+        const contentType = video.name.endsWith('.mp4') ? 'video/mp4' : 'video/webm';
+        
+        // Upload file with proper metadata
+        await file.save(videoContent, {
           metadata: {
-            contentType: 'video/webm',
+            contentType: contentType,
+            cacheControl: 'public, max-age=3600',
             metadata: {
               prNumber: this.prNumber.toString(),
               duration: video.duration.toString(),
               timestamp: video.timestamp.toString(),
+              fileSize: videoStats.size.toString(),
               firebaseProject: this.firebaseConfig.projectId,
-              firebaseTarget: this.firebaseConfig.target
+              firebaseTarget: this.firebaseConfig.target,
+              mimeType: contentType
             }
-          }
+          },
+          resumable: false // Use simple upload for videos under 5MB
         });
 
         // Generate signed URL

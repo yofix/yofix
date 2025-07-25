@@ -149,6 +149,12 @@ ${message}
             core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
             comment += this.generateEmbeddedScreenshots(screenshots);
         }
+        if (videos.length > 0) {
+            core.info(`Embedding ${videos.length} videos in PR comment`);
+            const videosWithUrls = videos.filter(v => v.firebaseUrl);
+            core.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
+            comment += this.generateEmbeddedVideos(videos);
+        }
         comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
         if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
             comment += '### ✅ React App Verification\n\n';
@@ -275,6 +281,43 @@ ${message}
             }
             gallery += '</tr>\n</table>\n\n';
         }
+        return gallery;
+    }
+    generateEmbeddedVideos(videos) {
+        if (videos.length === 0) {
+            return '';
+        }
+        let gallery = '### 🎥 Test Videos\n\n';
+        const videosWithUrls = videos.filter(v => v.firebaseUrl);
+        if (videosWithUrls.length === 0) {
+            gallery += '_Videos captured but URLs not available_\n\n';
+            return gallery;
+        }
+        gallery += '<table>\n';
+        for (let i = 0; i < videosWithUrls.length; i += 3) {
+            gallery += '<tr>\n';
+            for (let j = i; j < Math.min(i + 3, videosWithUrls.length); j++) {
+                const video = videosWithUrls[j];
+                gallery += `<td align="center" width="33%">\n`;
+                gallery += `<a href="${video.firebaseUrl}">\n`;
+                gallery += `<div>🎬</div>\n`;
+                gallery += `<strong>${video.name.replace(/\.(webm|mp4)$/, '')}</strong><br>\n`;
+                gallery += `<em>${this.formatDuration(video.duration)}</em><br>\n`;
+                gallery += `<kbd>▶️ Click to Play</kbd>\n`;
+                gallery += `</a>\n`;
+                gallery += `</td>\n`;
+            }
+            for (let k = videosWithUrls.length % 3; k < 3 && k > 0 && i + 3 > videosWithUrls.length; k++) {
+                gallery += `<td></td>\n`;
+            }
+            gallery += '</tr>\n';
+        }
+        gallery += '</table>\n\n';
+        gallery += '<details>\n<summary>Direct video links</summary>\n\n';
+        for (const video of videosWithUrls) {
+            gallery += `- [${video.name}](${video.firebaseUrl}) - ${this.formatDuration(video.duration)}\n`;
+        }
+        gallery += '\n</details>\n\n';
         return gallery;
     }
     generateStatusBadge(result) {

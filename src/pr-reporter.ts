@@ -149,6 +149,15 @@ ${message}
       
       comment += this.generateEmbeddedScreenshots(screenshots);
     }
+    
+    // Embed videos directly
+    if (videos.length > 0) {
+      core.info(`Embedding ${videos.length} videos in PR comment`);
+      const videosWithUrls = videos.filter(v => v.firebaseUrl);
+      core.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
+      
+      comment += this.generateEmbeddedVideos(videos);
+    }
 
 
     // Expandable details section
@@ -338,6 +347,64 @@ ${message}
     return gallery;
   }
 
+  /**
+   * Generate embedded videos for PR comment
+   */
+  private generateEmbeddedVideos(videos: Video[]): string {
+    if (videos.length === 0) {
+      return '';
+    }
+
+    let gallery = '### 🎥 Test Videos\n\n';
+    
+    // Only show videos that have Firebase URLs
+    const videosWithUrls = videos.filter(v => v.firebaseUrl);
+    
+    if (videosWithUrls.length === 0) {
+      gallery += '_Videos captured but URLs not available_\n\n';
+      return gallery;
+    }
+    
+    // GitHub doesn't support video embedding, so we'll create nice preview links
+    // with video thumbnails if possible
+    gallery += '<table>\n';
+    
+    // Create rows of 3 videos each
+    for (let i = 0; i < videosWithUrls.length; i += 3) {
+      gallery += '<tr>\n';
+      
+      for (let j = i; j < Math.min(i + 3, videosWithUrls.length); j++) {
+        const video = videosWithUrls[j];
+        gallery += `<td align="center" width="33%">\n`;
+        gallery += `<a href="${video.firebaseUrl}">\n`;
+        // Use a play button emoji as a visual indicator
+        gallery += `<div>🎬</div>\n`;
+        gallery += `<strong>${video.name.replace(/\.(webm|mp4)$/, '')}</strong><br>\n`;
+        gallery += `<em>${this.formatDuration(video.duration)}</em><br>\n`;
+        gallery += `<kbd>▶️ Click to Play</kbd>\n`;
+        gallery += `</a>\n`;
+        gallery += `</td>\n`;
+      }
+      
+      // Fill empty cells if needed
+      for (let k = videosWithUrls.length % 3; k < 3 && k > 0 && i + 3 > videosWithUrls.length; k++) {
+        gallery += `<td></td>\n`;
+      }
+      
+      gallery += '</tr>\n';
+    }
+    
+    gallery += '</table>\n\n';
+    
+    // Add direct links as well
+    gallery += '<details>\n<summary>Direct video links</summary>\n\n';
+    for (const video of videosWithUrls) {
+      gallery += `- [${video.name}](${video.firebaseUrl}) - ${this.formatDuration(video.duration)}\n`;
+    }
+    gallery += '\n</details>\n\n';
+
+    return gallery;
+  }
 
   /**
    * Generate compact status badge for quick overview

@@ -143,6 +143,10 @@ ${message}
 
     // Embed screenshots directly
     if (screenshots.length > 0) {
+      core.info(`Embedding ${screenshots.length} screenshots in PR comment`);
+      const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
+      core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
+      
       comment += this.generateEmbeddedScreenshots(screenshots);
     }
 
@@ -286,9 +290,15 @@ ${message}
 
     let gallery = '### 📸 Screenshots\n\n';
     
-    // Group screenshots by route
+    // Group screenshots by test/route name (remove viewport info)
     const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.name.split('-').slice(0, -1).join('-') || 'home';
+      // Extract route from screenshot name by removing viewport dimensions
+      let route = screenshot.name;
+      // Remove viewport size pattern (e.g., -1920x1080)
+      route = route.replace(/-\d+x\d+$/, '');
+      // Clean up the route name
+      route = route.replace(/^\//, '').replace(/-/g, ' ');
+      
       if (!acc[route]) {
         acc[route] = [];
       }
@@ -296,23 +306,30 @@ ${message}
       return acc;
     }, {} as Record<string, Screenshot[]>);
 
+    // Generate gallery for each route
     for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      gallery += `#### Route: \`/${route}\`\n\n`;
+      gallery += `#### Route: \`${route}\`\n\n`;
+      
+      // Only show images if they have Firebase URLs
+      const screenshotsWithUrls = routeScreenshots.filter(s => s.firebaseUrl);
+      
+      if (screenshotsWithUrls.length === 0) {
+        gallery += `_Screenshots captured but URLs not available_\n\n`;
+        continue;
+      }
       
       // Create a table for viewports
       gallery += '<table>\n<tr>\n';
       
       // Sort by viewport size (desktop, tablet, mobile)
-      const sorted = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
+      const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
       
       for (const screenshot of sorted) {
-        if (screenshot.firebaseUrl) {
-          gallery += `<td align="center">\n`;
-          gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
-          gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
-          gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}">\n`;
-          gallery += `</td>\n`;
-        }
+        gallery += `<td align="center">\n`;
+        gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
+        gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
+        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}" />\n`;
+        gallery += `</td>\n`;
       }
       
       gallery += '</tr>\n</table>\n\n';

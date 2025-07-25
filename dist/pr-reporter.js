@@ -144,6 +144,9 @@ ${message}
             comment += '\n\n';
         }
         if (screenshots.length > 0) {
+            core.info(`Embedding ${screenshots.length} screenshots in PR comment`);
+            const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
+            core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
             comment += this.generateEmbeddedScreenshots(screenshots);
         }
         comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
@@ -245,7 +248,9 @@ ${message}
         }
         let gallery = '### 📸 Screenshots\n\n';
         const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-            const route = screenshot.name.split('-').slice(0, -1).join('-') || 'home';
+            let route = screenshot.name;
+            route = route.replace(/-\d+x\d+$/, '');
+            route = route.replace(/^\//, '').replace(/-/g, ' ');
             if (!acc[route]) {
                 acc[route] = [];
             }
@@ -253,17 +258,20 @@ ${message}
             return acc;
         }, {});
         for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-            gallery += `#### Route: \`/${route}\`\n\n`;
+            gallery += `#### Route: \`${route}\`\n\n`;
+            const screenshotsWithUrls = routeScreenshots.filter(s => s.firebaseUrl);
+            if (screenshotsWithUrls.length === 0) {
+                gallery += `_Screenshots captured but URLs not available_\n\n`;
+                continue;
+            }
             gallery += '<table>\n<tr>\n';
-            const sorted = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
+            const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
             for (const screenshot of sorted) {
-                if (screenshot.firebaseUrl) {
-                    gallery += `<td align="center">\n`;
-                    gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
-                    gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
-                    gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}">\n`;
-                    gallery += `</td>\n`;
-                }
+                gallery += `<td align="center">\n`;
+                gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
+                gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
+                gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}" />\n`;
+                gallery += `</td>\n`;
             }
             gallery += '</tr>\n</table>\n\n';
         }

@@ -32,17 +32,25 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VisualAnalyzer = void 0;
 const core = __importStar(require("@actions/core"));
 const sdk_1 = require("@anthropic-ai/sdk");
 const claude_route_analyzer_1 = require("../claude-route-analyzer");
+const CacheManager_1 = require("../cache/CacheManager");
+const ImageOptimizer_1 = require("../optimization/ImageOptimizer");
+const crypto_1 = __importDefault(require("crypto"));
 class VisualAnalyzer {
-    constructor(claudeApiKey, githubToken = '') {
+    constructor(claudeApiKey, githubToken = '', cache) {
         this.codebaseContext = null;
         this.claude = new sdk_1.Anthropic({ apiKey: claudeApiKey });
         this.claudeApiKey = claudeApiKey;
         this.githubToken = githubToken;
+        this.cache = cache || new CacheManager_1.CacheManager();
+        this.imageOptimizer = new ImageOptimizer_1.ImageOptimizer();
     }
     async scan(options) {
         const startTime = Date.now();
@@ -147,8 +155,21 @@ This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.lo
     }
     async captureAndAnalyze(page, route) {
         const screenshot = await page.screenshot({ fullPage: true });
-        const base64Image = screenshot.toString('base64');
-        const response = await this.claude.messages.create({
+        const optimized = await this.imageOptimizer.optimize(screenshot, {
+            format: 'webp',
+            quality: 90
+        });
+        const imageHash = crypto_1.default
+            .createHash('sha256')
+            .update(optimized.buffer)
+            .digest('hex');
+        const base64Image = optimized.buffer.toString('base64');
+        const cacheKey = this.cache.createVisualAnalysisKey({
+            imageHash,
+            analysisType: 'visual-issues',
+            options: { route }
+        });
+        const response = await this.cache.wrap(cacheKey, () => this.claude.messages.create({
             model: 'claude-3-haiku-20240307',
             max_tokens: 1024,
             temperature: 0.3,
@@ -184,7 +205,7 @@ Format your response as JSON.`
                         }
                     ]
                 }]
-        });
+        }), { ttl: 3600 });
         let issues = [];
         try {
             const analysisText = response.content[0].type === 'text' ? response.content[0].text : '';

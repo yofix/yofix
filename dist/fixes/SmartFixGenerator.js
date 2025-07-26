@@ -39,13 +39,15 @@ const sdk_1 = require("@anthropic-ai/sdk");
 const PatternMatcher_1 = require("./PatternMatcher");
 const FixValidator_1 = require("./FixValidator");
 const FixTemplates_1 = require("./FixTemplates");
+const CacheManager_1 = require("../cache/CacheManager");
 class SmartFixGenerator {
-    constructor(claudeApiKey, context) {
+    constructor(claudeApiKey, context, cache) {
         this.context = context;
         this.claude = new sdk_1.Anthropic({ apiKey: claudeApiKey });
         this.patternMatcher = new PatternMatcher_1.PatternMatcher();
         this.validator = new FixValidator_1.FixValidator();
         this.templates = new FixTemplates_1.FixTemplates();
+        this.cache = cache || new CacheManager_1.CacheManager();
     }
     async generateFix(issue) {
         try {
@@ -54,7 +56,13 @@ class SmartFixGenerator {
                 await this.patternMatcher.findSimilarPatterns(issue, this.context) :
                 [];
             const prompt = this.buildContextualPrompt(issue, patterns, template);
-            const fixData = await this.generateWithClaude(prompt, issue);
+            const cacheKey = this.cache.createAIResponseKey({
+                model: 'claude-3-5-sonnet-20241022',
+                prompt,
+                temperature: 0.3,
+                maxTokens: 2048
+            });
+            const fixData = await this.cache.wrap(cacheKey, () => this.generateWithClaude(prompt, issue), { ttl: 7200 });
             if (!fixData) {
                 return null;
             }

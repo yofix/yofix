@@ -49,13 +49,13 @@
 - [ ] Add version management
 - [ ] Create diff visualization
 
-#### Day 8-9: Performance Optimization 🔴
-- [ ] Add Redis caching layer
-- [ ] Implement WebP conversion
-- [ ] Create image compression pipeline
-- [ ] Batch AI API calls
-- [ ] Add request queuing
-- [ ] Optimize screenshot capture
+#### Day 8-9: Performance Optimization ✅
+- [x] Add Redis caching layer
+- [x] Implement WebP conversion
+- [x] Create image compression pipeline
+- [x] Batch AI API calls
+- [x] Add request queuing
+- [x] Optimize screenshot capture
 
 #### Day 10: Beta Release 🔴
 - [ ] Finalize GitHub Action v1.0
@@ -74,7 +74,7 @@
 4. **FixTemplates** - Pre-defined solutions for 9 common issue types
 
 ### In Progress ⏳
-- Week 2: Baseline Management System
+- Week 2 Day 10: Beta Release preparation
 
 ### Not Started 🔴
 - Baseline Management
@@ -88,6 +88,11 @@
 - `/src/fixes/FixTemplates.ts` - Template library for common issues
 - `/src/context/CodebaseAnalyzer.ts` - AST-based codebase analysis
 - `/src/context/types.ts` - TypeScript interfaces for context
+- `/src/baseline/BaselineStorage.ts` - Baseline storage management
+- `/src/baseline/BaselineStrategies.ts` - Smart baseline selection
+- `/src/baseline/VisualDiffer.ts` - Pixel-perfect visual comparison
+- `/src/cache/CacheManager.ts` - Redis and memory caching
+- `/src/optimization/ImageOptimizer.ts` - WebP conversion and optimization
 - `/test/integration/test-fix-generation.ts` - Integration test
 
 ## 🎯 Next Steps

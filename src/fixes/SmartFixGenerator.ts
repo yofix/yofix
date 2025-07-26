@@ -5,6 +5,7 @@ import { CodebaseContext } from '../context/types';
 import { PatternMatcher } from './PatternMatcher';
 import { FixValidator } from './FixValidator';
 import { FixTemplates } from './FixTemplates';
+import { CacheManager } from '../cache/CacheManager';
 
 /**
  * Smart fix generator that uses codebase context and patterns
@@ -14,15 +15,18 @@ export class SmartFixGenerator {
   private patternMatcher: PatternMatcher;
   private validator: FixValidator;
   private templates: FixTemplates;
+  private cache: CacheManager;
 
   constructor(
     claudeApiKey: string,
-    private context?: CodebaseContext
+    private context?: CodebaseContext,
+    cache?: CacheManager
   ) {
     this.claude = new Anthropic({ apiKey: claudeApiKey });
     this.patternMatcher = new PatternMatcher();
     this.validator = new FixValidator();
     this.templates = new FixTemplates();
+    this.cache = cache || new CacheManager();
   }
 
   /**
@@ -41,8 +45,19 @@ export class SmartFixGenerator {
       // Step 3: Build contextual prompt
       const prompt = this.buildContextualPrompt(issue, patterns, template);
       
-      // Step 4: Generate fix with Claude
-      const fixData = await this.generateWithClaude(prompt, issue);
+      // Step 4: Generate fix with Claude (with caching)
+      const cacheKey = this.cache.createAIResponseKey({
+        model: 'claude-3-5-sonnet-20241022',
+        prompt,
+        temperature: 0.3,
+        maxTokens: 2048
+      });
+      
+      const fixData = await this.cache.wrap(
+        cacheKey,
+        () => this.generateWithClaude(prompt, issue),
+        { ttl: 7200 } // Cache for 2 hours
+      );
       
       if (!fixData) {
         return null;

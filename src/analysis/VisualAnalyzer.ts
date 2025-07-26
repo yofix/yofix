@@ -10,6 +10,9 @@ import { FirebaseConfig } from '../types';
 import * as github from '@actions/github';
 import { ClaudeRouteAnalyzer } from '../claude-route-analyzer';
 import { CodebaseContext } from '../context/types';
+import { CacheManager } from '../cache/CacheManager';
+import { ImageOptimizer } from '../optimization/ImageOptimizer';
+import crypto from 'crypto';
 
 /**
  * Visual analysis engine using Claude AI
@@ -19,11 +22,15 @@ export class VisualAnalyzer {
   private claudeApiKey: string;
   private githubToken: string;
   private codebaseContext: CodebaseContext | null = null;
+  private cache: CacheManager;
+  private imageOptimizer: ImageOptimizer;
 
-  constructor(claudeApiKey: string, githubToken: string = '') {
+  constructor(claudeApiKey: string, githubToken: string = '', cache?: CacheManager) {
     this.claude = new Anthropic({ apiKey: claudeApiKey });
     this.claudeApiKey = claudeApiKey;
     this.githubToken = githubToken;
+    this.cache = cache || new CacheManager();
+    this.imageOptimizer = new ImageOptimizer();
   }
 
   /**
@@ -174,15 +181,36 @@ This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.lo
     // Take screenshot
     const screenshot = await page.screenshot({ fullPage: true });
     
-    // Convert to base64 for Claude Vision API
-    const base64Image = screenshot.toString('base64');
+    // Optimize screenshot first
+    const optimized = await this.imageOptimizer.optimize(screenshot, {
+      format: 'webp',
+      quality: 90
+    });
     
-    // Analyze with Claude Vision
-    const response = await this.claude.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 1024,
-      temperature: 0.3,
-      messages: [{
+    // Generate image hash for caching
+    const imageHash = crypto
+      .createHash('sha256')
+      .update(optimized.buffer)
+      .digest('hex');
+    
+    // Convert to base64 for Claude Vision API
+    const base64Image = optimized.buffer.toString('base64');
+    
+    // Create cache key
+    const cacheKey = this.cache.createVisualAnalysisKey({
+      imageHash,
+      analysisType: 'visual-issues',
+      options: { route }
+    });
+    
+    // Analyze with Claude Vision (with caching)
+    const response = await this.cache.wrap(
+      cacheKey,
+      () => this.claude.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1024,
+        temperature: 0.3,
+        messages: [{
         role: 'user',
         content: [
           {
@@ -214,7 +242,9 @@ Format your response as JSON.`
           }
         ]
       }]
-    });
+    }),
+      { ttl: 3600 } // Cache for 1 hour
+    );
     
     // Parse Claude's response
     let issues: VisualIssue[] = [];

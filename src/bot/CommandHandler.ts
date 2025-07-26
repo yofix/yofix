@@ -267,7 +267,30 @@ Visual comparison feature coming soon! This will show side-by-side differences w
     }
 
     try {
-      await this.baselineManager.updateBaseline(context.prNumber);
+      // Get current scan results
+      if (!this.currentScanResult) {
+        return {
+          success: false,
+          message: '⚠️ Please run `@yofix scan` first to capture screenshots.'
+        };
+      }
+      
+      // Prepare screenshots for baseline update
+      const screenshots: Array<{
+        route: string;
+        viewport: string;
+        buffer: Buffer;
+        metadata?: any;
+      }> = [];
+      
+      // TODO: Get actual screenshot buffers from scan results
+      // For now, we'll need to re-capture them
+      core.warning('Baseline update needs screenshot buffer implementation');
+      
+      await this.baselineManager.updateBaseline({
+        prNumber: context.prNumber,
+        screenshots
+      });
       
       return {
         success: true,

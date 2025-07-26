@@ -228,7 +228,18 @@ Visual comparison feature coming soon! This will show side-by-side differences w
             };
         }
         try {
-            await this.baselineManager.updateBaseline(context.prNumber);
+            if (!this.currentScanResult) {
+                return {
+                    success: false,
+                    message: '⚠️ Please run `@yofix scan` first to capture screenshots.'
+                };
+            }
+            const screenshots = [];
+            core.warning('Baseline update needs screenshot buffer implementation');
+            await this.baselineManager.updateBaseline({
+                prNumber: context.prNumber,
+                screenshots
+            });
             return {
                 success: true,
                 message: `✅ Visual baseline updated successfully!

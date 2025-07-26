@@ -11,11 +11,41 @@ import { FirebaseStorageManager } from './firebase-storage';
 import { PRReporter } from './pr-reporter';
 import { ActionInputs, VerificationResult, FirebaseStorageConfig, TestAction, RouteAnalysisResult } from './types';
 import * as github from '@actions/github';
+import { YoFixBot } from './bot/YoFixBot';
 
 /**
- * Main orchestrator for Runtime PR Verification
+ * Main orchestrator for YoFix
  */
 async function run(): Promise<void> {
+  // Check if this is a bot command
+  const eventName = github.context.eventName;
+  
+  if (eventName === 'issue_comment') {
+    await handleBotCommand();
+    return;
+  }
+  
+  // Otherwise, run as GitHub Action
+  await runVisualTesting();
+}
+
+/**
+ * Handle bot commands from PR comments
+ */
+async function handleBotCommand(): Promise<void> {
+  try {
+    const inputs = parseInputs();
+    const bot = new YoFixBot(inputs.githubToken, inputs.claudeApiKey);
+    await bot.handleIssueComment(github.context);
+  } catch (error) {
+    core.setFailed(`Bot error: ${error}`);
+  }
+}
+
+/**
+ * Run visual testing as GitHub Action
+ */
+async function runVisualTesting(): Promise<void> {
   const startTime = Date.now();
   let outputDir: string | null = null;
   let reporter: PRReporter | null = null;

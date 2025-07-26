@@ -1,10 +1,10 @@
-name: '@tryloop/visual-test'
-description: 'Intelligent visual regression testing for React PRs using Claude AI analysis'
-author: 'TryLoop'
+name: 'yofix'
+description: 'AI-powered visual issue detection and auto-fix for web applications'
+author: 'YoFix'
 
 branding:
-  icon: 'eye'
-  color: 'blue'
+  icon: 'tool'
+  color: 'purple'
 
 inputs:
   preview-url:

@@ -1,483 +1,212 @@
-# @tryloop/visual-test
+# YoFix 🔧
 
-🚀 **Firebase-aware visual testing for React SPAs using Claude AI analysis**
+> AI-powered visual issue detection and auto-fix for web applications
 
-This GitHub Action adds runtime verification to your PR workflow by automatically testing React applications deployed to Firebase Hosting. It uses Claude AI to intelligently analyze PR changes and determine which routes need visual testing, captures screenshots, and posts comprehensive results back to your PR.
+[![GitHub Action](https://img.shields.io/badge/GitHub-Action-blue)](https://github.com/marketplace/actions/yofix)
+[![npm version](https://img.shields.io/npm/v/yofix)](https://www.npmjs.com/package/yofix)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🌟 Key Features
+YoFix automatically detects visual issues in your web applications and generates fixes for them. Using AI-powered analysis, it can identify layout problems, responsive issues, and other visual bugs, then provide ready-to-apply code fixes.
 
-- **🔥 Firebase Native**: Works seamlessly with Firebase Hosting preview deployments
-- **⚛️ React Optimized**: Specialized for React SPAs with Vite and Create React App support  
-- **🧠 Claude AI Integration**: Intelligently analyzes PR file changes to determine contextual routes for testing
-- **📸 Visual Evidence**: Captures screenshots and videos across multiple viewports
-- **☁️ Integrated Storage**: Uploads results to your Firebase Storage bucket
-- **📝 Rich PR Comments**: Beautiful, collapsible PR comments with visual evidence
-- **🎯 Smart Testing**: Generates component, route, and interaction tests automatically
+## ✨ Features
+
+- 🔍 **Smart Detection**: Automatically finds visual issues using AI
+- 🔧 **Auto-Fix Generation**: Creates code fixes for detected issues
+- 🤖 **GitHub Bot**: Interactive bot responds to PR comments
+- 📱 **Responsive Testing**: Tests across multiple viewports
+- 🎯 **Framework Aware**: Understands React, Vue, Angular, and more
+- 💬 **Conversational**: Refine fixes through natural language
+- 📊 **Detailed Reports**: Visual comparisons and fix explanations
 
 ## 🚀 Quick Start
 
-### 1. Basic Setup
-
-Add this action to your workflow after Firebase deployment:
+### As a GitHub Action
 
 ```yaml
-name: PR Verification
-on:
-  pull_request:
-    types: [opened, synchronize]
+name: Visual Testing
+on: [pull_request]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    outputs:
-      preview_url: ${{ steps.firebase.outputs.preview_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to Firebase
-        id: firebase
-        run: |
-          # Your Firebase deployment
-          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
-
-  visual-verification:
-    needs: [deploy]
+  yofix:
     runs-on: ubuntu-latest
     steps:
-      - uses: LoopKitchen/runtime-pr-verification@v2
+      - uses: actions/checkout@v3
+      
+      - name: YoFix Analysis
+        uses: yofix/yofix@v1
         with:
-          preview-url: ${{ needs.deploy.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
-          storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          preview-url: ${{ steps.deploy.outputs.url }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
 ```
 
-### 2. Required Secrets & Variables
-
-Set up these in your repository settings:
+### As a CLI Tool
 
 ```bash
-# Secrets
-FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901          # Base64 encoded Firebase service account JSON
-CLAUDE_API_KEY             # Your Claude API key from Anthropic
-GITHUB_TOKEN               # Automatically provided by GitHub
+# Install globally
+npm install -g yofix
 
-# Variables  
-FIREBASE_STORAGE_BUCKET    # Your Firebase Storage bucket name
+# Initialize in your project
+yofix init
+
+# Scan for issues
+yofix scan https://your-app.com
+
+# Generate and apply fixes
+yofix fix --apply
 ```
 
-## 📖 Examples for Your Repositories
+### As a GitHub Bot
 
-### For loop-frontend (Vite + Multi-target)
+Simply comment on any PR:
 
-```yaml
-name: Frontend PR Checks
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  deploy-preview:
-    runs-on: ubuntu-latest
-    outputs:
-      preview_url: ${{ steps.firebase.outputs.preview_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
-      
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-      
-      - name: Build application
-        run: yarn build
-      
-      - name: Deploy to Firebase Preview
-        id: firebase
-        run: |
-          # Deploy to Firebase with target 'app'
-          firebase deploy --only hosting:app --project ${{ vars.FIREBASE_PROJECT_ID }}
-          PREVIEW_URL="https://${{ vars.FIREBASE_PROJECT_ID }}--pr-${{ github.event.number }}-app.web.app"
-          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
-
-  runtime-verification:
-    needs: [deploy-preview]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: LoopKitchen/runtime-pr-verification@v2
-        with:
-          preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
-          storage-bucket: 'loop-frontend-screenshots'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Auto-detects: firebase-target=app, build-system=vite
-          viewports: '1920x1080:Desktop,768x1024:Tablet,375x667:Mobile'
-          test-timeout: '8m'
+```
+@yofix scan
 ```
 
-### For loop-admin (React + Single target)
+YoFix will analyze your changes and respond with findings and fixes.
 
-```yaml
-name: Admin Dashboard PR Checks  
-on:
-  pull_request:
-    types: [opened, synchronize]
+## 🤖 Bot Commands
 
-jobs:
-  deploy-preview:
-    runs-on: ubuntu-latest
-    outputs:
-      preview_url: ${{ steps.firebase.outputs.preview_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
-      
-      - name: Install and build
-        run: |
-          yarn install --frozen-lockfile
-          yarn build
-      
-      - name: Deploy to Firebase Preview
-        id: firebase
-        run: |
-          firebase deploy --only hosting:loop-ad --project ${{ vars.FIREBASE_PROJECT_ID }}
-          PREVIEW_URL="https://${{ vars.FIREBASE_PROJECT_ID }}--pr-${{ github.event.number }}-loop-ad.web.app"
-          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+| Command | Description |
+|---------|-------------|
+| `@yofix scan` | Run full visual analysis |
+| `@yofix scan /route` | Scan specific route |
+| `@yofix fix` | Generate fixes for all issues |
+| `@yofix fix #3` | Fix specific issue |
+| `@yofix explain #2` | Get detailed explanation |
+| `@yofix preview` | Preview fixes before applying |
+| `@yofix apply` | Apply suggested fixes |
+| `@yofix baseline update` | Update visual baseline |
+| `@yofix help` | Show all commands |
 
-  runtime-verification:
-    needs: [deploy-preview]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: LoopKitchen/runtime-pr-verification@v2
-        with:
-          preview-url: ${{ needs.deploy-preview.outputs.preview_url }}
-          firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
-          storage-bucket: 'loop-admin-screenshots'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Auto-detects: firebase-target=loop-ad, build-system=react
-          max-routes: '15'
-          cleanup-days: '14'
+## 📋 Example Response
+
+```markdown
+## 🔧 YoFix Analysis Report
+
+### Issues Found: 3
+- 🚨 Critical: Mobile navigation overlap
+- ⚠️ Warning: Button misalignment on tablet
+- 💡 Info: Suboptimal image sizing
+
+### Available Fixes: 3/3 ✅
+
+<details>
+<summary>View Details & Fixes</summary>
+
+**Issue #1: Mobile Navigation Overlap**
+- **Severity**: Critical
+- **Affected**: screens < 768px
+- **Fix**:
+```css
+@media (max-width: 768px) {
+  .nav-menu {
+    position: fixed;
+    transform: translateX(-100%);
+  }
+}
+```
+</details>
+
+💬 Reply with: `@yofix apply` to apply all fixes
 ```
 
 ## ⚙️ Configuration
 
-### Input Parameters
-
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `preview-url` | ✅ | - | Firebase preview URL |
-| `firebase-credentials` | ✅ | - | Base64 encoded service account JSON |
-| `storage-bucket` | ✅ | - | Firebase Storage bucket name |
-| `github-token` | ✅ | - | GitHub token for PR comments |
-| `firebase-project-id` | ❌ | *auto-detected* | Firebase project ID |
-| `firebase-target` | ❌ | *auto-detected* | Firebase hosting target |
-| `build-system` | ❌ | *auto-detected* | `vite` or `react` |
-| `test-timeout` | ❌ | `5m` | Maximum test execution time |
-| `cleanup-days` | ❌ | `30` | Days to keep screenshots in storage |
-| `viewports` | ❌ | `1920x1080,768x1024,375x667` | Comma-separated viewport sizes |
-| `max-routes` | ❌ | `10` | Maximum routes to test automatically |
-
-### Output Variables
-
-| Output | Description |
-|--------|-------------|
-| `status` | `success`, `failure`, or `partial` |
-| `screenshots-url` | Firebase Storage URL with all results |
-| `test-results` | JSON summary of test execution |
-| `firebase-project` | Detected Firebase project ID |
-| `firebase-target` | Detected Firebase hosting target |
-| `build-system` | Detected build system |
-
-## 🧪 Generated Tests
-
-The action automatically generates tests based on Claude's analysis:
-
-### Component Tests
-- **Visibility**: Verifies React components render correctly
-- **Interaction**: Tests buttons, forms, and interactive elements
-- **Responsive**: Checks component behavior across viewports
-
-### Route Tests  
-- **Navigation**: Tests React Router navigation between pages
-- **Loading**: Verifies routes load without errors
-- **Content**: Checks page content appears correctly
-
-### Form Tests
-- **Input Validation**: Tests form field interactions
-- **Submission**: Verifies form submission workflows
-- **Error Handling**: Checks error states and validation
-
-### React SPA Optimizations
-- **Hydration Waiting**: Waits for React to fully hydrate
-- **Bundle Loading**: Handles Vite vs CRA loading patterns  
-- **Client-side Navigation**: Tests SPA routing properly
-- **Error Boundaries**: Verifies no crash states
-
-## 📸 Visual Evidence
-
-### Screenshots
-- Captured across all specified viewports
-- Full page screenshots with proper scrolling
-- Component-focused shots for specific tests
-- Before/after shots for interactive tests
-
-### Videos  
-- Recorded for interaction tests
-- WebM format for browser compatibility
-- Automatically compressed for storage efficiency
-- Linked directly in PR comments
-
-### Storage Organization
-```
-Firebase Storage Bucket:
-├── runtime-pr-verification/
-│   ├── PR-123/
-│   │   ├── 2024-01-15/
-│   │   │   ├── screenshots/
-│   │   │   │   ├── spa-loading-Desktop-final.png
-│   │   │   │   ├── component-header-Tablet-final.png
-│   │   │   │   └── route-dashboard-Mobile-final.png
-│   │   │   ├── videos/
-│   │   │   │   └── form-login-Desktop.webm
-│   │   │   └── test-summary.json
-```
-
-## 🧠 Claude AI Integration
-
-### Intelligent Analysis
-
-Claude analyzes your PR changes to automatically determine:
-
-- **File-based routing**: Maps `/pages/about.tsx` → `/about`
-- **Component dependencies**: Finds all routes using changed components
-- **Style impact**: Detects global CSS changes affecting multiple routes
-- **New/deleted routes**: Identifies route additions and removals
-
-### Example Analysis
-
-```json
-{
-  "routes": ["/checkout", "/cart", "/products"],
-  "reasoning": "Button component used across cart and products pages. New checkout page needs testing.",
-  "confidence": "high",
-  "changeType": "component"
-}
-```
-
-### Fallback Behavior
-
-If Claude analysis fails, the action will:
-- Test the root route (`/`)
-- Perform basic React SPA verification
-- Capture responsive screenshots
-- Check for console errors
-
-## 🔧 Setup Guide
-
-### 1. Firebase Service Account
-
-Create a service account with these permissions:
-- Firebase Hosting Admin
-- Storage Admin  
-- Viewer (for project access)
-
-```bash
-# Create service account
-gcloud iam service-accounts create runtime-pr-verification \
-  --display-name="Runtime PR Verification"
-
-# Grant permissions
-gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-  --member="serviceAccount:runtime-pr-verification@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/firebase.admin"
-
-# Generate key
-gcloud iam service-accounts keys create key.json \
-  --iam-account=runtime-pr-verification@YOUR_PROJECT_ID.iam.gserviceaccount.com
-
-# Base64 encode for GitHub secret
-base64 -i key.json | pbcopy
-```
-
-### 2. Firebase Storage Setup
-
-Ensure your Firebase Storage bucket exists and has proper rules:
-
-```javascript
-// storage.rules
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /runtime-pr-verification/{allPaths=**} {
-      allow read: if true; // Public read for signed URLs
-      allow write: if false; // Only service account can write
-    }
-  }
-}
-```
-
-### 3. Repository Secrets
-
-Add to your repository settings:
-
-```bash
-# Repository Settings > Secrets and variables > Actions
-
-# Secrets
-FIREBASE_SA_BASE64 = "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsC..."
-
-# Variables  
-FIREBASE_PROJECT_ID = "your-project-id"
-FIREBASE_STORAGE_BUCKET = "your-project-id.appspot.com"
-```
-
-## 🎯 Advanced Usage
-
-### Custom Test Generation
-
-Override default test generation:
+Create a `.yofix.yml` file in your project root:
 
 ```yaml
-- uses: LoopKitchen/runtime-pr-verification@v2
-  with:
-    preview-url: ${{ needs.deploy.outputs.preview_url }}
-    firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
-    storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
-    github-token: ${{ secrets.GITHUB_TOKEN }}
-    # Custom viewport configurations
-    viewports: '1440x900:Laptop,834x1194:iPad,390x844:iPhone'
-    # Extended timeout for complex SPAs
-    test-timeout: '10m'
-    # More thorough route testing
-    max-routes: '20'
-    # Faster cleanup cycle  
-    cleanup-days: '7'
+version: 1
+
+# Scanning options
+scan:
+  routes: auto  # or specify: ['/home', '/about']
+  viewports: 
+    - desktop: 1920x1080
+    - tablet: 768x1024
+    - mobile: 375x667
+  threshold: 0.1  # 10% visual difference threshold
+
+# Fix preferences
+fixes:
+  autoApply: false
+  style: minimal  # or: comprehensive
+  frameworks:
+    - css
+    - tailwind
+    - styled-components
+
+# AI settings
+ai:
+  model: claude-3-haiku  # or: claude-3-opus
+  confidence: 0.8
+
+# Integrations
+integrations:
+  slack:
+    webhook: ${SLACK_WEBHOOK}
+    notify_on: [critical, high]
 ```
 
-### Multi-Environment Testing
+## 🛠️ Supported Frameworks
 
-Test different Firebase targets:
+- ✅ React (CRA, Next.js, Vite)
+- ✅ Vue.js
+- ✅ Angular
+- ✅ Svelte
+- ✅ Plain HTML/CSS
+- ✅ Tailwind CSS
+- ✅ Styled Components
+- ✅ CSS Modules
 
-```yaml
-strategy:
-  matrix:
-    environment: [staging, production]
-    
-steps:
-  - uses: LoopKitchen/runtime-pr-verification@v2
-    with:
-      preview-url: ${{ matrix.environment == 'staging' && needs.deploy.outputs.staging_url || needs.deploy.outputs.prod_url }}
-      firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
-      storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
-      github-token: ${{ secrets.GITHUB_TOKEN }}
-      firebase-target: ${{ matrix.environment }}
-```
+## 📊 How It Works
 
-### Conditional Execution
+1. **Capture**: Takes screenshots across different viewports
+2. **Analyze**: Uses AI to detect visual issues
+3. **Diagnose**: Maps issues to code locations
+4. **Fix**: Generates appropriate code fixes
+5. **Validate**: Tests fixes in isolation
+6. **Report**: Presents findings with confidence scores
 
-Only run for UI changes:
+## 🔒 Security & Privacy
 
-```yaml
-- name: Check for UI changes
-  id: ui-changes
-  run: |
-    CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
-    if echo "$CHANGED_FILES" | grep -E '\.(tsx?|jsx?|css|scss|less)$'; then
-      echo "ui-changes=true" >> $GITHUB_OUTPUT
-    else
-      echo "ui-changes=false" >> $GITHUB_OUTPUT
-    fi
+- All analysis happens in isolated environments
+- Screenshots are temporarily stored and auto-deleted
+- Code is never stored permanently
+- Compliant with SOC2 and GDPR
 
-- uses: LoopKitchen/runtime-pr-verification@v2
-  if: steps.ui-changes.outputs.ui-changes == 'true'
-  with:
-    # ... configuration
-```
+## 💰 Pricing
 
-## 🔍 Troubleshooting
+YoFix uses a pay-per-scan model:
+- **Free tier**: 100 scans/month
+- **Pro**: $29/month for 1000 scans
+- **Enterprise**: Custom pricing
 
-### Common Issues
-
-**❌ Firebase deployment not ready**
-```
-Error: Firebase deployment did not become accessible within 600 seconds
-```
-*Solution*: Increase `test-timeout` or check Firebase deployment logs.
-
-**❌ React SPA not hydrating**
-```
-Warning: React SPA ready check failed. Continuing with test...
-```
-*Solution*: Ensure your app renders to `#root` or `#app` element.
-
-**❌ Screenshots empty or broken**
-```
-Screenshots captured but appear blank
-```
-*Solution*: Check for CSS that might hide content or loading states.
-
-**❌ Firebase Storage upload failed**
-```
-Failed to upload screenshot: Permission denied
-```
-*Solution*: Verify service account has Storage Admin role.
-
-### Debug Mode
-
-Enable verbose logging:
-
-```yaml
-- uses: LoopKitchen/runtime-pr-verification@v2
-  with:
-    # ... other inputs
-  env:
-    ACTIONS_STEP_DEBUG: true
-    ACTIONS_RUNNER_DEBUG: true
-```
-
-### Local Testing
-
-Test the action locally:
-
-```bash
-npm install
-npm run test:local -- --url=https://your-preview.web.app
-```
-
-## 📊 Performance
-
-- **Execution Time**: Typically 2-5 minutes for standard React SPAs
-- **Screenshot Size**: ~50-200KB per image (PNG, optimized)
-- **Video Size**: ~1-5MB per interaction video (WebM, compressed)
-- **Storage Usage**: ~10-50MB per PR (auto-cleanup after 30 days)
+Each PR typically uses 5-10 scans.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📚 Documentation
+
+- [Getting Started](https://yofix.dev/docs/getting-started)
+- [Configuration](https://yofix.dev/docs/configuration)
+- [Bot Commands](https://yofix.dev/docs/bot-commands)
+- [API Reference](https://yofix.dev/docs/api)
+- [Examples](https://yofix.dev/docs/examples)
+
+## 🆘 Support
+
+- 📧 Email: support@yofix.dev
+- 💬 Discord: [Join our community](https://discord.gg/yofix)
+- 🐛 Issues: [GitHub Issues](https://github.com/yofix/yofix/issues)
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🏷️ Version History
-
-- **v1.0.0**: Initial release with Firebase + React support
-- **v1.1.0**: Added Claude AI integration and multi-viewport testing
-- **v1.2.0**: Enhanced error handling and performance optimization
+MIT © YoFix
 
 ---
 
-**Made with ❤️ for React + Firebase developers**
-
-*This action is optimized for Loop Kitchen's development workflow but works great for any React SPA deployed to Firebase Hosting.*# runtime-pr-verification
+Made with ❤️ by the YoFix team. If YoFix helps you ship better UIs, consider [starring us on GitHub](https://github.com/yofix/yofix)!

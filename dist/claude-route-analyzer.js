@@ -37,15 +37,22 @@ exports.ClaudeRouteAnalyzer = void 0;
 const sdk_1 = require("@anthropic-ai/sdk");
 const core = __importStar(require("@actions/core"));
 const github = __importStar(require("@actions/github"));
+const CodebaseAnalyzer_1 = require("./context/CodebaseAnalyzer");
 class ClaudeRouteAnalyzer {
     constructor(claudeApiKey, githubToken) {
+        this.context = null;
         this.claude = new sdk_1.Anthropic({
             apiKey: claudeApiKey,
         });
         this.octokit = github.getOctokit(githubToken);
+        this.codebaseAnalyzer = new CodebaseAnalyzer_1.CodebaseAnalyzer();
     }
     async analyzeRoutes(prNumber) {
         try {
+            if (!this.context) {
+                core.info('Analyzing codebase structure...');
+                this.context = await this.codebaseAnalyzer.analyzeRepository();
+            }
             const prContext = await this.getPRContext(prNumber);
             const analysis = await this.analyzeWithClaude(prContext);
             return analysis;
@@ -127,13 +134,22 @@ class ClaudeRouteAnalyzer {
         return importantPatterns.some(pattern => pattern.test(filename));
     }
     async analyzeWithClaude(context) {
+        const codebaseInfo = this.context ? `
+## Codebase Information:
+- **Framework:** ${this.context.framework}
+- **Build Tool:** ${this.context.buildTool}
+- **Style System:** ${this.context.styleSystem}
+- **Total Routes:** ${this.context.routes.length}
+- **Known Routes:** ${this.context.routes.slice(0, 10).map(r => r.path).join(', ')}${this.context.routes.length > 10 ? '...' : ''}
+- **Components:** ${this.context.components.length} components found
+` : '';
         const prompt = `
 You are an expert frontend developer analyzing a Pull Request to determine which routes/pages need visual regression testing.
 
 ## PR Context:
 **Title:** ${context.pr.title}
 **Description:** ${context.pr.body}
-
+${codebaseInfo}
 ## Changed Files:
 ${context.changedFiles.map(f => `- ${f.filename} (${f.status}, +${f.additions}/-${f.deletions})`).join('\n')}
 
@@ -202,12 +218,26 @@ Example:
         }
     }
     getFallbackAnalysis() {
+        if (this.context && this.context.routes.length > 0) {
+            const routes = this.context.routes
+                .slice(0, 10)
+                .map(r => r.path);
+            return {
+                routes: routes.length > 0 ? routes : ['/'],
+                reasoning: `Using known routes from codebase analysis (${this.context.routes.length} total routes found)`,
+                confidence: 'medium',
+                changeType: 'ui',
+            };
+        }
         return {
             routes: ['/'],
             reasoning: 'Fallback to homepage due to analysis failure',
             confidence: 'low',
             changeType: 'ui',
         };
+    }
+    getCodebaseContext() {
+        return this.context;
     }
 }
 exports.ClaudeRouteAnalyzer = ClaudeRouteAnalyzer;

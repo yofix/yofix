@@ -1,0 +1,138 @@
+version: 1
+
+# Scanning configuration
+scan:
+  # Routes to scan - 'auto' will detect from PR changes
+  routes: auto
+  
+  # Viewports to test
+  viewports:
+    desktop:
+      width: 1920
+      height: 1080
+    tablet:
+      width: 768
+      height: 1024
+    mobile:
+      width: 375
+      height: 667
+  
+  # Visual difference threshold (0-1)
+  threshold: 0.1
+  
+  # Max routes to scan (to control costs)
+  maxRoutes: 10
+
+# Fix generation preferences
+fixes:
+  # Automatically apply fixes without confirmation
+  autoApply: false
+  
+  # Fix style - minimal changes or comprehensive refactor
+  style: minimal
+  
+  # Supported frameworks for fix generation
+  frameworks:
+    - css
+    - tailwind
+    - styled-components
+    - css-modules
+  
+  # Confidence threshold for applying fixes (0-1)
+  confidenceThreshold: 0.8
+
+# AI configuration
+ai:
+  # Model selection
+  model: claude-3-haiku  # or claude-3-opus for more complex analysis
+  
+  # Temperature for fix generation (0-1)
+  temperature: 0.3
+  
+  # Custom prompts
+  prompts:
+    issueDetection: "Identify visual issues focusing on layout, responsiveness, and accessibility"
+    fixGeneration: "Generate minimal, safe CSS fixes that won't break existing functionality"
+
+# Issue detection settings
+issues:
+  # Types of issues to detect
+  detect:
+    - layout-shift
+    - responsive-breakage  
+    - text-overflow
+    - element-overlap
+    - color-contrast
+    - missing-hover-states
+    - inconsistent-spacing
+    - broken-alignment
+  
+  # Minimum severity to report
+  severityThreshold: low  # low, medium, high, critical
+  
+  # Ignore specific selectors
+  ignore:
+    - ".third-party-widget"
+    - "[data-test-ignore]"
+
+# Baseline configuration
+baseline:
+  # How to manage baselines
+  strategy: branch  # branch, main, or tag
+  
+  # Auto-update baseline on merge
+  autoUpdate: true
+  
+  # Storage location
+  storage: firebase  # or local
+
+# Integrations
+integrations:
+  # Slack notifications
+  slack:
+    webhook: ${SLACK_WEBHOOK}
+    channels:
+      critical: "#alerts"
+      summary: "#dev-updates"
+    notifyOn:
+      - critical
+      - fixesGenerated
+  
+  # Custom webhooks
+  webhooks:
+    - url: ${CUSTOM_WEBHOOK}
+      events:
+        - scanComplete
+        - fixesApplied
+
+# Performance settings
+performance:
+  # Parallel scanning
+  parallel: true
+  maxConcurrent: 3
+  
+  # Caching
+  cache:
+    enable: true
+    ttl: 3600  # seconds
+  
+  # Timeouts
+  timeouts:
+    screenshot: 30000  # ms
+    analysis: 60000    # ms
+    total: 300000      # ms
+
+# Output settings
+output:
+  # Report verbosity
+  verbosity: normal  # quiet, normal, verbose
+  
+  # Screenshot quality (1-100)
+  screenshotQuality: 85
+  
+  # Include screenshots in PR comments
+  embedScreenshots: true
+  
+  # Generate downloadable report
+  generateReport: true
+  reportFormat: html  # html, pdf, json

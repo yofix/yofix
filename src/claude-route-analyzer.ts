@@ -1,6 +1,8 @@
 import { Anthropic } from '@anthropic-ai/sdk';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+import { CodebaseAnalyzer } from './context/CodebaseAnalyzer';
+import { CodebaseContext } from './context/types';
 
 export interface RouteAnalysis {
   routes: string[];
@@ -12,16 +14,25 @@ export interface RouteAnalysis {
 export class ClaudeRouteAnalyzer {
   private claude: Anthropic;
   private octokit: ReturnType<typeof github.getOctokit>;
+  private codebaseAnalyzer: CodebaseAnalyzer;
+  private context: CodebaseContext | null = null;
 
   constructor(claudeApiKey: string, githubToken: string) {
     this.claude = new Anthropic({
       apiKey: claudeApiKey,
     });
     this.octokit = github.getOctokit(githubToken);
+    this.codebaseAnalyzer = new CodebaseAnalyzer();
   }
 
   async analyzeRoutes(prNumber: number): Promise<RouteAnalysis> {
     try {
+      // Analyze codebase if not already done
+      if (!this.context) {
+        core.info('Analyzing codebase structure...');
+        this.context = await this.codebaseAnalyzer.analyzeRepository();
+      }
+      
       // Get PR context
       const prContext = await this.getPRContext(prNumber);
       
@@ -127,13 +138,24 @@ export class ClaudeRouteAnalyzer {
   }
 
   private async analyzeWithClaude(context: any): Promise<RouteAnalysis> {
+    // Add codebase context if available
+    const codebaseInfo = this.context ? `
+## Codebase Information:
+- **Framework:** ${this.context.framework}
+- **Build Tool:** ${this.context.buildTool}
+- **Style System:** ${this.context.styleSystem}
+- **Total Routes:** ${this.context.routes.length}
+- **Known Routes:** ${this.context.routes.slice(0, 10).map(r => r.path).join(', ')}${this.context.routes.length > 10 ? '...' : ''}
+- **Components:** ${this.context.components.length} components found
+` : '';
+
     const prompt = `
 You are an expert frontend developer analyzing a Pull Request to determine which routes/pages need visual regression testing.
 
 ## PR Context:
 **Title:** ${context.pr.title}
 **Description:** ${context.pr.body}
-
+${codebaseInfo}
 ## Changed Files:
 ${context.changedFiles.map(f => `- ${f.filename} (${f.status}, +${f.additions}/-${f.deletions})`).join('\n')}
 
@@ -204,11 +226,33 @@ Example:
   }
 
   private getFallbackAnalysis(): RouteAnalysis {
+    // If we have codebase context, return all known routes (limited to 10)
+    if (this.context && this.context.routes.length > 0) {
+      const routes = this.context.routes
+        .slice(0, 10)
+        .map(r => r.path);
+      
+      return {
+        routes: routes.length > 0 ? routes : ['/'],
+        reasoning: `Using known routes from codebase analysis (${this.context.routes.length} total routes found)`,
+        confidence: 'medium',
+        changeType: 'ui',
+      };
+    }
+    
+    // Default fallback
     return {
       routes: ['/'], // Default to homepage
       reasoning: 'Fallback to homepage due to analysis failure',
       confidence: 'low',
       changeType: 'ui',
     };
+  }
+  
+  /**
+   * Get the codebase context
+   */
+  getCodebaseContext(): CodebaseContext | null {
+    return this.context;
   }
 }

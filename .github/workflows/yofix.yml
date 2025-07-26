@@ -1,0 +1,71 @@
+name: YoFix Visual Testing
+
+on:
+  # Run on PR events
+  pull_request:
+    types: [opened, synchronize]
+  
+  # Listen for bot commands
+  issue_comment:
+    types: [created]
+
+jobs:
+  yofix:
+    # Only run on PRs or when bot is mentioned
+    if: |
+      github.event_name == 'pull_request' || 
+      (github.event.issue.pull_request && contains(github.event.comment.body, '@yofix'))
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      # For PR comments, checkout the PR branch
+      - name: Checkout PR
+        if: github.event_name == 'issue_comment'
+        run: |
+          gh pr checkout ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Deploy to preview (if not already deployed)
+      - name: Deploy Preview
+        id: deploy
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: your-project
+          channelId: pr-${{ github.event.pull_request.number || github.event.issue.number }}
+      
+      # Run YoFix
+      - name: YoFix Analysis
+        uses: yofix/yofix@v1
+        with:
+          # Use deploy URL for PRs, or construct for comments
+          preview-url: |
+            ${{ steps.deploy.outputs.details_url || 
+                format('https://your-project--pr-{0}-abc123.web.app', github.event.issue.number) }}
+          
+          # Required secrets
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          
+          # Optional authentication
+          auth-email: ${{ secrets.TEST_USER_EMAIL }}
+          auth-password: ${{ secrets.TEST_USER_PASSWORD }}
+          
+          # Configuration
+          viewports: '1920x1080,768x1024,375x667'
+          max-routes: '10'
+
+# Example bot usage in PR comments:
+# @yofix scan
+# @yofix scan /dashboard --viewport mobile
+# @yofix fix
+# @yofix apply
+# @yofix help

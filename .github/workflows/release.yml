@@ -11,6 +11,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
@@ -41,26 +45,31 @@ jobs:
           git commit -m "Build dist for release ${{ github.event.inputs.version || github.ref_name }}" || echo "No changes to commit"
 
       - name: Create Release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.event.inputs.version || github.ref_name }}
-          release_name: Release ${{ github.event.inputs.version || github.ref_name }}
-          body: |
-            ## YoFix ${{ github.event.inputs.version || github.ref_name }}
-            
-            AI-powered visual testing for web applications.
-            
-            ### What's Changed
-            - See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details
-            
-            ### Installation
-            ```yaml
-            - uses: ${{ github.repository }}@${{ github.event.inputs.version || github.ref_name }}
-            ```
-          draft: false
-          prerelease: false
+        run: |
+          VERSION=${{ github.event.inputs.version || github.ref_name }}
+          
+          # Check if release already exists
+          if gh release view $VERSION &>/dev/null; then
+            echo "Release $VERSION already exists, skipping creation"
+          else
+            # Create release using GitHub CLI
+            gh release create $VERSION \
+              --title "Release $VERSION" \
+              --notes "## YoFix $VERSION
+          
+          AI-powered visual testing for web applications.
+          
+          ### What's Changed
+          - See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details
+          
+          ### Installation
+          \`\`\`yaml
+          - uses: ${{ github.repository }}@$VERSION
+          \`\`\`" \
+              --latest
+          fi
 
       # Update major version tag (e.g., v1 -> v1.2.3)
       - name: Update major version tag

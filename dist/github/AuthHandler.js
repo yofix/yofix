@@ -52,12 +52,33 @@ class AuthHandler {
                 'input[name="email"]',
                 'input[id="email"]',
                 'input[placeholder*="email" i]',
-                'input[aria-label*="email" i]'
+                'input[aria-label*="email" i]',
+                'input[autocomplete="email"]',
+                'input[data-testid*="email" i]',
+                'input[name="username"]',
+                'input[id="username"]',
+                'input[placeholder*="username" i]',
+                'input[name="login"]',
+                'input[id="login"]',
+                'form input[type="text"]:first-of-type',
+                '#email-input',
+                '.email-input input',
+                '[data-test*="email"] input',
+                '[data-cy*="email"] input'
             ];
             let emailInput = null;
             for (const selector of emailSelectors) {
                 try {
-                    emailInput = await page.waitForSelector(selector, { timeout: 5000 });
+                    const elements = await page.$$(selector);
+                    for (const element of elements) {
+                        const isVisible = await element.isVisible();
+                        const isEnabled = await element.isEnabled();
+                        if (isVisible && isEnabled) {
+                            emailInput = element;
+                            core.info(`Found email input using selector: ${selector}`);
+                            break;
+                        }
+                    }
                     if (emailInput)
                         break;
                 }
@@ -65,19 +86,51 @@ class AuthHandler {
                 }
             }
             if (!emailInput) {
-                throw new Error('Could not find email input field');
+                const labels = await page.$$('label');
+                for (const label of labels) {
+                    const text = await label.textContent();
+                    if (text && text.toLowerCase().includes('email')) {
+                        const forAttr = await label.getAttribute('for');
+                        if (forAttr) {
+                            emailInput = await page.$(`#${forAttr}`);
+                            if (emailInput) {
+                                core.info(`Found email input via label for="${forAttr}"`);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!emailInput) {
+                throw new Error('Could not find email input field. Tried ' + emailSelectors.length + ' selectors.');
             }
             const passwordSelectors = [
                 'input[type="password"]',
                 'input[name="password"]',
                 'input[id="password"]',
                 'input[placeholder*="password" i]',
-                'input[aria-label*="password" i]'
+                'input[aria-label*="password" i]',
+                'input[autocomplete="current-password"]',
+                'input[autocomplete="new-password"]',
+                'input[data-testid*="password" i]',
+                '#password-input',
+                '.password-input input',
+                '[data-test*="password"] input',
+                '[data-cy*="password"] input'
             ];
             let passwordInput = null;
             for (const selector of passwordSelectors) {
                 try {
-                    passwordInput = await page.waitForSelector(selector, { timeout: 5000 });
+                    const elements = await page.$$(selector);
+                    for (const element of elements) {
+                        const isVisible = await element.isVisible();
+                        const isEnabled = await element.isEnabled();
+                        if (isVisible && isEnabled) {
+                            passwordInput = element;
+                            core.info(`Found password input using selector: ${selector}`);
+                            break;
+                        }
+                    }
                     if (passwordInput)
                         break;
                 }
@@ -87,40 +140,77 @@ class AuthHandler {
             if (!passwordInput) {
                 throw new Error('Could not find password input field');
             }
+            await emailInput.click();
+            await page.waitForTimeout(100);
+            await emailInput.fill('');
+            await page.waitForTimeout(100);
             await emailInput.fill(this.authConfig.email);
+            await page.waitForTimeout(200);
+            await passwordInput.click();
+            await page.waitForTimeout(100);
+            await passwordInput.fill('');
+            await page.waitForTimeout(100);
             await passwordInput.fill(this.authConfig.password);
+            await page.waitForTimeout(200);
             const submitSelectors = [
                 'button[type="submit"]',
                 'input[type="submit"]',
                 'button:has-text("Login")',
                 'button:has-text("Sign in")',
                 'button:has-text("Log in")',
+                'button:has-text("Continue")',
+                'button:has-text("Submit")',
                 '*[role="button"]:has-text("Login")',
-                '*[role="button"]:has-text("Sign in")'
+                '*[role="button"]:has-text("Sign in")',
+                'button.login-button',
+                'button.signin-button',
+                'button.submit-button',
+                '#login-button',
+                '#signin-button',
+                '[data-testid*="login-button"]',
+                '[data-testid*="signin-button"]',
+                '[data-cy*="login-button"]',
+                '[data-cy*="signin-button"]',
+                'input[type="password"] ~ button',
+                'input[type="password"] ~ * button',
+                'form button:not([type="button"])',
+                'form input[type="submit"]',
+                'form button[type="submit"]'
             ];
             let submitButton = null;
             for (const selector of submitSelectors) {
                 try {
-                    submitButton = await page.locator(selector).first();
-                    if (await submitButton.isVisible())
+                    const elements = await page.locator(selector).all();
+                    for (const element of elements) {
+                        if (await element.isVisible()) {
+                            submitButton = element;
+                            core.info(`Found submit button using selector: ${selector}`);
+                            break;
+                        }
+                    }
+                    if (submitButton)
                         break;
                 }
                 catch (e) {
                 }
             }
             if (!submitButton) {
-                throw new Error('Could not find submit button');
+                core.info('Submit button not found, trying Enter key');
+                await passwordInput.press('Enter');
             }
-            await Promise.all([
+            else {
+                await submitButton.click();
+            }
+            await Promise.race([
                 page.waitForNavigation({
                     waitUntil: 'networkidle',
                     timeout: 30000
                 }).catch(() => {
                     core.info('No navigation detected after login, checking for SPA behavior');
                 }),
-                submitButton.click()
+                page.waitForTimeout(5000)
             ]);
-            await page.waitForTimeout(3000);
+            await page.waitForTimeout(2000);
             const isLoggedIn = await this.verifyLogin(page);
             if (isLoggedIn) {
                 core.info('Login successful');
@@ -157,7 +247,11 @@ class AuthHandler {
                 '.alert-danger',
                 '[role="alert"]',
                 '*:has-text("Invalid")',
-                '*:has-text("incorrect")'
+                '*:has-text("incorrect")',
+                '*:has-text("failed")',
+                '.error',
+                '.alert',
+                '[data-testid*="error"]'
             ];
             for (const selector of errorSelectors) {
                 try {
@@ -186,13 +280,23 @@ class AuthHandler {
         }
         const loggedInSelectors = [
             '[data-testid="user-menu"]',
+            '[data-testid="user-avatar"]',
             '.user-avatar',
             '.user-profile',
+            '.user-menu',
+            '#user-menu',
             'button:has-text("Logout")',
             'button:has-text("Sign out")',
+            'button:has-text("Log out")',
+            'a:has-text("Logout")',
+            'a:has-text("Sign out")',
             'a:has-text("Profile")',
             'a:has-text("Dashboard")',
-            'nav a[href*="dashboard"]'
+            'a:has-text("Account")',
+            'nav a[href*="dashboard"]',
+            'nav a[href*="profile"]',
+            '[aria-label*="user menu" i]',
+            '[aria-label*="account" i]'
         ];
         for (const selector of loggedInSelectors) {
             try {
@@ -220,7 +324,8 @@ class AuthHandler {
                 'button:has-text("Log out")',
                 'a:has-text("Logout")',
                 'a:has-text("Sign out")',
-                '[data-testid="logout-button"]'
+                '[data-testid="logout-button"]',
+                '[data-testid="signout-button"]'
             ];
             let logoutElement = null;
             for (const selector of logoutSelectors) {

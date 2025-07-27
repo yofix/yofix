@@ -1,9 +1,9 @@
 name: YoFix Visual Testing
 
 on:
-  # Run on PR events
-  pull_request:
-    types: [opened, synchronize]
+  # Disabled for now - enable when Firebase is configured
+  # pull_request:
+  #   types: [opened, synchronize]
   
   # Listen for bot commands
   issue_comment:
@@ -30,9 +30,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       # Deploy to preview (if not already deployed)
+      # NOTE: Skip this step if Firebase is not configured
       - name: Deploy Preview
         id: deploy
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && secrets.FIREBASE_SERVICE_ACCOUNT != ''
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'

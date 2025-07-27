@@ -183,6 +183,22 @@ runs:
           # This handles cases where the runner image has changed
           npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
         fi
+    
+    # Install runtime dependencies (including sharp with native binaries)
+    - name: Install runtime dependencies
+      shell: bash
+      run: |
+        echo "📦 Installing runtime dependencies..."
+        cd ${{ github.action_path }}
+        
+        # Install only production dependencies including sharp
+        # This ensures native binaries are available for the runtime platform
+        npm install --production --ignore-scripts
+        
+        # Rebuild sharp to ensure correct binaries
+        npm rebuild sharp
+        
+        echo "✅ Runtime dependencies installed"
         
     - name: Run visual tests
       shell: bash

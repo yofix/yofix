@@ -79,7 +79,19 @@ class MCPManager {
     }
     async executeCommand(command) {
         try {
-            const action = await this.parseCommand(command);
+            let action;
+            if (process.env.INPUT_ENABLE_AI_NAVIGATION === 'true' && process.env.INPUT_CLAUDE_API_KEY) {
+                try {
+                    action = await this.parseCommandWithAI(command);
+                }
+                catch (aiError) {
+                    core.warning(`AI command parsing failed, falling back to regex: ${aiError}`);
+                    action = await this.parseCommand(command);
+                }
+            }
+            else {
+                action = await this.parseCommand(command);
+            }
             return await this.executeAction(action);
         }
         catch (error) {
@@ -89,6 +101,65 @@ class MCPManager {
                 state: this.state
             };
         }
+    }
+    async parseCommandWithAI(command) {
+        const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
+        if (!claudeApiKey)
+            throw new Error('Claude API key not available');
+        const { Anthropic } = await Promise.resolve().then(() => __importStar(require('@anthropic-ai/sdk')));
+        const claude = new Anthropic({ apiKey: claudeApiKey });
+        const prompt = `Parse this natural language browser command into a structured action:
+
+Command: "${command}"
+
+Available action types:
+- navigate: Go to a URL or page
+- click: Click on an element
+- type: Type text into an input field
+- scroll: Scroll the page
+- screenshot: Take a screenshot
+- wait: Wait for something
+- hover: Hover over an element
+- select: Select from a dropdown
+- evaluate: Run JavaScript
+
+Return JSON in this format:
+{
+  "type": "action_type",
+  "params": {
+    "url": "for navigate",
+    "selector": "for click/type/hover/select",
+    "text": "for type",
+    "value": "for select",
+    "direction": "for scroll (up/down/bottom)",
+    "amount": "for scroll (pixels)",
+    "fullPage": "for screenshot (true/false)",
+    "timeout": "for wait (milliseconds)",
+    "script": "for evaluate"
+  }
+}`;
+        const response = await claude.messages.create({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 512,
+            temperature: 0.2,
+            messages: [{
+                    role: 'user',
+                    content: prompt
+                }]
+        });
+        const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if ((parsed.type === 'click' || parsed.type === 'type') && !parsed.params.selector && command) {
+                const targetMatch = command.match(/(?:on |the |into |in )"?([^"]+)"?/i);
+                if (targetMatch) {
+                    parsed.params.selector = await this.findSelector(targetMatch[1]);
+                }
+            }
+            return parsed;
+        }
+        throw new Error('Failed to parse command with AI');
     }
     async executeAction(action) {
         if (!this.page) {

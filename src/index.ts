@@ -106,6 +106,15 @@ async function runVisualTesting(): Promise<void> {
         testSuggestions: [`Visual testing for ${routeAnalysis.changeType} changes`],
         riskLevel: routeAnalysis.confidence === 'high' ? 'low' : routeAnalysis.confidence === 'medium' ? 'medium' : 'high'
       };
+      
+      // Override with custom routes if provided
+      if (inputs.testRoutes) {
+        const customRoutes = inputs.testRoutes.split(',').map(r => r.trim()).filter(r => r);
+        if (customRoutes.length > 0) {
+          core.info(`Using custom routes: ${customRoutes.join(', ')}`);
+          analysis.routes = customRoutes;
+        }
+      }
     } catch (error) {
       core.warning(`Claude analysis failed: ${error}. Proceeding with basic testing...`);
       
@@ -166,6 +175,42 @@ async function runVisualTesting(): Promise<void> {
     }
     
     await runner.initialize();
+    
+    // Discover additional routes with AI if enabled
+    if (inputs.enableAINavigation && inputs.claudeApiKey) {
+      core.info('🧠 Step 3.5: AI-powered route discovery...');
+      const { AINavigationAnalyzer } = await import('./core/analysis/AINavigationAnalyzer');
+      const navAnalyzer = new AINavigationAnalyzer(inputs.claudeApiKey);
+      
+      // Create a temporary page to analyze navigation
+      const { chromium } = await import('playwright');
+      const browser = await chromium.launch({ headless: true });
+      const page = await browser.newPage();
+      
+      try {
+        await page.goto(firebaseConfig.previewUrl, { waitUntil: 'networkidle' });
+        const discoveredRoutes = await navAnalyzer.discoverRoutes(page, firebaseConfig.previewUrl);
+        
+        // Add discovered routes to analysis if not already present
+        const newRoutes = discoveredRoutes.filter(route => !analysis.routes.includes(route));
+        if (newRoutes.length > 0) {
+          core.info(`AI discovered ${newRoutes.length} additional routes: ${newRoutes.join(', ')}`);
+          analysis.routes.push(...newRoutes);
+          
+          // Generate tests for new routes
+          const additionalTests = await testGenerator.generateTests({
+            ...analysis,
+            routes: newRoutes
+          });
+          tests.push(...additionalTests);
+        }
+      } catch (error) {
+        core.warning(`AI navigation discovery failed: ${error}`);
+      } finally {
+        await browser.close();
+      }
+    }
+    
     const testResults = await runner.runTests(tests);
     await runner.cleanup();
 

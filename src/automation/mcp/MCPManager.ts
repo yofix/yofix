@@ -325,8 +325,50 @@ export class MCPManager {
    * Use AI to find selector from page context
    */
   private async findSelectorWithAI(description: string): Promise<string> {
-    // This would use Claude to analyze the page and find the best selector
-    // For now, throw an error
+    if (!this.page) throw new Error('Page not initialized');
+    
+    try {
+      // Take a screenshot of the current page
+      const screenshot = await this.page.screenshot({ fullPage: false });
+      
+      // Get Claude API key from environment
+      const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
+      if (!claudeApiKey) {
+        throw new Error('Claude API key not available for AI selector finding');
+      }
+      
+      // Use VisualAnalyzer to analyze the screenshot
+      const { VisualAnalyzer } = await import('../../core/analysis/VisualAnalyzer');
+      const analyzer = new VisualAnalyzer(claudeApiKey);
+      
+      const prompt = `Analyze this screenshot and find an element matching: "${description}"
+      
+      Look for:
+      - Buttons, links, or clickable elements with matching text
+      - Input fields with matching labels or placeholders
+      - Elements with matching aria-labels or titles
+      
+      Return a CSS selector that uniquely identifies this element.
+      Format: { "selector": "css-selector-here" }`;
+      
+      const response = await analyzer.analyzeScreenshot(screenshot, prompt);
+      
+      // Parse response to get selector
+      const match = response.match(/\{\s*"selector"\s*:\s*"([^"]+)"\s*\}/);
+      if (match && match[1]) {
+        const selector = match[1];
+        
+        // Verify the selector works
+        const count = await this.page.locator(selector).count();
+        if (count > 0) {
+          core.info(`AI found selector: ${selector} for "${description}"`);
+          return selector;
+        }
+      }
+    } catch (error) {
+      core.warning(`AI selector finding failed: ${error}`);
+    }
+    
     throw new Error(`Could not find element matching: ${description}`);
   }
 

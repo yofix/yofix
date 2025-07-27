@@ -120,6 +120,11 @@ export interface ActionInputs {
   authPassword?: string;
   authLoginUrl?: string;
   enableSmartAuth?: boolean;
+  mcpProvider?: string;
+  mcpOptions?: string;
+  enableAINavigation?: boolean;
+  enableAITestGeneration?: boolean;
+  testRoutes?: string;
 }
 
 export interface FirebaseStorageConfig {

@@ -123,6 +123,21 @@ inputs:
     description: 'Enable AI-powered smart authentication'
     required: false
     default: 'false'
+  
+  enable-ai-navigation:
+    description: 'Enable AI-powered navigation and route discovery'
+    required: false
+    default: 'false'
+  
+  enable-ai-test-generation:
+    description: 'Enable AI to generate context-aware tests dynamically'
+    required: false
+    default: 'false'
+  
+  test-routes:
+    description: 'Comma-separated list of specific routes to test'
+    required: false
+    default: ''
 
 outputs:
   status:
@@ -234,3 +249,8 @@ runs:
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
         INPUT_ENABLE-SMART-AUTH: ${{ inputs.enable-smart-auth }}
         YOFIX_SMART_AUTH: ${{ inputs.enable-smart-auth }}
+        INPUT_MCP-PROVIDER: ${{ inputs.mcp-provider }}
+        INPUT_MCP-OPTIONS: ${{ inputs.mcp-options }}
+        INPUT_ENABLE-AI-NAVIGATION: ${{ inputs.enable-ai-navigation }}
+        INPUT_ENABLE-AI-TEST-GENERATION: ${{ inputs.enable-ai-test-generation }}
+        INPUT_TEST-ROUTES: ${{ inputs.test-routes }}

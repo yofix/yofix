@@ -273,6 +273,39 @@ class MCPManager {
         return await this.findSelectorWithAI(description);
     }
     async findSelectorWithAI(description) {
+        if (!this.page)
+            throw new Error('Page not initialized');
+        try {
+            const screenshot = await this.page.screenshot({ fullPage: false });
+            const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
+            if (!claudeApiKey) {
+                throw new Error('Claude API key not available for AI selector finding');
+            }
+            const { VisualAnalyzer } = await Promise.resolve().then(() => __importStar(require('../../core/analysis/VisualAnalyzer')));
+            const analyzer = new VisualAnalyzer(claudeApiKey);
+            const prompt = `Analyze this screenshot and find an element matching: "${description}"
+      
+      Look for:
+      - Buttons, links, or clickable elements with matching text
+      - Input fields with matching labels or placeholders
+      - Elements with matching aria-labels or titles
+      
+      Return a CSS selector that uniquely identifies this element.
+      Format: { "selector": "css-selector-here" }`;
+            const response = await analyzer.analyzeScreenshot(screenshot, prompt);
+            const match = response.match(/\{\s*"selector"\s*:\s*"([^"]+)"\s*\}/);
+            if (match && match[1]) {
+                const selector = match[1];
+                const count = await this.page.locator(selector).count();
+                if (count > 0) {
+                    core.info(`AI found selector: ${selector} for "${description}"`);
+                    return selector;
+                }
+            }
+        }
+        catch (error) {
+            core.warning(`AI selector finding failed: ${error}`);
+        }
         throw new Error(`Could not find element matching: ${description}`);
     }
     async navigate(url) {

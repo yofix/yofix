@@ -131,8 +131,13 @@ async function runVisualTesting(): Promise<void> {
     // 3. Generate tests based on analysis
     core.info('🧪 Step 3: Generating React SPA tests...');
     const viewports = TestGenerator.parseViewports(inputs.viewports);
-    const testGenerator = new TestGenerator(firebaseConfig, viewports);
-    const tests = testGenerator.generateTests(analysis);
+    const testGenerator = new TestGenerator(
+      firebaseConfig, 
+      viewports, 
+      inputs.claudeApiKey,
+      inputs.enableAITestGeneration
+    );
+    const tests = await testGenerator.generateTests(analysis);
     
     if (tests.length === 0) {
       throw new Error('No tests generated from route analysis');
@@ -329,7 +334,12 @@ function parseInputs(): ActionInputs {
     authEmail: core.getInput('auth-email') || undefined,
     authPassword: core.getInput('auth-password') || undefined,
     authLoginUrl: core.getInput('auth-login-url') || '/login/password',
-    enableSmartAuth: core.getInput('enable-smart-auth') === 'true'
+    enableSmartAuth: core.getInput('enable-smart-auth') === 'true',
+    mcpProvider: core.getInput('mcp-provider') || 'built-in',
+    mcpOptions: core.getInput('mcp-options') || '{}',
+    enableAINavigation: core.getInput('enable-ai-navigation') === 'true',
+    enableAITestGeneration: core.getInput('enable-ai-test-generation') === 'true',
+    testRoutes: core.getInput('test-routes') || ''
   };
 
   // Validate required inputs

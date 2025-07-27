@@ -42,7 +42,7 @@ jobs:
       
       # Run YoFix
       - name: YoFix Analysis
-        uses: yofix/yofix@v1
+        uses: ./
         with:
           # Use deploy URL for PRs, or construct for comments
           preview-url: |

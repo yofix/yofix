@@ -84,6 +84,10 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
+  "optionalDependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@modelcontextprotocol/server-puppeteer": "^2025.5.12"
+  },
   "engines": {
     "node": ">=20.0.0"
   },

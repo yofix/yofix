@@ -155,16 +155,9 @@ async function runVisualTesting(): Promise<void> {
         password: inputs.authPassword
       }, {
         claudeApiKey: inputs.claudeApiKey,
-        forceSmartMode: process.env.YOFIX_SMART_AUTH === 'true'
+        forceSmartMode: inputs.enableSmartAuth || process.env.YOFIX_SMART_AUTH === 'true'
       });
       runner.setAuthHandler(authHandler);
-      
-      // Enable smart auth if not already forced
-      if (process.env.YOFIX_SMART_AUTH !== 'true' && Math.random() < 0.1) {
-        // Gradually roll out smart auth to 10% of users
-        core.info('🧪 Testing smart authentication mode');
-        runner.enableSmartAuth(inputs.claudeApiKey);
-      }
     }
     
     await runner.initialize();
@@ -335,7 +328,8 @@ function parseInputs(): ActionInputs {
     maxRoutes: core.getInput('max-routes') || '10',
     authEmail: core.getInput('auth-email') || undefined,
     authPassword: core.getInput('auth-password') || undefined,
-    authLoginUrl: core.getInput('auth-login-url') || '/login/password'
+    authLoginUrl: core.getInput('auth-login-url') || '/login/password',
+    enableSmartAuth: core.getInput('enable-smart-auth') === 'true'
   };
 
   // Validate required inputs

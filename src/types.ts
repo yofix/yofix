@@ -119,6 +119,7 @@ export interface ActionInputs {
   authEmail?: string;
   authPassword?: string;
   authLoginUrl?: string;
+  enableSmartAuth?: boolean;
 }
 
 export interface FirebaseStorageConfig {

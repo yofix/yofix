@@ -118,6 +118,11 @@ inputs:
     description: 'Login page URL path'
     required: false
     default: '/login/password'
+  
+  enable-smart-auth:
+    description: 'Enable AI-powered smart authentication'
+    required: false
+    default: 'false'
 
 outputs:
   status:
@@ -227,3 +232,5 @@ runs:
         INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
         INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
+        INPUT_ENABLE-SMART-AUTH: ${{ inputs.enable-smart-auth }}
+        YOFIX_SMART_AUTH: ${{ inputs.enable-smart-auth }}

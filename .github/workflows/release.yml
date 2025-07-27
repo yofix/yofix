@@ -43,7 +43,7 @@ jobs:
       - name: Create Release
         uses: actions/create-release@v1
         env:
-          YOFIX_GITHUB_TOKEN: ${{ secrets.YOFIX_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           release_name: Release ${{ github.event.inputs.version || github.ref_name }}
@@ -75,3 +75,6 @@ jobs:
           # Force update the major version tag
           git tag -fa $MAJOR_VERSION -m "Update $MAJOR_VERSION to $VERSION"
           git push origin $MAJOR_VERSION --force
+          
+      # The action is automatically published to GitHub Marketplace
+      # when a release is created with proper action.yml metadata

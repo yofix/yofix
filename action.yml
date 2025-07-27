@@ -138,13 +138,51 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Install Playwright browsers
+    # Get Playwright version for cache key
+    - name: Get Playwright version
+      id: playwright-version
       shell: bash
       run: |
-        echo "📦 Installing Playwright browsers..."
+        # Default Playwright version
+        echo "version=1.54.1" >> $GITHUB_OUTPUT
+    
+    # Cache Playwright browsers and dependencies
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/playwright-deps
+        key: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-v2
+        restore-keys: |
+          playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-
+          playwright-browsers-${{ runner.os }}-
+    
+    # Install or restore Playwright
+    - name: Setup Playwright
+      shell: bash
+      run: |
         cd ${{ github.action_path }}
-        npx playwright install chromium --with-deps
-        echo "✅ Playwright browsers installed"
+        
+        if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+          echo "📦 Installing Playwright browsers (cache miss)..."
+          
+          # Install Playwright with browsers and dependencies
+          npx -y playwright@${{ steps.playwright-version.outputs.version }} install chromium --with-deps
+          
+          # Save installed dependencies list for caching
+          mkdir -p ~/playwright-deps
+          dpkg -l > ~/playwright-deps/installed-packages.txt
+          
+          echo "✅ Playwright browsers and dependencies installed"
+        else
+          echo "🚀 Using cached Playwright browsers"
+          
+          # Just ensure system dependencies are present (fast operation)
+          # This handles cases where the runner image has changed
+          npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
+        fi
         
     - name: Run visual tests
       shell: bash

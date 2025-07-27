@@ -21,7 +21,7 @@ jobs:
           channelId: pr-${{ github.event.pull_request.number }}
       
       - name: Visual Testing with Authentication
-        uses: LoopKitchen/runtime-pr-verification@v2.0.8
+        uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.build_and_preview.outputs.details_url }}
           firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}

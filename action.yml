@@ -11,14 +11,6 @@ inputs:
     description: 'Firebase preview URL (e.g., https://project--pr-123-app.web.app)'
     required: true
   
-  firebase-credentials:
-    description: 'Base64 encoded Firebase service account JSON'
-    required: true
-  
-  storage-bucket:
-    description: 'Firebase Storage bucket name'
-    required: true
-  
   github-token:
     description: 'GitHub token for posting PR comments'
     required: true
@@ -26,6 +18,60 @@ inputs:
   claude-api-key:
     description: 'Claude API key for intelligent route analysis'
     required: true
+  
+  # Storage Configuration
+  storage-provider:
+    description: 'Storage provider: firebase, s3, or auto (auto-detect)'
+    required: false
+    default: 'auto'
+  
+  # Firebase Storage
+  firebase-credentials:
+    description: 'Base64 encoded Firebase service account JSON'
+    required: false
+  
+  storage-bucket:
+    description: 'Firebase Storage bucket name'
+    required: false
+  
+  # S3 Storage
+  s3-bucket:
+    description: 'AWS S3 bucket name'
+    required: false
+  
+  aws-region:
+    description: 'AWS region for S3 bucket'
+    required: false
+    default: 'us-east-1'
+  
+  aws-access-key-id:
+    description: 'AWS access key ID (uses default credentials if not provided)'
+    required: false
+  
+  aws-secret-access-key:
+    description: 'AWS secret access key (uses default credentials if not provided)'
+    required: false
+  
+  # Cache Configuration
+  redis-url:
+    description: 'Redis URL for caching (format: redis://user:pass@host:port)'
+    required: false
+  
+  cache-ttl:
+    description: 'Cache TTL in seconds'
+    required: false
+    default: '3600'
+  
+  # MCP Configuration
+  mcp-provider:
+    description: 'MCP provider: built-in or playwright-official'
+    required: false
+    default: 'built-in'
+  
+  mcp-options:
+    description: 'JSON string of MCP options'
+    required: false
+    default: '{}'
   
   firebase-project-id:
     description: 'Firebase project ID (auto-detected from preview URL if not provided)'
@@ -106,10 +152,17 @@ runs:
         node ${{ github.action_path }}/dist/index.js
       env:
         INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
-        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
-        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
         INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_REDIS-URL: ${{ inputs.redis-url }}
+        INPUT_CACHE-TTL: ${{ inputs.cache-ttl }}
         INPUT_FIREBASE-PROJECT-ID: ${{ inputs.firebase-project-id }}
         INPUT_FIREBASE-TARGET: ${{ inputs.firebase-target }}
         INPUT_BUILD-SYSTEM: ${{ inputs.build-system }}
@@ -117,3 +170,6 @@ runs:
         INPUT_CLEANUP-DAYS: ${{ inputs.cleanup-days }}
         INPUT_VIEWPORTS: ${{ inputs.viewports }}
         INPUT_MAX-ROUTES: ${{ inputs.max-routes }}
+        INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}

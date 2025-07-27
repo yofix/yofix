@@ -1,0 +1,48 @@
+name: Conditional Visual Testing
+on:
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled]
+
+jobs:
+  visual-test-conditional:
+    runs-on: ubuntu-latest
+    # Only run if PR doesn't have 'skip-visual-test' label
+    if: |
+      github.event_name == 'pull_request' &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-visual-test')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Check if files affecting UI were changed
+      - name: Check for UI changes
+        id: ui-changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            frontend:
+              - 'src/**/*.{js,jsx,ts,tsx,css,scss}'
+              - 'public/**/*'
+              - 'styles/**/*'
+      
+      # Deploy only if UI files changed
+      - name: Deploy Preview
+        if: steps.ui-changes.outputs.frontend == 'true'
+        id: deploy
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+      
+      # Run visual tests only if UI changed
+      - name: Visual Testing
+        if: steps.ui-changes.outputs.frontend == 'true'
+        uses: yofix/yofix@v1
+        timeout-minutes: 10
+        with:
+          preview-url: ${{ steps.deploy.outputs.preview-url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: my-app-screenshots

@@ -1,0 +1,66 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Development files
+.github/
+docs/
+examples/
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Configuration files
+.eslintrc*
+.prettierrc*
+tsconfig.json
+jest.config.js
+*.config.js
+
+# Build files
+node_modules/
+.npm/
+.yarn/
+yarn-error.log
+npm-debug.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD files
+.travis.yml
+.circleci/
+azure-pipelines.yml
+
+# Documentation
+*.md
+!README.md
+!LICENSE
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+.cache/
+
+# Keep only essential files for npm package
+# - dist/ (compiled code)
+# - action.yml (GitHub Action definition)
+# - package.json
+# - README.md
+# - LICENSE

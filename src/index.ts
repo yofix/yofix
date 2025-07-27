@@ -3,12 +3,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
-import { FirebaseUrlHandler } from './firebase-url-handler';
-import { ClaudeRouteAnalyzer, RouteAnalysis } from './claude-route-analyzer';
-import { TestGenerator } from './test-generator';
-import { VisualRunner } from './visual-runner';
-import { FirebaseStorageManager } from './firebase-storage';
-import { PRReporter } from './pr-reporter';
+import { FirebaseUrlHandler } from './providers/firebase/FirebaseUrlHandler';
+import { ClaudeRouteAnalyzer, RouteAnalysis } from './core/analysis/RouteAnalyzer';
+import { TestGenerator } from './core/testing/TestGenerator';
+import { VisualRunner } from './core/testing/VisualRunner';
+import { FirebaseStorageManager } from './providers/storage/FirebaseStorageManager';
+import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseStorageConfig, TestAction, RouteAnalysisResult } from './types';
 import * as github from '@actions/github';
 import { YoFixBot } from './bot/YoFixBot';
@@ -62,7 +62,7 @@ async function runVisualTesting(): Promise<void> {
     await reporter.postStatusUpdate('running', 'Initializing Firebase and React SPA verification...');
     
     // Create temporary working directory
-    outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'runtime-pr-verification-'));
+    outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'yofix-'));
     core.info(`Working directory: ${outputDir}`);
 
     // 1. Parse Firebase URL and wait for deployment
@@ -148,7 +148,7 @@ async function runVisualTesting(): Promise<void> {
     // Set up authentication if credentials provided
     if (inputs.authEmail && inputs.authPassword) {
       core.info('🔐 Authentication credentials provided, enabling login support');
-      const { AuthHandler } = await import('./auth-handler');
+      const { AuthHandler } = await import('./github/AuthHandler');
       const authHandler = new AuthHandler({
         loginUrl: inputs.authLoginUrl || '/login/password',
         email: inputs.authEmail,

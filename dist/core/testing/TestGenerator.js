@@ -36,14 +36,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestGenerator = void 0;
 const core = __importStar(require("@actions/core"));
 class TestGenerator {
-    constructor(firebaseConfig, viewports) {
+    constructor(firebaseConfig, viewports, claudeApiKey, enableAIGeneration = false) {
+        this.enableAIGeneration = false;
         this.firebaseConfig = firebaseConfig;
         this.viewports = viewports;
+        this.claudeApiKey = claudeApiKey;
+        this.enableAIGeneration = enableAIGeneration;
     }
-    generateTests(analysis) {
+    async generateTests(analysis) {
         core.info('Generating React SPA tests based on route analysis...');
         const tests = [];
         tests.push(this.createSPALoadingTest());
+        if (this.enableAIGeneration && this.claudeApiKey) {
+            core.info('🤖 Using Claude AI to generate context-aware tests...');
+            const aiTests = await this.generateTestsWithAI(analysis);
+            tests.push(...aiTests);
+        }
         if (analysis.components.length > 0) {
             tests.push(...this.createComponentTests(analysis.components));
         }
@@ -65,6 +73,87 @@ class TestGenerator {
         }
         core.info(`Generated ${tests.length} tests for React SPA verification`);
         return tests;
+    }
+    async generateTestsWithAI(analysis) {
+        if (!this.claudeApiKey)
+            return [];
+        try {
+            const { Anthropic } = await Promise.resolve().then(() => __importStar(require('@anthropic-ai/sdk')));
+            const claude = new Anthropic({ apiKey: this.claudeApiKey });
+            const prompt = `Analyze this web application and generate Playwright test cases:
+
+Application URL: ${this.firebaseConfig.previewUrl}
+Routes to test: ${analysis.routes.join(', ')}
+Components: ${analysis.components.join(', ')}
+Change type: UI changes detected
+
+Generate specific test cases that:
+1. Test user interactions (clicks, form fills, navigation)
+2. Verify visual elements and layout
+3. Check responsive behavior
+4. Test error scenarios
+5. Validate data flows
+
+For each test, provide:
+- Test name and description
+- Specific actions to perform
+- Expected outcomes to verify
+
+Return as JSON array with this structure:
+[{
+  "name": "Test name",
+  "description": "What this test verifies",
+  "actions": [
+    {"type": "goto", "target": "url"},
+    {"type": "click", "selector": "button.submit"}
+  ],
+  "assertions": [
+    {"type": "visible", "selector": ".success-message"}
+  ]
+}]`;
+            const response = await claude.messages.create({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 2048,
+                temperature: 0.3,
+                messages: [{
+                        role: 'user',
+                        content: prompt
+                    }]
+            });
+            const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+            const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+            ;
+            if (jsonMatch) {
+                const aiTestCases = JSON.parse(jsonMatch[0]);
+                return aiTestCases.map((test, index) => ({
+                    id: `ai-test-${index}`,
+                    name: test.name,
+                    type: 'interaction',
+                    selector: test.actions[0]?.selector || 'body',
+                    actions: test.actions.map((action) => ({
+                        type: action.type,
+                        target: action.target || action.url,
+                        selector: action.selector,
+                        value: action.value,
+                        timeout: action.timeout || 10000,
+                        description: action.description
+                    })),
+                    assertions: test.assertions.map((assertion) => ({
+                        type: assertion.type,
+                        target: assertion.selector || assertion.target,
+                        selector: assertion.selector,
+                        expected: assertion.expected,
+                        timeout: assertion.timeout || 10000,
+                        description: assertion.description
+                    })),
+                    viewport: this.viewports[0]
+                }));
+            }
+        }
+        catch (error) {
+            core.warning(`AI test generation failed: ${error}`);
+        }
+        return [];
     }
     createSPALoadingTest() {
         const actions = [

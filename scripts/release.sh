@@ -136,8 +136,56 @@ echo -e "\n🏷️  Updating major version tag v$MAJOR_VERSION..."
 git tag -f "v$MAJOR_VERSION"
 git push origin "v$MAJOR_VERSION" --force
 
+# Generate changelog for this release
+echo -e "\n📝 Generating changelog..."
+PREVIOUS_TAG=$(git describe --tags --abbrev=0 v$NEW_VERSION^ 2>/dev/null || echo "v1.0.0")
+COMMITS=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..v$NEW_VERSION 2>/dev/null | grep -v "^- chore: release" | grep -v "^- Merge pull request" | head -20)
+
+# Group commits by type
+FEATURES=$(echo "$COMMITS" | grep -E "^- feat(\(.*\))?: " | sed 's/^- feat(\(.*\))?: /- /' || true)
+FIXES=$(echo "$COMMITS" | grep -E "^- fix(\(.*\))?: " | sed 's/^- fix(\(.*\))?: /- /' || true)
+OTHER=$(echo "$COMMITS" | grep -vE "^- (feat|fix)(\(.*\))?: " || true)
+
+# Build changelog sections
+CHANGELOG=""
+if [ -n "$FEATURES" ]; then
+    CHANGELOG="### 🚀 Features
+$FEATURES
+
+"
+fi
+if [ -n "$FIXES" ]; then
+    CHANGELOG="${CHANGELOG}### 🐛 Bug Fixes
+$FIXES
+
+"
+fi
+if [ -n "$OTHER" ]; then
+    CHANGELOG="${CHANGELOG}### 📦 Other Changes
+$OTHER
+
+"
+fi
+
+# Fallback if no commits found
+if [ -z "$CHANGELOG" ]; then
+    CHANGELOG="- Version bump to v$NEW_VERSION"
+fi
+
+# Create GitHub release
+echo -e "\n📦 Creating GitHub release..."
+gh release create "v$NEW_VERSION" \
+  --title "v$NEW_VERSION" \
+  --notes "## What's Changed
+
+$CHANGELOG
+
+**Full Changelog**: https://github.com/yofix/yofix/compare/$PREVIOUS_TAG...v$NEW_VERSION
+
+---
+*Released by automated release script*" \
+  --latest
+
 echo -e "\n${GREEN}✨ Release v$NEW_VERSION completed successfully!${NC}"
-echo -e "\nNext steps:"
-echo -e "1. Monitor the release workflow: ${YELLOW}https://github.com/yofix/yofix/actions${NC}"
-echo -e "2. Once the release is created, publish to GitHub Marketplace"
-echo -e "3. Announce the release!"
+echo -e "\nRelease created: ${GREEN}https://github.com/yofix/yofix/releases/tag/v$NEW_VERSION${NC}"
+echo -e "\nThe GitHub Marketplace will automatically update within 5-10 minutes."

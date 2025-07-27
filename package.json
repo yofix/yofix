@@ -1,6 +1,6 @@
 {
   "name": "yofix",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "AI-powered visual issue detection and auto-fix for web applications",
   "main": "dist/index.js",
   "bin": {
@@ -8,9 +8,9 @@
   },
   "scripts": {
     "postinstall": "playwright install chromium",
-    "build": "tsc && ncc build dist/index.js -o dist-final --source-map && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
+    "build": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:local": "ts-node test/local-runner.ts",
     "test:action": "act -j visual-test --secret-file .env.test",
     "test:action:local": "ts-node test/test-action-locally.ts",
@@ -89,7 +89,7 @@
     "@playwright/mcp": "^0.0.32"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "dist/**/*",

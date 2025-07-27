@@ -52,7 +52,7 @@ class YoFixBot {
         try {
             const analyzer = new CodebaseAnalyzer_1.CodebaseAnalyzer();
             this.codebaseContext = await analyzer.analyzeRepository();
-            const githubToken = core.getInput('github-token') || process.env.GITHUB_TOKEN || '';
+            const githubToken = core.getInput('github-token') || process.env.YOFIX_GITHUB_TOKEN || '';
             const claudeApiKey = process.env.CLAUDE_API_KEY || core.getInput('claude-api-key') || '';
             this.commandHandler = new CommandHandler_1.CommandHandler(githubToken, claudeApiKey, this.codebaseContext);
             core.info('✅ Codebase context initialized successfully');

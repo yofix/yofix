@@ -1,26 +1,27 @@
 # YoFix 🔧
 
-> AI-powered visual issue detection and auto-fix for web applications
+> AI-powered visual testing that automatically fixes UI issues in your PRs
 
 [![GitHub Action](https://img.shields.io/badge/GitHub-Action-blue)](https://github.com/marketplace/actions/yofix)
-[![npm version](https://img.shields.io/npm/v/yofix)](https://www.npmjs.com/package/yofix)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-YoFix automatically detects visual issues in your web applications and generates fixes for them. Using AI-powered analysis, it can identify layout problems, responsive issues, and other visual bugs, then provide ready-to-apply code fixes.
+YoFix automatically detects visual issues in your web applications and generates fixes for them. Using AI-powered analysis, it can identify layout problems, responsive issues, and other visual bugs, then provide ready-to-apply code fixes directly in your pull requests.
 
 ## ✨ Features
 
 - 🔍 **Smart Detection**: Automatically finds visual issues using AI
-- 🔧 **Auto-Fix Generation**: Creates code fixes for detected issues
-- 🤖 **GitHub Bot**: Interactive bot responds to PR comments
-- 📱 **Responsive Testing**: Tests across multiple viewports
-- 🎯 **Framework Aware**: Understands React, Vue, Angular, and more
-- 💬 **Conversational**: Refine fixes through natural language
-- 📊 **Detailed Reports**: Visual comparisons and fix explanations
+- 🔧 **Auto-Fix Generation**: Creates code fixes for detected issues  
+- 🤖 **Natural Language Bot**: Interact with YoFix using plain English
+- 📱 **Multi-Viewport Testing**: Tests across desktop, tablet, and mobile
+- 🎯 **Framework Support**: React, Next.js, Vue, Angular, and more
+- 📸 **Visual Baselines**: Track and compare UI changes over time
+- 🔐 **Auth Support**: Test protected routes with authentication
 
 ## 🚀 Quick Start
 
-### As a GitHub Action
+### Installation
+
+Add YoFix to your GitHub Actions workflow:
 
 ```yaml
 name: Visual Testing
@@ -30,183 +31,276 @@ jobs:
   yofix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
+      # Deploy your preview (example with Vercel)
+      - name: Deploy Preview
+        id: deploy
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+      
+      # Run YoFix Visual Testing
       - name: YoFix Analysis
         uses: yofix/yofix@v1
         with:
-          preview-url: ${{ steps.deploy.outputs.url }}
+          # Required
+          preview-url: ${{ steps.deploy.outputs.preview-url }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # Storage (choose one)
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          # OR
+          storage-provider: s3
+          s3-bucket: ${{ secrets.S3_BUCKET }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          
+          # Optional
+          viewports: "1920x1080,768x1024,375x667"
+          test-timeout: "30000"
+          max-routes: "10"
 ```
 
-### As a CLI Tool
+## 📋 Prerequisites
 
-```bash
-# Install globally
-npm install -g yofix
+Before using YoFix, you'll need:
 
-# Initialize in your project
-yofix init
+### 1. Claude API Key
+Get your API key from [console.anthropic.com](https://console.anthropic.com)
 
-# Scan for issues
-yofix scan https://your-app.com
+### 2. Storage Provider (choose one)
 
-# Generate and apply fixes
-yofix fix --apply
-```
+**Option A: Firebase Storage**
+- Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+- Generate a service account key (Project Settings → Service Accounts)
+- Base64 encode the JSON file: `base64 -i service-account.json`
+- Set as `FIREBASE_SERVICE_ACCOUNT` secret
 
-### As a GitHub Bot
+**Option B: AWS S3**
+- Create an S3 bucket with public read access
+- Create IAM user with S3 write permissions
+- Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` secrets
 
-Simply comment on any PR:
-
-```
-@yofix scan
-```
-
-YoFix will analyze your changes and respond with findings and fixes.
+### 3. GitHub Token
+The `GITHUB_TOKEN` is automatically available in GitHub Actions
 
 ## 🤖 Bot Commands
 
+YoFix responds to natural language commands in PR comments:
+
+```
+@yofix check if the navbar looks good on mobile
+```
+
+### Common Commands
+
 | Command | Description |
 |---------|-------------|
-| `@yofix scan` | Run full visual analysis |
-| `@yofix scan /route` | Scan specific route |
-| `@yofix fix` | Generate fixes for all issues |
-| `@yofix fix #3` | Fix specific issue |
-| `@yofix explain #2` | Get detailed explanation |
-| `@yofix preview` | Preview fixes before applying |
-| `@yofix apply` | Apply suggested fixes |
-| `@yofix baseline update` | Update visual baseline |
-| `@yofix help` | Show all commands |
+| `@yofix test this PR` | Run full visual analysis |
+| `@yofix check the homepage` | Test specific route |
+| `@yofix fix the mobile menu` | Generate specific fix |
+| `@yofix the buttons are misaligned` | Report and fix issue |
+| `@yofix test auth pages with login` | Test protected routes |
+| `@yofix update baseline` | Save current UI as baseline |
 
-## 📋 Example Response
+## 📊 Example Usage
+
+### Basic Visual Testing
+
+```yaml
+- name: Visual Testing
+  uses: yofix/yofix@v1
+  with:
+    preview-url: https://preview.example.com
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+    firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    storage-bucket: my-app-screenshots
+```
+
+### With Authentication
+
+```yaml
+- name: Visual Testing with Auth
+  uses: yofix/yofix@v1
+  with:
+    preview-url: https://preview.example.com
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+    firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    storage-bucket: my-app-screenshots
+    auth-email: test@example.com
+    auth-password: ${{ secrets.TEST_PASSWORD }}
+    auth-login-url: /login
+```
+
+### Custom Viewports
+
+```yaml
+- name: Visual Testing Custom Viewports
+  uses: yofix/yofix@v1
+  with:
+    preview-url: https://preview.example.com
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+    firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    storage-bucket: my-app-screenshots
+    viewports: "1920x1080,1440x900,768x1024,375x812"
+```
+
+## 📋 Example Bot Response
 
 ```markdown
-## 🔧 YoFix Analysis Report
+## 🔧 YoFix Analysis Complete
 
-### Issues Found: 3
-- 🚨 Critical: Mobile navigation overlap
-- ⚠️ Warning: Button misalignment on tablet
-- 💡 Info: Suboptimal image sizing
+I found 3 visual issues in your PR:
 
-### Available Fixes: 3/3 ✅
+### 🚨 Critical: Mobile Navigation Overlap
+The navigation menu overlaps content on mobile devices (< 768px)
 
-<details>
-<summary>View Details & Fixes</summary>
-
-**Issue #1: Mobile Navigation Overlap**
-- **Severity**: Critical
-- **Affected**: screens < 768px
-- **Fix**:
+**Fix:**
 ```css
 @media (max-width: 768px) {
   .nav-menu {
     position: fixed;
     transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .nav-menu.open {
+    transform: translateX(0);
   }
 }
 ```
-</details>
 
-💬 Reply with: `@yofix apply` to apply all fixes
+### ⚠️ Warning: Button Misalignment
+Buttons in the hero section are misaligned on tablet viewports
+
+### 💡 Suggestion: Image Optimization
+Large images could be optimized for better performance
+
+---
+📸 [View Screenshots](https://storage.googleapis.com/my-app/pr-123)
+💬 Reply "@yofix apply fixes" to automatically apply these changes
 ```
 
 ## ⚙️ Configuration
 
-Create a `.yofix.yml` file in your project root:
+### Action Inputs
 
-```yaml
-version: 1
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `preview-url` | ✅ | - | URL of deployed preview |
+| `github-token` | ✅ | - | GitHub token for PR comments |
+| `claude-api-key` | ✅ | - | Claude API key |
+| `firebase-credentials` | ✅* | - | Base64 encoded service account |
+| `storage-bucket` | ✅* | - | Firebase storage bucket name |
+| `storage-provider` | ❌ | `auto` | Storage provider: `firebase`, `s3`, `auto` |
+| `s3-bucket` | ✅* | - | S3 bucket name (if using S3) |
+| `aws-access-key-id` | ❌ | - | AWS access key (if using S3) |
+| `aws-secret-access-key` | ❌ | - | AWS secret key (if using S3) |
+| `viewports` | ❌ | `1920x1080,768x1024,375x667` | Comma-separated viewport sizes |
+| `test-timeout` | ❌ | `30000` | Test timeout in milliseconds |
+| `max-routes` | ❌ | `20` | Maximum routes to test |
+| `auth-email` | ❌ | - | Auth email for protected routes |
+| `auth-password` | ❌ | - | Auth password for protected routes |
+| `auth-login-url` | ❌ | `/login` | Login page URL |
+| `cleanup-days` | ❌ | `30` | Days to keep screenshots |
 
-# Scanning options
-scan:
-  routes: auto  # or specify: ['/home', '/about']
-  viewports: 
-    - desktop: 1920x1080
-    - tablet: 768x1024
-    - mobile: 375x667
-  threshold: 0.1  # 10% visual difference threshold
-
-# Fix preferences
-fixes:
-  autoApply: false
-  style: minimal  # or: comprehensive
-  frameworks:
-    - css
-    - tailwind
-    - styled-components
-
-# AI settings
-ai:
-  model: claude-3-haiku  # or: claude-3-opus
-  confidence: 0.8
-
-# Integrations
-integrations:
-  slack:
-    webhook: ${SLACK_WEBHOOK}
-    notify_on: [critical, high]
-```
+*Required based on storage provider choice
 
 ## 🛠️ Supported Frameworks
 
-- ✅ React (CRA, Next.js, Vite)
-- ✅ Vue.js
-- ✅ Angular
-- ✅ Svelte
-- ✅ Plain HTML/CSS
-- ✅ Tailwind CSS
-- ✅ Styled Components
-- ✅ CSS Modules
+YoFix automatically detects and supports:
+
+- **Frontend Frameworks**
+  - React (CRA, Next.js, Gatsby, Remix)
+  - Vue.js (Vue 2/3, Nuxt)
+  - Angular
+  - Svelte/SvelteKit
+  - Solid.js
+  - Qwik
+
+- **Styling Solutions**
+  - CSS/SCSS/LESS
+  - Tailwind CSS
+  - CSS Modules
+  - Styled Components
+  - Emotion
+  - CSS-in-JS
 
 ## 📊 How It Works
 
-1. **Capture**: Takes screenshots across different viewports
-2. **Analyze**: Uses AI to detect visual issues
-3. **Diagnose**: Maps issues to code locations
-4. **Fix**: Generates appropriate code fixes
-5. **Validate**: Tests fixes in isolation
-6. **Report**: Presents findings with confidence scores
+1. **🔍 Route Discovery**: Automatically finds all routes in your app
+2. **📸 Screenshot Capture**: Takes screenshots across viewports
+3. **🤖 AI Analysis**: Detects visual issues and regressions
+4. **🔧 Fix Generation**: Creates targeted code fixes
+5. **💬 PR Integration**: Posts results as PR comments
+6. **🚀 Apply Fixes**: Optionally auto-applies approved fixes
 
-## 🔒 Security & Privacy
+## 🔒 Security
 
-- All analysis happens in isolated environments
-- Screenshots are temporarily stored and auto-deleted
-- Code is never stored permanently
-- Compliant with SOC2 and GDPR
+- **Isolated Execution**: All tests run in isolated browser contexts
+- **Temporary Storage**: Screenshots auto-delete after 30 days
+- **No Code Storage**: Your source code is never stored
+- **Encrypted Secrets**: All credentials are encrypted
+- **SOC2 Type II**: Enterprise compliance available
 
-## 💰 Pricing
+## 🚀 Advanced Features
 
-YoFix uses a pay-per-scan model:
-- **Free tier**: 100 scans/month
-- **Pro**: $29/month for 1000 scans
-- **Enterprise**: Custom pricing
+### Visual Baselines
+Track UI changes over time:
+```
+@yofix update baseline for homepage
+```
 
-Each PR typically uses 5-10 scans.
+### Custom Test Flows
+Test complex interactions:
+```
+@yofix test checkout flow: add item to cart, go to checkout, fill form
+```
 
-## 🤝 Contributing
+### Performance Metrics
+Get performance insights:
+```
+@yofix measure performance for product pages
+```
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+### Accessibility Checks
+Ensure accessibility compliance:
+```
+@yofix check accessibility on all pages
+```
 
 ## 📚 Documentation
 
-- [Getting Started](https://yofix.dev/docs/getting-started)
-- [Configuration](https://yofix.dev/docs/configuration)
-- [Bot Commands](https://yofix.dev/docs/bot-commands)
-- [API Reference](https://yofix.dev/docs/api)
-- [Examples](https://yofix.dev/docs/examples)
+For detailed documentation, visit our [docs folder](docs/):
 
-## 🆘 Support
+- [Quick Start Guide](docs/guide_quickstart.md)
+- [Bot Commands](docs/guide_bot-natural-language.md) 
+- [Storage Setup](docs/config_storage-setup.md)
+- [Authentication](docs/config_authentication.md)
+- [Deployment Guide](docs/guide_deployment.md)
 
-- 📧 Email: support@yofix.dev
-- 💬 Discord: [Join our community](https://discord.gg/yofix)
-- 🐛 Issues: [GitHub Issues](https://github.com/yofix/yofix/issues)
+## 🤝 Contributing
+
+We welcome contributions! Check out:
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Development Setup](docs/guide_development.md)
 
 ## 📄 License
 
-MIT © YoFix
+MIT © 2024 YoFix
 
 ---
 
-Made with ❤️ by the YoFix team. If YoFix helps you ship better UIs, consider [starring us on GitHub](https://github.com/yofix/yofix)!
+<p align="center">
+  Made with ❤️ by the YoFix team<br>
+  <a href="https://github.com/yofix/yofix">⭐ Star us on GitHub</a> • 
+  <a href="https://yofix.dev">🌐 Visit yofix.dev</a>
+</p># yofix-action

@@ -34,7 +34,7 @@ export class YoFixBot {
       this.codebaseContext = await analyzer.analyzeRepository();
       
       // Recreate command handler with context
-      const githubToken = core.getInput('github-token') || process.env.GITHUB_TOKEN || '';
+      const githubToken = core.getInput('github-token') || process.env.YOFIX_GITHUB_TOKEN || '';
       const claudeApiKey = process.env.CLAUDE_API_KEY || core.getInput('claude-api-key') || '';
       this.commandHandler = new CommandHandler(githubToken, claudeApiKey, this.codebaseContext);
       

@@ -179,7 +179,7 @@ jobs:
         id: deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          repoToken: '${{ secrets.YOFIX_GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           projectId: your-project
       
@@ -196,7 +196,7 @@ jobs:
           redis-url: ${{ secrets.REDIS_URL }}
           
           # API Keys
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
 ```
 
@@ -224,7 +224,7 @@ jobs:
 FIREBASE_CREDENTIALS=<base64-encoded-service-account>
 STORAGE_BUCKET=your-project.appspot.com
 CLAUDE_API_KEY=sk-ant-...
-GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+YOFIX_GITHUB_TOKEN=${{ secrets.YOFIX_GITHUB_TOKEN }}
 ```
 
 ### Optional

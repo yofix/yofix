@@ -39,5 +39,5 @@ jobs:
           preview-url: https://react-vite-demo.vercel.app
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
           storage-bucket: test-bucket
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.TEST_CLAUDE_API_KEY }}

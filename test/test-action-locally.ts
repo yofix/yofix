@@ -29,7 +29,7 @@ async function testAction() {
     previewUrl: process.env.TEST_PREVIEW_URL || 'https://react-vite-demo.vercel.app',
     firebaseCredentials: process.env.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 || '',
     storageBucket: process.env.FE_VAR_FIREBASE_STORAGE_BUCKET || 'test-bucket',
-    githubToken: process.env.GITHUB_TOKEN || '',
+    githubToken: process.env.YOFIX_GITHUB_TOKEN || '',
     claudeApiKey: process.env.CLAUDE_API_KEY || '',
     prNumber: parseInt(process.env.TEST_PR_NUMBER || '1'),
   };

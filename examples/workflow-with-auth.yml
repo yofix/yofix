@@ -15,7 +15,7 @@ jobs:
         id: build_and_preview
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          repoToken: '${{ secrets.YOFIX_GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}'
           expires: 7d
           channelId: pr-${{ github.event.pull_request.number }}
@@ -26,7 +26,7 @@ jobs:
           preview-url: ${{ steps.build_and_preview.outputs.details_url }}
           firebase-credentials: ${{ secrets.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 }}
           storage-bucket: ${{ vars.FE_VAR_FIREBASE_STORAGE_BUCKET }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           
           # Authentication credentials

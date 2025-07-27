@@ -49,13 +49,13 @@ jobs:
         if: github.event_name == 'issue_comment'
         run: gh pr checkout ${{ github.event.issue.number }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.YOFIX_GITHUB_TOKEN }}
       
       # Run YoFix
       - uses: yofix/yofix@v1
         with:
           preview-url: https://preview-pr-${{ github.event.issue.number }}.vercel.app
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: your-screenshots

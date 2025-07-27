@@ -34,7 +34,7 @@ jobs:
         uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.preview-url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: my-app-screenshots

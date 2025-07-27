@@ -27,7 +27,7 @@ jobs:
         run: |
           gh pr checkout ${{ github.event.issue.number }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.YOFIX_GITHUB_TOKEN }}
       
       # Deploy to preview (if not already deployed)
       # NOTE: Skip this step if Firebase is not configured
@@ -36,7 +36,7 @@ jobs:
         if: github.event_name == 'pull_request' && secrets.FIREBASE_SERVICE_ACCOUNT != ''
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          repoToken: '${{ secrets.YOFIX_GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           projectId: your-project
           channelId: pr-${{ github.event.pull_request.number || github.event.issue.number }}
@@ -51,7 +51,7 @@ jobs:
                 format('https://your-project--pr-{0}-abc123.web.app', github.event.issue.number) }}
           
           # Required secrets
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}

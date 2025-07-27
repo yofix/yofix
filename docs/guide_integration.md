@@ -117,7 +117,7 @@ jobs:
         uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
         id: vercel
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           max_timeout: 600
       
       # Run YoFix
@@ -125,7 +125,7 @@ jobs:
         uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.vercel.outputs.url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           
           # Storage configuration
@@ -163,7 +163,7 @@ jobs:
         id: deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          repoToken: '${{ secrets.YOFIX_GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
           channelId: pr-${{ github.event.pull_request.number || github.event.issue.number }}
       
@@ -172,7 +172,7 @@ jobs:
         uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.details_url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
@@ -206,7 +206,7 @@ jobs:
         uses: nwtgck/actions-netlify@v2.0
         with:
           publish-dir: './dist'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           deploy-message: "PR #${{ github.event.pull_request.number }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
@@ -217,7 +217,7 @@ jobs:
         uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.deploy-url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
 ```
 

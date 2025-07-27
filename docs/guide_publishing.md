@@ -87,7 +87,7 @@ jobs:
       - uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: my-app-screenshots
@@ -159,7 +159,7 @@ git push origin v1 --force
 - uses: yofix/yofix@v1
   with:
     preview-url: ${{ steps.deploy.outputs.url }}
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
 \`\`\`
 
@@ -284,7 +284,7 @@ Users need to configure these secrets:
 - `S3_BUCKET`: Your S3 bucket name
 - Create: IAM user with S3 write permissions
 
-### 3. GITHUB_TOKEN (Automatic)
+### 3. YOFIX_GITHUB_TOKEN (Automatic)
 - Automatically provided by GitHub Actions
 - Used for: PR comments and API access
 

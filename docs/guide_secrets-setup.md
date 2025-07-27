@@ -118,9 +118,9 @@ Claude API key is used for AI-powered visual analysis and fix generation.
 5. **Save Credentials**
    - Download or copy Access Key ID and Secret Access Key
 
-### 3. GITHUB_TOKEN (Automatic)
+### 3. YOFIX_GITHUB_TOKEN (Automatic)
 
-The `GITHUB_TOKEN` is automatically available in GitHub Actions. No setup required.
+The `YOFIX_GITHUB_TOKEN` is automatically available in GitHub Actions. No setup required.
 
 **Permissions needed:**
 - `pull-requests: write` - To post comments

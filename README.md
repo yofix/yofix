@@ -48,7 +48,7 @@ jobs:
         with:
           # Required
           preview-url: ${{ steps.deploy.outputs.preview-url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           
           # Storage (choose one)
@@ -87,7 +87,7 @@ Get your API key from [console.anthropic.com](https://console.anthropic.com)
 - Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` secrets
 
 ### 3. GitHub Token
-The `GITHUB_TOKEN` is automatically available in GitHub Actions
+The `YOFIX_GITHUB_TOKEN` is automatically available in GitHub Actions
 
 ## 🤖 Bot Commands
 
@@ -117,7 +117,7 @@ YoFix responds to natural language commands in PR comments:
   uses: yofix/yofix@v1
   with:
     preview-url: https://preview.example.com
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     storage-bucket: my-app-screenshots
@@ -130,7 +130,7 @@ YoFix responds to natural language commands in PR comments:
   uses: yofix/yofix@v1
   with:
     preview-url: https://preview.example.com
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     storage-bucket: my-app-screenshots
@@ -146,7 +146,7 @@ YoFix responds to natural language commands in PR comments:
   uses: yofix/yofix@v1
   with:
     preview-url: https://preview.example.com
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     storage-bucket: my-app-screenshots

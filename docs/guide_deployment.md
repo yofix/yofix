@@ -54,7 +54,7 @@ jobs:
       - uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.preview-url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
@@ -66,7 +66,7 @@ jobs:
 - uses: yofix/yofix@v1
   with:
     preview-url: ${{ steps.deploy.outputs.preview-url }}
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
@@ -83,7 +83,7 @@ jobs:
   with:
     # Required
     preview-url: https://preview.example.com
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     
     # Storage (S3 instead of Firebase)

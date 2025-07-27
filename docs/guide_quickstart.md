@@ -67,7 +67,7 @@ jobs:
       - uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           
           # Firebase Storage
@@ -147,7 +147,7 @@ jobs:
       - uses: yofix/yofix@v1
         with:
           preview-url: ${{ steps.deploy.outputs.url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           storage-bucket: ${{ vars.STORAGE_BUCKET }}
@@ -163,7 +163,7 @@ If your app requires login:
 - uses: yofix/yofix@v1
   with:
     preview-url: ${{ steps.deploy.outputs.url }}
-    github-token: ${{ secrets.GITHUB_TOKEN }}
+    github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     storage-bucket: ${{ vars.STORAGE_BUCKET }}

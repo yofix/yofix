@@ -3,7 +3,7 @@ description: 'AI-powered visual issue detection and auto-fix for web application
 author: 'YoFix'
 
 branding:
-  icon: 'tool'
+  icon: 'activity'
   color: 'purple'
 
 inputs:

@@ -16,7 +16,7 @@ jobs:
         with:
           publish-dir: './build'
           production-deploy: false
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
@@ -28,7 +28,7 @@ jobs:
         with:
           # Required inputs
           preview-url: ${{ steps.deploy.outputs.deploy-url }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           
           # S3 Storage instead of Firebase

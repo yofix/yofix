@@ -49,7 +49,7 @@ jobs:
         uses: ./
         with:
           preview-url: 'https://example.com'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
           claude-api-key: 'test-key'
           storage-provider: 'firebase'
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDS || 'eyJ0ZXN0IjoidGVzdCJ9' }}

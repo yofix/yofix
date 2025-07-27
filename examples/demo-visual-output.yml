@@ -1,0 +1,69 @@
+name: Demo Visual Output
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  visual-test:
+    runs-on: ubuntu-latest
+    name: Visual Testing Demo
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # This is just an example - replace with your actual deployment step
+      - name: Get Preview URL
+        id: preview
+        run: |
+          # Example: Extract preview URL from your deployment
+          # For this demo, we'll use a sample React app
+          echo "url=https://react-vite-demo.vercel.app" >> $GITHUB_OUTPUT
+      
+      - name: YoFix Visual Testing
+        id: yofix
+        uses: yofix/yofix@v1
+        with:
+          preview-url: ${{ steps.preview.outputs.url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # Firebase Storage Configuration
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+          
+          # Optional: Customize viewports
+          viewports: '1920x1080,768x1024,375x667'
+          
+          # Optional: Limit routes tested
+          max-routes: '5'
+          
+          # Optional: Test timeout
+          test-timeout: '30s'
+      
+      - name: Visual Test Summary
+        if: always()
+        run: |
+          echo "## 📊 Visual Test Results"
+          echo "Status: ${{ steps.yofix.outputs.status }}"
+          echo "Summary URL: ${{ steps.yofix.outputs.summary-url }}"
+          echo "Firebase Project: ${{ steps.yofix.outputs.firebase-project }}"
+          
+          # Create a job summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🎨 YoFix Visual Testing Results
+          
+          - **Status**: ${{ steps.yofix.outputs.status }}
+          - **Screenshots**: [View Results](${{ steps.yofix.outputs.summary-url }})
+          - **Firebase Project**: ${{ steps.yofix.outputs.firebase-project }}
+          
+          ### What was tested?
+          YoFix automatically:
+          1. Analyzed your PR changes
+          2. Identified affected routes
+          3. Captured screenshots at multiple viewports
+          4. Checked for visual issues
+          5. Posted results as a PR comment
+          
+          Check your PR comments for detailed results! 👇
+          EOF

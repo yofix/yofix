@@ -184,21 +184,36 @@ runs:
           npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
         fi
     
+    # Cache node_modules
+    - name: Cache node_modules
+      uses: actions/cache@v4
+      id: node-modules-cache
+      with:
+        path: ${{ github.action_path }}/node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles(format('{0}/yarn.lock', github.action_path)) }}-v1
+        restore-keys: |
+          node-modules-${{ runner.os }}-
+    
     # Install runtime dependencies (including sharp with native binaries)
     - name: Install runtime dependencies
       shell: bash
       run: |
-        echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
         
-        # Install only production dependencies including sharp
-        # This ensures native binaries are available for the runtime platform
-        npm install --production --ignore-scripts
+        if [ "${{ steps.node-modules-cache.outputs.cache-hit }}" != "true" ]; then
+          echo "📦 Installing runtime dependencies (cache miss)..."
+          # Install only production dependencies including sharp
+          npm install --production --ignore-scripts
+          
+          # Rebuild sharp to ensure correct binaries
+          npm rebuild sharp
+        else
+          echo "🚀 Using cached dependencies, rebuilding native modules..."
+          # Just rebuild native modules to ensure they match the platform
+          npm rebuild sharp || npm install sharp --ignore-scripts
+        fi
         
-        # Rebuild sharp to ensure correct binaries
-        npm rebuild sharp
-        
-        echo "✅ Runtime dependencies installed"
+        echo "✅ Runtime dependencies ready"
         
     - name: Run visual tests
       shell: bash

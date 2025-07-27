@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { VisualAnalyzer } from '../analysis/VisualAnalyzer';
-import { FixGenerator } from '../fixes/FixGenerator';
+import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
+import { FixGenerator } from '../core/fixes/FixGenerator';
 import { ReportFormatter } from '../bot/ReportFormatter';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';

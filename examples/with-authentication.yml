@@ -1,0 +1,34 @@
+name: Visual Testing with Authentication
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  visual-test-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Deploy your preview app
+      - name: Deploy Preview
+        id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: pr-${{ github.event.pull_request.number }}
+      
+      # Run YoFix with authentication
+      - name: Visual Testing with Auth
+        uses: yofix/yofix@v1
+        with:
+          preview-url: ${{ steps.deploy.outputs.details_url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: my-app-screenshots
+          
+          # Authentication configuration
+          auth-email: ${{ secrets.TEST_USER_EMAIL }}
+          auth-password: ${{ secrets.TEST_USER_PASSWORD }}
+          auth-login-url: /login

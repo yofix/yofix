@@ -12,6 +12,8 @@ export type CommandAction =
   | 'baseline'  // Update baseline
   | 'report'    // Generate full report
   | 'ignore'    // Skip this PR
+  | 'test'      // Generate tests
+  | 'browser'   // Browser automation
   | 'help';     // Show help
 
 export interface CommandOptions {
@@ -106,6 +108,7 @@ export interface ScanResult {
     bySeverity: Record<string, number>;
     byType: Record<string, number>;
   };
+  generatedTests?: any[]; // TestTemplate[] from visual issues
 }
 
 export interface FixResult {

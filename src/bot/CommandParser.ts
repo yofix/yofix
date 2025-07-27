@@ -20,9 +20,21 @@ export class CommandParser {
     }
 
     const [, action, args = ''] = match;
+    const parsedAction = this.parseAction(action);
+    
+    // Special handling for browser command to preserve quoted strings
+    let processedArgs = args.trim();
+    if (parsedAction === 'browser') {
+      // Extract quoted content as the command
+      const quotedMatch = args.match(/["'](.+?)["']/);
+      if (quotedMatch) {
+        processedArgs = quotedMatch[1];
+      }
+    }
+    
     const command: BotCommand = {
-      action: this.parseAction(action),
-      args: args.trim(),
+      action: parsedAction,
+      args: processedArgs,
       options: this.parseOptions(args),
       raw: commentBody
     };
@@ -51,7 +63,7 @@ export class CommandParser {
   private parseAction(action: string): CommandAction {
     const validActions: CommandAction[] = [
       'scan', 'fix', 'apply', 'explain', 'preview',
-      'compare', 'baseline', 'report', 'ignore', 'help'
+      'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'help'
     ];
 
     const normalizedAction = action.toLowerCase() as CommandAction;
@@ -62,11 +74,12 @@ export class CommandParser {
 
     // Handle variations
     const actionMap: Record<string, CommandAction> = {
-      'test': 'scan',
       'check': 'scan',
       'suggest': 'fix',
       'repair': 'fix',
-      'update': 'baseline'
+      'update': 'baseline',
+      'browse': 'browser',
+      'automate': 'browser'
     };
     
     return actionMap[normalizedAction] || 'help';

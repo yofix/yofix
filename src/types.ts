@@ -3,6 +3,7 @@ export interface FirebaseConfig {
   target: string;
   buildSystem: 'vite' | 'react';
   previewUrl: string;
+  region?: string;
 }
 
 export interface RouteAnalysisResult {
@@ -29,17 +30,21 @@ export interface TestTemplate {
 }
 
 export interface TestAction {
-  type: 'goto' | 'click' | 'fill' | 'select' | 'wait' | 'scroll';
+  type: 'goto' | 'click' | 'fill' | 'select' | 'wait' | 'scroll' | 'navigate' | 'hover' | 'type' | 'measure-position';
   target?: string;
+  selector?: string;
   value?: string;
   timeout?: number;
+  description?: string;
 }
 
 export interface TestAssertion {
-  type: 'visible' | 'hidden' | 'text' | 'url' | 'attribute';
+  type: 'visible' | 'hidden' | 'text' | 'url' | 'attribute' | 'no-overlap' | 'position-stable' | 'text-contained' | 'contrast-ratio' | 'visual-snapshot' | 'no-overflow';
   target: string;
+  selector?: string;
   expected?: string;
   timeout?: number;
+  description?: string;
 }
 
 export interface Viewport {

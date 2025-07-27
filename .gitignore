@@ -4,7 +4,7 @@ yarn.lock
 package-lock.json
 
 # Build output
-# dist/  # Commented out - GitHub Actions need the built files
+dist/
 build/
 
 # Environment files

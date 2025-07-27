@@ -1,0 +1,61 @@
+name: Advanced Visual Testing
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  visual-test-advanced:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Deploy preview
+      - name: Deploy to Netlify
+        id: deploy
+        uses: nwtgck/actions-netlify@v2.0
+        with:
+          publish-dir: './build'
+          production-deploy: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      
+      # Advanced YoFix configuration
+      - name: Visual Testing Advanced
+        uses: yofix/yofix@v1
+        with:
+          # Required inputs
+          preview-url: ${{ steps.deploy.outputs.deploy-url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # S3 Storage instead of Firebase
+          storage-provider: s3
+          s3-bucket: ${{ secrets.S3_BUCKET }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+          # Custom viewports for your app
+          viewports: "1920x1080,1440x900,768x1024,414x896,375x667"
+          
+          # Extended timeout for slower apps
+          test-timeout: "45000"
+          
+          # Test more routes
+          max-routes: "30"
+          
+          # Keep screenshots for 7 days only
+          cleanup-days: "7"
+          
+          # Redis caching for performance
+          redis-url: ${{ secrets.REDIS_URL }}
+          cache-ttl: "86400"
+          
+          # MCP configuration
+          mcp-provider: "playwright-official"
+          
+          # Debug mode
+          debug: false

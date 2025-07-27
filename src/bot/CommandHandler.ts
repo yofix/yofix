@@ -1,10 +1,12 @@
 import * as core from '@actions/core';
 import { BotCommand, BotContext, BotResponse, ScanResult, VisualIssue } from './types';
-import { VisualAnalyzer } from '../analysis/VisualAnalyzer';
-import { FixGenerator } from '../fixes/FixGenerator';
+import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
+import { FixGenerator } from '../core/fixes/FixGenerator';
 import { ReportFormatter } from './ReportFormatter';
-import { BaselineManager } from '../core/BaselineManager';
+import { BaselineManager } from '../core/baseline/BaselineManager';
 import { CodebaseContext } from '../context/types';
+import { VisualIssueTestGenerator } from '../core/testing/VisualIssueTestGenerator';
+import { MCPCommandHandler } from '../automation/mcp/MCPCommandHandler';
 
 /**
  * Handles execution of bot commands
@@ -14,6 +16,7 @@ export class CommandHandler {
   private fixGenerator: FixGenerator;
   private reportFormatter: ReportFormatter;
   private baselineManager: BaselineManager;
+  private mcpHandler: MCPCommandHandler;
   
   // In-memory cache for current PR analysis
   private currentScanResult: ScanResult | null = null;
@@ -23,6 +26,7 @@ export class CommandHandler {
     this.fixGenerator = new FixGenerator(claudeApiKey, codebaseContext);
     this.reportFormatter = new ReportFormatter();
     this.baselineManager = new BaselineManager();
+    this.mcpHandler = new MCPCommandHandler(claudeApiKey);
   }
 
   /**
@@ -59,6 +63,12 @@ export class CommandHandler {
       case 'ignore':
         return await this.handleIgnore(command, context);
       
+      case 'test':
+        return await this.handleTest(command, context);
+      
+      case 'browser':
+        return await this.handleBrowser(command, context);
+      
       case 'help':
       default:
         return {
@@ -91,6 +101,15 @@ export class CommandHandler {
       // Cache result for subsequent commands
       this.currentScanResult = scanResult;
 
+      // Auto-generate test cases for detected issues
+      if (scanResult.issues.length > 0) {
+        const testGenerator = new VisualIssueTestGenerator();
+        const tests = testGenerator.generateTestsFromIssues(scanResult.issues);
+        scanResult.generatedTests = tests;
+        
+        core.info(`Generated ${tests.length} test cases for detected issues`);
+      }
+      
       // Format response
       const message = this.reportFormatter.formatScanResult(scanResult);
 
@@ -363,6 +382,84 @@ Add \`yofix:skip\` label removed. To re-enable, run \`@yofix scan\`.`
   }
 
   /**
+   * Handle test command - generate Playwright tests
+   */
+  private async handleTest(command: BotCommand, context: BotContext): Promise<BotResponse> {
+    if (!this.currentScanResult || this.currentScanResult.issues.length === 0) {
+      return {
+        success: false,
+        message: '⚠️ No issues found. Run `@yofix scan` first to detect issues.'
+      };
+    }
+    
+    const testGenerator = new VisualIssueTestGenerator();
+    const tests = testGenerator.generateTestsFromIssues(this.currentScanResult.issues);
+    
+    // Generate actual Playwright code
+    const testCode = tests
+      .slice(0, 3) // Show first 3 tests
+      .map(test => testGenerator.generatePlaywrightCode(test))
+      .join('\n\n');
+    
+    return {
+      success: true,
+      message: `## 🧪 Generated Playwright Tests
+
+Generated ${tests.length} test cases from ${this.currentScanResult.issues.length} visual issues.
+
+### Example Test:
+
+\`\`\`typescript
+${testCode}
+\`\`\`
+
+💾 To save all tests, run:
+\`\`\`bash
+npx yofix generate-tests --pr ${context.prNumber}
+\`\`\``
+    };
+  }
+
+  /**
+   * Handle browser command - advanced automation
+   */
+  private async handleBrowser(command: BotCommand, context: BotContext): Promise<BotResponse> {
+    try {
+      const browserCommand = command.args;
+      
+      if (!browserCommand) {
+        return {
+          success: false,
+          message: '⚠️ Please provide a browser command (e.g., `@yofix browser "click the login button"`)'
+        };
+      }
+
+      // Execute browser automation
+      const result = await this.mcpHandler.executeBrowserCommand(browserCommand, {
+        previewUrl: context.previewUrl,
+        viewport: { width: 1920, height: 1080 }
+      });
+
+      // Clean up browser session after command
+      await this.mcpHandler.closeSession();
+
+      return {
+        success: result.success,
+        message: result.message,
+        data: result.data
+      };
+    } catch (error) {
+      // Ensure browser is closed on error
+      await this.mcpHandler.closeSession();
+      
+      return {
+        success: false,
+        message: `❌ Browser command failed: ${error.message}`
+      };
+    }
+  }
+
+  /**
    * Get help message
    */
   private getHelpMessage(): string {
@@ -381,6 +478,15 @@ Add \`yofix:skip\` label removed. To re-enable, run \`@yofix scan\`.`
 ### Analysis
 - \`@yofix explain #2\` - Explain an issue
 - \`@yofix report\` - Full report
+
+### Testing
+- \`@yofix test\` - Generate Playwright tests
+
+### Browser Automation (Beta)
+- \`@yofix browser "command"\` - Execute browser commands
+  - Example: \`@yofix browser "click the login button"\`
+  - Example: \`@yofix browser "fill email with test@example.com"\`
+  - Example: \`@yofix browser "navigate to /dashboard and take a screenshot"\`
 
 ### Other
 - \`@yofix baseline update\` - Update baseline

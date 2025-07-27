@@ -18,9 +18,10 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "clean": "rimraf dist",
-    "release:patch": "npm version patch && npm run build && git push && git push --tags",
-    "release:minor": "npm version minor && npm run build && git push && git push --tags",
-    "release:major": "npm version major && npm run build && git push && git push --tags"
+    "release:patch": "./scripts/release.sh patch",
+    "release:minor": "./scripts/release.sh minor",
+    "release:major": "./scripts/release.sh major",
+    "release": "./scripts/release.sh"
   },
   "keywords": [
     "visual-testing",

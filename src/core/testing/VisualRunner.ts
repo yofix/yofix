@@ -26,6 +26,21 @@ export class VisualRunner {
   setAuthHandler(authHandler: AuthHandler): void {
     this.authHandler = authHandler;
   }
+  
+  /**
+   * Enable smart authentication if Claude API key is available
+   */
+  enableSmartAuth(claudeApiKey: string): void {
+    if (this.authHandler) {
+      // Replace with smart-enabled handler
+      const authConfig = (this.authHandler as any).authConfig;
+      this.authHandler = new AuthHandler(authConfig, { 
+        claudeApiKey, 
+        forceSmartMode: true 
+      });
+      core.info('🧠 Smart authentication enabled for visual tests');
+    }
+  }
 
   /**
    * Initialize browser and context

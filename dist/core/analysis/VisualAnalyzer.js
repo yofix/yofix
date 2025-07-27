@@ -324,6 +324,45 @@ Format your response as JSON.`
             await browser.close();
         }
     }
+    async analyzeScreenshot(screenshot, prompt) {
+        const optimized = await this.imageOptimizer.optimize(screenshot, {
+            format: 'webp',
+            quality: 90
+        });
+        const imageHash = crypto_1.default
+            .createHash('sha256')
+            .update(optimized.buffer)
+            .digest('hex');
+        const base64Image = optimized.buffer.toString('base64');
+        const cacheKey = this.cache.createVisualAnalysisKey({
+            imageHash,
+            analysisType: 'custom-prompt',
+            options: { promptHash: crypto_1.default.createHash('sha256').update(prompt).digest('hex') }
+        });
+        const response = await this.cache.wrap(cacheKey, () => this.claude.messages.create({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 1024,
+            temperature: 0.3,
+            messages: [{
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: prompt
+                        },
+                        {
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: 'image/png',
+                                data: base64Image
+                            }
+                        }
+                    ]
+                }]
+        }), { ttl: 3600 });
+        return response.content[0].type === 'text' ? response.content[0].text : '';
+    }
     getViewportName(viewport) {
         const [width] = viewport.split('x').map(v => parseInt(v));
         if (width <= 480)

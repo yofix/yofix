@@ -35,11 +35,34 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthHandler = void 0;
 const core = __importStar(require("@actions/core"));
+const AuthMetrics_1 = require("../monitoring/AuthMetrics");
+const SmartAuthHandler_1 = require("./SmartAuthHandler");
 class AuthHandler {
-    constructor(authConfig) {
+    constructor(authConfig, options) {
+        this.useSmartMode = false;
         this.authConfig = authConfig;
+        if (options?.claudeApiKey && (options.forceSmartMode || process.env.YOFIX_SMART_AUTH === 'true')) {
+            this.smartHandler = new SmartAuthHandler_1.SmartAuthHandler(authConfig, options.claudeApiKey);
+            this.useSmartMode = true;
+            core.info('🧠 Smart authentication mode enabled');
+        }
     }
     async login(page, baseUrl) {
+        if (this.smartHandler && this.useSmartMode) {
+            core.info('🤖 Attempting smart AI-powered login...');
+            try {
+                const result = await this.smartHandler.login(page, baseUrl);
+                if (result) {
+                    return true;
+                }
+                core.warning('Smart login failed, falling back to selector-based approach');
+            }
+            catch (error) {
+                core.warning(`Smart login error: ${error}`);
+            }
+        }
+        const startTime = Date.now();
+        let selectorsTried = 0;
         try {
             core.info(`Attempting login at ${baseUrl}${this.authConfig.loginUrl}`);
             await page.goto(`${baseUrl}${this.authConfig.loginUrl}`, {
@@ -68,6 +91,7 @@ class AuthHandler {
             ];
             let emailInput = null;
             for (const selector of emailSelectors) {
+                selectorsTried++;
                 try {
                     const elements = await page.$$(selector);
                     for (const element of elements) {
@@ -214,6 +238,13 @@ class AuthHandler {
             const isLoggedIn = await this.verifyLogin(page);
             if (isLoggedIn) {
                 core.info('Login successful');
+                AuthMetrics_1.authMonitor.recordAttempt({
+                    success: true,
+                    method: 'selector',
+                    url: `${baseUrl}${this.authConfig.loginUrl}`,
+                    selectorsTried,
+                    duration: Date.now() - startTime
+                });
                 const cookies = await page.context().cookies();
                 const localStorage = await page.evaluate(() => JSON.stringify(window.localStorage));
                 const sessionStorage = await page.evaluate(() => JSON.stringify(window.sessionStorage));
@@ -221,11 +252,27 @@ class AuthHandler {
             }
             else {
                 core.warning('Login verification failed');
+                AuthMetrics_1.authMonitor.recordAttempt({
+                    success: false,
+                    method: 'selector',
+                    url: `${baseUrl}${this.authConfig.loginUrl}`,
+                    errorType: 'Login verification failed',
+                    selectorsTried,
+                    duration: Date.now() - startTime
+                });
                 return false;
             }
         }
         catch (error) {
             core.error(`Login failed: ${error}`);
+            AuthMetrics_1.authMonitor.recordAttempt({
+                success: false,
+                method: 'selector',
+                url: `${baseUrl}${this.authConfig.loginUrl}`,
+                errorType: error instanceof Error ? error.message : 'Unknown error',
+                selectorsTried,
+                duration: Date.now() - startTime
+            });
             try {
                 await page.screenshot({
                     path: '/tmp/login-error.png',

@@ -153,8 +153,18 @@ async function runVisualTesting(): Promise<void> {
         loginUrl: inputs.authLoginUrl || '/login/password',
         email: inputs.authEmail,
         password: inputs.authPassword
+      }, {
+        claudeApiKey: inputs.claudeApiKey,
+        forceSmartMode: process.env.YOFIX_SMART_AUTH === 'true'
       });
       runner.setAuthHandler(authHandler);
+      
+      // Enable smart auth if not already forced
+      if (process.env.YOFIX_SMART_AUTH !== 'true' && Math.random() < 0.1) {
+        // Gradually roll out smart auth to 10% of users
+        core.info('🧪 Testing smart authentication mode');
+        runner.enableSmartAuth(inputs.claudeApiKey);
+      }
     }
     
     await runner.initialize();
@@ -240,6 +250,22 @@ async function runVisualTesting(): Promise<void> {
     core.info('📝 Step 6: Posting results to PR...');
     const storageConsoleUrl = storageManager.generateStorageConsoleUrl();
     await reporter.postResults(verificationResult, storageConsoleUrl);
+
+    // 8. Generate auth feedback if applicable
+    if (inputs.authEmail && inputs.authPassword) {
+      const { authMonitor } = await import('./monitoring/AuthMetrics');
+      const metrics = authMonitor.getMetrics();
+      
+      if (metrics.totalAttempts > 0) {
+        core.info('📊 Step 7: Authentication metrics...');
+        const feedbackReport = authMonitor.generateFeedbackReport();
+        core.info(feedbackReport);
+        
+        // Add metrics to outputs
+        core.setOutput('auth-success-rate', metrics.successRate);
+        core.setOutput('auth-method-used', metrics.methodBreakdown.smart.attempts > 0 ? 'smart' : 'selector');
+      }
+    }
 
     // Set outputs
     core.setOutput('status', verificationResult.status);

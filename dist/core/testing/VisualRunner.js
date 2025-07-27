@@ -41,6 +41,7 @@ const core = __importStar(require("@actions/core"));
 const playwright_1 = require("playwright");
 const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
+const AuthHandler_1 = require("../../github/AuthHandler");
 class VisualRunner {
     constructor(firebaseConfig, outputDir, testTimeoutMs = 300000) {
         this.browser = null;
@@ -53,6 +54,16 @@ class VisualRunner {
     }
     setAuthHandler(authHandler) {
         this.authHandler = authHandler;
+    }
+    enableSmartAuth(claudeApiKey) {
+        if (this.authHandler) {
+            const authConfig = this.authHandler.authConfig;
+            this.authHandler = new AuthHandler_1.AuthHandler(authConfig, {
+                claudeApiKey,
+                forceSmartMode: true
+            });
+            core.info('🧠 Smart authentication enabled for visual tests');
+        }
     }
     async initialize() {
         core.info('Initializing Playwright browser for React SPA testing...');

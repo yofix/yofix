@@ -406,6 +406,63 @@ Format your response as JSON.`
   }
 
   /**
+   * Analyze a screenshot with a custom prompt
+   */
+  async analyzeScreenshot(screenshot: Buffer, prompt: string): Promise<string> {
+    // Optimize screenshot first
+    const optimized = await this.imageOptimizer.optimize(screenshot, {
+      format: 'webp',
+      quality: 90
+    });
+    
+    // Generate image hash for caching
+    const imageHash = crypto
+      .createHash('sha256')
+      .update(optimized.buffer)
+      .digest('hex');
+    
+    // Convert to base64 for Claude Vision API
+    const base64Image = optimized.buffer.toString('base64');
+    
+    // Create cache key
+    const cacheKey = this.cache.createVisualAnalysisKey({
+      imageHash,
+      analysisType: 'custom-prompt',
+      options: { promptHash: crypto.createHash('sha256').update(prompt).digest('hex') }
+    });
+    
+    // Analyze with Claude Vision (with caching)
+    const response = await this.cache.wrap(
+      cacheKey,
+      () => this.claude.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1024,
+        temperature: 0.3,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/png',
+                data: base64Image
+              }
+            }
+          ]
+        }]
+      }),
+      { ttl: 3600 } // Cache for 1 hour
+    );
+    
+    return response.content[0].type === 'text' ? response.content[0].text : '';
+  }
+
+  /**
    * Get viewport name from dimensions
    */
   private getViewportName(viewport: string): string {

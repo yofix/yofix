@@ -1,5 +1,7 @@
 import * as core from '@actions/core';
 import { Page } from 'playwright';
+import { authMonitor } from '../monitoring/AuthMetrics';
+import { SmartAuthHandler } from './SmartAuthHandler';
 
 export interface AuthConfig {
   loginUrl: string;
@@ -10,15 +12,42 @@ export interface AuthConfig {
 
 export class AuthHandler {
   private authConfig: AuthConfig;
+  private smartHandler?: SmartAuthHandler;
+  private useSmartMode: boolean = false;
 
-  constructor(authConfig: AuthConfig) {
+  constructor(authConfig: AuthConfig, options?: { claudeApiKey?: string; forceSmartMode?: boolean }) {
     this.authConfig = authConfig;
+    
+    // Enable smart mode if Claude API key is available
+    if (options?.claudeApiKey && (options.forceSmartMode || process.env.YOFIX_SMART_AUTH === 'true')) {
+      this.smartHandler = new SmartAuthHandler(authConfig, options.claudeApiKey);
+      this.useSmartMode = true;
+      core.info('🧠 Smart authentication mode enabled');
+    }
   }
 
   /**
    * Perform login with email and password
    */
   async login(page: Page, baseUrl: string): Promise<boolean> {
+    // Try smart mode first if available
+    if (this.smartHandler && this.useSmartMode) {
+      core.info('🤖 Attempting smart AI-powered login...');
+      try {
+        const result = await this.smartHandler.login(page, baseUrl);
+        if (result) {
+          return true;
+        }
+        core.warning('Smart login failed, falling back to selector-based approach');
+      } catch (error) {
+        core.warning(`Smart login error: ${error}`);
+      }
+    }
+    
+    // Fallback to selector-based approach
+    const startTime = Date.now();
+    let selectorsTried = 0;
+    
     try {
       core.info(`Attempting login at ${baseUrl}${this.authConfig.loginUrl}`);
       
@@ -56,6 +85,7 @@ export class AuthHandler {
       
       let emailInput = null;
       for (const selector of emailSelectors) {
+        selectorsTried++;
         try {
           const elements = await page.$$(selector);
           for (const element of elements) {
@@ -226,6 +256,15 @@ export class AuthHandler {
       if (isLoggedIn) {
         core.info('Login successful');
         
+        // Record success metrics
+        authMonitor.recordAttempt({
+          success: true,
+          method: 'selector',
+          url: `${baseUrl}${this.authConfig.loginUrl}`,
+          selectorsTried,
+          duration: Date.now() - startTime
+        });
+        
         // Store auth state for reuse
         const cookies = await page.context().cookies();
         const localStorage = await page.evaluate(() => JSON.stringify(window.localStorage));
@@ -234,11 +273,32 @@ export class AuthHandler {
         return true;
       } else {
         core.warning('Login verification failed');
+        
+        // Record failure metrics
+        authMonitor.recordAttempt({
+          success: false,
+          method: 'selector',
+          url: `${baseUrl}${this.authConfig.loginUrl}`,
+          errorType: 'Login verification failed',
+          selectorsTried,
+          duration: Date.now() - startTime
+        });
+        
         return false;
       }
 
     } catch (error) {
       core.error(`Login failed: ${error}`);
+      
+      // Record failure metrics
+      authMonitor.recordAttempt({
+        success: false,
+        method: 'selector',
+        url: `${baseUrl}${this.authConfig.loginUrl}`,
+        errorType: error instanceof Error ? error.message : 'Unknown error',
+        selectorsTried,
+        duration: Date.now() - startTime
+      });
       
       // Take screenshot for debugging
       try {

@@ -5,6 +5,7 @@ import { FirebaseConfigDetector } from './FirebaseConfigDetector';
 export class FirebaseUrlHandler {
   private static readonly FIREBASE_PREVIEW_REGEX = /^https:\/\/([^-]+)--pr-(\d+)-([^.]+)\.web\.app\/?/;
   private static readonly FIREBASE_MAIN_REGEX = /^https:\/\/([^.]+)\.web\.app\/?/;
+  private static readonly FIREBASE_COMBINED_REGEX = /^https:\/\/(.+?)--pr-(\d+)-([^.]+)\.web\.app\/?/; // Handles combined format
   private static readonly MAX_DEPLOYMENT_WAIT_TIME = 10 * 60 * 1000; // 10 minutes
   private static readonly DEPLOYMENT_CHECK_INTERVAL = 30 * 1000; // 30 seconds
 
@@ -26,13 +27,42 @@ export class FirebaseUrlHandler {
       };
     }
 
+    // Try combined format (e.g., arboreal-vision-339901--pr-3135-k9b9ruug.web.app)
+    const combinedMatch = previewUrl.match(this.FIREBASE_COMBINED_REGEX);
+    if (combinedMatch) {
+      const [, projectId = '', prNumber = '', target = 'default'] = combinedMatch;
+      core.info(`Detected Firebase preview deployment (combined format) - Project: ${projectId}, PR: ${prNumber}, Target: ${target}`);
+      return {
+        projectId,
+        target,
+        previewUrl
+      };
+    }
+
     // Try main deployment pattern
     const mainMatch = previewUrl.match(this.FIREBASE_MAIN_REGEX);
     if (mainMatch) {
-      const [, projectId = ''] = mainMatch;
-      core.info(`Detected Firebase main deployment - Project: ${projectId}`);
+      const [, fullProjectId = ''] = mainMatch;
+      // Check if it's a combined format without explicit PR pattern
+      if (fullProjectId.includes('--pr-')) {
+        const parts = fullProjectId.split('--pr-');
+        const projectId = parts[0];
+        const prPart = parts[1];
+        const targetMatch = prPart.match(/(\d+)-(.+)/);
+        if (targetMatch) {
+          const [, prNumber, target] = targetMatch;
+          core.info(`Detected Firebase main deployment with PR info - Project: ${projectId}`);
+          return {
+            projectId,
+            target,
+            previewUrl
+          };
+        }
+      }
+      
+      core.info(`Detected Firebase main deployment - Project: ${fullProjectId}`);
       return {
-        projectId,
+        projectId: fullProjectId,
         target: 'default',
         previewUrl
       };

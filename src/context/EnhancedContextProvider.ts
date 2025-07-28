@@ -43,8 +43,30 @@ export class EnhancedContextProvider {
     };
     
     // Load relevant files
-    if (focusFiles) {
-      for (const file of focusFiles) {
+    if (focusFiles && Array.isArray(focusFiles)) {
+      // Expand glob patterns and regular files
+      const expandedFiles: string[] = [];
+      for (const filePattern of focusFiles) {
+        if (filePattern.includes('*') || filePattern.includes('{')) {
+          // It's a glob pattern, expand it
+          try {
+            const matches = await glob(filePattern, {
+              cwd: basePath,
+              ignore: ['node_modules/**', 'dist/**', '.git/**'],
+              nodir: true
+            });
+            expandedFiles.push(...matches);
+          } catch (e) {
+            core.debug(`Failed to expand glob pattern ${filePattern}: ${e}`);
+          }
+        } else {
+          // Regular file path
+          expandedFiles.push(filePattern);
+        }
+      }
+      
+      // Load the expanded files
+      for (const file of expandedFiles) {
         try {
           const content = await fs.readFile(path.join(basePath, file), 'utf-8');
           context.relevantFiles.set(file, content);
@@ -213,7 +235,7 @@ Provide analysis with the same depth and accuracy as Claude Code would, understa
   }
   
   private async findRelatedFiles(basePath: string, focusFiles?: string[]): Promise<string[]> {
-    if (!focusFiles || focusFiles.length === 0) return [];
+    if (!focusFiles || !Array.isArray(focusFiles) || focusFiles.length === 0) return [];
     
     const related = new Set<string>();
     

@@ -57,8 +57,27 @@ class EnhancedContextProvider {
             recentChanges: await this.getRecentChanges(basePath),
             testPatterns: await this.getTestPatterns(basePath)
         };
-        if (focusFiles) {
-            for (const file of focusFiles) {
+        if (focusFiles && Array.isArray(focusFiles)) {
+            const expandedFiles = [];
+            for (const filePattern of focusFiles) {
+                if (filePattern.includes('*') || filePattern.includes('{')) {
+                    try {
+                        const matches = await (0, glob_1.glob)(filePattern, {
+                            cwd: basePath,
+                            ignore: ['node_modules/**', 'dist/**', '.git/**'],
+                            nodir: true
+                        });
+                        expandedFiles.push(...matches);
+                    }
+                    catch (e) {
+                        core.debug(`Failed to expand glob pattern ${filePattern}: ${e}`);
+                    }
+                }
+                else {
+                    expandedFiles.push(filePattern);
+                }
+            }
+            for (const file of expandedFiles) {
                 try {
                     const content = await fs_1.promises.readFile(path.join(basePath, file), 'utf-8');
                     context.relevantFiles.set(file, content);
@@ -200,7 +219,7 @@ Provide analysis with the same depth and accuracy as Claude Code would, understa
         return Array.from(patterns);
     }
     async findRelatedFiles(basePath, focusFiles) {
-        if (!focusFiles || focusFiles.length === 0)
+        if (!focusFiles || !Array.isArray(focusFiles) || focusFiles.length === 0)
             return [];
         const related = new Set();
         for (const file of focusFiles) {

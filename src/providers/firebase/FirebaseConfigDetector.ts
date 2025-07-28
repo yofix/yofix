@@ -145,9 +145,31 @@ export class FirebaseConfigDetector {
     hasMultipleTargets: boolean;
     availableTargets: string[];
   }> {
-    // Parse basic info from URL
-    const urlMatch = previewUrl.match(/^https:\/\/([^-]+)--pr-(\d+)-([^.]+)\.web\.app/);
+    // Parse basic info from URL - handle multiple URL formats
+    let urlMatch = previewUrl.match(/^https:\/\/([^-]+)--pr-(\d+)-([^.]+)\.web\.app/);
+    
+    // Try alternative format if first doesn't match
     if (!urlMatch) {
+      // Handle format like: arboreal-vision-339901--pr-3135-k9b9ruug.web.app
+      urlMatch = previewUrl.match(/^https:\/\/([^.]+)\.web\.app/);
+      if (urlMatch) {
+        const fullProjectId = urlMatch[1];
+        // Extract parts from combined project ID
+        const parts = fullProjectId.split('--');
+        if (parts.length >= 2) {
+          const projectId = parts[0];
+          const prMatch = parts[1].match(/pr-(\d+)-(.+)/);
+          if (prMatch) {
+            return {
+              projectId,
+              target: prMatch[2] || 'default',
+              buildSystem: 'react',
+              hasMultipleTargets: false,
+              availableTargets: []
+            };
+          }
+        }
+      }
       throw new Error(`Invalid Firebase preview URL format: ${previewUrl}`);
     }
 

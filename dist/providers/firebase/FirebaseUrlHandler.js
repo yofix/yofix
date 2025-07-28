@@ -49,12 +49,37 @@ class FirebaseUrlHandler {
                 previewUrl
             };
         }
-        const mainMatch = previewUrl.match(this.FIREBASE_MAIN_REGEX);
-        if (mainMatch) {
-            const [, projectId = ''] = mainMatch;
-            core.info(`Detected Firebase main deployment - Project: ${projectId}`);
+        const combinedMatch = previewUrl.match(this.FIREBASE_COMBINED_REGEX);
+        if (combinedMatch) {
+            const [, projectId = '', prNumber = '', target = 'default'] = combinedMatch;
+            core.info(`Detected Firebase preview deployment (combined format) - Project: ${projectId}, PR: ${prNumber}, Target: ${target}`);
             return {
                 projectId,
+                target,
+                previewUrl
+            };
+        }
+        const mainMatch = previewUrl.match(this.FIREBASE_MAIN_REGEX);
+        if (mainMatch) {
+            const [, fullProjectId = ''] = mainMatch;
+            if (fullProjectId.includes('--pr-')) {
+                const parts = fullProjectId.split('--pr-');
+                const projectId = parts[0];
+                const prPart = parts[1];
+                const targetMatch = prPart.match(/(\d+)-(.+)/);
+                if (targetMatch) {
+                    const [, prNumber, target] = targetMatch;
+                    core.info(`Detected Firebase main deployment with PR info - Project: ${projectId}`);
+                    return {
+                        projectId,
+                        target,
+                        previewUrl
+                    };
+                }
+            }
+            core.info(`Detected Firebase main deployment - Project: ${fullProjectId}`);
+            return {
+                projectId: fullProjectId,
                 target: 'default',
                 previewUrl
             };
@@ -208,5 +233,6 @@ class FirebaseUrlHandler {
 exports.FirebaseUrlHandler = FirebaseUrlHandler;
 FirebaseUrlHandler.FIREBASE_PREVIEW_REGEX = /^https:\/\/([^-]+)--pr-(\d+)-([^.]+)\.web\.app\/?/;
 FirebaseUrlHandler.FIREBASE_MAIN_REGEX = /^https:\/\/([^.]+)\.web\.app\/?/;
+FirebaseUrlHandler.FIREBASE_COMBINED_REGEX = /^https:\/\/(.+?)--pr-(\d+)-([^.]+)\.web\.app\/?/;
 FirebaseUrlHandler.MAX_DEPLOYMENT_WAIT_TIME = 10 * 60 * 1000;
 FirebaseUrlHandler.DEPLOYMENT_CHECK_INTERVAL = 30 * 1000;

@@ -112,8 +112,26 @@ class FirebaseConfigDetector {
         return targets[0];
     }
     async detectFirebaseConfiguration(previewUrl) {
-        const urlMatch = previewUrl.match(/^https:\/\/([^-]+)--pr-(\d+)-([^.]+)\.web\.app/);
+        let urlMatch = previewUrl.match(/^https:\/\/([^-]+)--pr-(\d+)-([^.]+)\.web\.app/);
         if (!urlMatch) {
+            urlMatch = previewUrl.match(/^https:\/\/([^.]+)\.web\.app/);
+            if (urlMatch) {
+                const fullProjectId = urlMatch[1];
+                const parts = fullProjectId.split('--');
+                if (parts.length >= 2) {
+                    const projectId = parts[0];
+                    const prMatch = parts[1].match(/pr-(\d+)-(.+)/);
+                    if (prMatch) {
+                        return {
+                            projectId,
+                            target: prMatch[2] || 'default',
+                            buildSystem: 'react',
+                            hasMultipleTargets: false,
+                            availableTargets: []
+                        };
+                    }
+                }
+            }
             throw new Error(`Invalid Firebase preview URL format: ${previewUrl}`);
         }
         const [, projectId, prNumber, urlTarget] = urlMatch;

@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { Page } from 'playwright';
 import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
 import { authMonitor } from '../monitoring/AuthMetrics';
+import { EnhancedContextProvider } from '../context/EnhancedContextProvider';
 
 export interface AuthConfig {
   loginUrl: string;
@@ -17,10 +18,12 @@ export interface AuthConfig {
 export class SmartAuthHandler {
   private authConfig: AuthConfig;
   private visualAnalyzer: VisualAnalyzer;
+  private contextProvider: EnhancedContextProvider;
 
   constructor(authConfig: AuthConfig, claudeApiKey: string) {
     this.authConfig = authConfig;
     this.visualAnalyzer = new VisualAnalyzer(claudeApiKey, '');
+    this.contextProvider = new EnhancedContextProvider(claudeApiKey);
   }
 
   /**
@@ -133,7 +136,14 @@ export class SmartAuthHandler {
     submitMethod?: 'click' | 'enter';
     error?: string;
   }> {
-    const prompt = `
+    // Build enhanced context for better understanding
+    const context = await this.contextProvider.buildContext(process.cwd(), [
+      'src/github/AuthHandler.ts',
+      'src/types.ts',
+      '.github/workflows/*.yml'
+    ]);
+    
+    const basePrompt = `
       Analyze this login form screenshot and identify:
       1. The email/username input field
       2. The password input field
@@ -155,12 +165,16 @@ export class SmartAuthHandler {
       
       If you cannot find any field, set it to null.
     `;
+    
+    // Use enhanced context for better analysis
+    const analysis = await this.contextProvider.analyzeWithContext(basePrompt, context);
 
     try {
-      const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, prompt);
+      // Also analyze the screenshot with visual analyzer for visual elements
+      const visualAnalysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, basePrompt);
       
-      // Parse AI response
-      const result = this.parseAIResponse(analysis);
+      // Combine both analyses for best results
+      const result = this.parseAIResponse(visualAnalysis || analysis);
       
       // Validate selectors by testing them
       return await this.validateSelectors(result);
@@ -236,9 +250,15 @@ export class SmartAuthHandler {
    * Use AI to verify if login was successful
    */
   private async verifyLoginWithAI(page: Page): Promise<boolean> {
-    const screenshot = await page.screenshot({ fullPage: false });
+    const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
     
-    const prompt = `
+    // Build context for better verification
+    const context = await this.contextProvider.buildContext(process.cwd(), [
+      'src/types.ts',
+      'src/bot/types.ts'
+    ]);
+    
+    const basePrompt = `
       Analyze this screenshot to determine if the user is logged in.
       
       Look for indicators such as:
@@ -257,7 +277,7 @@ export class SmartAuthHandler {
     `;
     
     try {
-      const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, prompt);
+      const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, basePrompt);
       const result = this.parseAIResponse(analysis);
       
       core.info(`AI login verification: ${JSON.stringify(result)}`);
@@ -298,7 +318,7 @@ export class SmartAuthHandler {
    */
   async logout(page: Page): Promise<void> {
     try {
-      const screenshot = await page.screenshot({ fullPage: false });
+      const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
       
       const prompt = `
         Find the logout/sign out button in this screenshot.

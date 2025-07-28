@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MCPManager = void 0;
 const core = __importStar(require("@actions/core"));
 const BrowserSecuritySandbox_1 = require("../security/BrowserSecuritySandbox");
+const EnhancedContextProvider_1 = require("../../context/EnhancedContextProvider");
 class MCPManager {
     constructor() {
         this.browser = null;
@@ -54,6 +55,10 @@ class MCPManager {
             network: []
         };
         this.securitySandbox = new BrowserSecuritySandbox_1.BrowserSecuritySandbox();
+        const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
+        if (claudeApiKey) {
+            this.contextProvider = new EnhancedContextProvider_1.EnhancedContextProvider(claudeApiKey);
+        }
     }
     async initialize(options) {
         const { chromium } = await Promise.resolve().then(() => __importStar(require('playwright')));
@@ -104,11 +109,15 @@ class MCPManager {
     }
     async parseCommandWithAI(command) {
         const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
-        if (!claudeApiKey)
+        if (!claudeApiKey || !this.contextProvider)
             throw new Error('Claude API key not available');
         const { Anthropic } = await Promise.resolve().then(() => __importStar(require('@anthropic-ai/sdk')));
         const claude = new Anthropic({ apiKey: claudeApiKey });
-        const prompt = `Parse this natural language browser command into a structured action:
+        const context = await this.contextProvider.buildContext(process.cwd(), [
+            'src/automation/mcp/types.ts',
+            'src/bot/types.ts'
+        ]);
+        const basePrompt = `Parse this natural language browser command into a structured action:
 
 Command: "${command}"
 
@@ -138,13 +147,14 @@ Return JSON in this format:
     "script": "for evaluate"
   }
 }`;
+        const enhancedPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
         const response = await claude.messages.create({
-            model: 'claude-3-haiku-20240307',
+            model: 'claude-3-5-sonnet-20241022',
             max_tokens: 512,
             temperature: 0.2,
             messages: [{
                     role: 'user',
-                    content: prompt
+                    content: enhancedPrompt
                 }]
         });
         const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
@@ -347,14 +357,14 @@ Return JSON in this format:
         if (!this.page)
             throw new Error('Page not initialized');
         try {
-            const screenshot = await this.page.screenshot({ fullPage: false });
+            const screenshot = await this.page.screenshot({ fullPage: false, type: 'png' });
             const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
             if (!claudeApiKey) {
                 throw new Error('Claude API key not available for AI selector finding');
             }
             const { VisualAnalyzer } = await Promise.resolve().then(() => __importStar(require('../../core/analysis/VisualAnalyzer')));
             const analyzer = new VisualAnalyzer(claudeApiKey);
-            const prompt = `Analyze this screenshot and find an element matching: "${description}"
+            const basePrompt = `Analyze this screenshot and find an element matching: "${description}"
       
       Look for:
       - Buttons, links, or clickable elements with matching text
@@ -363,7 +373,14 @@ Return JSON in this format:
       
       Return a CSS selector that uniquely identifies this element.
       Format: { "selector": "css-selector-here" }`;
-            const response = await analyzer.analyzeScreenshot(screenshot, prompt);
+            let response;
+            if (this.contextProvider) {
+                const context = await this.contextProvider.buildContext(process.cwd(), ['src/types.ts']);
+                response = await this.contextProvider.analyzeWithContext(basePrompt, context);
+            }
+            else {
+                response = await analyzer.analyzeScreenshot(screenshot, basePrompt);
+            }
             const match = response.match(/\{\s*"selector"\s*:\s*"([^"]+)"\s*\}/);
             if (match && match[1]) {
                 const selector = match[1];

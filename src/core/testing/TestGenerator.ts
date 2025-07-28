@@ -1,17 +1,22 @@
 import * as core from '@actions/core';
 import { RouteAnalysisResult, TestTemplate, TestAction, TestAssertion, Viewport, FirebaseConfig } from '../../types';
+import { EnhancedContextProvider } from '../../context/EnhancedContextProvider';
 
 export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
   private viewports: Viewport[];
   private claudeApiKey?: string;
   private enableAIGeneration: boolean = false;
+  private contextProvider?: EnhancedContextProvider;
 
   constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey?: string, enableAIGeneration: boolean = false) {
     this.firebaseConfig = firebaseConfig;
     this.viewports = viewports;
     this.claudeApiKey = claudeApiKey;
     this.enableAIGeneration = enableAIGeneration;
+    if (claudeApiKey) {
+      this.contextProvider = new EnhancedContextProvider(claudeApiKey);
+    }
   }
 
   /**
@@ -72,13 +77,22 @@ export class TestGenerator {
    * Generate tests using Claude AI based on page analysis
    */
   private async generateTestsWithAI(analysis: RouteAnalysisResult): Promise<TestTemplate[]> {
-    if (!this.claudeApiKey) return [];
+    if (!this.claudeApiKey || !this.contextProvider) return [];
 
     try {
       const { Anthropic } = await import('@anthropic-ai/sdk');
       const claude = new Anthropic({ apiKey: this.claudeApiKey });
 
-      const prompt = `Analyze this web application and generate Playwright test cases:
+      // Build enhanced context for better test generation
+      const context = await this.contextProvider.buildContext(process.cwd(), [
+        'src/types.ts',
+        'src/bot/types.ts',
+        'tests/**/*.spec.ts',
+        'playwright.config.ts',
+        'package.json'
+      ]);
+
+      const basePrompt = `Analyze this web application and generate Playwright test cases:
 
 Application URL: ${this.firebaseConfig.previewUrl}
 Routes to test: ${analysis.routes.join(', ')}
@@ -110,13 +124,16 @@ Return as JSON array with this structure:
   ]
 }]`;
 
+      // Use enhanced context for better test generation
+      const enhancedPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
+
       const response = await claude.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20241022',  // Better model for test generation
         max_tokens: 2048,
         temperature: 0.3,
         messages: [{
           role: 'user',
-          content: prompt
+          content: enhancedPrompt
         }]
       });
 

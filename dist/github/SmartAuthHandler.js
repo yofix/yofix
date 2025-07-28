@@ -37,10 +37,12 @@ exports.SmartAuthHandler = void 0;
 const core = __importStar(require("@actions/core"));
 const VisualAnalyzer_1 = require("../core/analysis/VisualAnalyzer");
 const AuthMetrics_1 = require("../monitoring/AuthMetrics");
+const EnhancedContextProvider_1 = require("../context/EnhancedContextProvider");
 class SmartAuthHandler {
     constructor(authConfig, claudeApiKey) {
         this.authConfig = authConfig;
         this.visualAnalyzer = new VisualAnalyzer_1.VisualAnalyzer(claudeApiKey, '');
+        this.contextProvider = new EnhancedContextProvider_1.EnhancedContextProvider(claudeApiKey);
     }
     async login(page, baseUrl) {
         const startTime = Date.now();
@@ -117,7 +119,12 @@ class SmartAuthHandler {
         }
     }
     async analyzeLoginForm(screenshot) {
-        const prompt = `
+        const context = await this.contextProvider.buildContext(process.cwd(), [
+            'src/github/AuthHandler.ts',
+            'src/types.ts',
+            '.github/workflows/*.yml'
+        ]);
+        const basePrompt = `
       Analyze this login form screenshot and identify:
       1. The email/username input field
       2. The password input field
@@ -139,9 +146,10 @@ class SmartAuthHandler {
       
       If you cannot find any field, set it to null.
     `;
+        const analysis = await this.contextProvider.analyzeWithContext(basePrompt, context);
         try {
-            const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, prompt);
-            const result = this.parseAIResponse(analysis);
+            const visualAnalysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, basePrompt);
+            const result = this.parseAIResponse(visualAnalysis || analysis);
             return await this.validateSelectors(result);
         }
         catch (error) {
@@ -190,8 +198,12 @@ class SmartAuthHandler {
         await page.waitForTimeout(2000);
     }
     async verifyLoginWithAI(page) {
-        const screenshot = await page.screenshot({ fullPage: false });
-        const prompt = `
+        const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
+        const context = await this.contextProvider.buildContext(process.cwd(), [
+            'src/types.ts',
+            'src/bot/types.ts'
+        ]);
+        const basePrompt = `
       Analyze this screenshot to determine if the user is logged in.
       
       Look for indicators such as:
@@ -209,7 +221,7 @@ class SmartAuthHandler {
       Return: { "loggedIn": true/false, "confidence": 0-100, "reason": "explanation" }
     `;
         try {
-            const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, prompt);
+            const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, basePrompt);
             const result = this.parseAIResponse(analysis);
             core.info(`AI login verification: ${JSON.stringify(result)}`);
             return result.loggedIn === true && result.confidence > 70;
@@ -239,7 +251,7 @@ class SmartAuthHandler {
     }
     async logout(page) {
         try {
-            const screenshot = await page.screenshot({ fullPage: false });
+            const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
             const prompt = `
         Find the logout/sign out button in this screenshot.
         Return the CSS selector for the logout element.

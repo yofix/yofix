@@ -1,12 +1,15 @@
 import * as core from '@actions/core';
 import { Page } from 'playwright';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { EnhancedContextProvider } from '../../context/EnhancedContextProvider';
 
 export class AINavigationAnalyzer {
   private claude: Anthropic;
+  private contextProvider: EnhancedContextProvider;
   
   constructor(claudeApiKey: string) {
     this.claude = new Anthropic({ apiKey: claudeApiKey });
+    this.contextProvider = new EnhancedContextProvider(claudeApiKey);
   }
   
   /**
@@ -32,8 +35,15 @@ export class AINavigationAnalyzer {
         }));
       });
       
-      // Use Claude to analyze navigation elements
-      const prompt = `Analyze this web application and identify all navigation routes:
+      // Build enhanced context for better route discovery
+      const context = await this.contextProvider.buildContext(process.cwd(), [
+        'src/types.ts',
+        'action.yml',
+        'package.json',
+        '.github/workflows/*.yml'
+      ]);
+      
+      const basePrompt = `Analyze this web application and identify all navigation routes:
 
 Base URL: ${baseUrl}
 Current URL: ${page.url()}
@@ -52,8 +62,12 @@ Return a JSON array of routes (paths only, not full URLs):
 
 Focus on routes that would show different content or UI states.`;
 
+      // Get contextual understanding first
+      const contextualAnalysis = await this.contextProvider.analyzeWithContext(basePrompt, context);
+      
+      // Use Claude to analyze navigation elements with context
       const response = await this.claude.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20241022',  // Better model for navigation understanding
         max_tokens: 1024,
         temperature: 0.2,
         messages: [
@@ -62,7 +76,7 @@ Focus on routes that would show different content or UI states.`;
             content: [
               {
                 type: 'text',
-                text: prompt
+                text: `${basePrompt}\n\nCodebase context:\n${contextualAnalysis}`
               },
               {
                 type: 'image',
@@ -99,9 +113,15 @@ Focus on routes that would show different content or UI states.`;
    */
   async analyzePageInteractions(page: Page): Promise<string[]> {
     try {
-      const screenshot = await page.screenshot({ fullPage: false });
+      const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
       
-      const prompt = `Analyze this page and suggest user interactions to test:
+      // Build context for better interaction understanding
+      const context = await this.contextProvider.buildContext(process.cwd(), [
+        'src/bot/types.ts',
+        'src/automation/*.ts'
+      ]);
+      
+      const basePrompt = `Analyze this page and suggest user interactions to test:
 
 Look for:
 - Buttons to click
@@ -115,8 +135,10 @@ Return natural language commands like:
 
 Format as JSON array of commands.`;
 
+      const contextualPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
+      
       const response = await this.claude.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20241022',  // Better model for interaction understanding
         max_tokens: 1024,
         temperature: 0.3,
         messages: [
@@ -125,7 +147,7 @@ Format as JSON array of commands.`;
             content: [
               {
                 type: 'text',
-                text: prompt
+                text: contextualPrompt
               },
               {
                 type: 'image',

@@ -150,7 +150,7 @@ Format the response in markdown.`;
 
     try {
       const response = await this.claude.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20241022',  // Better understanding
         max_tokens: 1024,
         temperature: 0.3,
         messages: [{
@@ -210,7 +210,7 @@ This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.lo
     const response = await this.cache.wrap(
       cacheKey,
       () => this.claude.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20241022',  // Better understanding
         max_tokens: 1024,
         temperature: 0.3,
         messages: [{
@@ -433,7 +433,7 @@ Format your response as JSON.`
     const response = await this.cache.wrap(
       cacheKey,
       () => this.claude.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20241022',  // Better understanding
         max_tokens: 1024,
         temperature: 0.3,
         messages: [{

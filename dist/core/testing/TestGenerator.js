@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestGenerator = void 0;
 const core = __importStar(require("@actions/core"));
+const EnhancedContextProvider_1 = require("../../context/EnhancedContextProvider");
 class TestGenerator {
     constructor(firebaseConfig, viewports, claudeApiKey, enableAIGeneration = false) {
         this.enableAIGeneration = false;
@@ -42,6 +43,9 @@ class TestGenerator {
         this.viewports = viewports;
         this.claudeApiKey = claudeApiKey;
         this.enableAIGeneration = enableAIGeneration;
+        if (claudeApiKey) {
+            this.contextProvider = new EnhancedContextProvider_1.EnhancedContextProvider(claudeApiKey);
+        }
     }
     async generateTests(analysis) {
         core.info('Generating React SPA tests based on route analysis...');
@@ -75,12 +79,19 @@ class TestGenerator {
         return tests;
     }
     async generateTestsWithAI(analysis) {
-        if (!this.claudeApiKey)
+        if (!this.claudeApiKey || !this.contextProvider)
             return [];
         try {
             const { Anthropic } = await Promise.resolve().then(() => __importStar(require('@anthropic-ai/sdk')));
             const claude = new Anthropic({ apiKey: this.claudeApiKey });
-            const prompt = `Analyze this web application and generate Playwright test cases:
+            const context = await this.contextProvider.buildContext(process.cwd(), [
+                'src/types.ts',
+                'src/bot/types.ts',
+                'tests/**/*.spec.ts',
+                'playwright.config.ts',
+                'package.json'
+            ]);
+            const basePrompt = `Analyze this web application and generate Playwright test cases:
 
 Application URL: ${this.firebaseConfig.previewUrl}
 Routes to test: ${analysis.routes.join(', ')}
@@ -111,13 +122,14 @@ Return as JSON array with this structure:
     {"type": "visible", "selector": ".success-message"}
   ]
 }]`;
+            const enhancedPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
             const response = await claude.messages.create({
-                model: 'claude-3-haiku-20240307',
+                model: 'claude-3-5-sonnet-20241022',
                 max_tokens: 2048,
                 temperature: 0.3,
                 messages: [{
                         role: 'user',
-                        content: prompt
+                        content: enhancedPrompt
                     }]
             });
             const responseText = response.content[0].type === 'text' ? response.content[0].text : '';

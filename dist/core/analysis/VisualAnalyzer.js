@@ -134,7 +134,7 @@ Please provide:
 Format the response in markdown.`;
         try {
             const response = await this.claude.messages.create({
-                model: 'claude-3-haiku-20240307',
+                model: 'claude-3-5-sonnet-20241022',
                 max_tokens: 1024,
                 temperature: 0.3,
                 messages: [{
@@ -173,7 +173,7 @@ This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.lo
             options: { route }
         });
         const response = await this.cache.wrap(cacheKey, () => this.claude.messages.create({
-            model: 'claude-3-haiku-20240307',
+            model: 'claude-3-5-sonnet-20241022',
             max_tokens: 1024,
             temperature: 0.3,
             messages: [{
@@ -339,7 +339,7 @@ Format your response as JSON.`
             options: { promptHash: crypto_1.default.createHash('sha256').update(prompt).digest('hex') }
         });
         const response = await this.cache.wrap(cacheKey, () => this.claude.messages.create({
-            model: 'claude-3-haiku-20240307',
+            model: 'claude-3-5-sonnet-20241022',
             max_tokens: 1024,
             temperature: 0.3,
             messages: [{

@@ -1,0 +1,78 @@
+name: Enhanced AI Context Example
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  enhanced-visual-testing:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Visual Testing with Enhanced Context
+      uses: yofix/yofix@v1.0.10
+      with:
+        # Basic configuration
+        preview-url: ${{ steps.deploy.outputs.preview-url }}
+        
+        # Enable all AI features with enhanced context
+        enable-smart-auth: 'true'
+        enable-ai-navigation: 'true'
+        enable-ai-test-generation: 'true'
+        
+        # Claude API for enhanced context understanding
+        claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+        
+        # Authentication with smart AI understanding
+        auth-login-url: '/login'
+        auth-email: ${{ secrets.TEST_EMAIL }}
+        auth-password: ${{ secrets.TEST_PASSWORD }}
+        
+        # Let AI discover routes with context
+        routes: 'auto'
+        
+        # Multiple viewports for responsive testing
+        viewports: '1920x1080,768x1024,375x667'
+        
+        # Enable browser-use for efficiency
+        use-browser-use: 'true'
+        
+        # Cache for performance
+        cache-key: 'visual-tests-${{ github.sha }}'
+        
+        # GitHub integration
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        
+        # Natural language commands with context
+        mcp-commands: |
+          Navigate to the dashboard
+          Click on the user profile menu
+          Take a screenshot of the profile dropdown
+          Navigate to settings page
+          Verify all form fields are visible
+          Test dark mode toggle if available
+          
+    - name: Custom Context Analysis
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Example of using enhanced context in custom scripts
+          const { EnhancedContextProvider } = require('@yofix/core');
+          
+          const provider = new EnhancedContextProvider(process.env.CLAUDE_API_KEY);
+          
+          // Build context for specific files
+          const context = await provider.buildContext('.', [
+            'src/components/Dashboard.tsx',
+            'src/styles/theme.css',
+            'src/hooks/useAuth.ts'
+          ]);
+          
+          // Analyze with context
+          const analysis = await provider.analyzeWithContext(
+            'What visual issues might occur in the Dashboard component?',
+            context
+          );
+          
+          console.log('Context-aware analysis:', analysis);

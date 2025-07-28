@@ -178,8 +178,11 @@ This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.lo
     analysis: string;
     issues: VisualIssue[];
   }> {
-    // Take screenshot
-    const screenshot = await page.screenshot({ fullPage: true });
+    // Take screenshot (force PNG for Claude Vision API)
+    const screenshot = await page.screenshot({ 
+      fullPage: true,
+      type: 'png'
+    });
     
     // Optimize screenshot first
     const optimized = await this.imageOptimizer.optimize(screenshot, {
@@ -409,20 +412,15 @@ Format your response as JSON.`
    * Analyze a screenshot with a custom prompt
    */
   async analyzeScreenshot(screenshot: Buffer, prompt: string): Promise<string> {
-    // Optimize screenshot first
-    const optimized = await this.imageOptimizer.optimize(screenshot, {
-      format: 'webp',
-      quality: 90
-    });
-    
+    // Don't optimize for AI analysis - keep original format
     // Generate image hash for caching
     const imageHash = crypto
       .createHash('sha256')
-      .update(optimized.buffer)
+      .update(screenshot)
       .digest('hex');
     
     // Convert to base64 for Claude Vision API
-    const base64Image = optimized.buffer.toString('base64');
+    const base64Image = screenshot.toString('base64');
     
     // Create cache key
     const cacheKey = this.cache.createVisualAnalysisKey({

@@ -154,7 +154,10 @@ This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.lo
         }
     }
     async captureAndAnalyze(page, route) {
-        const screenshot = await page.screenshot({ fullPage: true });
+        const screenshot = await page.screenshot({
+            fullPage: true,
+            type: 'png'
+        });
         const optimized = await this.imageOptimizer.optimize(screenshot, {
             format: 'webp',
             quality: 90
@@ -325,15 +328,11 @@ Format your response as JSON.`
         }
     }
     async analyzeScreenshot(screenshot, prompt) {
-        const optimized = await this.imageOptimizer.optimize(screenshot, {
-            format: 'webp',
-            quality: 90
-        });
         const imageHash = crypto_1.default
             .createHash('sha256')
-            .update(optimized.buffer)
+            .update(screenshot)
             .digest('hex');
-        const base64Image = optimized.buffer.toString('base64');
+        const base64Image = screenshot.toString('base64');
         const cacheKey = this.cache.createVisualAnalysisKey({
             imageHash,
             analysisType: 'custom-prompt',

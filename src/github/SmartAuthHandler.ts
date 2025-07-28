@@ -38,8 +38,11 @@ export class SmartAuthHandler {
         timeout: 30000
       });
 
-      // Take screenshot of the login page
-      const screenshot = await page.screenshot({ fullPage: false });
+      // Take screenshot of the login page (force PNG format)
+      const screenshot = await page.screenshot({ 
+        fullPage: false,
+        type: 'png'
+      });
       
       // Use AI to analyze the login form
       const formAnalysis = await this.analyzeLoginForm(screenshot);
@@ -96,7 +99,10 @@ export class SmartAuthHandler {
       
       // Take debug screenshot
       try {
-        const debugScreenshot = await page.screenshot({ fullPage: true });
+        const debugScreenshot = await page.screenshot({ 
+          fullPage: true,
+          type: 'png'
+        });
         const debugAnalysis = await this.analyzeLoginError(debugScreenshot);
         core.info(`AI error analysis: ${debugAnalysis}`);
       } catch (e) {

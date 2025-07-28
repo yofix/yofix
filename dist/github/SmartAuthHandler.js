@@ -50,7 +50,10 @@ class SmartAuthHandler {
                 waitUntil: 'networkidle',
                 timeout: 30000
             });
-            const screenshot = await page.screenshot({ fullPage: false });
+            const screenshot = await page.screenshot({
+                fullPage: false,
+                type: 'png'
+            });
             const formAnalysis = await this.analyzeLoginForm(screenshot);
             if (!formAnalysis.success) {
                 throw new Error(`Could not understand login form: ${formAnalysis.error}`);
@@ -93,7 +96,10 @@ class SmartAuthHandler {
         catch (error) {
             core.error(`Smart login failed: ${error}`);
             try {
-                const debugScreenshot = await page.screenshot({ fullPage: true });
+                const debugScreenshot = await page.screenshot({
+                    fullPage: true,
+                    type: 'png'
+                });
                 const debugAnalysis = await this.analyzeLoginError(debugScreenshot);
                 core.info(`AI error analysis: ${debugAnalysis}`);
             }

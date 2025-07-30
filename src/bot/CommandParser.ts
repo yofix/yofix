@@ -63,7 +63,7 @@ export class CommandParser {
   private parseAction(action: string): CommandAction {
     const validActions: CommandAction[] = [
       'scan', 'fix', 'apply', 'explain', 'preview',
-      'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'help'
+      'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'impact', 'help'
     ];
 
     const normalizedAction = action.toLowerCase() as CommandAction;

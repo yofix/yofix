@@ -32,363 +32,319 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VisualAnalyzer = void 0;
 const core = __importStar(require("@actions/core"));
-const sdk_1 = require("@anthropic-ai/sdk");
-const RouteAnalyzer_1 = require("./RouteAnalyzer");
+const Agent_1 = require("../../browser-agent/core/Agent");
 const CacheManager_1 = require("../../optimization/CacheManager");
-const ImageOptimizer_1 = require("../../optimization/ImageOptimizer");
-const crypto_1 = __importDefault(require("crypto"));
 class VisualAnalyzer {
     constructor(claudeApiKey, githubToken = '', cache) {
-        this.codebaseContext = null;
-        this.claude = new sdk_1.Anthropic({ apiKey: claudeApiKey });
         this.claudeApiKey = claudeApiKey;
         this.githubToken = githubToken;
         this.cache = cache || new CacheManager_1.CacheManager();
-        this.imageOptimizer = new ImageOptimizer_1.ImageOptimizer();
     }
     async scan(options) {
         const startTime = Date.now();
-        const issues = [];
-        core.info(`🔍 Scanning PR #${options.prNumber} for visual issues...`);
+        core.info(`🤖 Scanning PR #${options.prNumber} with Browser Agent...`);
         try {
-            let routesToScan = [];
-            if (options.routes === 'auto') {
-                const routeAnalyzer = new RouteAnalyzer_1.ClaudeRouteAnalyzer(this.claudeApiKey, this.githubToken);
-                const analysis = await routeAnalyzer.analyzeRoutes(options.prNumber);
-                routesToScan = analysis.routes;
-                this.codebaseContext = routeAnalyzer.getCodebaseContext();
-                core.info(`Claude identified ${routesToScan.length} routes to scan`);
-            }
-            else {
-                routesToScan = options.routes;
-            }
-            const maxRoutes = options.options?.maxRoutes || 10;
-            if (routesToScan.length > maxRoutes) {
-                core.warning(`Limiting scan to ${maxRoutes} routes (found ${routesToScan.length})`);
-                routesToScan = routesToScan.slice(0, maxRoutes);
-            }
-            const previewUrl = options.options?.previewUrl || process.env.PREVIEW_URL;
-            if (!previewUrl) {
-                throw new Error('Preview URL not found. Please provide preview-url input.');
-            }
-            for (const route of routesToScan) {
-                for (const viewport of options.viewports) {
-                    try {
-                        const routeIssues = await this.analyzeRoute(previewUrl, route, viewport, options.prNumber);
-                        issues.push(...routeIssues);
-                    }
-                    catch (error) {
-                        core.warning(`Failed to analyze ${route} at ${viewport}: ${error.message}`);
-                    }
-                }
-            }
-            issues.forEach((issue, index) => {
-                issue.id = index + 1;
+            const routes = await this.getRoutesToTest(options.routes);
+            const visualTestTask = this.buildVisualTestTask(routes, options.viewports);
+            const agent = new Agent_1.Agent(visualTestTask, {
+                headless: true,
+                maxSteps: routes.length * 5,
+                llmProvider: 'anthropic',
+                viewport: { width: 1920, height: 1080 }
             });
-            const summary = this.calculateSummary(issues);
-            return {
-                timestamp: Date.now(),
+            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+            await agent.initialize();
+            const result = await agent.run();
+            const agentState = agent.getState();
+            const allIssues = [];
+            for (const route of routes) {
+                const routeIssues = agentState.memory.get(`visual_issues_${route.replace(/\//g, '_')}`) || [];
+                const formattedIssues = routeIssues.map((issue, index) => ({
+                    id: index,
+                    type: issue.type || 'visual',
+                    severity: this.mapSeverity(issue.severity),
+                    description: issue.description,
+                    affectedViewports: issue.viewport ? [issue.viewport] : ['desktop'],
+                    location: {
+                        route: route,
+                        selector: issue.element?.selector,
+                        file: issue.file,
+                        line: issue.line
+                    },
+                    screenshots: issue.screenshot ? [issue.screenshot] : [],
+                    screenshot: issue.screenshot ? {
+                        current: issue.screenshot
+                    } : undefined,
+                    fix: issue.suggestedFix ? {
+                        id: index,
+                        issueId: index,
+                        description: issue.suggestedFix,
+                        confidence: 0.9,
+                        files: []
+                    } : undefined
+                }));
+                allIssues.push(...formattedIssues);
+            }
+            await agent.cleanup();
+            const scanResult = {
+                timestamp: startTime,
                 duration: Date.now() - startTime,
-                routes: routesToScan,
-                issues,
-                summary
+                routes: routes,
+                issues: allIssues,
+                summary: {
+                    total: allIssues.length,
+                    bySeverity: {
+                        critical: allIssues.filter(i => i.severity === 'critical').length,
+                        high: allIssues.filter(i => i.severity === 'high').length,
+                        medium: allIssues.filter(i => i.severity === 'medium').length,
+                        low: allIssues.filter(i => i.severity === 'low').length
+                    },
+                    byType: allIssues.reduce((acc, issue) => {
+                        acc[issue.type] = (acc[issue.type] || 0) + 1;
+                        return acc;
+                    }, {})
+                }
             };
+            core.info(`✅ Visual scan completed: ${allIssues.length} issues found in ${routes.length} routes`);
+            return scanResult;
         }
         catch (error) {
-            core.error(`Scan failed: ${error.message}`);
+            core.error(`Visual scan failed: ${error}`);
             return {
-                timestamp: Date.now(),
+                timestamp: startTime,
                 duration: Date.now() - startTime,
                 routes: [],
                 issues: [],
                 summary: {
                     total: 0,
-                    bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
+                    bySeverity: {
+                        critical: 0,
+                        high: 0,
+                        medium: 0,
+                        low: 0
+                    },
                     byType: {}
                 }
             };
         }
     }
-    async explainIssue(issue) {
-        const prompt = `Analyze this visual issue and provide a detailed explanation:
-
-Issue Type: ${issue.type}
-Severity: ${issue.severity}
-Description: ${issue.description}
-Affected Viewports: ${issue.affectedViewports.join(', ')}
-Location: ${issue.location.route} - ${issue.location.selector}
-
-Please provide:
-1. A detailed explanation of what's happening
-2. Root cause analysis
-3. Impact on user experience
-4. Potential browser compatibility concerns
-5. Recommended fix approach
-
-Format the response in markdown.`;
-        try {
-            const response = await this.claude.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 1024,
-                temperature: 0.3,
-                messages: [{
-                        role: 'user',
-                        content: prompt
-                    }]
-            });
-            return response.content[0].type === 'text' ? response.content[0].text : issue.description;
-        }
-        catch (error) {
-            core.warning(`Failed to get detailed explanation: ${error.message}`);
-            return `**${issue.type}**
-
-${issue.description}
-
-This issue affects ${issue.affectedViewports.join(', ')} viewports at ${issue.location.route}.`;
-        }
-    }
-    async captureAndAnalyze(page, route) {
-        const screenshot = await page.screenshot({
-            fullPage: true,
-            type: 'png'
-        });
-        const optimized = await this.imageOptimizer.optimize(screenshot, {
-            format: 'webp',
-            quality: 90
-        });
-        const imageHash = crypto_1.default
-            .createHash('sha256')
-            .update(optimized.buffer)
-            .digest('hex');
-        const base64Image = optimized.buffer.toString('base64');
-        const cacheKey = this.cache.createVisualAnalysisKey({
-            imageHash,
-            analysisType: 'visual-issues',
-            options: { route }
-        });
-        const response = await this.cache.wrap(cacheKey, () => this.claude.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1024,
-            temperature: 0.3,
-            messages: [{
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: `Analyze this screenshot for visual issues. Focus on:
-- Layout problems (overlapping elements, misalignment, broken grids)
-- Responsive issues (content overflow, improper scaling)
-- Text readability (contrast, truncation, font size)
-- Spacing inconsistencies
-- Color and styling issues
-- Accessibility concerns
-
-For each issue found, provide:
-1. Issue type
-2. Severity (critical/high/medium/low)
-3. Description
-4. Affected elements (CSS selectors if identifiable)
-5. Suggested fix approach
-
-Format your response as JSON.`
-                        },
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/png',
-                                data: base64Image
-                            }
-                        }
-                    ]
-                }]
-        }), { ttl: 3600 });
-        let issues = [];
-        try {
-            const analysisText = response.content[0].type === 'text' ? response.content[0].text : '';
-            const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const analysis = JSON.parse(jsonMatch[0]);
-                if (analysis.issues && Array.isArray(analysis.issues)) {
-                    issues = analysis.issues.map((issue) => ({
-                        severity: issue.severity || 'medium',
-                        type: issue.type || 'Visual Issue',
-                        description: issue.description || 'Unspecified visual issue',
-                        affectedViewports: [],
-                        location: {
-                            route,
-                            selector: issue.selector || ''
-                        }
-                    }));
-                }
-            }
-        }
-        catch (error) {
-            core.warning(`Failed to parse Claude Vision response: ${error.message}`);
-        }
-        return {
-            screenshot,
-            analysis: response.content[0].type === 'text' ? response.content[0].text : '',
-            issues
-        };
-    }
-    async compareWithBaseline(current, baseline) {
-        const currentBase64 = current.toString('base64');
-        const baselineBase64 = baseline.toString('base64');
-        const response = await this.claude.messages.create({
-            model: 'claude-3-haiku-20240307',
-            max_tokens: 1024,
-            temperature: 0.1,
-            messages: [{
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: 'Compare these two screenshots and identify visual differences. Focus on layout changes, styling differences, and content modifications. Provide a difference percentage (0-100) and list specific issues. Format as JSON.'
-                        },
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/png',
-                                data: baselineBase64
-                            }
-                        },
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/png',
-                                data: currentBase64
-                            }
-                        }
-                    ]
-                }]
-        });
-        let result = {
-            hasDifferences: false,
-            diffPercentage: 0,
-            issues: []
-        };
-        try {
-            const text = response.content[0].type === 'text' ? response.content[0].text : '';
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const analysis = JSON.parse(jsonMatch[0]);
-                result.hasDifferences = analysis.hasDifferences || false;
-                result.diffPercentage = analysis.diffPercentage || 0;
-                result.issues = (analysis.issues || []).map((issue) => ({
-                    severity: issue.severity || 'medium',
-                    type: 'Visual Regression',
-                    description: issue.description || 'Visual difference detected',
-                    affectedViewports: [],
-                    location: {
-                        route: '',
-                        selector: issue.selector || ''
-                    }
-                }));
-            }
-        }
-        catch (error) {
-            core.warning(`Failed to parse baseline comparison: ${error.message}`);
-        }
-        return result;
-    }
-    async analyzeRoute(previewUrl, route, viewport, prNumber) {
-        const url = new URL(route, previewUrl).toString();
-        core.info(`Analyzing ${url} at ${viewport} viewport`);
-        const [width, height] = viewport.split('x').map(v => parseInt(v));
-        const { chromium } = await Promise.resolve().then(() => __importStar(require('playwright')));
-        const browser = await chromium.launch({ headless: true });
-        const context = await browser.newContext({
-            viewport: { width, height },
-            userAgent: 'YoFix/1.0 Visual Analysis Bot'
-        });
-        const page = await context.newPage();
-        try {
-            await page.goto(url, {
-                waitUntil: 'networkidle',
-                timeout: 30000
-            });
-            await page.waitForTimeout(2000);
-            const { issues } = await this.captureAndAnalyze(page, route);
-            issues.forEach(issue => {
-                issue.affectedViewports = [this.getViewportName(viewport)];
-            });
-            return issues;
-        }
-        finally {
-            await browser.close();
-        }
-    }
     async analyzeScreenshot(screenshot, prompt) {
-        const imageHash = crypto_1.default
-            .createHash('sha256')
-            .update(screenshot)
-            .digest('hex');
-        const base64Image = screenshot.toString('base64');
-        const cacheKey = this.cache.createVisualAnalysisKey({
-            imageHash,
-            analysisType: 'custom-prompt',
-            options: { promptHash: crypto_1.default.createHash('sha256').update(prompt).digest('hex') }
-        });
-        const response = await this.cache.wrap(cacheKey, () => this.claude.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1024,
-            temperature: 0.3,
-            messages: [{
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: prompt
-                        },
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/png',
-                                data: base64Image
-                            }
-                        }
-                    ]
-                }]
-        }), { ttl: 3600 });
-        return response.content[0].type === 'text' ? response.content[0].text : '';
+        try {
+            const analysisTask = `
+        Analyze the provided screenshot and ${prompt}
+        
+        Focus on:
+        - Visual layout issues
+        - Element positioning problems
+        - Text readability concerns
+        - Color contrast issues
+        - Responsive design problems
+        
+        Provide specific, actionable feedback.
+      `;
+            const agent = new Agent_1.Agent(analysisTask, {
+                headless: true,
+                maxSteps: 5,
+                llmProvider: 'anthropic'
+            });
+            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+            await agent.initialize();
+            const agentState = agent.getState();
+            agentState.fileSystem.set('/analysis-screenshot.png', screenshot.toString('base64'));
+            const result = await agent.run();
+            await agent.cleanup();
+            const analysis = agentState.fileSystem.get('/analysis-result.txt') ||
+                agentState.memory.get('screenshot_analysis') ||
+                'Screenshot analysis completed';
+            return typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+        }
+        catch (error) {
+            core.warning(`Screenshot analysis failed: ${error}`);
+            return 'Unable to analyze screenshot';
+        }
     }
-    getViewportName(viewport) {
-        const [width] = viewport.split('x').map(v => parseInt(v));
-        if (width <= 480)
-            return 'mobile';
-        if (width <= 768)
-            return 'tablet';
-        return 'desktop';
-    }
-    calculateSummary(issues) {
-        const summary = {
-            total: issues.length,
-            bySeverity: {
-                critical: 0,
-                high: 0,
-                medium: 0,
-                low: 0
-            },
-            byType: {}
-        };
-        issues.forEach(issue => {
-            summary.bySeverity[issue.severity]++;
-            if (!summary.byType[issue.type]) {
-                summary.byType[issue.type] = 0;
+    async generateFixes(issues) {
+        const fixes = [];
+        for (const issue of issues) {
+            try {
+                const fixTask = `
+          Generate a code fix for this visual issue:
+          
+          Issue Type: ${issue.type}
+          Description: ${issue.description}
+          Route: ${issue.location.route}
+          Severity: ${issue.severity}
+          Element: ${issue.location.selector || 'Unknown'}
+          
+          Provide:
+          1. Specific CSS or component code changes
+          2. Explanation of why this fixes the issue
+          3. Best practices to prevent similar issues
+          
+          Focus on maintainable, standards-compliant solutions.
+        `;
+                const agent = new Agent_1.Agent(fixTask, {
+                    headless: true,
+                    maxSteps: 5,
+                    llmProvider: 'anthropic'
+                });
+                process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+                await agent.initialize();
+                const result = await agent.run();
+                const agentState = agent.getState();
+                const fix = agentState.fileSystem.get('/generated-fix.css') ||
+                    agentState.fileSystem.get('/generated-fix.jsx') ||
+                    agentState.memory.get('generated_fix') ||
+                    issue.fix?.description ||
+                    'Fix could not be generated';
+                fixes.push({
+                    issue,
+                    fix: typeof fix === 'string' ? fix : JSON.stringify(fix)
+                });
+                await agent.cleanup();
             }
-            summary.byType[issue.type]++;
+            catch (error) {
+                core.warning(`Failed to generate fix for issue ${issue.id}: ${error}`);
+                fixes.push({
+                    issue,
+                    fix: issue.fix?.description || 'Manual review required'
+                });
+            }
+        }
+        return fixes;
+    }
+    buildVisualTestTask(routes, viewports) {
+        const tasks = [
+            'Comprehensive Visual Testing Plan:',
+            ''
+        ];
+        routes.forEach((route, index) => {
+            tasks.push(`Route ${index + 1}: ${route}`);
+            tasks.push(`1. Navigate to ${route}`);
+            tasks.push(`2. Wait for page to fully load`);
+            tasks.push(`3. Run check_visual_issues with screenshot=true`);
+            tasks.push(`4. Test responsive behavior on different viewport sizes`);
+            tasks.push(`5. Save results to /visual_issues_${route.replace(/\//g, '_')}`);
+            tasks.push('');
         });
-        return summary;
+        if (viewports.length > 1) {
+            tasks.push('Cross-Viewport Testing:');
+            tasks.push(`Test each route at viewports: ${viewports.join(', ')}`);
+            tasks.push('Focus on layout consistency and responsive behavior');
+            tasks.push('');
+        }
+        tasks.push('Issue Detection Priorities:');
+        tasks.push('- Element overlaps (critical)');
+        tasks.push('- Text overflow (warning)');
+        tasks.push('- Broken images (warning)');
+        tasks.push('- Horizontal scroll (critical)');
+        tasks.push('- Color contrast (info)');
+        tasks.push('- Alignment issues (warning)');
+        tasks.push('');
+        tasks.push('For each issue found:');
+        tasks.push('- Generate a specific fix using generate_visual_fix');
+        tasks.push('- Take screenshot evidence');
+        tasks.push('- Classify severity appropriately');
+        tasks.push('- Provide actionable suggestions');
+        return tasks.join('\n');
+    }
+    async getRoutesToTest(routes) {
+        if (Array.isArray(routes)) {
+            return routes;
+        }
+        const commonRoutes = ['/', '/about', '/contact', '/dashboard', '/profile'];
+        return commonRoutes;
+    }
+    generateSuggestion(issue) {
+        switch (issue.type) {
+            case 'text-overflow':
+                return 'Use text-overflow: ellipsis or increase container width';
+            case 'element-overlap':
+                return 'Adjust positioning or use flexbox/grid layout';
+            case 'broken-image':
+                return 'Fix image source URL or add fallback image';
+            case 'horizontal-overflow':
+                return 'Constrain width to viewport or add horizontal scroll';
+            default:
+                return 'Review element styling and layout properties';
+        }
+    }
+    categorizeIssue(type) {
+        const categories = {
+            'text-overflow': 'Typography',
+            'element-overlap': 'Layout',
+            'broken-image': 'Media',
+            'horizontal-overflow': 'Responsive',
+            'color-contrast': 'Accessibility',
+            'alignment': 'Layout'
+        };
+        return categories[type] || 'General';
+    }
+    mapSeverity(severity) {
+        const normalizedSeverity = severity?.toLowerCase() || 'medium';
+        switch (normalizedSeverity) {
+            case 'critical':
+            case 'high':
+            case 'medium':
+            case 'low':
+                return normalizedSeverity;
+            case 'error':
+            case 'severe':
+                return 'critical';
+            case 'warning':
+            case 'warn':
+                return 'medium';
+            case 'info':
+            case 'notice':
+                return 'low';
+            default:
+                return 'medium';
+        }
+    }
+    async explainIssue(issue) {
+        try {
+            const explanationTask = `
+        Provide a detailed explanation for this visual issue:
+        
+        Issue Type: ${issue.type}
+        Description: ${issue.description}
+        Severity: ${issue.severity}
+        Location: ${issue.location.route}
+        Element: ${issue.location.selector || 'Unknown'}
+        
+        Please explain:
+        1. What exactly is wrong
+        2. Why this is a problem
+        3. How it affects user experience
+        4. What should be the expected behavior
+        5. Suggested fix approach
+        
+        Provide a clear, technical explanation that developers can understand.
+      `;
+            const agent = new Agent_1.Agent(explanationTask, {
+                headless: true,
+                maxSteps: 3,
+                llmProvider: 'anthropic'
+            });
+            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+            await agent.initialize();
+            const result = await agent.run();
+            const agentState = agent.getState();
+            const explanation = agentState.fileSystem.get('/explanation.txt') ||
+                agentState.memory.get('issue_explanation') ||
+                `Issue: ${issue.description}\n\nThis ${issue.severity} severity issue affects the visual presentation of the page and should be addressed to maintain good user experience.`;
+            await agent.cleanup();
+            return typeof explanation === 'string' ? explanation : JSON.stringify(explanation);
+        }
+        catch (error) {
+            core.warning(`Failed to explain issue ${issue.id}: ${error}`);
+            return `Issue: ${issue.description}\n\nThis ${issue.severity} severity issue requires manual review to determine the best fix approach.`;
+        }
+    }
+    setCodebaseContext(context) {
     }
 }
 exports.VisualAnalyzer = VisualAnalyzer;

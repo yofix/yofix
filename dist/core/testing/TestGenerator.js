@@ -35,343 +35,211 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestGenerator = void 0;
 const core = __importStar(require("@actions/core"));
-const EnhancedContextProvider_1 = require("../../context/EnhancedContextProvider");
+const Agent_1 = require("../../browser-agent/core/Agent");
 class TestGenerator {
-    constructor(firebaseConfig, viewports, claudeApiKey, enableAIGeneration = false) {
-        this.enableAIGeneration = false;
+    constructor(firebaseConfig, viewports, claudeApiKey) {
         this.firebaseConfig = firebaseConfig;
         this.viewports = viewports;
         this.claudeApiKey = claudeApiKey;
-        this.enableAIGeneration = enableAIGeneration;
-        if (claudeApiKey) {
-            this.contextProvider = new EnhancedContextProvider_1.EnhancedContextProvider(claudeApiKey);
+    }
+    async runTests(analysis) {
+        core.info('🤖 Running tests with Browser Agent...');
+        const results = [];
+        for (const route of analysis.routes) {
+            const result = await this.testRoute(route, analysis);
+            results.push(result);
+        }
+        core.info(`✅ Completed ${results.length} route tests`);
+        return results;
+    }
+    async testRoute(route, analysis) {
+        const startTime = Date.now();
+        const url = `${this.firebaseConfig.previewUrl}${route}`;
+        core.info(`Testing route: ${route}`);
+        try {
+            const testTask = this.buildRouteTestTask(route, url, analysis);
+            const agent = new Agent_1.Agent(testTask, {
+                headless: true,
+                maxSteps: 25,
+                llmProvider: 'anthropic',
+                viewport: this.viewports[0] || { width: 1920, height: 1080 }
+            });
+            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+            await agent.initialize();
+            const result = await agent.run();
+            const state = agent.getState();
+            const visualIssues = state.memory.get('visual_issues') || [];
+            const responsiveResults = state.memory.get('responsive_test_results') || [];
+            const issues = visualIssues.map((issue) => ({
+                type: issue.type,
+                severity: issue.severity,
+                description: issue.description,
+                fix: issue.suggestedFix
+            }));
+            await agent.cleanup();
+            return {
+                route,
+                success: result.success,
+                duration: Date.now() - startTime,
+                issues,
+                screenshots: result.screenshots,
+                error: result.error
+            };
+        }
+        catch (error) {
+            core.error(`Failed to test route ${route}: ${error}`);
+            return {
+                route,
+                success: false,
+                duration: Date.now() - startTime,
+                issues: [],
+                screenshots: [],
+                error: error instanceof Error ? error.message : String(error)
+            };
         }
     }
-    async generateTests(analysis) {
-        core.info('Generating React SPA tests based on route analysis...');
-        const tests = [];
-        tests.push(this.createSPALoadingTest());
-        if (this.enableAIGeneration && this.claudeApiKey) {
-            core.info('🤖 Using Claude AI to generate context-aware tests...');
-            const aiTests = await this.generateTestsWithAI(analysis);
-            tests.push(...aiTests);
-        }
-        if (analysis.components.length > 0) {
-            tests.push(...this.createComponentTests(analysis.components));
-        }
-        if (analysis.routes.length > 0) {
-            tests.push(...this.createRouteTests(analysis.routes));
-        }
-        const formComponents = analysis.components.filter(comp => comp.toLowerCase().includes('form') ||
-            comp.toLowerCase().includes('input') ||
-            comp.toLowerCase().includes('login') ||
-            comp.toLowerCase().includes('signup'));
-        if (formComponents.length > 0) {
-            tests.push(...this.createFormTests(formComponents));
-        }
+    buildRouteTestTask(route, url, analysis) {
+        const tasks = [
+            `1. Navigate to ${url}`,
+            '2. Wait for the page to fully load',
+            '3. Take a screenshot for baseline comparison',
+            '4. Run check_visual_issues with screenshot=true to detect layout problems',
+            '5. Test navigation by clicking on interactive elements',
+            '6. Check for broken images or missing content'
+        ];
         if (analysis.hasUIChanges) {
-            tests.push(this.createResponsiveTest());
+            tasks.push('7. Run test_responsive to check mobile and tablet layouts');
+        }
+        const hasFormComponents = analysis.components.some(comp => comp.toLowerCase().includes('form') ||
+            comp.toLowerCase().includes('input') ||
+            comp.toLowerCase().includes('login'));
+        if (hasFormComponents) {
+            tasks.push('8. Test form interactions by filling out any visible forms');
         }
         if (analysis.riskLevel === 'high') {
-            tests.push(this.createErrorBoundaryTest());
+            tasks.push('9. Test error boundaries by triggering edge cases');
         }
-        core.info(`Generated ${tests.length} tests for React SPA verification`);
-        return tests;
+        tasks.push(`10. Save any issues found to /results${route.replace(/\//g, '_')}.json`);
+        tasks.push('11. Generate fixes for any critical issues using generate_visual_fix');
+        return `Test the ${route} page comprehensively:\n\n${tasks.join('\n')}
+
+Focus on:
+- Visual layout issues (overlaps, overflows, alignment)
+- Responsive behavior across viewports
+- Interactive element functionality
+- Loading performance and errors
+- Accessibility concerns
+
+Provide detailed analysis and practical fixes for any issues found.`;
     }
-    async generateTestsWithAI(analysis) {
-        if (!this.claudeApiKey || !this.contextProvider)
-            return [];
+    async testAuthentication(loginUrl, credentials) {
+        const startTime = Date.now();
         try {
-            const { Anthropic } = await Promise.resolve().then(() => __importStar(require('@anthropic-ai/sdk')));
-            const claude = new Anthropic({ apiKey: this.claudeApiKey });
-            const context = await this.contextProvider.buildContext(process.cwd(), [
-                'src/types.ts',
-                'src/bot/types.ts',
-                'tests/**/*.spec.ts',
-                'playwright.config.ts',
-                'package.json'
-            ]);
-            const basePrompt = `Analyze this web application and generate Playwright test cases:
-
-Application URL: ${this.firebaseConfig.previewUrl}
-Routes to test: ${analysis.routes.join(', ')}
-Components: ${analysis.components.join(', ')}
-Change type: UI changes detected
-
-Generate specific test cases that:
-1. Test user interactions (clicks, form fills, navigation)
-2. Verify visual elements and layout
-3. Check responsive behavior
-4. Test error scenarios
-5. Validate data flows
-
-For each test, provide:
-- Test name and description
-- Specific actions to perform
-- Expected outcomes to verify
-
-Return as JSON array with this structure:
-[{
-  "name": "Test name",
-  "description": "What this test verifies",
-  "actions": [
-    {"type": "goto", "target": "url"},
-    {"type": "click", "selector": "button.submit"}
-  ],
-  "assertions": [
-    {"type": "visible", "selector": ".success-message"}
-  ]
-}]`;
-            const enhancedPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
-            const response = await claude.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 2048,
-                temperature: 0.3,
-                messages: [{
-                        role: 'user',
-                        content: enhancedPrompt
-                    }]
+            const authTask = `
+        Test the authentication flow:
+        
+        1. Navigate to ${this.firebaseConfig.previewUrl}${loginUrl}
+        2. Use smart_login with email="${credentials.email}" password="${credentials.password}"
+        3. Verify successful login by checking for user profile or dashboard elements
+        4. Test logout functionality
+        5. Verify successful logout by checking return to login page
+        6. Take screenshots at each step
+        7. Save test results to /auth-test-results.json
+        
+        Report any issues with the login/logout flow.
+      `;
+            const agent = new Agent_1.Agent(authTask, {
+                headless: true,
+                maxSteps: 15,
+                llmProvider: 'anthropic'
             });
-            const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
-            const jsonMatch = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-            ;
-            if (jsonMatch) {
-                const aiTestCases = JSON.parse(jsonMatch[0]);
-                return aiTestCases.map((test, index) => ({
-                    id: `ai-test-${index}`,
-                    name: test.name,
-                    type: 'interaction',
-                    selector: test.actions[0]?.selector || 'body',
-                    actions: test.actions.map((action) => ({
-                        type: action.type,
-                        target: action.target || action.url,
-                        selector: action.selector,
-                        value: action.value,
-                        timeout: action.timeout || 10000,
-                        description: action.description
-                    })),
-                    assertions: test.assertions.map((assertion) => ({
-                        type: assertion.type,
-                        target: assertion.selector || assertion.target,
-                        selector: assertion.selector,
-                        expected: assertion.expected,
-                        timeout: assertion.timeout || 10000,
-                        description: assertion.description
-                    })),
-                    viewport: this.viewports[0]
-                }));
-            }
+            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+            await agent.initialize();
+            const result = await agent.run();
+            await agent.cleanup();
+            return {
+                route: loginUrl,
+                success: result.success,
+                duration: Date.now() - startTime,
+                issues: [],
+                screenshots: result.screenshots,
+                error: result.error
+            };
         }
         catch (error) {
-            core.warning(`AI test generation failed: ${error}`);
-        }
-        return [];
-    }
-    createSPALoadingTest() {
-        const actions = [
-            { type: 'goto', target: this.firebaseConfig.previewUrl, timeout: 30000 },
-            { type: 'wait', target: this.getSPAReadySelector(), timeout: 15000 }
-        ];
-        const assertions = [
-            { type: 'visible', target: this.getSPAReadySelector(), timeout: 10000 },
-            { type: 'text', target: 'title', expected: 'should contain app name' }
-        ];
-        return {
-            id: 'spa-loading',
-            name: 'React SPA Loading and Hydration',
-            type: 'component',
-            selector: this.getSPAReadySelector(),
-            actions,
-            assertions,
-            viewport: this.viewports[0]
-        };
-    }
-    createComponentTests(components) {
-        return components.slice(0, 5).map((component, index) => {
-            const selector = this.generateComponentSelector(component);
-            const actions = [
-                { type: 'goto', target: this.firebaseConfig.previewUrl, timeout: 30000 },
-                { type: 'wait', target: this.getSPAReadySelector(), timeout: 15000 }
-            ];
-            const assertions = [
-                { type: 'visible', target: selector, timeout: 10000 }
-            ];
-            if (this.isInteractiveComponent(component)) {
-                actions.push({ type: 'click', target: selector, timeout: 5000 });
-                assertions.push({
-                    type: 'visible',
-                    target: `${selector}:not([disabled])`,
-                    timeout: 5000
-                });
-            }
             return {
-                id: `component-${component.toLowerCase()}`,
-                name: `${component} Component Verification`,
-                type: 'component',
-                selector,
-                actions,
-                assertions,
-                viewport: this.viewports[index % this.viewports.length]
+                route: loginUrl,
+                success: false,
+                duration: Date.now() - startTime,
+                issues: [],
+                screenshots: [],
+                error: error instanceof Error ? error.message : String(error)
             };
-        });
-    }
-    createRouteTests(routes) {
-        return routes.slice(0, 5).map((route, index) => {
-            const fullUrl = this.firebaseConfig.previewUrl + (route.startsWith('/') ? route : `/${route}`);
-            const actions = [
-                { type: 'goto', target: fullUrl, timeout: 30000 },
-                { type: 'wait', target: this.getSPAReadySelector(), timeout: 15000 }
-            ];
-            const assertions = [
-                { type: 'url', target: route, timeout: 10000 },
-                { type: 'visible', target: this.getSPAReadySelector(), timeout: 10000 }
-            ];
-            if (route === '/' || route === '/home') {
-                assertions.push({
-                    type: 'visible',
-                    target: 'main, [role="main"], .main-content',
-                    timeout: 5000
-                });
-            }
-            return {
-                id: `route-${route.replace(/[^a-zA-Z0-9]/g, '-')}`,
-                name: `Route Navigation: ${route}`,
-                type: 'route',
-                selector: this.getSPAReadySelector(),
-                actions,
-                assertions,
-                viewport: this.viewports[index % this.viewports.length]
-            };
-        });
-    }
-    createFormTests(formComponents) {
-        return formComponents.slice(0, 3).map(component => {
-            const formSelector = this.generateFormSelector(component);
-            const actions = [
-                { type: 'goto', target: this.firebaseConfig.previewUrl, timeout: 30000 },
-                { type: 'wait', target: this.getSPAReadySelector(), timeout: 15000 },
-                { type: 'wait', target: formSelector, timeout: 10000 }
-            ];
-            const assertions = [
-                { type: 'visible', target: formSelector, timeout: 10000 }
-            ];
-            if (component.toLowerCase().includes('login')) {
-                actions.push({ type: 'fill', target: 'input[type="email"], input[name*="email"]', value: 'test@example.com', timeout: 5000 }, { type: 'fill', target: 'input[type="password"], input[name*="password"]', value: 'testpassword', timeout: 5000 });
-                assertions.push({
-                    type: 'visible',
-                    target: 'button[type="submit"], button:has-text("Login"), button:has-text("Sign In")',
-                    timeout: 5000
-                });
-            }
-            return {
-                id: `form-${component.toLowerCase()}`,
-                name: `${component} Form Interaction`,
-                type: 'form',
-                selector: formSelector,
-                actions,
-                assertions,
-                viewport: this.viewports[0]
-            };
-        });
-    }
-    createResponsiveTest() {
-        const actions = [
-            { type: 'goto', target: this.firebaseConfig.previewUrl, timeout: 30000 },
-            { type: 'wait', target: this.getSPAReadySelector(), timeout: 15000 }
-        ];
-        const assertions = [
-            { type: 'visible', target: this.getSPAReadySelector(), timeout: 10000 }
-        ];
-        return {
-            id: 'responsive-design',
-            name: 'Responsive Design Verification',
-            type: 'interaction',
-            selector: 'body',
-            actions,
-            assertions,
-            viewport: this.viewports.find(v => v.width <= 768) || this.viewports[1]
-        };
-    }
-    createErrorBoundaryTest() {
-        const actions = [
-            { type: 'goto', target: this.firebaseConfig.previewUrl, timeout: 30000 },
-            { type: 'wait', target: this.getSPAReadySelector(), timeout: 15000 }
-        ];
-        const assertions = [
-            { type: 'visible', target: this.getSPAReadySelector(), timeout: 10000 },
-            { type: 'hidden', target: '[data-testid="error-boundary"], .error-boundary, .error-fallback', timeout: 5000 }
-        ];
-        return {
-            id: 'error-boundary',
-            name: 'Error Boundary and Crash Prevention',
-            type: 'component',
-            selector: 'body',
-            actions,
-            assertions,
-            viewport: this.viewports[0]
-        };
-    }
-    generateComponentSelector(component) {
-        const kebabCase = component.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1);
-        const selectors = [
-            `[data-testid="${kebabCase}"]`,
-            `[data-testid="${component.toLowerCase()}"]`,
-            `.${kebabCase}`,
-            `.${component.toLowerCase()}`,
-            `[class*="${kebabCase}"]`,
-            `[class*="${component.toLowerCase()}"]`
-        ];
-        return selectors.join(', ');
-    }
-    generateFormSelector(component) {
-        const kebabCase = component.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1);
-        return [
-            `form[data-testid="${kebabCase}"]`,
-            `form.${kebabCase}`,
-            `[data-testid="${kebabCase}"] form`,
-            `.${kebabCase} form`,
-            'form'
-        ].join(', ');
-    }
-    getSPAReadySelector() {
-        if (this.firebaseConfig.buildSystem === 'vite') {
-            return '#root:not(:empty), #app:not(:empty), [data-reactroot], .App';
-        }
-        else {
-            return '#root:not(:empty), #app:not(:empty), [data-reactroot]';
         }
     }
-    isInteractiveComponent(component) {
-        const interactiveKeywords = [
-            'button', 'input', 'select', 'form', 'link', 'tab', 'menu',
-            'modal', 'dialog', 'dropdown', 'toggle', 'switch', 'slider'
-        ];
-        return interactiveKeywords.some(keyword => component.toLowerCase().includes(keyword));
-    }
-    static parseViewports(viewportsInput) {
-        const defaultViewports = [
-            { width: 1920, height: 1080, name: 'Desktop' },
-            { width: 768, height: 1024, name: 'Tablet' },
-            { width: 375, height: 667, name: 'Mobile' }
-        ];
-        if (!viewportsInput) {
-            return defaultViewports;
-        }
+    async generateAndRunTests(analysis) {
+        core.info('🧠 AI-powered test generation and execution...');
+        const testPlanTask = `
+      Analyze this web application and create a comprehensive test plan:
+      
+      Application URL: ${this.firebaseConfig.previewUrl}
+      Routes to test: ${analysis.routes.join(', ')}
+      Components: ${analysis.components.join(', ')}
+      Risk Level: ${analysis.riskLevel}
+      UI Changes: ${analysis.hasUIChanges ? 'Yes' : 'No'}
+      
+      For each route, determine:
+      1. What specific functionality to test
+      2. What visual elements to verify
+      3. What user interactions to simulate  
+      4. What edge cases to check
+      5. What performance aspects to measure
+      
+      Then execute the tests systematically and report results.
+    `;
+        const agent = new Agent_1.Agent(testPlanTask, {
+            headless: true,
+            maxSteps: 50,
+            llmProvider: 'anthropic'
+        });
+        process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
         try {
-            const viewports = viewportsInput.split(',').map(viewport => {
-                const [dimensions, name] = viewport.split(':');
-                const [width, height] = dimensions.split('x').map(Number);
-                return {
-                    width,
-                    height,
-                    name: name || `${width}x${height}`
-                };
-            });
-            return viewports.length > 0 ? viewports : defaultViewports;
+            await agent.initialize();
+            const result = await agent.run();
+            await agent.cleanup();
+            const state = agent.getState();
+            const testResults = [];
+            for (const route of analysis.routes) {
+                const routeFile = state.fileSystem.get(`/results${route.replace(/\//g, '_')}.json`);
+                if (routeFile) {
+                    try {
+                        const routeResult = JSON.parse(routeFile);
+                        testResults.push({
+                            route,
+                            success: routeResult.success || true,
+                            duration: routeResult.duration || 0,
+                            issues: routeResult.issues || [],
+                            screenshots: result.screenshots || [],
+                            error: routeResult.error
+                        });
+                    }
+                    catch (e) {
+                        testResults.push({
+                            route,
+                            success: result.success,
+                            duration: 0,
+                            issues: [],
+                            screenshots: result.screenshots,
+                            error: undefined
+                        });
+                    }
+                }
+            }
+            return testResults;
         }
         catch (error) {
-            core.warning(`Failed to parse viewports "${viewportsInput}". Using defaults.`);
-            return defaultViewports;
+            core.error(`AI test generation failed: ${error}`);
+            return await this.runTests(analysis);
         }
     }
 }

@@ -25,6 +25,7 @@
     "dist",
     "test",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/browser-agent/**"
   ]
 }

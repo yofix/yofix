@@ -106,6 +106,7 @@ YoFix responds to natural language commands in PR comments:
 | `@yofix fix the mobile menu` | Generate specific fix |
 | `@yofix the buttons are misaligned` | Report and fix issue |
 | `@yofix test auth pages with login` | Test protected routes |
+| `@yofix impact` | Show route impact tree |
 | `@yofix update baseline` | Save current UI as baseline |
 
 ## 📊 Example Usage
@@ -276,15 +277,50 @@ Ensure accessibility compliance:
 @yofix check accessibility on all pages
 ```
 
+## 🔧 Troubleshooting
+
+### PR Comments Not Posting?
+
+If YoFix isn't posting comments to your PR:
+
+1. **Check Permissions** - Ensure your workflow has write permissions:
+   ```yaml
+   permissions:
+     contents: read
+     pull-requests: write
+     issues: write
+   ```
+
+2. **Use PR Event** - YoFix must run on pull request events:
+   ```yaml
+   on:
+     pull_request:
+       types: [opened, synchronize, reopened]
+   ```
+
+3. **Verify Token** - Ensure GitHub token is passed:
+   ```yaml
+   with:
+     github-token: ${{ secrets.GITHUB_TOKEN }}
+   ```
+
+4. **Run Diagnostics** - Use our diagnostic script:
+   ```bash
+   node scripts/diagnose-comments.js
+   ```
+
+See [Ensure GitHub Comments Guide](docs/guide_ensure-github-comments.md) for detailed troubleshooting.
+
 ## 📚 Documentation
 
 For detailed documentation, visit our [docs folder](docs/):
 
 - [Quick Start Guide](docs/guide_quickstart.md)
-- [Bot Commands](docs/guide_bot-natural-language.md) 
+- [Bot Commands](docs/guide_bot-natural-language.md)
 - [Storage Setup](docs/config_storage-setup.md)
 - [Authentication](docs/config_authentication.md)
 - [Deployment Guide](docs/guide_deployment.md)
+- [**Troubleshooting Comments**](docs/guide_ensure-github-comments.md) 🆕
 
 ## 🤝 Contributing
 

@@ -6,7 +6,8 @@ import { ReportFormatter } from './ReportFormatter';
 import { BaselineManager } from '../core/baseline/BaselineManager';
 import { CodebaseContext } from '../context/types';
 import { VisualIssueTestGenerator } from '../core/testing/VisualIssueTestGenerator';
-import { MCPCommandHandler } from '../automation/mcp/MCPCommandHandler';
+import { Agent } from '../browser-agent/core/Agent';
+import { RouteImpactAnalyzer } from '../core/analysis/RouteImpactAnalyzer';
 
 /**
  * Handles execution of bot commands
@@ -16,17 +17,21 @@ export class CommandHandler {
   private fixGenerator: FixGenerator;
   private reportFormatter: ReportFormatter;
   private baselineManager: BaselineManager;
-  private mcpHandler: MCPCommandHandler;
+  private browserAgent: Agent | null = null;
+  private claudeApiKey: string;
+  private githubToken: string;
   
   // In-memory cache for current PR analysis
   private currentScanResult: ScanResult | null = null;
 
   constructor(githubToken: string, claudeApiKey: string, codebaseContext?: CodebaseContext) {
+    this.githubToken = githubToken;
+    this.claudeApiKey = claudeApiKey;
     this.visualAnalyzer = new VisualAnalyzer(claudeApiKey, githubToken);
     this.fixGenerator = new FixGenerator(claudeApiKey, codebaseContext);
     this.reportFormatter = new ReportFormatter();
     this.baselineManager = new BaselineManager();
-    this.mcpHandler = new MCPCommandHandler(claudeApiKey);
+    // Browser agent is created on demand
   }
 
   /**
@@ -68,6 +73,9 @@ export class CommandHandler {
       
       case 'browser':
         return await this.handleBrowser(command, context);
+      
+      case 'impact':
+        return await this.handleImpact(command, context);
       
       case 'help':
       default:
@@ -434,27 +442,69 @@ npx yofix generate-tests --pr ${context.prNumber}
         };
       }
 
-      // Execute browser automation
-      const result = await this.mcpHandler.executeBrowserCommand(browserCommand, {
-        previewUrl: context.previewUrl,
+      // Create browser agent for the command
+      this.browserAgent = new Agent(browserCommand, {
+        headless: false,
+        maxSteps: 10,
+        llmProvider: 'anthropic',
         viewport: { width: 1920, height: 1080 }
       });
 
+      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+
+      // Execute browser automation
+      await this.browserAgent.initialize();
+      const result = await this.browserAgent.run();
+      
       // Clean up browser session after command
-      await this.mcpHandler.closeSession();
+      await this.browserAgent.cleanup();
+      this.browserAgent = null;
 
       return {
         success: result.success,
-        message: result.message,
-        data: result.data
+        message: result.success ? '✅ Browser command executed successfully' : `❌ Failed: ${result.error || 'Unknown error'}`,
+        data: {
+          steps: result.steps,
+          finalUrl: result.finalUrl,
+          duration: result.duration
+        }
       };
     } catch (error) {
       // Ensure browser is closed on error
-      await this.mcpHandler.closeSession();
+      if (this.browserAgent) {
+        await this.browserAgent.cleanup();
+        this.browserAgent = null;
+      }
       
       return {
         success: false,
         message: `❌ Browser command failed: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * Handle impact command - show route impact tree
+   */
+  private async handleImpact(command: BotCommand, context: BotContext): Promise<BotResponse> {
+    try {
+      const prNumber = context.prNumber;
+      
+      core.info(`Analyzing route impact for PR #${prNumber}...`);
+      
+      const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken);
+      const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
+      
+      const message = impactAnalyzer.formatImpactTree(impactTree);
+      
+      return {
+        success: true,
+        message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Impact analysis failed: ${error.message}`
       };
     }
   }
@@ -487,6 +537,9 @@ npx yofix generate-tests --pr ${context.prNumber}
   - Example: \`@yofix browser "click the login button"\`
   - Example: \`@yofix browser "fill email with test@example.com"\`
   - Example: \`@yofix browser "navigate to /dashboard and take a screenshot"\`
+
+### Analysis
+- \`@yofix impact\` - Show route impact tree
 
 ### Other
 - \`@yofix baseline update\` - Update baseline

@@ -45,7 +45,7 @@ class CommandParser {
     parseAction(action) {
         const validActions = [
             'scan', 'fix', 'apply', 'explain', 'preview',
-            'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'help'
+            'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'impact', 'help'
         ];
         const normalizedAction = action.toLowerCase();
         if (validActions.includes(normalizedAction)) {

@@ -45,7 +45,18 @@ const dotenv = __importStar(require("dotenv"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const chalk_1 = __importDefault(require("chalk"));
-dotenv.config();
+const projectRoot = path.join(__dirname, '../../');
+const envLocal = path.join(projectRoot, '.env.local');
+const envDefault = path.join(projectRoot, '.env');
+if (fs.existsSync(envLocal)) {
+    dotenv.config({ path: envLocal });
+}
+else if (fs.existsSync(envDefault)) {
+    dotenv.config({ path: envDefault });
+}
+else {
+    dotenv.config();
+}
 const program = new commander_1.Command();
 program
     .name('yofix')

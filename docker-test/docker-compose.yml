@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  yofix:
+    build: 
+      context: ..
+      dockerfile: docker-test/Dockerfile
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - TEST_AUTH_EMAIL=${TEST_AUTH_EMAIL:-}
+      - TEST_AUTH_PASSWORD=${TEST_AUTH_PASSWORD:-}
+    volumes:
+      - ../test-results:/app/test-results
+    command: ["https://example.com"]
+
+  # Optional: Test with local dev server
+  yofix-local:
+    build: 
+      context: ..
+      dockerfile: docker-test/Dockerfile
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+    volumes:
+      - ../test-results:/app/test-results
+    command: ["http://host.docker.internal:3000"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

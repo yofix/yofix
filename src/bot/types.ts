@@ -14,6 +14,7 @@ export type CommandAction =
   | 'ignore'    // Skip this PR
   | 'test'      // Generate tests
   | 'browser'   // Browser automation
+  | 'impact'    // Show route impact tree
   | 'help';     // Show help
 
 export interface CommandOptions {

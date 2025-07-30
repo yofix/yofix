@@ -1,0 +1,99 @@
+name: Reliable Visual Testing with Comments
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  visual-test:
+    runs-on: ubuntu-latest
+    
+    # IMPORTANT: These permissions ensure GitHub comments work
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Deploy your preview (example with Vercel)
+      - name: Deploy Preview
+        id: deploy
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+      
+      # Run YoFix with debug logging
+      - name: YoFix Visual Testing
+        id: yofix
+        uses: yofix/yofix@v1.0.12
+        env:
+          # Enable debug logs to troubleshoot
+          ACTIONS_STEP_DEBUG: true
+        with:
+          # Required inputs
+          preview-url: ${{ steps.deploy.outputs.preview-url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # Firebase Storage
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          
+          # Optional: Customize testing
+          viewports: "1920x1080,768x1024,375x667"
+          routes: "auto"  # Let AI discover routes
+      
+      # Fallback 1: Check if comment was posted
+      - name: Verify Comment Posted
+        if: always()
+        run: |
+          echo "YoFix completed with status: ${{ steps.yofix.outputs.status }}"
+          echo "Check PR for automated comment with visual testing results"
+      
+      # Fallback 2: Manual comment if YoFix fails
+      - name: Post Fallback Comment
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.yofix.outputs.status }}' || 'unknown';
+            const testResults = '${{ steps.yofix.outputs.test-results }}' || '{}';
+            const screenshotsUrl = '${{ steps.yofix.outputs.screenshots-url }}' || '';
+            
+            let comment = `## 🔍 Visual Testing Results\n\n`;
+            comment += `**Status**: ${status}\n\n`;
+            
+            try {
+              const results = JSON.parse(testResults);
+              comment += `**Tests**: ${results.passed || 0}/${results.total || 0} passed\n`;
+              comment += `**Duration**: ${(results.duration / 1000).toFixed(2)}s\n\n`;
+            } catch (e) {
+              comment += `Test results: See workflow logs\n\n`;
+            }
+            
+            if (screenshotsUrl) {
+              comment += `**Screenshots**: [View in Firebase](${screenshotsUrl})\n\n`;
+            }
+            
+            comment += `[View Full Logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      # Always show summary in workflow
+      - name: Show Summary
+        if: always()
+        run: |
+          echo "## YoFix Visual Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.yofix.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Results**: ${{ steps.yofix.outputs.test-results }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Screenshots**: ${{ steps.yofix.outputs.screenshots-url }}" >> $GITHUB_STEP_SUMMARY

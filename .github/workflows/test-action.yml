@@ -1,43 +1,226 @@
-name: Test Action Locally
+name: Test Action Before Release
 on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'dist/**'
+      - 'action.yml'
+      - 'package.json'
   workflow_dispatch:
-  push:
-    branches: [test-action]
+    inputs:
+      test-scenario:
+        description: 'Test scenario to run'
+        required: true
+        type: choice
+        options:
+          - all
+          - basic
+          - auth
+          - ai-features
+          - error-handling
+          - pr-comment
 
 jobs:
-  test-playwright-setup:
+  # Test 1: Basic functionality
+  test-basic:
+    if: github.event.inputs.test-scenario == 'all' || github.event.inputs.test-scenario == 'basic' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node
+      # Build the action locally
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'yarn'
-      
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-        
-      - name: Build action
-        run: yarn build
-        
-      - name: Test Playwright installation
-        run: |
-          # Check if browsers are installed
-          npx playwright --version
-          npx playwright list
           
-  test-action-mock:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Install and Build
+        run: |
+          npm ci
+          npm run build
       
-      - name: Test with mock data
+      # Test the local action
+      - name: Test YoFix Action (Local)
+        id: test-yofix
         uses: ./
         with:
-          preview-url: https://react-vite-demo.vercel.app
+          preview-url: 'https://example.com'  # Use a real URL for basic test
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
-          storage-bucket: test-bucket
-          github-token: ${{ secrets.YOFIX_GITHUB_TOKEN }}
-          claude-api-key: ${{ secrets.TEST_CLAUDE_API_KEY }}
+          storage-bucket: 'yofix-test-screenshots'
+          test-routes: '/'
+          viewports: '1920x1080'
+          
+      # Verify outputs
+      - name: Verify Results
+        run: |
+          if [ -z "${{ steps.test-yofix.outputs.status }}" ]; then
+            echo "❌ No status output"
+            exit 1
+          fi
+          echo "✅ Status: ${{ steps.test-yofix.outputs.status }}"
+          echo "✅ Test Results: ${{ steps.test-yofix.outputs.test-results }}"
+          echo "✅ Screenshots: ${{ steps.test-yofix.outputs.screenshots-url }}"
+
+  # Test 2: PR Comment Posting
+  test-pr-comment:
+    if: (github.event.inputs.test-scenario == 'all' || github.event.inputs.test-scenario == 'pr-comment') && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run build
+      
+      - name: Test PR Comment Posting
+        uses: ./
+        id: pr-test
+        with:
+          preview-url: 'https://example.com'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
+          storage-bucket: 'yofix-test-screenshots'
+          test-routes: '/'
+          
+      # Verify PR comment was posted
+      - name: Check PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            
+            const yofixComment = comments.data.find(c => 
+              c.body.includes('Runtime PR Verification') || 
+              c.body.includes('Visual Testing Results')
+            );
+            
+            if (!yofixComment) {
+              core.setFailed('No YoFix comment found on PR');
+            } else {
+              console.log('✅ YoFix comment posted successfully');
+              console.log(`Comment ID: ${yofixComment.id}`);
+            }
+
+  # Test 3: Authentication flow
+  test-auth:
+    if: github.event.inputs.test-scenario == 'all' || github.event.inputs.test-scenario == 'auth'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run build
+      
+      - name: Test Smart Authentication
+        uses: ./
+        with:
+          preview-url: 'https://yofix-demo.web.app'  # Demo app with login
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
+          storage-bucket: 'yofix-test-screenshots'
+          # Test auth
+          enable-smart-auth: 'true'
+          auth-email: 'test@example.com'
+          auth-password: 'testpass123'
+          auth-login-url: '/login'
+
+  # Test 4: AI features
+  test-ai-features:
+    if: github.event.inputs.test-scenario == 'all' || github.event.inputs.test-scenario == 'ai-features'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run build
+      
+      - name: Test AI Navigation & Test Generation
+        uses: ./
+        with:
+          preview-url: 'https://yofix-demo.web.app'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
+          storage-bucket: 'yofix-test-screenshots'
+          # Enable all AI features
+          enable-ai-navigation: 'true'
+          enable-ai-test-generation: 'true'
+          routes: 'auto'
+
+  # Test 5: Error handling
+  test-error-handling:
+    if: github.event.inputs.test-scenario == 'all' || github.event.inputs.test-scenario == 'error-handling'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run build
+      
+      # Test with invalid URL
+      - name: Test Invalid URL Handling
+        id: invalid-url
+        uses: ./
+        continue-on-error: true
+        with:
+          preview-url: 'https://invalid-url-that-does-not-exist-12345.com'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
+          storage-bucket: 'yofix-test-screenshots'
+      
+      - name: Verify Error Handling
+        run: |
+          if [ "${{ steps.invalid-url.outcome }}" != "failure" ]; then
+            echo "❌ Should have failed with invalid URL"
+            exit 1
+          fi
+          echo "✅ Properly handled invalid URL"
+
+  # Summary of all tests
+  test-summary:
+    needs: [test-basic, test-auth, test-ai-features, test-error-handling]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Summary
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Basic | ${{ needs.test-basic.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth | ${{ needs.test-auth.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AI Features | ${{ needs.test-ai-features.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Error Handling | ${{ needs.test-error-handling.result }} |" >> $GITHUB_STEP_SUMMARY
+          
+          # Fail if any test failed
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ]; then
+            echo "❌ Some tests failed"
+            exit 1
+          fi
+          echo "✅ All tests passed"

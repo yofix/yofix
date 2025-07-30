@@ -1,0 +1,36 @@
+name: YoFix - Minimal Setup with Guaranteed Comments
+on:
+  pull_request:  # REQUIRED: Must be pull_request event
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # REQUIRED: These permissions ensure comments work
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      # Your deployment step
+      - name: Deploy Preview
+        id: deploy
+        run: |
+          # Replace with your actual deployment
+          echo "preview-url=https://your-app-pr-${{ github.event.number }}.vercel.app" >> $GITHUB_OUTPUT
+      
+      # YoFix with minimal config
+      - uses: yofix/yofix@v1.0.12
+        with:
+          # Only 3 required inputs!
+          preview-url: ${{ steps.deploy.outputs.preview-url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}  # IMPORTANT: Don't forget this!
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # Choose storage (Firebase OR S3)
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          
+          # That's it! Comments will be posted to your PR

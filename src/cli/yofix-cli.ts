@@ -9,8 +9,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables with priority: .env.local > .env > system
+const projectRoot = path.join(__dirname, '../../');
+const envLocal = path.join(projectRoot, '.env.local');
+const envDefault = path.join(projectRoot, '.env');
+
+if (fs.existsSync(envLocal)) {
+  dotenv.config({ path: envLocal });
+} else if (fs.existsSync(envDefault)) {
+  dotenv.config({ path: envDefault });
+} else {
+  dotenv.config(); // Load from system env
+}
 
 const program = new Command();
 

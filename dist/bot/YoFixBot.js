@@ -125,6 +125,7 @@ I can help you detect and fix visual issues in your PR. Here are my commands:
 - \`@yofix explain #1\` - Get detailed explanation of an issue
 - \`@yofix compare production\` - Compare with production baseline
 - \`@yofix report\` - Generate full analysis report
+- \`@yofix impact\` - Show route impact tree from PR changes
 
 ### 🎯 Other Commands
 - \`@yofix baseline update\` - Update visual baseline with current state

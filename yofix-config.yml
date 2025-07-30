@@ -1,0 +1,57 @@
+# YoFix Local Configuration
+# This file is used for local testing and development
+
+# Website URL to test (can be localhost or any URL)
+website-url: https://example.com
+
+# Authentication settings (optional)
+auth:
+  mode: selectors  # or 'ai' for smart authentication
+  selectors:
+    username: '#username'
+    password: '#password'
+    submit: '#submit'
+  # For AI mode:
+  # email: test@example.com
+  # password: your-test-password
+  # login-url: /login
+
+# Routes to test (supports glob patterns)
+pages:
+  - /
+  - /about
+  - /contact
+  - /pricing
+
+# Viewport sizes for responsive testing
+viewports:
+  - name: mobile
+    width: 375
+    height: 667
+  - name: tablet
+    width: 768
+    height: 1024
+  - name: desktop
+    width: 1920
+    height: 1080
+
+# Test configuration
+test:
+  timeout: 30000      # 30 seconds
+  max-routes: 10
+  enable-screenshots: true
+  enable-ai-navigation: true
+  enable-ai-test-generation: true
+
+# Output settings
+output:
+  directory: ./test-results
+  format: json        # json, html, or both
+  save-screenshots: true
+  save-videos: false  # Not yet supported
+
+# Local development settings
+local:
+  headless: false     # Show browser during testing
+  slow-mo: 500       # Slow down actions for debugging
+  debug: true        # Enable debug output

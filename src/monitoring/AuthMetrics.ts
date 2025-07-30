@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 export interface AuthAttempt {
   timestamp: number;
   success: boolean;
-  method: 'selector' | 'smart' | 'fallback';
+  method: 'selector' | 'smart' | 'fallback' | 'browser-agent';
   url: string;
   errorType?: string;
   selectorsTried?: number;

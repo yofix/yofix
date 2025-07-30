@@ -81,21 +81,23 @@ class BrowserSecuritySandbox {
         try {
             switch (action.type) {
                 case 'navigate':
-                    return this.validateNavigation(action.params.url);
+                    return this.validateNavigation(action.parameters?.url || action.params?.url || action.url);
                 case 'evaluate':
-                    return this.validateScript(action.params.script);
+                    return this.validateScript(action.parameters?.script || action.params?.script || action.script);
                 case 'type':
-                    return this.validateInput(action.params.text);
+                    return this.validateInput(action.parameters?.text || action.params?.text || action.text);
                 case 'upload':
-                    return this.validateFileUpload(action.params.files);
+                    return this.validateFileUpload(action.parameters?.files || action.params?.files || [action.filePath]);
                 default:
-                    return { valid: true };
+                    return { valid: true, allowed: true };
             }
         }
         catch (error) {
             return {
                 valid: false,
-                error: `Validation error: ${error.message}`
+                allowed: false,
+                error: `Validation error: ${error.message}`,
+                reason: `Validation error: ${error.message}`
             };
         }
     }
@@ -104,7 +106,9 @@ class BrowserSecuritySandbox {
             if (pattern.test(url)) {
                 return {
                     valid: false,
-                    error: `Blocked URL pattern: ${pattern}`
+                    allowed: false,
+                    error: `Blocked URL pattern: ${pattern}`,
+                    reason: `Blocked URL pattern: ${pattern}`
                 };
             }
         }
@@ -113,21 +117,25 @@ class BrowserSecuritySandbox {
             if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
                 return {
                     valid: false,
-                    error: `Invalid protocol: ${parsedUrl.protocol}. Only HTTP(S) allowed.`
+                    allowed: false,
+                    error: `Invalid protocol: ${parsedUrl.protocol}. Only HTTP(S) allowed.`,
+                    reason: `Invalid protocol: ${parsedUrl.protocol}. Only HTTP(S) allowed.`
                 };
             }
             if (!this.isDomainAllowed(parsedUrl.hostname)) {
                 core.warning(`Navigating to unverified domain: ${parsedUrl.hostname}`);
             }
-            return { valid: true };
+            return { valid: true, allowed: true };
         }
         catch (error) {
             if (url.startsWith('/')) {
-                return { valid: true };
+                return { valid: true, allowed: true };
             }
             return {
                 valid: false,
-                error: `Invalid URL format: ${url}`
+                allowed: false,
+                error: `Invalid URL format: ${url}`,
+                reason: `Invalid URL format: ${url}`
             };
         }
     }
@@ -135,14 +143,18 @@ class BrowserSecuritySandbox {
         if (script.length > this.maxScriptLength) {
             return {
                 valid: false,
-                error: `Script too long: ${script.length} chars (max: ${this.maxScriptLength})`
+                allowed: false,
+                error: `Script too long: ${script.length} chars (max: ${this.maxScriptLength})`,
+                reason: `Script too long: ${script.length} chars (max: ${this.maxScriptLength})`
             };
         }
         for (const pattern of this.dangerousJSPatterns) {
             if (pattern.test(script)) {
                 return {
                     valid: false,
-                    error: `Dangerous pattern detected: ${pattern}`
+                    allowed: false,
+                    error: `Dangerous pattern detected: ${pattern}`,
+                    reason: `Dangerous pattern detected: ${pattern}`
                 };
             }
         }
@@ -157,11 +169,13 @@ class BrowserSecuritySandbox {
             if (pattern.test(script)) {
                 return {
                     valid: false,
-                    error: `Access to sensitive data blocked: ${pattern}`
+                    allowed: false,
+                    error: `Access to sensitive data blocked: ${pattern}`,
+                    reason: `Access to sensitive data blocked: ${pattern}`
                 };
             }
         }
-        return { valid: true };
+        return { valid: true, allowed: true };
     }
     validateInput(text) {
         const scriptPatterns = [
@@ -177,17 +191,21 @@ class BrowserSecuritySandbox {
             if (pattern.test(text)) {
                 return {
                     valid: false,
-                    error: `Potential script injection detected: ${pattern}`
+                    allowed: false,
+                    error: `Potential script injection detected: ${pattern}`,
+                    reason: `Potential script injection detected: ${pattern}`
                 };
             }
         }
         if (text.length > 10000) {
             return {
                 valid: false,
-                error: `Input too long: ${text.length} chars (max: 10000)`
+                allowed: false,
+                error: `Input too long: ${text.length} chars (max: 10000)`,
+                reason: `Input too long: ${text.length} chars (max: 10000)`
             };
         }
-        return { valid: true };
+        return { valid: true, allowed: true };
     }
     validateFileUpload(files) {
         const allowedExtensions = [
@@ -200,17 +218,21 @@ class BrowserSecuritySandbox {
             if (!allowedExtensions.includes(ext)) {
                 return {
                     valid: false,
-                    error: `File type not allowed: ${ext}`
+                    allowed: false,
+                    error: `File type not allowed: ${ext}`,
+                    reason: `File type not allowed: ${ext}`
                 };
             }
             if (file.includes('..') || file.includes('~')) {
                 return {
                     valid: false,
-                    error: `Potential path traversal detected in: ${file}`
+                    allowed: false,
+                    error: `Potential path traversal detected in: ${file}`,
+                    reason: `Potential path traversal detected in: ${file}`
                 };
             }
         }
-        return { valid: true };
+        return { valid: true, allowed: true };
     }
     isDomainAllowed(hostname) {
         if (this.allowedDomains.has(hostname)) {

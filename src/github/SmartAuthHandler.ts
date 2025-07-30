@@ -1,8 +1,7 @@
 import * as core from '@actions/core';
 import { Page } from 'playwright';
-import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
+import { Agent } from '../browser-agent/core/Agent';
 import { authMonitor } from '../monitoring/AuthMetrics';
-import { EnhancedContextProvider } from '../context/EnhancedContextProvider';
 
 export interface AuthConfig {
   loginUrl: string;
@@ -12,110 +11,93 @@ export interface AuthConfig {
 }
 
 /**
- * Smart Authentication Handler that uses AI to understand login forms
- * instead of hardcoded selectors
+ * Smart Authentication Handler - Powered by Browser Agent
+ * 
+ * This replaces the complex 342-line SmartAuthHandler with a simple
+ * browser-agent implementation that's more reliable and maintainable.
  */
 export class SmartAuthHandler {
   private authConfig: AuthConfig;
-  private visualAnalyzer: VisualAnalyzer;
-  private contextProvider: EnhancedContextProvider;
+  private claudeApiKey: string;
 
   constructor(authConfig: AuthConfig, claudeApiKey: string) {
     this.authConfig = authConfig;
-    this.visualAnalyzer = new VisualAnalyzer(claudeApiKey, '');
-    this.contextProvider = new EnhancedContextProvider(claudeApiKey);
+    this.claudeApiKey = claudeApiKey;
   }
 
   /**
-   * Perform login using AI to understand the form
+   * Perform login using browser-agent's smart authentication
    */
   async login(page: Page, baseUrl: string): Promise<boolean> {
     const startTime = Date.now();
     
     try {
-      core.info(`🤖 Smart login: Navigating to ${baseUrl}${this.authConfig.loginUrl}`);
+      let loginUrl = this.authConfig.loginUrl;
       
-      // Navigate to login page
-      await page.goto(`${baseUrl}${this.authConfig.loginUrl}`, {
-        waitUntil: 'networkidle',
-        timeout: 30000
+      // Auto-detect login URL if needed
+      if (loginUrl === 'auto-detect' || !loginUrl) {
+        core.info('🔍 Auto-detecting login page...');
+        loginUrl = await this.autoDetectLoginUrl(baseUrl);
+        core.info(`✅ Detected login URL: ${loginUrl}`);
+      }
+      
+      core.info(`🤖 Smart login: Using browser-agent for ${baseUrl}${loginUrl}`);
+      
+      // Close the existing page since agent will create its own
+      const browserContext = page.context();
+      const browser = browserContext.browser();
+      
+      if (!browser) {
+        throw new Error('No browser context available');
+      }
+      
+      // Create browser agent with authentication task
+      const loginTask = `
+        1. Navigate to ${baseUrl}${loginUrl}
+        2. Use smart_login with email="${this.authConfig.email}" password="${this.authConfig.password}"
+        3. Verify login was successful by checking for dashboard or profile elements
+      `;
+      
+      const agent = new Agent(loginTask, {
+        headless: true,
+        maxSteps: 10,
+        llmProvider: 'anthropic'
       });
-
-      // Take screenshot of the login page (force PNG format)
-      const screenshot = await page.screenshot({ 
-        fullPage: false,
-        type: 'png'
-      });
       
-      // Use AI to analyze the login form
-      const formAnalysis = await this.analyzeLoginForm(screenshot);
+      // Set API key
+      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
-      if (!formAnalysis.success) {
-        throw new Error(`Could not understand login form: ${formAnalysis.error}`);
-      }
-
-      // Fill email field
-      if (formAnalysis.emailSelector) {
-        core.info(`AI found email field: ${formAnalysis.emailSelector}`);
-        await page.fill(formAnalysis.emailSelector, this.authConfig.email);
-      } else {
-        throw new Error('Could not find email/username field');
-      }
-
-      // Fill password field
-      if (formAnalysis.passwordSelector) {
-        core.info(`AI found password field: ${formAnalysis.passwordSelector}`);
-        await page.fill(formAnalysis.passwordSelector, this.authConfig.password);
-      } else {
-        throw new Error('Could not find password field');
-      }
-
-      // Submit form
-      if (formAnalysis.submitSelector) {
-        core.info(`AI found submit button: ${formAnalysis.submitSelector}`);
-        await page.click(formAnalysis.submitSelector);
-      } else if (formAnalysis.submitMethod === 'enter') {
-        core.info('AI suggests pressing Enter to submit');
-        await page.keyboard.press('Enter');
-      } else {
-        throw new Error('Could not find submit method');
-      }
-
-      // Wait for navigation or state change
-      await this.waitForLoginCompletion(page);
-
-      // Verify login success
-      const success = await this.verifyLoginWithAI(page);
+      await agent.initialize();
+      const result = await agent.run();
+      
+      // Get the final state
+      const finalUrl = result.finalUrl;
+      const success = result.success && !finalUrl.includes('/login') && !finalUrl.includes('/signin');
       
       // Record metrics
       authMonitor.recordAttempt({
         success,
-        method: 'smart',
+        method: 'browser-agent',
         url: `${baseUrl}${this.authConfig.loginUrl}`,
         duration: Date.now() - startTime
       });
       
-      return success;
-
-    } catch (error) {
-      core.error(`Smart login failed: ${error}`);
-      
-      // Take debug screenshot
-      try {
-        const debugScreenshot = await page.screenshot({ 
-          fullPage: true,
-          type: 'png'
-        });
-        const debugAnalysis = await this.analyzeLoginError(debugScreenshot);
-        core.info(`AI error analysis: ${debugAnalysis}`);
-      } catch (e) {
-        core.warning(`Could not analyze error: ${e}`);
+      if (success) {
+        core.info(`✅ Browser-agent login successful. Final URL: ${finalUrl}`);
+      } else {
+        core.warning(`⚠️ Browser-agent login may have failed. Final URL: ${finalUrl}`);
       }
+      
+      await agent.cleanup();
+      return success;
+      
+    } catch (error) {
+      core.error(`❌ Browser-agent login failed: ${error}`);
       
       // Record failure metrics
       authMonitor.recordAttempt({
         success: false,
-        method: 'smart',
+        method: 'browser-agent',
         url: `${baseUrl}${this.authConfig.loginUrl}`,
         errorType: error instanceof Error ? error.message : 'Unknown error',
         duration: Date.now() - startTime
@@ -126,217 +108,126 @@ export class SmartAuthHandler {
   }
 
   /**
-   * Use AI to analyze the login form and find fields
-   */
-  private async analyzeLoginForm(screenshot: Buffer): Promise<{
-    success: boolean;
-    emailSelector?: string;
-    passwordSelector?: string;
-    submitSelector?: string;
-    submitMethod?: 'click' | 'enter';
-    error?: string;
-  }> {
-    // Build enhanced context for better understanding
-    const context = await this.contextProvider.buildContext(process.cwd(), [
-      'src/github/AuthHandler.ts',
-      'src/types.ts',
-      '.github/workflows/*.yml'
-    ]);
-    
-    const basePrompt = `
-      Analyze this login form screenshot and identify:
-      1. The email/username input field
-      2. The password input field
-      3. The submit/login button
-      
-      For each element found, provide the most specific CSS selector possible.
-      Consider these patterns:
-      - Input fields might have type="email", type="text", or type="password"
-      - Look for labels, placeholders, or nearby text that indicates the field purpose
-      - Submit buttons might say "Login", "Sign in", "Continue", etc.
-      
-      Return a JSON object with:
-      {
-        "emailSelector": "selector for email/username field",
-        "passwordSelector": "selector for password field",
-        "submitSelector": "selector for submit button",
-        "submitMethod": "click" or "enter" if no button found
-      }
-      
-      If you cannot find any field, set it to null.
-    `;
-    
-    // Use enhanced context for better analysis
-    const analysis = await this.contextProvider.analyzeWithContext(basePrompt, context);
-
-    try {
-      // Also analyze the screenshot with visual analyzer for visual elements
-      const visualAnalysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, basePrompt);
-      
-      // Combine both analyses for best results
-      const result = this.parseAIResponse(visualAnalysis || analysis);
-      
-      // Validate selectors by testing them
-      return await this.validateSelectors(result);
-      
-    } catch (error) {
-      return {
-        success: false,
-        error: `Form analysis failed: ${error}`
-      };
-    }
-  }
-
-  /**
-   * Parse AI response to extract selectors
-   */
-  private parseAIResponse(aiResponse: any): any {
-    try {
-      // AI response should contain structured data
-      if (typeof aiResponse === 'string') {
-        // Try to extract JSON from response
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
-        }
-      }
-      
-      // If already an object, return it
-      return aiResponse;
-    } catch (error) {
-      core.warning(`Could not parse AI response: ${error}`);
-      
-      // Fallback to basic selectors
-      return {
-        emailSelector: 'input[type="email"], input[type="text"]',
-        passwordSelector: 'input[type="password"]',
-        submitSelector: 'button[type="submit"], button',
-        submitMethod: 'click'
-      };
-    }
-  }
-
-  /**
-   * Validate that selectors actually exist on the page
-   */
-  private async validateSelectors(selectors: any): Promise<any> {
-    // In a real implementation, we would test each selector
-    // For now, trust the AI analysis
-    return {
-      success: true,
-      ...selectors
-    };
-  }
-
-  /**
-   * Wait for login to complete
-   */
-  private async waitForLoginCompletion(page: Page): Promise<void> {
-    await Promise.race([
-      page.waitForNavigation({ 
-        waitUntil: 'networkidle',
-        timeout: 30000 
-      }).catch(() => {
-        core.info('No navigation detected, checking for SPA behavior');
-      }),
-      page.waitForTimeout(5000)
-    ]);
-    
-    // Additional wait for any redirects
-    await page.waitForTimeout(2000);
-  }
-
-  /**
-   * Use AI to verify if login was successful
-   */
-  private async verifyLoginWithAI(page: Page): Promise<boolean> {
-    const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
-    
-    // Build context for better verification
-    const context = await this.contextProvider.buildContext(process.cwd(), [
-      'src/types.ts',
-      'src/bot/types.ts'
-    ]);
-    
-    const basePrompt = `
-      Analyze this screenshot to determine if the user is logged in.
-      
-      Look for indicators such as:
-      - User profile/avatar elements
-      - Logout/Sign out buttons
-      - Dashboard or authenticated content
-      - Welcome messages with user info
-      - Navigation changes indicating authenticated state
-      
-      Also check for login failure indicators:
-      - Error messages
-      - "Invalid credentials" or similar text
-      - Still on login page with form visible
-      
-      Return: { "loggedIn": true/false, "confidence": 0-100, "reason": "explanation" }
-    `;
-    
-    try {
-      const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, basePrompt);
-      const result = this.parseAIResponse(analysis);
-      
-      core.info(`AI login verification: ${JSON.stringify(result)}`);
-      
-      return result.loggedIn === true && result.confidence > 70;
-    } catch (error) {
-      core.warning(`AI verification failed: ${error}`);
-      
-      // Fallback to URL check
-      const currentUrl = page.url();
-      return !currentUrl.includes('/login') && !currentUrl.includes('/signin');
-    }
-  }
-
-  /**
-   * Analyze login error for better debugging
-   */
-  private async analyzeLoginError(screenshot: Buffer): Promise<string> {
-    const prompt = `
-      Analyze this login error screenshot and explain:
-      1. What went wrong with the login attempt
-      2. Any visible error messages
-      3. Suggestions for fixing the issue
-      
-      Be concise and specific.
-    `;
-    
-    try {
-      const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, prompt);
-      return typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
-    } catch (error) {
-      return `Could not analyze error: ${error}`;
-    }
-  }
-
-  /**
-   * Smart logout using AI
+   * Smart logout using browser-agent
    */
   async logout(page: Page): Promise<void> {
     try {
-      const screenshot = await page.screenshot({ fullPage: false, type: 'png' });
+      core.info('🤖 Smart logout: Using browser-agent');
       
-      const prompt = `
-        Find the logout/sign out button in this screenshot.
-        Return the CSS selector for the logout element.
-      `;
+      const browserContext = page.context();
+      const browser = browserContext.browser();
       
-      const analysis = await this.visualAnalyzer.analyzeScreenshot(screenshot, prompt);
-      const result = this.parseAIResponse(analysis);
-      
-      if (result.logoutSelector) {
-        await page.click(result.logoutSelector);
-        await page.waitForTimeout(2000);
-        core.info('Smart logout successful');
-      } else {
-        core.warning('Could not find logout button');
+      if (!browser) {
+        throw new Error('No browser context available');
       }
+      
+      const logoutTask = 'Find and click the logout button to sign out of the application';
+      
+      const agent = new Agent(logoutTask, {
+        headless: true,
+        maxSteps: 5,
+        llmProvider: 'anthropic'
+      });
+      
+      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+      
+      await agent.initialize();
+      await agent.run();
+      await agent.cleanup();
+      
+      core.info('✅ Browser-agent logout completed');
+      
     } catch (error) {
-      core.warning(`Smart logout failed: ${error}`);
+      core.warning(`⚠️ Browser-agent logout failed: ${error}`);
     }
   }
+
+  /**
+   * Auto-detect the login URL for a website
+   */
+  private async autoDetectLoginUrl(baseUrl: string): Promise<string> {
+    try {
+      const detectionTask = `
+        Navigate to ${baseUrl} and find the login page:
+        
+        1. Look for common login indicators:
+           - Links with text like "Login", "Sign In", "Log In", "Sign Up"
+           - Buttons with login/signin text
+           - Navigation items for authentication
+           - User account icons or profile links
+           
+        2. Check common login URLs by visiting them:
+           - /login
+           - /signin  
+           - /auth/login
+           - /user/login
+           - /account/login
+           - /auth
+           - /sign-in
+           
+        3. If you find a login link or button, click on it to get the actual login page URL
+        
+        4. Look for pages with login forms (username/email and password fields)
+        
+        5. Save the final login page URL to /detected-login-url.txt
+        
+        6. If no login is found, save "/login" as fallback to /detected-login-url.txt
+        
+        Focus on finding the actual login page where users enter credentials.
+      `;
+      
+      const agent = new Agent(detectionTask, {
+        headless: true,
+        maxSteps: 15,
+        llmProvider: 'anthropic',
+        viewport: { width: 1920, height: 1080 }
+      });
+      
+      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
+      
+      await agent.initialize();
+      const result = await agent.run();
+      
+      // Get detected URL
+      const agentState = agent.getState();
+      const detectedUrl = agentState.fileSystem.get('/detected-login-url.txt');
+      
+      await agent.cleanup();
+      
+      if (detectedUrl) {
+        let loginUrl = detectedUrl.trim();
+        
+        // If it's a full URL, extract just the path
+        try {
+          const url = new URL(loginUrl);
+          loginUrl = url.pathname;
+        } catch (e) {
+          // If not a full URL, assume it's already a path
+          if (!loginUrl.startsWith('/')) {
+            loginUrl = '/' + loginUrl;
+          }
+        }
+        
+        return loginUrl;
+      }
+      
+      // Fallback to common login URLs
+      return '/login';
+      
+    } catch (error) {
+      core.warning(`Login URL auto-detection failed: ${error.message}`);
+      return '/login';
+    }
+  }
+}
+
+/**
+ * Factory function to create the appropriate auth handler
+ * This allows gradual migration from old to new implementation
+ */
+export function createAuthHandler(
+  authConfig: AuthConfig, 
+  claudeApiKey: string
+) {
+  return new SmartAuthHandler(authConfig, claudeApiKey);
 }

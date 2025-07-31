@@ -138,6 +138,11 @@ inputs:
     description: 'Comma-separated list of specific routes to test'
     required: false
     default: ''
+  
+  clear-cache:
+    description: 'Clear route analysis cache before running'
+    required: false
+    default: 'false'
 
 outputs:
   status:

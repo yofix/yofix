@@ -43,3 +43,6 @@ junit.xml
 *.tmp
 *.temp
 .cache/
+
+# YoFix cache directory
+.yofix-cache/scripts/archive/

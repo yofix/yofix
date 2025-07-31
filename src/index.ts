@@ -2,21 +2,15 @@ import * as core from '@actions/core';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import * as github from '@actions/github';
 
 import { TestGenerator } from './core/testing/TestGenerator';
 import { VisualAnalyzer } from './core/analysis/VisualAnalyzer';
 import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
-import * as github from '@actions/github';
 import { YoFixBot } from './bot/YoFixBot';
 import { RouteImpactAnalyzer } from './core/analysis/RouteImpactAnalyzer';
-
-/**
- * YoFix - Powered by Browser Agent
- * 
- * This is the main orchestrator that uses browser-agent
- * for all browser automation, reducing complexity by 85%.
- */
+import { StorageFactory } from './providers/storage/StorageFactory';
 async function run(): Promise<void> {
   // Check if this is a bot command
   const eventName = github.context.eventName;
@@ -78,14 +72,36 @@ async function runVisualTesting(): Promise<void> {
     
     const prNumber = parseInt(process.env.PR_NUMBER || github.context.payload.pull_request?.number?.toString() || '0');
     
-    // Post route impact tree first
+    // Analyze route impact and get affected routes
+    let affectedRoutes: string[] = ['/'];
+    let impactTree: any = null;
+    
     if (prNumber > 0) {
       try {
-        const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken);
-        const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
-        const impactMessage = impactAnalyzer.formatImpactTree(impactTree);
+        // Create storage provider for route analyzer
+        let storageProvider = null;
+        try {
+          const storageProviderName = core.getInput('storage-provider') || 'github';
+          if (storageProviderName !== 'github') {
+            storageProvider = await StorageFactory.createFromInputs();
+          }
+        } catch (error) {
+          core.debug(`Storage provider initialization failed: ${error}`);
+        }
         
-        // Post as a separate comment
+        const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken, storageProvider);
+        impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
+        
+        // Extract affected routes from the impact tree
+        if (impactTree.affectedRoutes.length > 0) {
+          affectedRoutes = impactTree.affectedRoutes.map((impact: any) => impact.route);
+          core.info(`🎯 Found ${affectedRoutes.length} affected routes from PR changes`);
+        } else {
+          core.info('ℹ️ No routes affected by PR changes, testing homepage');
+        }
+        
+        // Post route impact tree as a comment
+        const impactMessage = impactAnalyzer.formatImpactTree(impactTree);
         const octokit = github.getOctokit(inputs.githubToken);
         await octokit.rest.issues.createComment({
           owner: github.context.repo.owner,
@@ -96,20 +112,26 @@ async function runVisualTesting(): Promise<void> {
         
         core.info('✅ Posted route impact tree to PR');
       } catch (error) {
-        core.warning(`Failed to post route impact tree: ${error.message}`);
+        core.warning(`Failed to analyze route impact: ${error.message}`);
+        core.warning('Falling back to testing homepage only');
       }
     }
     
-    const routes = ['/'] // Basic route for now, will be expanded by AI analyzer
+    // Use the affected routes for testing
+    const routes = affectedRoutes
     
     // Create route analysis result that matches expected interface
     const analysis: RouteAnalysisResult = {
-      hasUIChanges: true,
-      changedPaths: ['/'],
-      components: ['App', 'Layout'],
+      hasUIChanges: impactTree?.affectedRoutes.length > 0,
+      changedPaths: routes,
+      components: impactTree?.affectedRoutes.flatMap((r: any) => 
+        [...r.directChanges, ...r.componentChanges].map((f: string) => 
+          path.basename(f, path.extname(f))
+        )
+      ) || ['App'],
       routes: routes,
-      testSuggestions: ['Test main navigation', 'Verify responsive design'],
-      riskLevel: 'medium'
+      testSuggestions: routes.map(r => `Test route ${r} for visual regressions`),
+      riskLevel: impactTree?.sharedComponents.size > 0 ? 'high' : 'medium'
     };
     
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);

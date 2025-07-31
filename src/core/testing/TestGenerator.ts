@@ -16,12 +16,6 @@ export interface TestResult {
   error?: string;
 }
 
-/**
- * Test Generator - Powered by Browser Agent
- * 
- * Instead of generating Playwright test templates, this directly executes
- * tests using the browser-agent's natural language capabilities.
- */
 export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
   private viewports: Viewport[];
@@ -33,9 +27,6 @@ export class TestGenerator {
     this.claudeApiKey = claudeApiKey;
   }
 
-  /**
-   * Run comprehensive tests on analyzed routes
-   */
   async runTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     core.info('🤖 Running tests with Browser Agent...');
     
@@ -51,9 +42,6 @@ export class TestGenerator {
     return results;
   }
 
-  /**
-   * Test a specific route with comprehensive checks
-   */
   private async testRoute(route: string, analysis: RouteAnalysisResult): Promise<TestResult> {
     const startTime = Date.now();
     const url = `${this.firebaseConfig.previewUrl}${route}`;
@@ -115,9 +103,6 @@ export class TestGenerator {
     }
   }
 
-  /**
-   * Build a comprehensive test task for a route
-   */
   private buildRouteTestTask(route: string, url: string, analysis: RouteAnalysisResult): string {
     const tasks: string[] = [
       `1. Navigate to ${url}`,
@@ -165,9 +150,6 @@ Focus on:
 Provide detailed analysis and practical fixes for any issues found.`;
   }
 
-  /**
-   * Run authentication tests
-   */
   async testAuthentication(loginUrl: string, credentials: { email: string; password: string }): Promise<TestResult> {
     const startTime = Date.now();
     
@@ -219,9 +201,6 @@ Provide detailed analysis and practical fixes for any issues found.`;
     }
   }
 
-  /**
-   * Generate and run tests with AI analysis
-   */
   async generateAndRunTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     core.info('🧠 AI-powered test generation and execution...');
     

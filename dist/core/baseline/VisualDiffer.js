@@ -45,7 +45,7 @@ class VisualDiffer {
         this.threshold = options?.threshold || 0.1;
         this.includeAA = options?.includeAA ?? true;
         this.alpha = options?.alpha || 0.1;
-        this.diffColor = options?.diffColor || [255, 0, 255, 255];
+        this.diffColor = options?.diffColor || [255, 0, 255];
     }
     async compare(baseline, currentBuffer, metadata) {
         try {
@@ -58,7 +58,7 @@ class VisualDiffer {
                 includeAA: this.includeAA,
                 alpha: this.alpha,
                 diffColor: this.diffColor,
-                diffColorAlt: [0, 255, 0, 255],
+                diffColorAlt: [0, 255, 0],
                 diffMask: false
             });
             const totalPixels = width * height;

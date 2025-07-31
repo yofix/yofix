@@ -37,31 +37,47 @@ exports.RouteImpactAnalyzer = void 0;
 const core = __importStar(require("@actions/core"));
 const github = __importStar(require("@actions/github"));
 const CodebaseAnalyzer_1 = require("../../context/CodebaseAnalyzer");
+const TreeSitterRouteAnalyzer_1 = require("./TreeSitterRouteAnalyzer");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 class RouteImpactAnalyzer {
-    constructor(githubToken) {
+    constructor(githubToken, storageProvider) {
         this.githubToken = githubToken;
         this.codebaseContext = null;
         this.componentUsageMap = new Map();
         this.octokit = github.getOctokit(githubToken);
+        this.routeAnalyzer = new TreeSitterRouteAnalyzer_1.TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
     }
     async analyzePRImpact(prNumber) {
         core.info('🔍 Analyzing route impact from PR changes...');
         const changedFiles = await this.getChangedFiles(prNumber);
+        core.info(`Found ${changedFiles.length} changed files in PR #${prNumber}`);
         const analyzer = new CodebaseAnalyzer_1.CodebaseAnalyzer();
         this.codebaseContext = await analyzer.analyzeRepository();
-        await this.buildComponentUsageMap();
-        const routeImpacts = await this.analyzeRouteImpacts(changedFiles);
-        const affectedRoutes = routeImpacts.filter(impact => impact.directChanges.length > 0 ||
-            impact.componentChanges.length > 0 ||
-            impact.styleChanges.length > 0);
+        const clearCache = core.getInput('clear-cache') === 'true';
+        await this.routeAnalyzer.initialize(clearCache);
+        core.info(`Initialized route analyzer with Tree-sitter${clearCache ? ' (cache cleared)' : ''}`);
+        const affectedRoutes = await this.analyzeWithBacktracking(changedFiles);
         const sharedComponents = this.findSharedComponents(affectedRoutes);
+        const componentRouteMapping = new Map();
+        for (const changedFile of changedFiles) {
+            const isComponent = !this.isStyleFile(changedFile);
+            if (isComponent) {
+                const servingRoutes = await this.routeAnalyzer.findRoutesServingComponent(changedFile);
+                if (servingRoutes.length > 0) {
+                    componentRouteMapping.set(changedFile, servingRoutes.map(r => ({
+                        routePath: r.routePath,
+                        routeFile: r.routeFile
+                    })));
+                }
+            }
+        }
         return {
             affectedRoutes,
             sharedComponents,
             totalFilesChanged: changedFiles.length,
-            totalRoutesAffected: affectedRoutes.length
+            totalRoutesAffected: affectedRoutes.length,
+            componentRouteMapping
         };
     }
     async getChangedFiles(prNumber) {
@@ -74,6 +90,74 @@ class RouteImpactAnalyzer {
         return files
             .filter(file => file.status !== 'removed')
             .map(file => file.filename);
+    }
+    async analyzeWithBacktracking(changedFiles) {
+        const routeImpactMap = new Map();
+        const routeInfo = await this.routeAnalyzer.getRouteInfo(changedFiles);
+        for (const [changedFile, info] of routeInfo) {
+            for (const route of info.routes) {
+                if (!routeImpactMap.has(route)) {
+                    routeImpactMap.set(route, {
+                        route,
+                        directChanges: [],
+                        componentChanges: [],
+                        styleChanges: [],
+                        sharedComponents: []
+                    });
+                }
+                const impact = routeImpactMap.get(route);
+                if (info.isRouteDefiner) {
+                    impact.directChanges.push(changedFile);
+                }
+                else if (this.isStyleFile(changedFile)) {
+                    impact.styleChanges.push(changedFile);
+                }
+                else {
+                    impact.componentChanges.push(changedFile);
+                }
+            }
+        }
+        for (const changedFile of changedFiles) {
+            if (this.isGlobalStyle(changedFile) && !routeInfo.has(changedFile)) {
+                for (const impact of routeImpactMap.values()) {
+                    if (!impact.styleChanges.includes(changedFile)) {
+                        impact.styleChanges.push(changedFile);
+                    }
+                }
+            }
+        }
+        const componentRouteMap = new Map();
+        for (const impact of routeImpactMap.values()) {
+            for (const component of impact.componentChanges) {
+                if (!componentRouteMap.has(component)) {
+                    componentRouteMap.set(component, new Set());
+                }
+                componentRouteMap.get(component).add(impact.route);
+            }
+        }
+        for (const impact of routeImpactMap.values()) {
+            impact.sharedComponents = impact.componentChanges.filter(component => {
+                const routes = componentRouteMap.get(component);
+                return routes ? routes.size > 1 : false;
+            });
+        }
+        return Array.from(routeImpactMap.values());
+    }
+    isStyleFile(filePath) {
+        const ext = path.extname(filePath);
+        return ['.css', '.scss', '.sass', '.less'].includes(ext) ||
+            filePath.includes('.module.');
+    }
+    isGlobalStyle(filePath) {
+        if (!this.isStyleFile(filePath))
+            return false;
+        const fileName = path.basename(filePath).toLowerCase();
+        return fileName.includes('global') ||
+            fileName.includes('app') ||
+            fileName.includes('index') ||
+            fileName.includes('main') ||
+            filePath.includes('styles/') ||
+            filePath.includes('assets/');
     }
     async buildComponentUsageMap() {
         if (!this.codebaseContext)
@@ -218,11 +302,22 @@ class RouteImpactAnalyzer {
         return sharedMap;
     }
     formatImpactTree(tree) {
-        if (tree.affectedRoutes.length === 0) {
+        if (tree.affectedRoutes.length === 0 && (!tree.componentRouteMapping || tree.componentRouteMapping.size === 0)) {
             return '✅ No routes affected by changes in this PR';
         }
         let output = '## 🌳 Route Impact Tree\n\n';
         output += `📊 **${tree.totalFilesChanged}** files changed → **${tree.totalRoutesAffected}** routes affected\n\n`;
+        if (tree.componentRouteMapping && tree.componentRouteMapping.size > 0) {
+            output += '🎯 **Component Usage** (routes that serve these components):\n';
+            for (const [component, routes] of tree.componentRouteMapping) {
+                const componentName = path.basename(component);
+                output += `- \`${componentName}\` served by:\n`;
+                for (const route of routes) {
+                    output += `  - \`${route.routePath}\` in ${path.basename(route.routeFile)}\n`;
+                }
+            }
+            output += '\n';
+        }
         if (tree.sharedComponents.size > 0) {
             output += '⚠️ **Shared Components** (changes affect multiple routes):\n';
             for (const [component, routes] of tree.sharedComponents) {

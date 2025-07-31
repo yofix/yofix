@@ -15,6 +15,7 @@ export type CommandAction =
   | 'test'      // Generate tests
   | 'browser'   // Browser automation
   | 'impact'    // Show route impact tree
+  | 'cache'     // Cache management commands
   | 'help';     // Show help
 
 export interface CommandOptions {

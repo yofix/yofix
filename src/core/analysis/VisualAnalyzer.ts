@@ -4,12 +4,6 @@ import { VisualIssue, ScanResult } from '../../bot/types';
 import { FirebaseConfig } from '../../types';
 import { CacheManager } from '../../optimization/CacheManager';
 
-/**
- * Visual Analyzer - Powered by Browser Agent
- * 
- * This uses browser-agent's built-in visual testing actions instead of
- * the complex screenshot analysis and Claude API integration.
- */
 export class VisualAnalyzer {
   private claudeApiKey: string;
   private githubToken: string;
@@ -21,9 +15,6 @@ export class VisualAnalyzer {
     this.cache = cache || new CacheManager();
   }
 
-  /**
-   * Scan for visual issues using browser-agent
-   */
   async scan(options: {
     prNumber: number;
     routes: string[] | 'auto';
@@ -137,9 +128,6 @@ export class VisualAnalyzer {
     }
   }
 
-  /**
-   * Analyze single screenshot using browser-agent
-   */
   async analyzeScreenshot(screenshot: Buffer, prompt: string): Promise<string> {
     try {
       // Create a task for screenshot analysis
@@ -186,9 +174,6 @@ export class VisualAnalyzer {
     }
   }
 
-  /**
-   * Generate fixes for visual issues
-   */
   async generateFixes(issues: VisualIssue[]): Promise<Array<{ issue: VisualIssue; fix: string }>> {
     const fixes: Array<{ issue: VisualIssue; fix: string }> = [];
     

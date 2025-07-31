@@ -14,18 +14,18 @@ export class VisualDiffer {
   private threshold: number;
   private includeAA: boolean;
   private alpha: number;
-  private diffColor: [number, number, number, number];
+  private diffColor: [number, number, number];
 
   constructor(options?: {
     threshold?: number;
     includeAA?: boolean;
     alpha?: number;
-    diffColor?: [number, number, number, number];
+    diffColor?: [number, number, number];
   }) {
     this.threshold = options?.threshold || 0.1; // 10% difference threshold
     this.includeAA = options?.includeAA ?? true; // Include anti-aliasing
     this.alpha = options?.alpha || 0.1; // Transparency for diff overlay
-    this.diffColor = options?.diffColor || [255, 0, 255, 255]; // Magenta
+    this.diffColor = options?.diffColor || [255, 0, 255]; // Magenta
   }
 
   /**
@@ -62,7 +62,7 @@ export class VisualDiffer {
           includeAA: this.includeAA,
           alpha: this.alpha,
           diffColor: this.diffColor,
-          diffColorAlt: [0, 255, 0, 255], // Green for anti-aliased pixels
+          diffColorAlt: [0, 255, 0], // Green for anti-aliased pixels
           diffMask: false
         }
       );

@@ -45,7 +45,7 @@ class CommandParser {
     parseAction(action) {
         const validActions = [
             'scan', 'fix', 'apply', 'explain', 'preview',
-            'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'impact', 'help'
+            'compare', 'baseline', 'report', 'ignore', 'test', 'browser', 'impact', 'cache', 'help'
         ];
         const normalizedAction = action.toLowerCase();
         if (validActions.includes(normalizedAction)) {
@@ -57,7 +57,11 @@ class CommandParser {
             'repair': 'fix',
             'update': 'baseline',
             'browse': 'browser',
-            'automate': 'browser'
+            'automate': 'browser',
+            'clear': 'cache',
+            'clear_cache': 'cache',
+            'clear-cache': 'cache',
+            'invalidate': 'cache'
         };
         return actionMap[normalizedAction] || 'help';
     }
@@ -87,6 +91,14 @@ class CommandParser {
                     return {
                         valid: false,
                         error: 'Use `@yofix baseline update` to update the baseline'
+                    };
+                }
+                break;
+            case 'cache':
+                if (!command.args.includes('clear') && !command.args.includes('status')) {
+                    return {
+                        valid: false,
+                        error: 'Use `@yofix cache clear` to clear cache or `@yofix cache status` to check cache status'
                     };
                 }
                 break;

@@ -8,6 +8,18 @@ import * as path from 'path';
 // Mock GitHub API
 jest.mock('@actions/github');
 jest.mock('fs');
+jest.mock('tree-sitter', () => ({
+  default: jest.fn().mockImplementation(() => ({
+    setLanguage: jest.fn(),
+    parse: jest.fn().mockReturnValue({ rootNode: { walk: jest.fn() } })
+  }))
+}));
+jest.mock('tree-sitter-typescript', () => ({
+  tsx: jest.fn()
+}));
+jest.mock('tree-sitter-javascript', () => ({
+  default: jest.fn()
+}));
 
 describe('RouteImpactAnalyzer', () => {
   let analyzer: RouteImpactAnalyzer;

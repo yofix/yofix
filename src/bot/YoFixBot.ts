@@ -15,6 +15,7 @@ export class YoFixBot {
   private commandHandler: CommandHandler;
   private botUsername = 'yofix';
   private codebaseContext: CodebaseContext | null = null;
+  private progressCommentId: number | null = null;
 
   constructor(githubToken: string, claudeApiKey: string) {
     this.octokit = github.getOctokit(githubToken);
@@ -68,19 +69,40 @@ export class YoFixBot {
       const command = this.commandParser.parse(comment.body);
       
       if (!command) {
-        await this.postComment(issue.number, this.getHelpMessage());
+        await this.postComment(issue.number, this.getHelpMessage(), comment.id);
         return;
       }
 
-      // Post acknowledgment
-      await this.postComment(
+      // Add immediate acknowledgment with 👀 reaction
+      await this.octokit.rest.reactions.createForIssueComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        comment_id: comment.id,
+        content: 'eyes'
+      });
+
+      // Post initial progress comment in the same thread
+      const progressComment = await this.postProgressComment(
         issue.number,
-        `🔧 YoFix is ${command.action}ing... This may take a moment.`
+        `🔄 **Processing \`@yofix ${command.action}\`**\n\n⏳ Initializing...`,
+        comment.id
       );
+      this.progressCommentId = progressComment.data.id;
 
       // Get preview URL for this PR
       const previewUrl = await this.getPreviewUrl(issue.number);
       
+      // Create progress callback for updates
+      const updateProgress = async (message: string) => {
+        if (this.progressCommentId) {
+          await this.updateComment(this.progressCommentId, message);
+        }
+      };
+
+      // Pass progress callback to command handler
+      const commandHandlerWithProgress = this.commandHandler as any;
+      commandHandlerWithProgress.setProgressCallback?.(updateProgress);
+
       // Execute command
       const result = await this.commandHandler.execute(command, {
         prNumber: issue.number,
@@ -93,28 +115,74 @@ export class YoFixBot {
         previewUrl
       });
 
-      // Post result
-      await this.postComment(issue.number, result.message);
+      // Update the progress comment with final result
+      if (this.progressCommentId) {
+        await this.updateComment(this.progressCommentId, result.message);
+      } else {
+        // Fallback: post new comment in thread
+        await this.postComment(issue.number, result.message, comment.id);
+      }
 
     } catch (error) {
       core.error(`Bot error: ${error}`);
-      await this.postComment(
-        issue.number,
-        `❌ YoFix encountered an error: ${error.message}\n\nTry \`@yofix help\` for available commands.`
-      );
+      const errorMessage = `❌ YoFix encountered an error: ${error.message}\n\nTry \`@yofix help\` for available commands.`;
+      
+      if (this.progressCommentId) {
+        await this.updateComment(this.progressCommentId, errorMessage);
+      } else {
+        await this.postComment(issue.number, errorMessage, comment.id);
+      }
     }
   }
 
   /**
-   * Post a comment to the PR
+   * Post a comment to the PR (optionally in reply to another comment)
    */
-  private async postComment(issueNumber: number, body: string): Promise<void> {
+  private async postComment(issueNumber: number, body: string, inReplyTo?: number): Promise<void> {
     const context = github.context;
+    
+    // GitHub doesn't have direct thread support, but we can reference the original comment
+    const finalBody = inReplyTo 
+      ? `> In reply to [this comment](${context.payload.comment?.html_url || `#issuecomment-${inReplyTo}`})\n\n${body}`
+      : body;
     
     await this.octokit.rest.issues.createComment({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: issueNumber,
+      body: finalBody
+    });
+  }
+
+  /**
+   * Post a progress comment that will be updated
+   */
+  private async postProgressComment(issueNumber: number, body: string, inReplyTo?: number) {
+    const context = github.context;
+    
+    // Add reference to original comment for context
+    const finalBody = inReplyTo 
+      ? `> In reply to [this comment](${context.payload.comment?.html_url || `#issuecomment-${inReplyTo}`})\n\n${body}`
+      : body;
+    
+    return await this.octokit.rest.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: issueNumber,
+      body: finalBody
+    });
+  }
+
+  /**
+   * Update an existing comment
+   */
+  private async updateComment(commentId: number, body: string): Promise<void> {
+    const context = github.context;
+    
+    await this.octokit.rest.issues.updateComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      comment_id: commentId,
       body
     });
   }

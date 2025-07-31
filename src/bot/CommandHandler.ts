@@ -8,6 +8,8 @@ import { CodebaseContext } from '../context/types';
 import { VisualIssueTestGenerator } from '../core/testing/VisualIssueTestGenerator';
 import { Agent } from '../browser-agent/core/Agent';
 import { RouteImpactAnalyzer } from '../core/analysis/RouteImpactAnalyzer';
+import { TreeSitterRouteAnalyzer } from '../core/analysis/TreeSitterRouteAnalyzer';
+import { StorageFactory } from '../providers/storage/StorageFactory';
 
 /**
  * Handles execution of bot commands
@@ -23,6 +25,7 @@ export class CommandHandler {
   
   // In-memory cache for current PR analysis
   private currentScanResult: ScanResult | null = null;
+  private progressCallback: ((message: string) => Promise<void>) | null = null;
 
   constructor(githubToken: string, claudeApiKey: string, codebaseContext?: CodebaseContext) {
     this.githubToken = githubToken;
@@ -32,6 +35,23 @@ export class CommandHandler {
     this.reportFormatter = new ReportFormatter();
     this.baselineManager = new BaselineManager();
     // Browser agent is created on demand
+  }
+
+  /**
+   * Set progress callback for updates
+   */
+  setProgressCallback(callback: (message: string) => Promise<void>): void {
+    this.progressCallback = callback;
+  }
+
+  /**
+   * Report progress
+   */
+  private async reportProgress(message: string): Promise<void> {
+    if (this.progressCallback) {
+      await this.progressCallback(message);
+    }
+    core.info(message);
   }
 
   /**
@@ -76,6 +96,9 @@ export class CommandHandler {
       
       case 'impact':
         return await this.handleImpact(command, context);
+      
+      case 'cache':
+        return await this.handleCache(command, context);
       
       case 'help':
       default:
@@ -488,12 +511,30 @@ npx yofix generate-tests --pr ${context.prNumber}
    */
   private async handleImpact(command: BotCommand, context: BotContext): Promise<BotResponse> {
     try {
+      await this.reportProgress('🔄 **Analyzing route impact**\n\n📊 Fetching changed files...');
+      
       const prNumber = context.prNumber;
       
       core.info(`Analyzing route impact for PR #${prNumber}...`);
       
-      const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken);
+      // Create storage provider for route analyzer
+      let storageProvider = null;
+      try {
+        const storageProviderName = core.getInput('storage-provider') || 'github';
+        if (storageProviderName !== 'github') {
+          storageProvider = await StorageFactory.createFromInputs();
+        }
+      } catch (error) {
+        core.debug(`Storage provider initialization failed: ${error}`);
+      }
+      
+      const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken, storageProvider);
+      
+      await this.reportProgress('🔄 **Analyzing route impact**\n\n🌳 Building import graph with Tree-sitter...');
+      
       const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
+      
+      await this.reportProgress('🔄 **Analyzing route impact**\n\n🎯 Mapping affected routes...');
       
       const message = impactAnalyzer.formatImpactTree(impactTree);
       
@@ -509,6 +550,84 @@ npx yofix generate-tests --pr ${context.prNumber}
     }
   }
 
+  /**
+   * Handle cache command
+   */
+  private async handleCache(command: BotCommand, context: BotContext): Promise<BotResponse> {
+    try {
+      if (command.args.includes('clear')) {
+        await this.reportProgress('🔄 **Clearing cache**\n\n🗝️ Removing route analysis cache...');
+        
+        // Create storage provider if available
+        let storageProvider = null;
+        try {
+          const storageProviderName = core.getInput('storage-provider') || 'github';
+          if (storageProviderName !== 'github') {
+            storageProvider = await StorageFactory.createFromInputs();
+          }
+        } catch (error) {
+          core.debug(`Storage provider initialization failed: ${error}`);
+        }
+        
+        // Clear the route analysis cache
+        const analyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
+        await analyzer.clearCache();
+        
+        await this.reportProgress('🔄 **Clearing cache**\n\n✅ Cache cleared successfully!');
+        
+        return {
+          success: true,
+          message: `🗝️ **Cache Cleared Successfully!**
+
+The route analysis cache has been cleared. The next analysis will rebuild the import graph from scratch.
+
+💡 This is useful when:
+- File moves/renames aren't detected correctly
+- Import relationships seem outdated
+- You want to force a fresh analysis`
+        };
+      } else if (command.args.includes('status')) {
+        await this.reportProgress('🔄 **Checking cache status**\n\n🔍 Analyzing cache metrics...');
+        
+        // Check cache status
+        let storageProvider = null;
+        try {
+          const storageProviderName = core.getInput('storage-provider') || 'github';
+          if (storageProviderName !== 'github') {
+            storageProvider = await StorageFactory.createFromInputs();
+          }
+        } catch (error) {
+          core.debug(`Storage provider initialization failed: ${error}`);
+        }
+        
+        const analyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
+        const metrics = analyzer.getMetrics();
+        
+        return {
+          success: true,
+          message: `📦 **Cache Status**
+
+- **Total Files**: ${metrics.totalFiles}
+- **Route Files**: ${metrics.routeFiles}
+- **Entry Points**: ${metrics.entryPoints}
+- **Cached ASTs**: ${metrics.cacheSize}
+- **Import Edges**: ${metrics.importEdges}
+- **Storage**: ${storageProvider ? 'Cloud Storage' : 'Local Cache'}`
+        };
+      }
+      
+      return {
+        success: false,
+        message: '⚠️ Use `@yofix cache clear` or `@yofix cache status`'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `❌ Cache operation failed: ${error.message}`
+      };
+    }
+  }
+  
   /**
    * Get help message
    */
@@ -540,6 +659,10 @@ npx yofix generate-tests --pr ${context.prNumber}
 
 ### Analysis
 - \`@yofix impact\` - Show route impact tree
+
+### Cache Management
+- \`@yofix cache clear\` - Clear route analysis cache
+- \`@yofix cache status\` - Check cache status
 
 ### Other
 - \`@yofix baseline update\` - Update baseline

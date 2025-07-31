@@ -42,16 +42,28 @@ const BaselineManager_1 = require("../core/baseline/BaselineManager");
 const VisualIssueTestGenerator_1 = require("../core/testing/VisualIssueTestGenerator");
 const Agent_1 = require("../browser-agent/core/Agent");
 const RouteImpactAnalyzer_1 = require("../core/analysis/RouteImpactAnalyzer");
+const TreeSitterRouteAnalyzer_1 = require("../core/analysis/TreeSitterRouteAnalyzer");
+const StorageFactory_1 = require("../providers/storage/StorageFactory");
 class CommandHandler {
     constructor(githubToken, claudeApiKey, codebaseContext) {
         this.browserAgent = null;
         this.currentScanResult = null;
+        this.progressCallback = null;
         this.githubToken = githubToken;
         this.claudeApiKey = claudeApiKey;
         this.visualAnalyzer = new VisualAnalyzer_1.VisualAnalyzer(claudeApiKey, githubToken);
         this.fixGenerator = new FixGenerator_1.FixGenerator(claudeApiKey, codebaseContext);
         this.reportFormatter = new ReportFormatter_1.ReportFormatter();
         this.baselineManager = new BaselineManager_1.BaselineManager();
+    }
+    setProgressCallback(callback) {
+        this.progressCallback = callback;
+    }
+    async reportProgress(message) {
+        if (this.progressCallback) {
+            await this.progressCallback(message);
+        }
+        core.info(message);
     }
     async execute(command, context) {
         core.info(`Executing command: ${command.action} ${command.args}`);
@@ -80,6 +92,8 @@ class CommandHandler {
                 return await this.handleBrowser(command, context);
             case 'impact':
                 return await this.handleImpact(command, context);
+            case 'cache':
+                return await this.handleCache(command, context);
             case 'help':
             default:
                 return {
@@ -382,10 +396,23 @@ npx yofix generate-tests --pr ${context.prNumber}
     }
     async handleImpact(command, context) {
         try {
+            await this.reportProgress('🔄 **Analyzing route impact**\n\n📊 Fetching changed files...');
             const prNumber = context.prNumber;
             core.info(`Analyzing route impact for PR #${prNumber}...`);
-            const impactAnalyzer = new RouteImpactAnalyzer_1.RouteImpactAnalyzer(this.githubToken);
+            let storageProvider = null;
+            try {
+                const storageProviderName = core.getInput('storage-provider') || 'github';
+                if (storageProviderName !== 'github') {
+                    storageProvider = await StorageFactory_1.StorageFactory.createFromInputs();
+                }
+            }
+            catch (error) {
+                core.debug(`Storage provider initialization failed: ${error}`);
+            }
+            const impactAnalyzer = new RouteImpactAnalyzer_1.RouteImpactAnalyzer(this.githubToken, storageProvider);
+            await this.reportProgress('🔄 **Analyzing route impact**\n\n🌳 Building import graph with Tree-sitter...');
             const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
+            await this.reportProgress('🔄 **Analyzing route impact**\n\n🎯 Mapping affected routes...');
             const message = impactAnalyzer.formatImpactTree(impactTree);
             return {
                 success: true,
@@ -396,6 +423,73 @@ npx yofix generate-tests --pr ${context.prNumber}
             return {
                 success: false,
                 message: `❌ Impact analysis failed: ${error.message}`
+            };
+        }
+    }
+    async handleCache(command, context) {
+        try {
+            if (command.args.includes('clear')) {
+                await this.reportProgress('🔄 **Clearing cache**\n\n🗝️ Removing route analysis cache...');
+                let storageProvider = null;
+                try {
+                    const storageProviderName = core.getInput('storage-provider') || 'github';
+                    if (storageProviderName !== 'github') {
+                        storageProvider = await StorageFactory_1.StorageFactory.createFromInputs();
+                    }
+                }
+                catch (error) {
+                    core.debug(`Storage provider initialization failed: ${error}`);
+                }
+                const analyzer = new TreeSitterRouteAnalyzer_1.TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
+                await analyzer.clearCache();
+                await this.reportProgress('🔄 **Clearing cache**\n\n✅ Cache cleared successfully!');
+                return {
+                    success: true,
+                    message: `🗝️ **Cache Cleared Successfully!**
+
+The route analysis cache has been cleared. The next analysis will rebuild the import graph from scratch.
+
+💡 This is useful when:
+- File moves/renames aren't detected correctly
+- Import relationships seem outdated
+- You want to force a fresh analysis`
+                };
+            }
+            else if (command.args.includes('status')) {
+                await this.reportProgress('🔄 **Checking cache status**\n\n🔍 Analyzing cache metrics...');
+                let storageProvider = null;
+                try {
+                    const storageProviderName = core.getInput('storage-provider') || 'github';
+                    if (storageProviderName !== 'github') {
+                        storageProvider = await StorageFactory_1.StorageFactory.createFromInputs();
+                    }
+                }
+                catch (error) {
+                    core.debug(`Storage provider initialization failed: ${error}`);
+                }
+                const analyzer = new TreeSitterRouteAnalyzer_1.TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
+                const metrics = analyzer.getMetrics();
+                return {
+                    success: true,
+                    message: `📦 **Cache Status**
+
+- **Total Files**: ${metrics.totalFiles}
+- **Route Files**: ${metrics.routeFiles}
+- **Entry Points**: ${metrics.entryPoints}
+- **Cached ASTs**: ${metrics.cacheSize}
+- **Import Edges**: ${metrics.importEdges}
+- **Storage**: ${storageProvider ? 'Cloud Storage' : 'Local Cache'}`
+                };
+            }
+            return {
+                success: false,
+                message: '⚠️ Use `@yofix cache clear` or `@yofix cache status`'
+            };
+        }
+        catch (error) {
+            return {
+                success: false,
+                message: `❌ Cache operation failed: ${error.message}`
             };
         }
     }
@@ -427,6 +521,10 @@ npx yofix generate-tests --pr ${context.prNumber}
 
 ### Analysis
 - \`@yofix impact\` - Show route impact tree
+
+### Cache Management
+- \`@yofix cache clear\` - Clear route analysis cache
+- \`@yofix cache status\` - Check cache status
 
 ### Other
 - \`@yofix baseline update\` - Update baseline

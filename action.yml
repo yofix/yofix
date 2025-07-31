@@ -209,14 +209,14 @@ runs:
           npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
         fi
     
-    # Install runtime dependencies (including sharp with native binaries)
+    # Install runtime dependencies (including sharp and tree-sitter with native binaries)
     - name: Install runtime dependencies
       shell: bash
       run: |
         echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
         
-        # Install only production dependencies including sharp
+        # Install only production dependencies including sharp and tree-sitter
         # This ensures native binaries are available for the runtime platform
         npm install --production --ignore-scripts
         

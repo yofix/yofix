@@ -8,7 +8,7 @@
   },
   "scripts": {
     "postinstall": "playwright install chromium",
-    "build": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
+    "build": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external tree-sitter --external tree-sitter-typescript --external tree-sitter-javascript && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "test:local": "ts-node test/local-runner.ts",

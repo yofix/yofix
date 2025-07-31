@@ -23,24 +23,24 @@ jobs:
         run: yarn install --frozen-lockfile
         
       - name: Lint
-        run: npm run lint || true  # Skip lint errors temporarily
+        run: yarn lint || true  # Skip lint errors temporarily
         
       - name: Type check
-        run: npm run typecheck
+        run: yarn typecheck
         
       - name: Test
-        run: npm test
+        run: yarn test
         env:
           CI: true
           
       - name: Build
-        run: npm run build
+        run: yarn build
         
       - name: Verify dist
         run: |
           if [ -n "$(git status --porcelain dist/)" ]; then
             echo "::error::dist/ folder has uncommitted changes"
-            echo "Please run 'npm run build' locally and commit the changes"
+            echo "Please run 'yarn build' locally and commit the changes"
             git status --porcelain dist/
             exit 1
           fi

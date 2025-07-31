@@ -226,8 +226,8 @@ function parseInputs(): ActionInputs {
 
   return {
     previewUrl: core.getInput('preview-url', { required: true }),
-    firebaseCredentials: core.getInput('firebase-credentials', { required: true }),
-    storageBucket: core.getInput('firebase-storage-bucket', { required: true }),
+    firebaseCredentials: core.getInput('firebase-credentials'),
+    storageBucket: core.getInput('firebase-storage-bucket'),
     githubToken: core.getInput('github-token', { required: true }),
     claudeApiKey: core.getInput('claude-api-key', { required: true }),
     firebaseProjectId: core.getInput('firebase-project-id'),

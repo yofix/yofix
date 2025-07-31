@@ -346,26 +346,32 @@ export class RouteImpactAnalyzer {
       
       output += `${prefix}${impact.route}\n`;
       
-      // Direct changes
+      // Collect all files to determine which is last
+      const allFiles: Array<{file: string, type: string}> = [];
+      
+      // Add direct changes
       for (const file of impact.directChanges) {
-        output += `${childPrefix}├── ${path.basename(file)} (route file)\n`;
+        allFiles.push({file, type: 'route file'});
       }
       
-      // Component changes
+      // Add component changes
       for (const file of impact.componentChanges) {
         const isShared = impact.sharedComponents.includes(file);
         const label = isShared ? 'shared component' : 'component';
-        output += `${childPrefix}├── ${path.basename(file)} (${label})\n`;
+        allFiles.push({file, type: label});
       }
       
-      // Style changes
-      for (let j = 0; j < impact.styleChanges.length; j++) {
-        const file = impact.styleChanges[j];
-        const isLastFile = j === impact.styleChanges.length - 1 && 
-                          impact.directChanges.length === 0 && 
-                          impact.componentChanges.length === 0;
+      // Add style changes
+      for (const file of impact.styleChanges) {
+        allFiles.push({file, type: 'styles'});
+      }
+      
+      // Output all files with proper tree structure
+      for (let j = 0; j < allFiles.length; j++) {
+        const {file, type} = allFiles[j];
+        const isLastFile = j === allFiles.length - 1;
         const filePrefix = isLastFile ? '└── ' : '├── ';
-        output += `${childPrefix}${filePrefix}${path.basename(file)} (styles)\n`;
+        output += `${childPrefix}${filePrefix}${path.basename(file)} (${type})\n`;
       }
     }
     

@@ -1,4 +1,5 @@
 // Jest setup file for global test configuration
+/// <reference types="jest" />
 
 // Mock GitHub Actions core module
 jest.mock('@actions/core', () => ({

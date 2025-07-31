@@ -1,0 +1,30 @@
+# Correct usage examples for YoFix v1.0.13
+
+# WRONG - This is what's causing your error:
+# uses: actions/github-script@v1.0.13  # ❌ github-script doesn't have v1.0.13
+
+# CORRECT Option 1 - Use YoFix directly:
+- name: Run YoFix Visual Test
+  uses: yofix/yofix@v1.0.13  # ✅ Correct YoFix action reference
+  with:
+    preview-url: ${{ needs.build_and_preview.outputs.preview-url }}
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+    # ... other inputs
+
+# CORRECT Option 2 - Trigger YoFix workflow using github-script:
+- name: Trigger YoFix Workflow
+  uses: actions/github-script@v7  # ✅ Correct github-script version
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    script: |
+      await github.rest.actions.createWorkflowDispatch({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        workflow_id: 'yofix.yml',
+        ref: '${{ github.head_ref }}',
+        inputs: {
+          'preview-url': '${{ needs.build_and_preview.outputs.preview-url }}',
+          'pr-number': '${{ github.event.pull_request.number }}'
+        }
+      });

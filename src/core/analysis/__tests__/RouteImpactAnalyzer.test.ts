@@ -1,3 +1,5 @@
+/// <reference types="jest" />
+
 import { RouteImpactAnalyzer } from '../RouteImpactAnalyzer';
 import * as github from '@actions/github';
 import * as fs from 'fs';
@@ -126,8 +128,8 @@ describe('RouteImpactAnalyzer', () => {
       expect(result).toContain('├── /');
       expect(result).toContain('├── /products');
       expect(result).toContain('└── /checkout');
-      expect(result).toContain('│   ├──');
-      expect(result).toContain('    └──');
+      expect(result).toContain('├── checkout.tsx (route file)');
+      expect(result).toContain('└── checkout.css (styles)');
     });
   });
 

@@ -41,8 +41,8 @@ jobs:
           
       - name: Install and Build
         run: |
-          npm ci
-          npm run build
+          yarn install --frozen-lockfile
+          yarn build
       
       # Test the local action
       - name: Test YoFix Action (Local)
@@ -51,7 +51,7 @@ jobs:
         with:
           preview-url: 'https://example.com'  # Use a real URL for basic test
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY || 'test-key' }}
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
           storage-bucket: 'yofix-test-screenshots'
           test-routes: '/'
@@ -79,7 +79,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      - run: yarn install --frozen-lockfile && yarn build
       
       - name: Test PR Comment Posting
         uses: ./
@@ -87,7 +87,7 @@ jobs:
         with:
           preview-url: 'https://example.com'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY || 'test-key' }}
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
           storage-bucket: 'yofix-test-screenshots'
           test-routes: '/'
@@ -126,14 +126,14 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      - run: yarn install --frozen-lockfile && yarn build
       
       - name: Test Smart Authentication
         uses: ./
         with:
           preview-url: 'https://yofix-demo.web.app'  # Demo app with login
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY || 'test-key' }}
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
           storage-bucket: 'yofix-test-screenshots'
           # Test auth
@@ -153,14 +153,14 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      - run: yarn install --frozen-lockfile && yarn build
       
       - name: Test AI Navigation & Test Generation
         uses: ./
         with:
           preview-url: 'https://yofix-demo.web.app'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY || 'test-key' }}
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
           storage-bucket: 'yofix-test-screenshots'
           # Enable all AI features
@@ -179,7 +179,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      - run: yarn install --frozen-lockfile && yarn build
       
       # Test with invalid URL
       - name: Test Invalid URL Handling
@@ -189,7 +189,7 @@ jobs:
         with:
           preview-url: 'https://invalid-url-that-does-not-exist-12345.com'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY || 'test-key' }}
           firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS }}
           storage-bucket: 'yofix-test-screenshots'
       

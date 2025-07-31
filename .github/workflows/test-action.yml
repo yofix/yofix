@@ -56,6 +56,9 @@ jobs:
           storage-bucket: 'yofix-test-screenshots'
           test-routes: '/'
           viewports: '1920x1080'
+          enable-smart-auth: 'false'
+          enable-ai-navigation: 'false'
+          enable-ai-test-generation: 'false'
           
       # Verify outputs
       - name: Verify Results

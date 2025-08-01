@@ -66,15 +66,23 @@ jobs:
           node-version: '20'
           cache: 'yarn'
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile --ignore-optional
+        run: |
+          yarn install --frozen-lockfile --ignore-optional
+          # Rebuild native modules with verbose output for debugging
+          npm rebuild --verbose || echo "Native rebuild failed, continuing..."
 
       # Skip tests for now - no test files
       # - name: Run tests
       #   run: npm test
 
       - name: Build action
-        run: npm run build
+        run: yarn build
         
       - name: Commit dist changes
         run: |

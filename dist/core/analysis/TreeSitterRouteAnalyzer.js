@@ -47,6 +47,7 @@ const core = __importStar(require("@actions/core"));
 const crypto_1 = __importDefault(require("crypto"));
 const ComponentRouteMapper_1 = require("./ComponentRouteMapper");
 const StorageFactory_1 = require("../../providers/storage/StorageFactory");
+const __1 = require("..");
 class TreeSitterRouteAnalyzer {
     constructor(rootPath = process.cwd(), storageProvider) {
         this.rootPath = rootPath;
@@ -89,7 +90,14 @@ class TreeSitterRouteAnalyzer {
             }
         }
         catch (error) {
-            core.warning(`Failed to clear persistent cache: ${error}`);
+            await __1.errorHandler.handleError(error, {
+                severity: __1.ErrorSeverity.LOW,
+                category: __1.ErrorCategory.STORAGE,
+                userAction: 'Clear persistent cache',
+                metadata: { cacheKey: this.cacheKey },
+                recoverable: true,
+                skipGitHubPost: true
+            });
         }
     }
     async initialize(forceRebuild = false) {
@@ -245,11 +253,20 @@ class TreeSitterRouteAnalyzer {
             if (error.code === 'ENOENT') {
                 core.debug(`File not found: ${filePath}`);
             }
-            else if (error.message?.includes('Invalid argument')) {
-                core.debug(`Invalid argument error for ${filePath} - likely a parsing issue with special characters or encoding`);
-            }
             else {
-                core.debug(`Failed to process ${filePath}: ${error.message || error}`);
+                await __1.errorHandler.handleError(error, {
+                    severity: __1.ErrorSeverity.LOW,
+                    category: __1.ErrorCategory.ANALYSIS,
+                    userAction: 'Parse file with Tree-sitter',
+                    metadata: {
+                        filePath,
+                        extension: path.extname(filePath),
+                        errorCode: error.code,
+                        isInvalidArgument: error.message?.includes('Invalid argument')
+                    },
+                    recoverable: true,
+                    skipGitHubPost: true
+                });
             }
             return {
                 path: filePath,
@@ -579,7 +596,14 @@ class TreeSitterRouteAnalyzer {
             }
         }
         catch (error) {
-            core.warning(`Failed to persist import graph: ${error}`);
+            await __1.errorHandler.handleError(error, {
+                severity: __1.ErrorSeverity.LOW,
+                category: __1.ErrorCategory.STORAGE,
+                userAction: 'Persist import graph to storage',
+                metadata: { cacheKey: this.cacheKey },
+                recoverable: true,
+                skipGitHubPost: true
+            });
         }
     }
     async loadPersistedGraph() {

@@ -2,6 +2,15 @@ import * as core from '@actions/core';
 import { StorageProvider } from '../../core/baseline/types';
 import crypto from 'crypto';
 import path from 'path';
+import { 
+  createModuleLogger, 
+  ErrorCategory, 
+  ErrorSeverity, 
+  CircuitBreakerFactory,
+  WithCircuitBreaker,
+  executeOperation,
+  retryOperation
+} from '../../core';
 
 // AWS SDK types - these are optional dependencies
 let S3Client: any;
@@ -35,6 +44,30 @@ export class S3Storage implements StorageProvider {
   private bucket: string;
   private region: string;
   private urlExpiry: number = 3600; // 1 hour default
+  
+  private logger = createModuleLogger({
+    module: 'S3Storage',
+    defaultCategory: ErrorCategory.STORAGE
+  });
+  
+  private circuitBreaker = CircuitBreakerFactory.getBreaker({
+    serviceName: 'S3Storage',
+    failureThreshold: 3,
+    resetTimeout: 60000,
+    timeout: 30000,
+    isFailure: (error) => {
+      // Don't trip circuit for auth/permission errors
+      const message = error.message.toLowerCase();
+      return !message.includes('auth') && 
+             !message.includes('permission') &&
+             !message.includes('forbidden') &&
+             !message.includes('access denied');
+    },
+    fallback: () => {
+      this.logger.warn('S3 Storage circuit breaker activated - using fallback');
+      return null;
+    }
+  });
 
   constructor(config: {
     bucket: string;
@@ -44,140 +77,272 @@ export class S3Storage implements StorageProvider {
     urlExpiry?: number;
   }) {
     if (!S3Client) {
-      throw new Error('AWS SDK is not installed. Please install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner to use S3 storage.');
+      const error = new Error('AWS SDK is not installed. Please install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner to use S3 storage.');
+      this.logger.error(error, {
+        severity: ErrorSeverity.CRITICAL,
+        userAction: 'Initialize S3 storage'
+      });
+      throw error;
     }
     
     this.bucket = config.bucket;
-    this.region = config.region || 'us-east-1';
+    this.region = config.region || process.env.AWS_REGION || 'us-east-1';
     this.urlExpiry = config.urlExpiry || 3600;
-
+    
     // Initialize S3 client
-    this.client = new S3Client({
+    const clientConfig: any = {
       region: this.region,
-      credentials: config.accessKeyId && config.secretAccessKey ? {
+    };
+    
+    // Use explicit credentials if provided
+    if (config.accessKeyId && config.secretAccessKey) {
+      clientConfig.credentials = {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey
-      } : undefined // Use default credentials if not provided
-    });
+      };
+    }
+    // Otherwise rely on AWS SDK credential chain (env vars, IAM role, etc)
+    
+    this.client = new S3Client(clientConfig);
+    
+    this.logger.info(`S3 Storage initialized for bucket: ${this.bucket} in region: ${this.region}`);
   }
 
   /**
-   * Initialize storage (create bucket if needed)
+   * Initialize and test connection
    */
   async initialize(): Promise<void> {
-    try {
-      // Check if bucket exists
-      const command = new HeadObjectCommand({
-        Bucket: this.bucket,
-        Key: '.yofix'
-      });
-      
-      await this.client.send(command);
-      core.info(`✅ S3 bucket ${this.bucket} is accessible`);
-    } catch (error) {
-      if (error.name === 'NotFound') {
-        // Create marker file
-        await this.uploadFile('.yofix', Buffer.from('YoFix Storage'), {
-          contentType: 'text/plain'
+    const result = await executeOperation(
+      () => this.circuitBreaker.execute(async () => {
+        // Test bucket access
+        const command = new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: '.yofix-test'
         });
-      } else {
-        throw new Error(`S3 initialization failed: ${error.message}`);
+        
+        try {
+          await this.client.send(command);
+        } catch (error: any) {
+          if (error.name !== 'NotFound') {
+            throw error;
+          }
+          // NotFound is expected - bucket is accessible
+        }
+      }),
+      {
+        name: 'Test S3 bucket access',
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.HIGH
       }
+    );
+    
+    if (result.success) {
+      this.logger.info('✅ S3 Storage connected');
+    } else {
+      throw new Error(`Failed to connect to S3: ${result.error}`);
     }
   }
 
   /**
-   * Upload file to S3
+   * Upload file to S3 with circuit breaker protection
    */
+  @WithCircuitBreaker({
+    failureThreshold: 3,
+    resetTimeout: 30000,
+    timeout: 60000
+  })
   async uploadFile(
-    filePath: string, 
-    content: Buffer, 
-    options?: {
+    key: string,
+    buffer: Buffer,
+    metadata?: {
       contentType?: string;
       metadata?: Record<string, string>;
     }
   ): Promise<string> {
-    const command = new PutObjectCommand({
+    const uploadParams: any = {
       Bucket: this.bucket,
-      Key: filePath,
-      Body: content,
-      ContentType: options?.contentType || 'application/octet-stream',
-      Metadata: options?.metadata,
-      // Make files publicly readable
-      ACL: 'public-read'
-    });
-
-    await this.client.send(command);
+      Key: key,
+      Body: buffer,
+      ContentType: metadata?.contentType || 'application/octet-stream',
+    };
+    
+    if (metadata?.metadata) {
+      uploadParams.Metadata = metadata.metadata;
+    }
+    
+    // Make screenshots publicly readable
+    if (key.includes('screenshot') || key.includes('.png') || key.includes('.jpg')) {
+      uploadParams.ACL = 'public-read';
+    }
+    
+    // Upload with retry
+    await retryOperation(
+      () => this.client.send(new PutObjectCommand(uploadParams)),
+      {
+        maxAttempts: 3,
+        delayMs: 1000,
+        backoff: true,
+        onRetry: (attempt, error) => {
+          this.logger.debug(`Upload retry attempt ${attempt} for ${key}: ${error.message}`);
+        }
+      }
+    );
     
     // Return public URL
-    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${filePath}`;
+    return this.getPublicUrl(key);
   }
 
   /**
    * Get signed URL for private access
    */
-  async getSignedUrl(filePath: string, expiresIn?: number): Promise<string> {
+  @WithCircuitBreaker({
+    failureThreshold: 5,
+    resetTimeout: 30000
+  })
+  async getSignedUrl(key: string, expiresIn?: number): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
-      Key: filePath
+      Key: key
     });
-
-    return await getSignedUrl(this.client, command, {
+    
+    const url = await getSignedUrl(this.client, command, {
       expiresIn: expiresIn || this.urlExpiry
     });
+    
+    return url;
+  }
+
+  /**
+   * Delete file from S3
+   */
+  async deleteFile(key: string): Promise<void> {
+    const result = await executeOperation(
+      async () => {
+        const command = new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: key
+        });
+        await this.client.send(command);
+      },
+      {
+        name: `Delete file ${key}`,
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        metadata: { key }
+      }
+    );
+    
+    if (!result.success) {
+      // Log but don't throw - deletion failures are often not critical
+      this.logger.warn(`Failed to delete file ${key}: ${result.error}`);
+    }
+  }
+
+  /**
+   * Check if file exists
+   */
+  async exists(key: string): Promise<boolean> {
+    const result = await executeOperation(
+      async () => {
+        const command = new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: key
+        });
+        
+        try {
+          await this.client.send(command);
+          return true;
+        } catch (error: any) {
+          if (error.name === 'NotFound') {
+            return false;
+          }
+          throw error;
+        }
+      },
+      {
+        name: `Check file exists ${key}`,
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        fallback: false
+      }
+    );
+    
+    return result.data ?? false;
   }
 
   /**
    * Download file from S3
    */
-  async downloadFile(filePath: string): Promise<Buffer> {
+  @WithCircuitBreaker({
+    failureThreshold: 3,
+    timeout: 120000 // 2 minutes for large files
+  })
+  async downloadFile(key: string): Promise<Buffer> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
-      Key: filePath
+      Key: key
     });
-
+    
     const response = await this.client.send(command);
     
-    if (!response.Body) {
-      throw new Error(`No content found for ${filePath}`);
-    }
-
     // Convert stream to buffer
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of response.Body as any) {
-      chunks.push(chunk);
+    const chunks: Buffer[] = [];
+    for await (const chunk of response.Body) {
+      chunks.push(Buffer.from(chunk));
     }
     
     return Buffer.concat(chunks);
   }
 
   /**
-   * Delete file from S3
+   * List files with prefix
    */
-  async deleteFile(filePath: string): Promise<void> {
-    const command = new DeleteObjectCommand({
-      Bucket: this.bucket,
-      Key: filePath
-    });
-
-    await this.client.send(command);
+  async listFiles(prefix: string): Promise<string[]> {
+    const result = await executeOperation(
+      async () => {
+        const command = new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix
+        });
+        
+        const response = await this.client.send(command);
+        const files = response.Contents || [];
+        
+        return files.map((file: any) => file.Key).filter(Boolean);
+      },
+      {
+        name: `List files with prefix ${prefix}`,
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        fallback: []
+      }
+    );
+    
+    return result.data ?? [];
   }
 
   /**
-   * List files with prefix
+   * Get public URL for a file
    */
-  async listFiles(prefix: string, maxResults?: number): Promise<string[]> {
-    const command = new ListObjectsV2Command({
-      Bucket: this.bucket,
-      Prefix: prefix,
-      MaxKeys: maxResults || 1000
-    });
+  getPublicUrl(key: string): string {
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+  }
 
-    const response = await this.client.send(command);
+  /**
+   * Generate a unique key for uploads
+   */
+  generateKey(filename: string, prefix?: string): string {
+    const timestamp = Date.now();
+    const hash = crypto.createHash('sha256')
+      .update(`${filename}-${timestamp}`)
+      .digest('hex')
+      .substring(0, 8);
     
-    return (response.Contents || [])
-      .map(obj => obj.Key)
-      .filter((key): key is string => key !== undefined);
+    const ext = path.extname(filename);
+    const base = path.basename(filename, ext);
+    const uniqueName = `${base}-${hash}${ext}`;
+    
+    return prefix ? `${prefix}/${uniqueName}` : uniqueName;
   }
 
   /**
@@ -189,135 +354,115 @@ export class S3Storage implements StorageProvider {
     contentType?: string;
     metadata?: Record<string, string>;
   }>): Promise<string[]> {
-    const uploadPromises = files.map(file => 
+    const uploadPromises = files.map(file =>
       this.uploadFile(file.path, file.content, {
         contentType: file.contentType,
         metadata: file.metadata
       })
     );
-
-    return await Promise.all(uploadPromises);
+    
+    return Promise.all(uploadPromises);
   }
 
   /**
    * Generate storage console URL
    */
   generateStorageConsoleUrl(): string {
-    return `https://s3.console.aws.amazon.com/s3/buckets/${this.bucket}`;
+    return `https://s3.console.aws.amazon.com/s3/buckets/${this.bucket}?region=${this.region}&tab=objects`;
   }
 
   /**
-   * Clean up old artifacts
+   * Cleanup old artifacts
    */
   async cleanupOldArtifacts(daysToKeep: number): Promise<void> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-    try {
-      // List all objects
-      const objects = await this.listFiles('screenshots/');
-      
-      // Check each object's last modified date
-      for (const key of objects) {
-        if (!key) continue;
-        
-        const headCommand = new HeadObjectCommand({
+    
+    const result = await executeOperation(
+      async () => {
+        const listParams = {
           Bucket: this.bucket,
-          Key: key
-        });
+          MaxKeys: 1000
+        };
         
-        try {
-          const response = await this.client.send(headCommand);
+        const listResult = await this.client.send(new ListObjectsV2Command(listParams));
+        const deleteObjects: { Key: string }[] = [];
+        
+        if (listResult.Contents) {
+          for (const obj of listResult.Contents) {
+            if (obj.LastModified && new Date(obj.LastModified) < cutoffDate) {
+              deleteObjects.push({ Key: obj.Key! });
+              this.logger.info(`Marking for deletion: ${obj.Key}`);
+            }
+          }
+        }
+        
+        if (deleteObjects.length > 0) {
+          const deleteParams = {
+            Bucket: this.bucket,
+            Delete: {
+              Objects: deleteObjects,
+              Quiet: false
+            }
+          };
           
-          if (response.LastModified && response.LastModified < cutoffDate) {
-            await this.deleteFile(key);
-            core.info(`Deleted old artifact: ${key}`);
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: this.bucket,
+            Key: deleteObjects[0].Key
+          });
+          
+          // Delete objects one by one (AWS SDK v3 doesn't have deleteObjects method)
+          for (const obj of deleteObjects) {
+            await this.client.send(new DeleteObjectCommand({
+              Bucket: this.bucket,
+              Key: obj.Key
+            }));
           }
-        } catch (error) {
-          core.warning(`Failed to check artifact ${key}: ${error.message}`);
+          this.logger.info(`Cleaned up ${deleteObjects.length} old artifacts`);
         }
+      },
+      {
+        name: 'Cleanup old artifacts',
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        fallback: undefined
       }
-    } catch (error) {
-      core.warning(`Cleanup failed: ${error.message}`);
-    }
+    );
   }
 
   /**
-   * Calculate file fingerprint
+   * Cleanup resources
    */
-  calculateFingerprint(buffer: Buffer): string {
-    return crypto
-      .createHash('sha256')
-      .update(buffer)
-      .digest('hex');
+  async cleanup(): Promise<void> {
+    // S3 client doesn't need explicit cleanup
+    this.logger.info('S3 Storage cleaned up');
   }
-
+  
   /**
-   * Get storage statistics
+   * Get circuit breaker statistics
    */
-  async getStorageStats(): Promise<{
-    totalFiles: number;
-    totalSize: number;
-    oldestFile?: Date;
-    newestFile?: Date;
-  }> {
-    const objects = await this.listFiles('');
-    let totalSize = 0;
-    let oldestFile: Date | undefined;
-    let newestFile: Date | undefined;
-
-    for (const key of objects) {
-      if (!key) continue;
-      
-      const headCommand = new HeadObjectCommand({
-        Bucket: this.bucket,
-        Key: key
-      });
-      
-      try {
-        const response = await this.client.send(headCommand);
-        
-        if (response.ContentLength) {
-          totalSize += response.ContentLength;
-        }
-        
-        if (response.LastModified) {
-          if (!oldestFile || response.LastModified < oldestFile) {
-            oldestFile = response.LastModified;
-          }
-          if (!newestFile || response.LastModified > newestFile) {
-            newestFile = response.LastModified;
-          }
-        }
-      } catch (error) {
-        // Skip files we can't access
-      }
-    }
-
-    return {
-      totalFiles: objects.length,
-      totalSize,
-      oldestFile,
-      newestFile
-    };
+  getStats() {
+    return this.circuitBreaker.getStats();
   }
 }
 
 /**
- * Factory function to create S3 storage from environment
+ * Create S3 storage from environment variables
  */
-export function createS3StorageFromEnv(): S3Storage | null {
-  const bucket = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET;
+export function createS3StorageFromEnv(): S3Storage {
+  const bucket = process.env.S3_BUCKET;
+  const region = process.env.AWS_REGION || 'us-east-1';
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
   
   if (!bucket) {
-    return null;
+    throw new Error('S3_BUCKET environment variable is required');
   }
-
+  
   return new S3Storage({
     bucket,
-    region: process.env.AWS_REGION || process.env.S3_REGION,
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    urlExpiry: parseInt(process.env.S3_URL_EXPIRY || '3600', 10)
+    region,
+    accessKeyId,
+    secretAccessKey
   });
 }

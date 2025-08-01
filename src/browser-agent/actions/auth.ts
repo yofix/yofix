@@ -3,6 +3,8 @@ import { ActionHandler } from '../core/ActionRegistry';
 import { Page } from 'playwright';
 import { DOMIndexer } from '../core/DOMIndexer';
 import * as core from '@actions/core';
+import { authenticateWithLLM } from '../../modules/llm-browser-agent';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '../../core';
 
 const domIndexer = new DOMIndexer();
 
@@ -130,9 +132,22 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
         };
         
       } catch (error) {
+        await errorHandler.handleError(error as Error, {
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.AUTHENTICATION,
+          userAction: 'Smart login attempt',
+          metadata: {
+            method: 'smart',
+            hasUsername: !!(params.email || params.username),
+            hasUrl: !!params.url,
+            has2FA: !!params.totpSecret
+          },
+          recoverable: true
+        });
+        
         return {
           success: false,
-          error: `Smart login failed: ${error}`,
+          error: error instanceof Error ? error.message : 'Smart login failed',
           method: 'smart',
           loginTime: Date.now() - startTime
         };
@@ -193,9 +208,106 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
         };
         
       } catch (error) {
+        await errorHandler.handleError(error as Error, {
+          severity: ErrorSeverity.MEDIUM,
+          category: ErrorCategory.AUTHENTICATION,
+          userAction: 'Logout attempt',
+          metadata: {
+            currentUrl: context.page.url()
+          },
+          recoverable: true
+        });
+        
         return {
           success: false,
-          error: `Logout failed: ${error}`
+          error: error instanceof Error ? error.message : 'Logout failed'
+        };
+      }
+    }
+  },
+  
+  {
+    definition: {
+      name: 'llm_login',
+      description: 'Login using LLM to understand any login form (most reliable)',
+      parameters: {
+        email: { type: 'string', required: true, description: 'Email address' },
+        password: { type: 'string', required: true, description: 'Password' },
+        loginUrl: { type: 'string', required: false, description: 'Login page URL' }
+      },
+      examples: [
+        'llm_login email="user@example.com" password="secret123"',
+        'llm_login email="test@test.com" password="pass" loginUrl="/login"'
+      ]
+    },
+    handler: async (params: { email: string; password: string; loginUrl?: string }, context: AgentContext): Promise<AuthResult> => {
+      const startTime = Date.now();
+      
+      try {
+        const { page, state } = context;
+        const claudeApiKey = process.env.CLAUDE_API_KEY || core.getInput('claude-api-key');
+        
+        if (!claudeApiKey) {
+          return {
+            success: false,
+            error: 'Claude API key not available for LLM authentication',
+            method: 'llm',
+            loginTime: Date.now() - startTime
+          };
+        }
+        
+        core.info('🤖 Using LLM-powered authentication...');
+        
+        // Use the LLM authentication function
+        const success = await authenticateWithLLM(
+          page,
+          params.email,
+          params.password,
+          params.loginUrl,
+          claudeApiKey,
+          core.isDebug()
+        );
+        
+        if (success) {
+          // Save credentials in state
+          state.memory.set('auth_credentials', {
+            username: params.email,
+            password: params.password,
+            method: 'llm',
+            timestamp: Date.now()
+          });
+          
+          return {
+            success: true,
+            method: 'llm',
+            loginTime: Date.now() - startTime
+          };
+        } else {
+          return {
+            success: false,
+            error: 'LLM authentication failed',
+            method: 'llm',
+            loginTime: Date.now() - startTime
+          };
+        }
+      } catch (error) {
+        await errorHandler.handleError(error as Error, {
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.AUTHENTICATION,
+          userAction: 'LLM-powered login attempt',
+          metadata: {
+            method: 'llm',
+            hasLoginUrl: !!params.loginUrl,
+            email: params.email.split('@')[1] // Only domain for privacy
+          },
+          recoverable: true
+        });
+        
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'LLM login failed',
+          method: 'llm',
+          loginTime: Date.now() - startTime
         };
       }
     }
@@ -228,9 +340,19 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
         };
         
       } catch (error) {
+        await errorHandler.handleError(error as Error, {
+          severity: ErrorSeverity.LOW,
+          category: ErrorCategory.AUTHENTICATION,
+          userAction: 'Check authentication status',
+          metadata: {
+            currentUrl: context.page.url()
+          },
+          recoverable: true
+        });
+        
         return {
           success: false,
-          error: `Auth check failed: ${error}`
+          error: error instanceof Error ? error.message : 'Auth check failed'
         };
       }
     }

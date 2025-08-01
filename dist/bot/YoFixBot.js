@@ -39,11 +39,12 @@ const github = __importStar(require("@actions/github"));
 const CommandParser_1 = require("./CommandParser");
 const CommandHandler_1 = require("./CommandHandler");
 const CodebaseAnalyzer_1 = require("../context/CodebaseAnalyzer");
+const core_1 = require("../core");
 class YoFixBot {
     constructor(githubToken, claudeApiKey) {
         this.botUsername = 'yofix';
         this.codebaseContext = null;
-        this.progressCommentId = null;
+        this.commentEngine = (0, core_1.getGitHubCommentEngine)();
         this.octokit = github.getOctokit(githubToken);
         this.commandParser = new CommandParser_1.CommandParser();
         this.commandHandler = new CommandHandler_1.CommandHandler(githubToken, claudeApiKey);
@@ -53,13 +54,22 @@ class YoFixBot {
         try {
             const analyzer = new CodebaseAnalyzer_1.CodebaseAnalyzer();
             this.codebaseContext = await analyzer.analyzeRepository();
-            const githubToken = core.getInput('github-token') || process.env.YOFIX_GITHUB_TOKEN || '';
-            const claudeApiKey = process.env.CLAUDE_API_KEY || core.getInput('claude-api-key') || '';
+            const { config } = await Promise.resolve().then(() => __importStar(require('../core')));
+            const githubToken = config.get('github-token', {
+                defaultValue: process.env.YOFIX_GITHUB_TOKEN
+            });
+            const claudeApiKey = config.getSecret('claude-api-key');
             this.commandHandler = new CommandHandler_1.CommandHandler(githubToken, claudeApiKey, this.codebaseContext);
             core.info('✅ Codebase context initialized successfully');
         }
         catch (error) {
-            core.warning(`Failed to initialize codebase context: ${error.message}`);
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.LOW,
+                category: core_1.ErrorCategory.CONFIGURATION,
+                userAction: 'Initialize codebase context',
+                recoverable: true,
+                skipGitHubPost: true
+            });
         }
     }
     async handleIssueComment(context) {
@@ -75,25 +85,11 @@ class YoFixBot {
         try {
             const command = this.commandParser.parse(comment.body);
             if (!command) {
-                await this.postComment(issue.number, this.getHelpMessage(), comment.id);
+                await core_1.botActivity.handleUnknownCommand(comment.body.replace(/@yofix\s*/i, ''));
                 return;
             }
-            await this.octokit.rest.reactions.createForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: comment.id,
-                content: 'eyes'
-            });
-            const progressComment = await this.postProgressComment(issue.number, `🔄 **Processing \`@yofix ${command.action}\`**\n\n⏳ Initializing...`, comment.id);
-            this.progressCommentId = progressComment.data.id;
+            await this.commentEngine.reactToComment(comment.id, 'eyes');
             const previewUrl = await this.getPreviewUrl(issue.number);
-            const updateProgress = async (message) => {
-                if (this.progressCommentId) {
-                    await this.updateComment(this.progressCommentId, message);
-                }
-            };
-            const commandHandlerWithProgress = this.commandHandler;
-            commandHandlerWithProgress.setProgressCallback?.(updateProgress);
             const result = await this.commandHandler.execute(command, {
                 prNumber: issue.number,
                 repo: context.repo,
@@ -104,93 +100,18 @@ class YoFixBot {
                 },
                 previewUrl
             });
-            if (this.progressCommentId) {
-                await this.updateComment(this.progressCommentId, result.message);
-            }
-            else {
-                await this.postComment(issue.number, result.message, comment.id);
-            }
         }
         catch (error) {
-            core.error(`Bot error: ${error}`);
-            const errorMessage = `❌ YoFix encountered an error: ${error.message}\n\nTry \`@yofix help\` for available commands.`;
-            if (this.progressCommentId) {
-                await this.updateComment(this.progressCommentId, errorMessage);
-            }
-            else {
-                await this.postComment(issue.number, errorMessage, comment.id);
-            }
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.HIGH,
+                category: core_1.ErrorCategory.UNKNOWN,
+                userAction: `Bot command: ${comment.body}`,
+                metadata: {
+                    issueNumber: issue.number,
+                    commentId: comment.id
+                }
+            });
         }
-    }
-    async postComment(issueNumber, body, inReplyTo) {
-        const context = github.context;
-        const finalBody = inReplyTo
-            ? `> In reply to [this comment](${context.payload.comment?.html_url || `#issuecomment-${inReplyTo}`})\n\n${body}`
-            : body;
-        await this.octokit.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: issueNumber,
-            body: finalBody
-        });
-    }
-    async postProgressComment(issueNumber, body, inReplyTo) {
-        const context = github.context;
-        const finalBody = inReplyTo
-            ? `> In reply to [this comment](${context.payload.comment?.html_url || `#issuecomment-${inReplyTo}`})\n\n${body}`
-            : body;
-        return await this.octokit.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: issueNumber,
-            body: finalBody
-        });
-    }
-    async updateComment(commentId, body) {
-        const context = github.context;
-        await this.octokit.rest.issues.updateComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            comment_id: commentId,
-            body
-        });
-    }
-    getHelpMessage() {
-        return `## 🔧 YoFix Bot Commands
-
-I can help you detect and fix visual issues in your PR. Here are my commands:
-
-### 🔍 Scanning Commands
-- \`@yofix scan\` - Scan all routes for visual issues
-- \`@yofix scan /specific-route\` - Scan a specific route
-- \`@yofix scan --viewport mobile\` - Scan with specific viewport
-
-### 🔧 Fix Commands
-- \`@yofix fix\` - Generate fixes for all detected issues
-- \`@yofix fix #3\` - Generate fix for specific issue
-- \`@yofix apply\` - Apply all suggested fixes
-- \`@yofix apply #2\` - Apply specific fix
-
-### 📊 Analysis Commands
-- \`@yofix explain #1\` - Get detailed explanation of an issue
-- \`@yofix compare production\` - Compare with production baseline
-- \`@yofix report\` - Generate full analysis report
-- \`@yofix impact\` - Show route impact tree from PR changes
-
-### 🎯 Other Commands
-- \`@yofix baseline update\` - Update visual baseline with current state
-- \`@yofix preview\` - Preview fixes before applying
-- \`@yofix ignore\` - Skip visual testing for this PR
-- \`@yofix help\` - Show this help message
-
-### 💡 Examples
-\`\`\`
-@yofix scan /dashboard --viewport tablet
-@yofix fix #1
-@yofix apply
-\`\`\`
-
-Need more help? Check our [documentation](https://yofix.dev/docs).`;
     }
     isBotComment(comment) {
         return comment.user?.login?.includes('bot') ||
@@ -220,7 +141,14 @@ Need more help? Check our [documentation](https://yofix.dev/docs).`;
             }
         }
         catch (error) {
-            core.warning(`Failed to get preview URL: ${error.message}`);
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.LOW,
+                category: core_1.ErrorCategory.CONFIGURATION,
+                userAction: 'Get preview URL',
+                recoverable: true,
+                skipGitHubPost: true,
+                metadata: { prNumber }
+            });
         }
         return undefined;
     }

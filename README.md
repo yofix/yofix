@@ -15,7 +15,7 @@ YoFix automatically detects visual issues in your web applications and generates
 - 📱 **Multi-Viewport Testing**: Tests across desktop, tablet, and mobile
 - 🎯 **Framework Support**: React, Next.js, Vue, Angular, and more
 - 📸 **Visual Baselines**: Track and compare UI changes over time
-- 🔐 **Auth Support**: Test protected routes with authentication
+- 🔐 **LLM-Powered Auth**: AI understands any login form - no selectors needed!
 
 ## 🚀 Quick Start
 
@@ -210,6 +210,7 @@ Large images could be optimized for better performance
 | `auth-email` | ❌ | - | Auth email for protected routes |
 | `auth-password` | ❌ | - | Auth password for protected routes |
 | `auth-login-url` | ❌ | `/login` | Login page URL |
+| `auth-mode` | ❌ | `llm` | Authentication mode: `llm` (AI-powered), `selectors`, or `smart` |
 | `cleanup-days` | ❌ | `30` | Days to keep screenshots |
 
 *Required based on storage provider choice
@@ -276,6 +277,42 @@ Ensure accessibility compliance:
 ```
 @yofix check accessibility on all pages
 ```
+
+## 🔧 Configuration System
+
+YoFix supports flexible configuration through multiple sources. You can customize AI models, browser settings, timeouts, and more.
+
+### Configuration File
+
+Create a `.yofix.config.json` in your project root:
+
+```json
+{
+  "ai": {
+    "claude": {
+      "defaultModel": "claude-3-5-sonnet-20241022",
+      "temperature": 0.2
+    }
+  },
+  "browser": {
+    "headless": true,
+    "defaultTimeout": 30000
+  },
+  "auth": {
+    "defaultMode": "selectors",
+    "selectorTimeout": 10000
+  }
+}
+```
+
+See [Configuration Documentation](docs/config_configuration-system.md) for all available options.
+
+### Environment Variables
+
+Override specific settings with environment variables:
+- `YOFIX_AI_MODEL` - Claude model to use
+- `YOFIX_BROWSER_HEADLESS` - Run headless (true/false)
+- `YOFIX_LOG_LEVEL` - Logging level (debug/info/warn/error)
 
 ## 🔧 Troubleshooting
 

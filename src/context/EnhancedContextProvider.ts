@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
 import { Anthropic } from '@anthropic-ai/sdk';
+import config from '../config';
 
 export interface CodeContext {
   projectStructure: string;
@@ -135,9 +136,9 @@ Provide analysis with the same depth and accuracy as Claude Code would, understa
     const enhancedPrompt = this.createContextualPrompt(prompt, context);
     
     const response = await this.claude.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4096,
-      temperature: 0.2,
+      model: config.get('ai.claude.models.contextual'),
+      max_tokens: config.get('ai.claude.maxTokens.analysis'),
+      temperature: config.get('ai.claude.temperature', 0.2),
       messages: [{
         role: 'user',
         content: enhancedPrompt

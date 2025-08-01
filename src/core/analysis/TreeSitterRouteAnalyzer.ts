@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import { ComponentRouteMapper } from './ComponentRouteMapper';
 import { StorageProvider } from '../baseline/types';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
 
 interface ImportNode {
   source: string;
@@ -118,7 +119,14 @@ export class TreeSitterRouteAnalyzer {
         }
       }
     } catch (error) {
-      core.warning(`Failed to clear persistent cache: ${error}`);
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.STORAGE,
+        userAction: 'Clear persistent cache',
+        metadata: { cacheKey: this.cacheKey },
+        recoverable: true,
+        skipGitHubPost: true
+      });
     }
   }
   
@@ -338,11 +346,22 @@ export class TreeSitterRouteAnalyzer {
     } catch (error: any) {
       // More detailed error logging
       if (error.code === 'ENOENT') {
+        // File not found is expected for some cases
         core.debug(`File not found: ${filePath}`);
-      } else if (error.message?.includes('Invalid argument')) {
-        core.debug(`Invalid argument error for ${filePath} - likely a parsing issue with special characters or encoding`);
       } else {
-        core.debug(`Failed to process ${filePath}: ${error.message || error}`);
+        await errorHandler.handleError(error as Error, {
+          severity: ErrorSeverity.LOW,
+          category: ErrorCategory.ANALYSIS,
+          userAction: 'Parse file with Tree-sitter',
+          metadata: { 
+            filePath, 
+            extension: path.extname(filePath),
+            errorCode: error.code,
+            isInvalidArgument: error.message?.includes('Invalid argument')
+          },
+          recoverable: true,
+          skipGitHubPost: true
+        });
       }
       
       // Return empty file node
@@ -799,7 +818,14 @@ export class TreeSitterRouteAnalyzer {
         core.info(`✅ Persisted import graph to local cache: ${localCacheFile}`);
       }
     } catch (error) {
-      core.warning(`Failed to persist import graph: ${error}`);
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.STORAGE,
+        userAction: 'Persist import graph to storage',
+        metadata: { cacheKey: this.cacheKey },
+        recoverable: true,
+        skipGitHubPost: true
+      });
     }
   }
   

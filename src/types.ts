@@ -119,6 +119,7 @@ export interface ActionInputs {
   authEmail?: string;
   authPassword?: string;
   authLoginUrl?: string;
+  authMode?: string;
   enableSmartAuth?: boolean;
   mcpProvider?: string;
   mcpOptions?: string;

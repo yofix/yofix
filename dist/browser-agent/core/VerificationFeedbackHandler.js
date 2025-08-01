@@ -159,7 +159,7 @@ Respond in JSON format:
         };
     }
     formatAnalysis(analysis) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`FEEDBACK ANALYSIS:`);
         console.log(`  Should Retry: ${analysis.shouldRetry}`);
         console.log(`  Continue Next Step: ${analysis.continueWithNextStep}`);
@@ -174,7 +174,7 @@ Respond in JSON format:
                 console.log(`       Reasoning: ${action.reasoning}`);
             });
         }
-        console.log(`</pre>`);
+        console.log(``);
     }
 }
 exports.VerificationFeedbackHandler = VerificationFeedbackHandler;

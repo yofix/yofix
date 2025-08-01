@@ -108,7 +108,7 @@ class Agent {
                 if (planStepIndex < this.taskPlan.steps.length) {
                     this.currentStep = this.taskPlan.steps[planStepIndex];
                     LogFormatter_1.LogFormatter.formatStepStart(stepCount, this.currentStep.description);
-                    console.log(`<pre>Expected outcome: ${this.currentStep.expectedOutcome}</pre>`);
+                    console.log(`Expected outcome: ${this.currentStep.expectedOutcome}`);
                 }
                 else {
                     LogFormatter_1.LogFormatter.formatStepStart(stepCount, 'Unplanned step');
@@ -137,7 +137,7 @@ class Agent {
                 }
                 this.stateManager.recordStep(stepResult);
                 if (this.currentStep && result.success) {
-                    console.log(`<pre>Verifying step completion...</pre>`);
+                    console.log(`Verifying step completion...`);
                     const pageContent = await this.extractPageIndicators();
                     const verification = await this.taskPlanner.verifyStep(this.currentStep, this.stateManager.getState(), pageContent);
                     this.stepVerifications.push(verification);
@@ -149,12 +149,12 @@ class Agent {
                         const feedbackAnalysis = await this.feedbackHandler.analyzeFeedback(verification, this.currentStep, this.stateManager.getState(), pageContent);
                         this.feedbackHandler.formatAnalysis(feedbackAnalysis);
                         if (feedbackAnalysis.shouldRetry && feedbackAnalysis.suggestedActions.length > 0) {
-                            console.log(`<pre>Executing ${feedbackAnalysis.suggestedActions.length} corrective actions...</pre>`);
+                            console.log(`Executing ${feedbackAnalysis.suggestedActions.length} corrective actions...`);
                             const prioritizedActions = feedbackAnalysis.suggestedActions
                                 .sort((a, b) => b.priority - a.priority)
                                 .slice(0, 3);
                             for (const correctiveAction of prioritizedActions) {
-                                console.log(`<pre>Corrective Action: ${correctiveAction.action} - ${correctiveAction.reasoning}</pre>`);
+                                console.log(`Corrective Action: ${correctiveAction.action} - ${correctiveAction.reasoning}`);
                                 const correctiveResult = await this.executeAction({
                                     action: correctiveAction.action,
                                     parameters: correctiveAction.parameters,
@@ -163,21 +163,21 @@ class Agent {
                                 LogFormatter_1.LogFormatter.formatActionResult(correctiveResult.success, 0, correctiveResult.data);
                                 await this.page.waitForTimeout(500);
                             }
-                            console.log(`<pre>Re-verifying step after corrective actions...</pre>`);
+                            console.log(`Re-verifying step after corrective actions...`);
                             const updatedPageContent = await this.extractPageIndicators();
                             const reVerification = await this.taskPlanner.verifyStep(this.currentStep, this.stateManager.getState(), updatedPageContent);
                             this.stepVerifications.push(reVerification);
                             if (reVerification.success) {
-                                console.log(`<pre>Step verification successful after corrective actions!</pre>`);
+                                console.log(`Step verification successful after corrective actions!`);
                                 planStepIndex++;
                             }
                             else {
-                                console.log(`<pre>Step still failing after corrective actions, will continue with fallback strategy</pre>`);
+                                console.log(`Step still failing after corrective actions, will continue with fallback strategy`);
                                 this.handleRepeatedFailures(this.currentStep, this.stepVerifications, planStepIndex);
                             }
                         }
                         else if (feedbackAnalysis.continueWithNextStep) {
-                            console.log(`<pre>Feedback analysis suggests continuing with next step</pre>`);
+                            console.log(`Feedback analysis suggests continuing with next step`);
                             planStepIndex++;
                         }
                         else {
@@ -187,7 +187,7 @@ class Agent {
                 }
                 if (await this.checkTaskCompletion()) {
                     this.stateManager.markCompleted(true);
-                    console.log(`<pre>Task completed successfully!</pre>`);
+                    console.log(`Task completed successfully!`);
                     break;
                 }
                 await this.page.waitForTimeout(1000);
@@ -482,17 +482,17 @@ class Agent {
     handleRepeatedFailures(currentStep, stepVerifications, currentPlanStepIndex) {
         const failedVerifications = stepVerifications.filter(v => v.stepId === currentStep.id && !v.success).length;
         if (failedVerifications >= 2) {
-            console.log(`<pre>Step ${currentStep.id} failed verification ${failedVerifications} times</pre>`);
+            console.log(`Step ${currentStep.id} failed verification ${failedVerifications} times`);
             if (!currentStep.required) {
-                console.log(`<pre>Skipping optional step due to repeated verification failures</pre>`);
+                console.log(`Skipping optional step due to repeated verification failures`);
                 return currentPlanStepIndex + 1;
             }
             else if (failedVerifications >= 3) {
-                console.log(`<pre>Forcing progression past required step due to repeated failures</pre>`);
+                console.log(`Forcing progression past required step due to repeated failures`);
                 return currentPlanStepIndex + 1;
             }
             else {
-                console.log(`<pre>Will attempt alternative approach for this step</pre>`);
+                console.log(`Will attempt alternative approach for this step`);
                 return currentPlanStepIndex;
             }
         }

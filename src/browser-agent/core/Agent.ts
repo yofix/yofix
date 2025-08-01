@@ -132,7 +132,7 @@ export class Agent {
         if (planStepIndex < this.taskPlan.steps.length) {
           this.currentStep = this.taskPlan.steps[planStepIndex];
           LogFormatter.formatStepStart(stepCount, this.currentStep.description);
-          console.log(`<pre>Expected outcome: ${this.currentStep.expectedOutcome}</pre>`);
+          console.log(`Expected outcome: ${this.currentStep.expectedOutcome}`);
         } else {
           LogFormatter.formatStepStart(stepCount, 'Unplanned step');
         }
@@ -177,7 +177,7 @@ export class Agent {
         
         // Verify step if we have a plan
         if (this.currentStep && result.success) {
-          console.log(`<pre>Verifying step completion...</pre>`);
+          console.log(`Verifying step completion...`);
           
           // Extract page content indicators
           const pageContent = await this.extractPageIndicators();
@@ -211,7 +211,7 @@ export class Agent {
             
             // Execute suggested corrective actions
             if (feedbackAnalysis.shouldRetry && feedbackAnalysis.suggestedActions.length > 0) {
-              console.log(`<pre>Executing ${feedbackAnalysis.suggestedActions.length} corrective actions...</pre>`);
+              console.log(`Executing ${feedbackAnalysis.suggestedActions.length} corrective actions...`);
               
               // Execute top priority corrective actions
               const prioritizedActions = feedbackAnalysis.suggestedActions
@@ -219,7 +219,7 @@ export class Agent {
                 .slice(0, 3); // Execute top 3 actions
               
               for (const correctiveAction of prioritizedActions) {
-                console.log(`<pre>Corrective Action: ${correctiveAction.action} - ${correctiveAction.reasoning}</pre>`);
+                console.log(`Corrective Action: ${correctiveAction.action} - ${correctiveAction.reasoning}`);
                 
                 // Execute the corrective action
                 const correctiveResult = await this.executeAction({
@@ -239,7 +239,7 @@ export class Agent {
               }
               
               // Re-verify the step after corrective actions
-              console.log(`<pre>Re-verifying step after corrective actions...</pre>`);
+              console.log(`Re-verifying step after corrective actions...`);
               const updatedPageContent = await this.extractPageIndicators();
               const reVerification = await this.taskPlanner.verifyStep(
                 this.currentStep,
@@ -250,14 +250,14 @@ export class Agent {
               this.stepVerifications.push(reVerification);
               
               if (reVerification.success) {
-                console.log(`<pre>Step verification successful after corrective actions!</pre>`);
+                console.log(`Step verification successful after corrective actions!`);
                 planStepIndex++;
               } else {
-                console.log(`<pre>Step still failing after corrective actions, will continue with fallback strategy</pre>`);
+                console.log(`Step still failing after corrective actions, will continue with fallback strategy`);
                 this.handleRepeatedFailures(this.currentStep, this.stepVerifications, planStepIndex);
               }
             } else if (feedbackAnalysis.continueWithNextStep) {
-              console.log(`<pre>Feedback analysis suggests continuing with next step</pre>`);
+              console.log(`Feedback analysis suggests continuing with next step`);
               planStepIndex++;
             } else {
               // Fallback to original strategy
@@ -269,7 +269,7 @@ export class Agent {
         // Check if task is completed based on plan
         if (await this.checkTaskCompletion()) {
           this.stateManager.markCompleted(true);
-          console.log(`<pre>Task completed successfully!</pre>`);
+          console.log(`Task completed successfully!`);
           break;
         }
         
@@ -739,21 +739,21 @@ export class Agent {
     ).length;
     
     if (failedVerifications >= 2) {
-      console.log(`<pre>Step ${currentStep.id} failed verification ${failedVerifications} times</pre>`);
+      console.log(`Step ${currentStep.id} failed verification ${failedVerifications} times`);
       
       // Strategy 1: Skip optional steps after multiple failures
       if (!currentStep.required) {
-        console.log(`<pre>Skipping optional step due to repeated verification failures</pre>`);
+        console.log(`Skipping optional step due to repeated verification failures`);
         return currentPlanStepIndex + 1;
       }
       // Strategy 2: Force progression for required steps after 3 failures
       else if (failedVerifications >= 3) {
-        console.log(`<pre>Forcing progression past required step due to repeated failures</pre>`);
+        console.log(`Forcing progression past required step due to repeated failures`);
         return currentPlanStepIndex + 1;
       }
       // Strategy 3: Try alternative approach on next iteration
       else {
-        console.log(`<pre>Will attempt alternative approach for this step</pre>`);
+        console.log(`Will attempt alternative approach for this step`);
         return currentPlanStepIndex;
       }
     }

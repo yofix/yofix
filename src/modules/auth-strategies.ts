@@ -4,6 +4,7 @@
  */
 
 import { Page } from 'playwright';
+import { createModuleLogger, ErrorCategory, ErrorSeverity, executeOperation } from '../core';
 
 export interface AuthStrategy {
   name: string;
@@ -17,8 +18,14 @@ export interface AuthStrategy {
 export const tabOrderStrategy: AuthStrategy = {
   name: 'Tab Order Navigation',
   async execute(page: Page, email: string, password: string, debug?: boolean) {
+    const logger = createModuleLogger({
+      module: 'AuthStrategy.TabOrder',
+      debug,
+      defaultCategory: ErrorCategory.AUTHENTICATION
+    });
+    
     try {
-      if (debug) console.log('  🔄 Using Tab Order Strategy...');
+      logger.debug('  🔄 Using Tab Order Strategy...');
       
       // Click anywhere on the page to ensure focus
       await page.click('body');
@@ -29,7 +36,7 @@ export const tabOrderStrategy: AuthStrategy = {
       
       // Type email
       await page.keyboard.type(email);
-      if (debug) console.log('  ✅ Typed email in first field');
+      logger.debug('  ✅ Typed email in first field');
       
       // Tab to password field
       await page.keyboard.press('Tab');
@@ -37,18 +44,23 @@ export const tabOrderStrategy: AuthStrategy = {
       
       // Type password
       await page.keyboard.type(password);
-      if (debug) console.log('  ✅ Typed password in second field');
+      logger.debug('  ✅ Typed password in second field');
       
-      // Tab to submit button and press Enter
-      await page.keyboard.press('Tab');
-      await page.waitForTimeout(100);
-      await page.keyboard.press('Enter');
+      // Tab to submit button (might need multiple tabs)
+      for (let i = 0; i < 5; i++) {
+        await page.keyboard.press('Tab');
+        await page.waitForTimeout(50);
+      }
       
-      if (debug) console.log('  ✅ Pressed Enter on submit button');
+      logger.debug('  ✅ Pressed Enter on submit button');
       
       return true;
     } catch (error) {
-      if (debug) console.log(`  ❌ Tab order strategy failed: ${error}`);
+      await logger.error(error as Error, {
+        userAction: 'Tab order authentication strategy',
+        severity: ErrorSeverity.MEDIUM,
+        metadata: { strategy: 'tabOrder' }
+      });
       return false;
     }
   }
@@ -56,83 +68,83 @@ export const tabOrderStrategy: AuthStrategy = {
 
 /**
  * Strategy 2: Visual Proximity
- * Finds inputs based on their visual arrangement (email above password)
+ * Uses visual positioning to find related fields
  */
 export const visualProximityStrategy: AuthStrategy = {
   name: 'Visual Proximity',
   async execute(page: Page, email: string, password: string, debug?: boolean) {
+    const logger = createModuleLogger({
+      module: 'AuthStrategy.VisualProximity',
+      debug,
+      defaultCategory: ErrorCategory.AUTHENTICATION
+    });
+    
     try {
-      if (debug) console.log('  🔄 Using Visual Proximity Strategy...');
+      logger.debug('  🔄 Using Visual Proximity Strategy...');
       
-      // Get all visible inputs
-      const inputs = await page.evaluate(() => {
-        const allInputs = Array.from(document.querySelectorAll('input'));
-        return allInputs
-          .filter(input => input.offsetParent !== null) // visible
-          .map(input => ({
-            type: input.type,
-            top: input.getBoundingClientRect().top,
-            left: input.getBoundingClientRect().left,
-            width: input.getBoundingClientRect().width,
-            height: input.getBoundingClientRect().height
-          }))
-          .sort((a, b) => a.top - b.top); // Sort by vertical position
-      });
+      // Find all text inputs
+      const textInputs = await page.locator('input[type="text"], input[type="email"], input:not([type])').all();
       
-      if (inputs.length < 2) {
-        throw new Error('Not enough input fields found');
+      if (textInputs.length === 0) {
+        throw new Error('No text inputs found');
       }
+      
+      // Sort by vertical position (top to bottom)
+      const inputsWithPosition = await Promise.all(
+        textInputs.map(async (input) => {
+          const box = await input.boundingBox();
+          return { input, y: box?.y || 0 };
+        })
+      );
+      
+      inputsWithPosition.sort((a, b) => a.y - b.y);
       
       // First visible input is likely email
-      const emailInput = await page.locator('input').nth(0);
+      const emailInput = inputsWithPosition[0].input;
       await emailInput.fill(email);
-      if (debug) console.log('  ✅ Filled top-most input with email');
+      logger.debug('  ✅ Filled top-most input with email');
       
-      // Find password input (should be type="password")
-      const passwordInputs = inputs.filter(i => i.type === 'password');
-      if (passwordInputs.length > 0) {
-        const passwordInput = await page.locator('input[type="password"]').first();
+      // Find password field
+      const passwordInput = await page.locator('input[type="password"]').first();
+      
+      if (await passwordInput.isVisible()) {
         await passwordInput.fill(password);
-        if (debug) console.log('  ✅ Filled password input');
+        logger.debug('  ✅ Filled password input');
       } else {
-        // Fallback: second input
-        const passwordInput = await page.locator('input').nth(1);
-        await passwordInput.fill(password);
-        if (debug) console.log('  ✅ Filled second input with password');
+        // If no password field, second input might be password
+        if (inputsWithPosition.length > 1) {
+          await inputsWithPosition[1].input.fill(password);
+          logger.debug('  ✅ Filled second input with password');
+        }
       }
       
-      // Find submit button near the inputs
-      const submitButton = await page.evaluate(() => {
-        const inputs = document.querySelectorAll('input');
-        const lastInput = inputs[inputs.length - 1];
-        if (!lastInput) return null;
-        
-        const inputRect = lastInput.getBoundingClientRect();
-        const buttons = Array.from(document.querySelectorAll('button'));
-        
-        // Find button below and near the last input
-        const nearbyButtons = buttons.filter(btn => {
-          const btnRect = btn.getBoundingClientRect();
-          return btnRect.top > inputRect.top && // Below input
-                 Math.abs(btnRect.left - inputRect.left) < 200; // Horizontally aligned
-        });
-        
-        if (nearbyButtons.length > 0) {
-          nearbyButtons[0].click();
-          return true;
-        }
-        return false;
-      });
+      await page.waitForTimeout(500);
       
-      if (!submitButton) {
-        // Fallback: press Enter in password field
+      // Find submit button - look for button with login-related text
+      const submitButton = await page.locator(`
+        button:has-text("Sign in"),
+        button:has-text("Log in"), 
+        button:has-text("Login"),
+        button:has-text("Submit"),
+        button[type="submit"],
+        input[type="submit"]
+      `).first();
+      
+      if (await submitButton.isVisible()) {
+        await submitButton.click();
+      } else {
+        // Press Enter on password field
         await page.locator('input[type="password"]').press('Enter');
-        if (debug) console.log('  ⚠️ No submit button found, pressed Enter');
+        logger.debug('  ⚠️ No submit button found, pressed Enter');
       }
       
       return true;
     } catch (error) {
-      if (debug) console.log(`  ❌ Visual proximity strategy failed: ${error}`);
+      await logger.error(error as Error, {
+        userAction: 'Visual proximity authentication strategy',
+        severity: ErrorSeverity.MEDIUM,
+        metadata: { strategy: 'visualProximity' }
+      });
       return false;
     }
   }
@@ -140,145 +152,167 @@ export const visualProximityStrategy: AuthStrategy = {
 
 /**
  * Strategy 3: Form Detection
- * Finds the form element and works within it
+ * Looks for form elements and their associations
  */
 export const formDetectionStrategy: AuthStrategy = {
   name: 'Form Detection',
   async execute(page: Page, email: string, password: string, debug?: boolean) {
+    const logger = createModuleLogger({
+      module: 'AuthStrategy.FormDetection',
+      debug,
+      defaultCategory: ErrorCategory.AUTHENTICATION
+    });
+    
     try {
-      if (debug) console.log('  🔄 Using Form Detection Strategy...');
+      logger.debug('  🔄 Using Form Detection Strategy...');
       
-      // Find forms with password inputs
-      const formData = await page.evaluate(() => {
-        const forms = Array.from(document.querySelectorAll('form'));
-        for (const form of forms) {
-          const passwordInput = form.querySelector('input[type="password"]');
-          if (passwordInput) {
-            const allInputs = Array.from(form.querySelectorAll('input'));
-            const textInputs = allInputs.filter(i => 
-              i.type === 'text' || i.type === 'email' || !i.type
-            );
-            
-            return {
-              hasForm: true,
-              textInputIndex: textInputs.length > 0 ? allInputs.indexOf(textInputs[0]) : -1,
-              passwordInputIndex: allInputs.indexOf(passwordInput as HTMLInputElement),
-              formIndex: Array.from(document.querySelectorAll('form')).indexOf(form)
-            };
-          }
-        }
-        return { hasForm: false };
-      });
+      // Find forms with password fields
+      const forms = await page.locator('form:has(input[type="password"])').all();
       
-      if (!formData.hasForm) {
-        throw new Error('No form with password field found');
+      if (forms.length === 0) {
+        throw new Error('No forms with password fields found');
       }
       
-      // Fill inputs within the form
-      const form = await page.locator('form').nth(formData.formIndex);
+      // Use the first form
+      const form = forms[0];
       
-      if (formData.textInputIndex >= 0) {
-        const emailInput = await form.locator('input').nth(formData.textInputIndex);
-        await emailInput.fill(email);
-        if (debug) console.log('  ✅ Filled email in form');
-      }
+      // Find inputs within this form
+      const emailInput = await form.locator(`
+        input[type="email"],
+        input[type="text"][name*="email"],
+        input[type="text"][name*="user"],
+        input[type="text"]:not([type="password"])
+      `).first();
       
       const passwordInput = await form.locator('input[type="password"]').first();
+      
+      // Fill fields
+      if (await emailInput.isVisible()) {
+        await emailInput.fill(email);
+        logger.debug('  ✅ Filled email in form');
+      }
+      
       await passwordInput.fill(password);
-      if (debug) console.log('  ✅ Filled password in form');
+      logger.debug('  ✅ Filled password in form');
       
-      // Submit the form
-      await form.evaluate(form => {
-        // Try to submit the form directly
-        (form as HTMLFormElement).submit();
-      });
+      // Submit form
+      const submitButton = await form.locator('button[type="submit"], input[type="submit"], button').first();
       
-      if (debug) console.log('  ✅ Submitted form');
+      if (await submitButton.isVisible()) {
+        await submitButton.click();
+      } else {
+        // Try submitting the form directly
+        await form.press('Enter');
+      }
+      
+      logger.debug('  ✅ Submitted form');
       
       return true;
     } catch (error) {
-      if (debug) console.log(`  ❌ Form detection strategy failed: ${error}`);
+      await logger.error(error as Error, {
+        userAction: 'Form detection authentication strategy',
+        severity: ErrorSeverity.MEDIUM,
+        metadata: { strategy: 'formDetection' }
+      });
       return false;
     }
   }
 };
 
 /**
- * Strategy 4: AI-Assisted (with screenshot analysis)
- * Uses Claude to analyze the page and provide instructions
+ * Strategy 4: AI-Assisted Heuristics
+ * Uses smart heuristics to identify login elements
  */
 export const aiAssistedStrategy: AuthStrategy = {
-  name: 'AI-Assisted',
+  name: 'AI-Assisted Heuristics',
   async execute(page: Page, email: string, password: string, debug?: boolean) {
+    const logger = createModuleLogger({
+      module: 'AuthStrategy.AIAssisted',
+      debug,
+      defaultCategory: ErrorCategory.AUTHENTICATION
+    });
+    
     try {
-      if (debug) console.log('  🔄 Using AI-Assisted Strategy...');
+      logger.debug('  🔄 Using AI-Assisted Strategy...');
       
-      // Take screenshot
-      const screenshot = await page.screenshot({ fullPage: false });
+      // Capture page text to understand context
+      const pageText = await page.textContent('body');
+      const lowerText = pageText?.toLowerCase() || '';
       
-      // Get page structure
-      const pageInfo = await page.evaluate(() => {
-        const inputs = Array.from(document.querySelectorAll('input')).map((input, i) => ({
-          index: i,
-          type: input.type,
-          placeholder: input.placeholder,
-          visible: input.offsetParent !== null,
-          position: input.getBoundingClientRect()
-        }));
-        
-        const buttons = Array.from(document.querySelectorAll('button')).map((btn, i) => ({
-          index: i,
-          text: btn.textContent?.trim(),
-          visible: btn.offsetParent !== null,
-          position: btn.getBoundingClientRect()
-        }));
-        
-        return { inputs, buttons };
-      });
+      // Detect login page patterns
+      const loginPatterns = ['sign in', 'log in', 'login', 'email', 'password', 'username'];
+      const isLikelyLoginPage = loginPatterns.some(pattern => lowerText.includes(pattern));
       
-      // Here we would send to Claude API for analysis
-      // For now, use a heuristic based on the page info
-      
-      if (pageInfo.inputs.length >= 2) {
-        // Fill first visible non-password input with email
-        const nonPasswordInputs = pageInfo.inputs.filter(i => i.type !== 'password' && i.visible);
-        if (nonPasswordInputs.length > 0) {
-          await page.locator('input').nth(nonPasswordInputs[0].index).fill(email);
-        }
-        
-        // Fill password input
-        const passwordInput = pageInfo.inputs.find(i => i.type === 'password' && i.visible);
-        if (passwordInput) {
-          await page.locator('input').nth(passwordInput.index).fill(password);
-        }
-        
-        // Click submit button
-        const submitButton = pageInfo.buttons.find(b => 
-          b.visible && 
-          (b.text?.toLowerCase().includes('log') || 
-           b.text?.toLowerCase().includes('sign') ||
-           b.text?.toLowerCase().includes('submit'))
-        );
-        
-        if (submitButton) {
-          await page.locator('button').nth(submitButton.index).click();
-        } else {
-          await page.keyboard.press('Enter');
-        }
-        
-        return true;
+      if (!isLikelyLoginPage) {
+        throw new Error('Does not appear to be a login page');
       }
       
-      return false;
+      // Fill email field using multiple selectors
+      const emailFilled = await page.evaluate(async (email) => {
+        const selectors = [
+          'input[type="email"]',
+          'input[name*="email"]',
+          'input[placeholder*="email"]',
+          'input[id*="email"]',
+          'input[name*="user"]',
+          'input[placeholder*="user"]',
+          'input[id*="user"]',
+          'input[type="text"]:not([type="password"])'
+        ];
+        
+        for (const selector of selectors) {
+          const input = document.querySelector(selector) as HTMLInputElement;
+          if (input && input.offsetHeight > 0) {
+            input.value = email;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            return true;
+          }
+        }
+        return false;
+      }, email);
+      
+      if (emailFilled) {
+        await page.waitForTimeout(200);
+      }
+      
+      // Fill password field
+      await page.locator('input[type="password"]').first().fill(password);
+      await page.waitForTimeout(200);
+      
+      // Smart submit button detection
+      await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button, input[type="submit"]'));
+        const submitButton = buttons.find(btn => {
+          const text = btn.textContent?.toLowerCase() || '';
+          const value = (btn as HTMLInputElement).value?.toLowerCase() || '';
+          return ['sign in', 'log in', 'login', 'submit'].some(term => 
+            text.includes(term) || value.includes(term)
+          );
+        });
+        
+        if (submitButton) {
+          (submitButton as HTMLElement).click();
+        } else {
+          // Fallback: submit the form
+          const form = document.querySelector('form');
+          if (form) form.submit();
+        }
+      });
+      
+      return true;
     } catch (error) {
-      if (debug) console.log(`  ❌ AI-assisted strategy failed: ${error}`);
+      await logger.error(error as Error, {
+        userAction: 'AI-assisted authentication strategy',
+        severity: ErrorSeverity.MEDIUM,
+        metadata: { strategy: 'aiAssisted' }
+      });
       return false;
     }
   }
 };
 
 /**
- * Execute strategies in order until one succeeds
+ * Execute all authentication strategies in order until one succeeds
  */
 export async function executeAuthStrategies(
   page: Page,
@@ -286,6 +320,12 @@ export async function executeAuthStrategies(
   password: string,
   debug?: boolean
 ): Promise<boolean> {
+  const logger = createModuleLogger({
+    module: 'AuthStrategies',
+    debug,
+    defaultCategory: ErrorCategory.AUTHENTICATION
+  });
+  
   const strategies = [
     tabOrderStrategy,
     visualProximityStrategy,
@@ -294,33 +334,48 @@ export async function executeAuthStrategies(
   ];
   
   for (const strategy of strategies) {
-    if (debug) console.log(`\n🎯 Trying ${strategy.name}...`);
+    logger.debug(`\n🎯 Trying ${strategy.name}...`);
     
-    try {
-      const success = await strategy.execute(page, email, password, debug);
-      if (success) {
-        // Wait for navigation
-        try {
-          await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 5000 });
-        } catch {
-          await page.waitForTimeout(2000);
+    const result = await executeOperation(
+      async () => {
+        const success = await strategy.execute(page, email, password, debug);
+        
+        if (success) {
+          // Wait for navigation
+          await page.waitForTimeout(3000);
+          
+          // Check if we're still on a login page
+          const currentUrl = page.url();
+          const pageText = await page.textContent('body');
+          const onLoginPage = currentUrl.includes('login') || 
+                            currentUrl.includes('signin') ||
+                            (pageText?.toLowerCase().includes('password') && 
+                             pageText?.toLowerCase().includes('email'));
+          
+          if (!onLoginPage) {
+            logger.debug(`  ✅ ${strategy.name} succeeded!`);
+            return true;
+          } else {
+            logger.debug(`  ⚠️ ${strategy.name} executed but still on login page`);
+            return false;
+          }
         }
         
-        // Check if we're still on login page
-        const url = page.url();
-        const onLoginPage = url.includes('/login') || url.includes('/signin') || url.includes('/auth');
-        
-        if (!onLoginPage) {
-          if (debug) console.log(`  ✅ ${strategy.name} succeeded!`);
-          return true;
-        } else {
-          if (debug) console.log(`  ⚠️ ${strategy.name} executed but still on login page`);
-        }
+        return false;
+      },
+      {
+        name: `Execute ${strategy.name}`,
+        category: ErrorCategory.AUTHENTICATION,
+        severity: ErrorSeverity.MEDIUM,
+        fallback: false
       }
-    } catch (error) {
-      if (debug) console.log(`  ❌ ${strategy.name} error: ${error}`);
+    );
+    
+    if (result.success && result.data) {
+      return true;
     }
   }
   
+  logger.warn('All authentication strategies failed');
   return false;
 }

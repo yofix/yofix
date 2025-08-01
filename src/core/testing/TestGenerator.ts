@@ -104,14 +104,32 @@ export class TestGenerator {
   }
 
   private buildRouteTestTask(route: string, url: string, analysis: RouteAnalysisResult): string {
-    const tasks: string[] = [
-      `1. Navigate to ${url}`,
-      '2. Wait for the page to fully load',
-      '3. Take a screenshot for baseline comparison',
+    const tasks: string[] = [];
+    
+    // Check if authentication is needed
+    const authEmail = core.getInput('auth-email');
+    const authPassword = core.getInput('auth-password');
+    const authMode = core.getInput('auth-mode') || 'llm';
+    
+    if (authEmail && authPassword) {
+      const loginUrl = core.getInput('auth-login-url') || '/login';
+      if (authMode === 'llm') {
+        tasks.push(`1. Use llm_login to authenticate with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}"`);
+      } else {
+        tasks.push(`1. Use smart_login to authenticate with email="${authEmail}" password="${authPassword}" url="${loginUrl}"`);
+      }
+      tasks.push(`2. Navigate to ${url} after authentication`);
+    } else {
+      tasks.push(`1. Navigate to ${url}`);
+    }
+    
+    tasks.push(
+      `${tasks.length + 1}. Wait for the page to fully load`,
+      `${tasks.length + 2}. Take a screenshot for baseline comparison`,
       '4. Run check_visual_issues with screenshot=true to detect layout problems',
       '5. Test navigation by clicking on interactive elements',
       '6. Check for broken images or missing content'
-    ];
+    );
 
     // Add responsive testing for UI changes
     if (analysis.hasUIChanges) {

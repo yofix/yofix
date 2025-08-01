@@ -32,11 +32,15 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIRouteDiscovery = void 0;
 const core = __importStar(require("@actions/core"));
 const sdk_1 = require("@anthropic-ai/sdk");
 const EnhancedContextProvider_1 = require("../../context/EnhancedContextProvider");
+const config_1 = __importDefault(require("../../config"));
 class AIRouteDiscovery {
     constructor(claudeApiKey) {
         this.claude = new sdk_1.Anthropic({ apiKey: claudeApiKey });
@@ -83,9 +87,9 @@ Return a JSON array of routes (paths only, not full URLs):
 Focus on routes that would show different content or UI states.`;
             const contextualAnalysis = await this.contextProvider.analyzeWithContext(basePrompt, context);
             const response = await this.claude.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 1024,
-                temperature: 0.2,
+                model: config_1.default.get('ai.claude.models.navigation'),
+                max_tokens: config_1.default.get('ai.claude.maxTokens.navigation'),
+                temperature: config_1.default.get('ai.claude.temperature', 0.2),
                 messages: [
                     {
                         role: 'user',
@@ -141,8 +145,8 @@ Return natural language commands like:
 Format as JSON array of commands.`;
             const contextualPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
             const response = await this.claude.messages.create({
-                model: 'claude-3-5-sonnet-20241022',
-                max_tokens: 1024,
+                model: config_1.default.get('ai.claude.models.navigation'),
+                max_tokens: config_1.default.get('ai.claude.maxTokens.navigation'),
                 temperature: 0.3,
                 messages: [
                     {

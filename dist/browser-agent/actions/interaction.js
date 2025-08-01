@@ -70,8 +70,8 @@ function getInteractionActions(llmProvider) {
                         }
                         const result = await elementFinder.findElementWithLLMClassification(dom, taskContext, screenshot);
                         if (result && result.confidence > 50) {
-                            console.log(`<pre>Smart click: Found ${params.target} with ${result.confidence}% confidence</pre>`);
-                            console.log(`<pre>Element: [${result.element.index}] ${result.element.tag} "${result.element.text}"</pre>`);
+                            console.log(`🎯 Smart click: Found ${params.target} with ${result.confidence}% confidence`);
+                            console.log(`📍 Element: [${result.element.index}] ${result.element.tag} "${result.element.text}"`);
                             await domIndexer.highlightElement(page, result.element.id, 1000);
                             if (result.element.boundingBox && result.element.boundingBox.width > 0) {
                                 const x = result.element.boundingBox.x + result.element.boundingBox.width / 2;
@@ -162,7 +162,7 @@ function getInteractionActions(llmProvider) {
                         return { success: false, error: 'No element identifier provided' };
                     }
                     if (element) {
-                        console.log(`<pre>Clicking element: ${element.tag} with text "${element.text?.substring(0, 50)}"</pre>`);
+                        console.log(`🖱️ Clicking element: ${element.tag} with text "${element.text?.substring(0, 50)}"`);
                         try {
                             if (element.boundingBox && element.boundingBox.width > 0 && element.boundingBox.height > 0) {
                                 const x = element.boundingBox.x + element.boundingBox.width / 2;
@@ -231,7 +231,7 @@ function getInteractionActions(llmProvider) {
                         const result = await elementFinder.findFormField(dom, fieldType);
                         if (result && result.confidence > 60) {
                             element = result.element;
-                            console.log(`<pre>Smart type: Found ${fieldType} field with ${result.confidence}% confidence</pre>`);
+                            console.log(`⌨️ Smart type: Found ${fieldType} field with ${result.confidence}% confidence`);
                         }
                     }
                     if (!element) {

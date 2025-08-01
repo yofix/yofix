@@ -45,8 +45,8 @@ export function getInteractionActions(llmProvider?: any): Array<{ definition: Ac
           const result = await elementFinder.findElementWithLLMClassification(dom, taskContext, screenshot);
           
           if (result && result.confidence > 50) {
-            console.log(`<pre>Smart click: Found ${params.target} with ${result.confidence}% confidence</pre>`);
-            console.log(`<pre>Element: [${result.element.index}] ${result.element.tag} "${result.element.text}"</pre>`);
+            console.log(`🎯 Smart click: Found ${params.target} with ${result.confidence}% confidence`);
+            console.log(`📍 Element: [${result.element.index}] ${result.element.tag} "${result.element.text}"`);
             
             // Highlight before clicking
             await domIndexer.highlightElement(page, result.element.id, 1000);
@@ -153,7 +153,7 @@ export function getInteractionActions(llmProvider?: any): Array<{ definition: Ac
         
         // Click the element
         if (element) {
-          console.log(`<pre>Clicking element: ${element.tag} with text "${element.text?.substring(0, 50)}"</pre>`);
+          console.log(`🖱️ Clicking element: ${element.tag} with text "${element.text?.substring(0, 50)}"`);
           
           // Try multiple strategies
           try {
@@ -231,7 +231,7 @@ export function getInteractionActions(llmProvider?: any): Array<{ definition: Ac
           const result = await elementFinder.findFormField(dom, fieldType as any);
           if (result && result.confidence > 60) {
             element = result.element;
-            console.log(`<pre>Smart type: Found ${fieldType} field with ${result.confidence}% confidence</pre>`);
+            console.log(`⌨️ Smart type: Found ${fieldType} field with ${result.confidence}% confidence`);
           }
         }
         

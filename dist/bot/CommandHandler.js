@@ -44,6 +44,7 @@ const Agent_1 = require("../browser-agent/core/Agent");
 const RouteImpactAnalyzer_1 = require("../core/analysis/RouteImpactAnalyzer");
 const TreeSitterRouteAnalyzer_1 = require("../core/analysis/TreeSitterRouteAnalyzer");
 const StorageFactory_1 = require("../providers/storage/StorageFactory");
+const core_1 = require("../core");
 class CommandHandler {
     constructor(githubToken, claudeApiKey, codebaseContext) {
         this.browserAgent = null;
@@ -59,53 +60,67 @@ class CommandHandler {
     setProgressCallback(callback) {
         this.progressCallback = callback;
     }
-    async reportProgress(message) {
-        if (this.progressCallback) {
-            await this.progressCallback(message);
-        }
-        core.info(message);
-    }
     async execute(command, context) {
-        core.info(`Executing command: ${command.action} ${command.args}`);
-        switch (command.action) {
-            case 'scan':
-                return await this.handleScan(command, context);
-            case 'fix':
-                return await this.handleFix(command, context);
-            case 'apply':
-                return await this.handleApply(command, context);
-            case 'explain':
-                return await this.handleExplain(command, context);
-            case 'preview':
-                return await this.handlePreview(command, context);
-            case 'compare':
-                return await this.handleCompare(command, context);
-            case 'baseline':
-                return await this.handleBaseline(command, context);
-            case 'report':
-                return await this.handleReport(command, context);
-            case 'ignore':
-                return await this.handleIgnore(command, context);
-            case 'test':
-                return await this.handleTest(command, context);
-            case 'browser':
-                return await this.handleBrowser(command, context);
-            case 'impact':
-                return await this.handleImpact(command, context);
-            case 'cache':
-                return await this.handleCache(command, context);
-            case 'help':
-            default:
-                return {
-                    success: true,
-                    message: this.getHelpMessage()
-                };
+        const activityId = `bot-${Date.now()}`;
+        const commandStr = `@yofix ${command.action} ${command.args || ''}`;
+        try {
+            await core_1.botActivity.startActivity(activityId, commandStr);
+            core.info(`Executing command: ${command.action} ${command.args}`);
+            let response;
+            switch (command.action) {
+                case 'scan':
+                    return await this.handleScan(command, context);
+                case 'fix':
+                    return await this.handleFix(command, context);
+                case 'apply':
+                    return await this.handleApply(command, context);
+                case 'explain':
+                    return await this.handleExplain(command, context);
+                case 'preview':
+                    return await this.handlePreview(command, context);
+                case 'compare':
+                    return await this.handleCompare(command, context);
+                case 'baseline':
+                    return await this.handleBaseline(command, context);
+                case 'report':
+                    return await this.handleReport(command, context);
+                case 'ignore':
+                    return await this.handleIgnore(command, context);
+                case 'test':
+                    return await this.handleTest(command, context);
+                case 'browser':
+                    return await this.handleBrowser(command, context);
+                case 'impact':
+                    return await this.handleImpact(command, context);
+                case 'cache':
+                    return await this.handleCache(command, context);
+                case 'help':
+                default:
+                    response = {
+                        success: true,
+                        message: this.getHelpMessage()
+                    };
+            }
+            if (response.success) {
+                await core_1.botActivity.completeActivity(response.data, response.message);
+            }
+            else {
+                await core_1.botActivity.failActivity(response.message || 'Command failed');
+            }
+            return response;
+        }
+        catch (error) {
+            await core_1.botActivity.failActivity(error);
+            throw error;
         }
     }
     async handleScan(command, context) {
         try {
+            await core_1.botActivity.addStep('Initializing scan', 'running');
             const routes = command.targetRoute ? [command.targetRoute] : 'auto';
             const viewport = command.options.viewport || 'all';
+            await core_1.botActivity.updateStep('Initializing scan', 'completed');
+            await core_1.botActivity.addStep('Running visual analysis', 'running');
             const scanResult = await this.visualAnalyzer.scan({
                 prNumber: context.prNumber,
                 routes,
@@ -116,10 +131,13 @@ class CommandHandler {
                 }
             });
             this.currentScanResult = scanResult;
+            await core_1.botActivity.updateStep('Running visual analysis', 'completed', `Found ${scanResult.issues.length} issues`);
             if (scanResult.issues.length > 0) {
+                await core_1.botActivity.addStep('Generating test cases', 'running');
                 const testGenerator = new VisualIssueTestGenerator_1.VisualIssueTestGenerator();
                 const tests = testGenerator.generateTestsFromIssues(scanResult.issues);
                 scanResult.generatedTests = tests;
+                await core_1.botActivity.updateStep('Generating test cases', 'completed', `Generated ${tests.length} test cases`);
                 core.info(`Generated ${tests.length} test cases for detected issues`);
             }
             const message = this.reportFormatter.formatScanResult(scanResult);
@@ -130,6 +148,13 @@ class CommandHandler {
             };
         }
         catch (error) {
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.HIGH,
+                category: core_1.ErrorCategory.ANALYSIS,
+                userAction: 'Visual scan command',
+                metadata: { command, context },
+                skipGitHubPost: true
+            });
             return {
                 success: false,
                 message: `❌ Scan failed: ${error.message}`
@@ -167,6 +192,13 @@ class CommandHandler {
             };
         }
         catch (error) {
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.HIGH,
+                category: core_1.ErrorCategory.UNKNOWN,
+                userAction: 'Fix generation command',
+                metadata: { command, context },
+                skipGitHubPost: true
+            });
             return {
                 success: false,
                 message: `❌ Fix generation failed: ${error.message}`
@@ -396,7 +428,7 @@ npx yofix generate-tests --pr ${context.prNumber}
     }
     async handleImpact(command, context) {
         try {
-            await this.reportProgress('🔄 **Analyzing route impact**\n\n📊 Fetching changed files...');
+            await core_1.botActivity.addStep('Fetching changed files', 'running');
             const prNumber = context.prNumber;
             core.info(`Analyzing route impact for PR #${prNumber}...`);
             let storageProvider = null;
@@ -410,16 +442,26 @@ npx yofix generate-tests --pr ${context.prNumber}
                 core.debug(`Storage provider initialization failed: ${error}`);
             }
             const impactAnalyzer = new RouteImpactAnalyzer_1.RouteImpactAnalyzer(this.githubToken, storageProvider);
-            await this.reportProgress('🔄 **Analyzing route impact**\n\n🌳 Building import graph with Tree-sitter...');
+            await core_1.botActivity.updateStep('Fetching changed files', 'completed');
+            await core_1.botActivity.addStep('Building import graph with Tree-sitter', 'running');
             const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
-            await this.reportProgress('🔄 **Analyzing route impact**\n\n🎯 Mapping affected routes...');
+            await core_1.botActivity.updateStep('Building import graph with Tree-sitter', 'completed');
+            await core_1.botActivity.addStep('Mapping affected routes', 'running');
             const message = impactAnalyzer.formatImpactTree(impactTree);
+            await core_1.botActivity.updateStep('Mapping affected routes', 'completed', `Found ${impactTree.affectedRoutes.length} affected routes`);
             return {
                 success: true,
                 message
             };
         }
         catch (error) {
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.MEDIUM,
+                category: core_1.ErrorCategory.ANALYSIS,
+                userAction: 'Impact analysis command',
+                metadata: { command, context },
+                skipGitHubPost: true
+            });
             return {
                 success: false,
                 message: `❌ Impact analysis failed: ${error.message}`
@@ -429,7 +471,7 @@ npx yofix generate-tests --pr ${context.prNumber}
     async handleCache(command, context) {
         try {
             if (command.args.includes('clear')) {
-                await this.reportProgress('🔄 **Clearing cache**\n\n🗝️ Removing route analysis cache...');
+                await core_1.botActivity.addStep('Removing route analysis cache', 'running');
                 let storageProvider = null;
                 try {
                     const storageProviderName = core.getInput('storage-provider') || 'github';
@@ -442,7 +484,7 @@ npx yofix generate-tests --pr ${context.prNumber}
                 }
                 const analyzer = new TreeSitterRouteAnalyzer_1.TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
                 await analyzer.clearCache();
-                await this.reportProgress('🔄 **Clearing cache**\n\n✅ Cache cleared successfully!');
+                await core_1.botActivity.updateStep('Removing route analysis cache', 'completed', 'Cache cleared successfully');
                 return {
                     success: true,
                     message: `🗝️ **Cache Cleared Successfully!**
@@ -456,7 +498,7 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
                 };
             }
             else if (command.args.includes('status')) {
-                await this.reportProgress('🔄 **Checking cache status**\n\n🔍 Analyzing cache metrics...');
+                await core_1.botActivity.addStep('Analyzing cache metrics', 'running');
                 let storageProvider = null;
                 try {
                     const storageProviderName = core.getInput('storage-provider') || 'github';
@@ -469,6 +511,7 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
                 }
                 const analyzer = new TreeSitterRouteAnalyzer_1.TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
                 const metrics = analyzer.getMetrics();
+                await core_1.botActivity.updateStep('Analyzing cache metrics', 'completed');
                 return {
                     success: true,
                     message: `📦 **Cache Status**
@@ -487,6 +530,13 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
             };
         }
         catch (error) {
+            await core_1.errorHandler.handleError(error, {
+                severity: core_1.ErrorSeverity.LOW,
+                category: core_1.ErrorCategory.UNKNOWN,
+                userAction: 'Cache management command',
+                metadata: { command, context },
+                skipGitHubPost: true
+            });
             return {
                 success: false,
                 message: `❌ Cache operation failed: ${error.message}`

@@ -6,6 +6,7 @@ import { PatternMatcher } from './PatternMatcher';
 import { FixValidator } from './FixValidator';
 import { FixTemplates } from './FixTemplates';
 import { CacheManager } from '../../optimization/CacheManager';
+import config from '../../config';
 
 /**
  * Smart fix generator that uses codebase context and patterns
@@ -47,9 +48,9 @@ export class SmartFixGenerator {
       
       // Step 4: Generate fix with Claude (with caching)
       const cacheKey = this.cache.createAIResponseKey({
-        model: 'claude-3-5-sonnet-20241022',
+        model: config.get('ai.claude.models.fixing'),
         prompt,
-        temperature: 0.3,
+        temperature: config.get('ai.claude.temperature', 0.3),
         maxTokens: 2048
       });
       
@@ -161,11 +162,11 @@ Style System: ${this.context.styleSystem || 'CSS'}`;
    */
   private async generateWithClaude(prompt: string, issue: VisualIssue): Promise<any> {
     try {
-      // Use Claude Sonnet for better code generation
+      // Use Claude for better code generation
       const response = await this.claude.messages.create({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 2048,
-        temperature: 0.3,
+        model: config.get('ai.claude.models.fixing'),
+        max_tokens: config.get('ai.claude.maxTokens.fixing'),
+        temperature: config.get('ai.claude.temperature', 0.3),
         messages: [{
           role: 'user',
           content: prompt

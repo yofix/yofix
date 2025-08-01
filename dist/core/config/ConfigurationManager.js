@@ -228,8 +228,8 @@ class ConfigurationManager {
             message: 'Must be a valid timeout (e.g., 30s, 5m, 1000ms)'
         });
         this.addValidator('storage-provider', {
-            test: (value) => ['firebase', 's3', 'github'].includes(value),
-            message: 'Must be one of: firebase, s3, github'
+            test: (value) => ['firebase', 's3', 'github', 'auto'].includes(value),
+            message: 'Must be one of: firebase, s3, github, auto'
         });
         this.addValidator('auth-mode', {
             test: (value) => ['selectors', 'ai', 'llm', 'smart', 'none'].includes(value),

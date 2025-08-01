@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import Redis from 'ioredis';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 /**
  * Cache manager for AI responses and expensive operations

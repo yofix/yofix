@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.20] - 2025-08-01
+
+### Changed
+- Changed default storage-provider from 'auto' to 'firebase'
+- Removed 'auto' as a valid storage-provider option for clarity
+- Simplified storage provider configuration
+
+### Fixed
+- Fixed loop-frontend CI workflow failures by removing ambiguous 'auto' option
+- Storage provider validation now correctly matches action defaults
+
 ## [1.0.18] - 2025-01-19
 
 ### Major Improvements

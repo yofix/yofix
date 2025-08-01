@@ -4,7 +4,7 @@ import { FirebaseStorage } from './FirebaseStorage';
 import { S3Storage, createS3StorageFromEnv } from './S3Storage';
 
 export interface StorageConfig {
-  provider: 'firebase' | 's3' | 'auto';
+  provider: 'firebase' | 's3' | 'github';
   firebase?: {
     credentials: string;
     bucket: string;
@@ -47,10 +47,8 @@ export class StorageFactory {
         provider = new S3Storage(config.s3);
         break;
 
-      case 'auto':
-        // Try to auto-detect from environment
-        provider = await this.autoDetect(config);
-        break;
+      case 'github':
+        throw new Error('GitHub storage provider is not implemented. Use firebase or s3.');
 
       default:
         throw new Error(`Unknown storage provider: ${config.provider}`);
@@ -94,7 +92,7 @@ export class StorageFactory {
    */
   static async createFromInputs(): Promise<StorageProvider> {
     // Check which provider to use
-    const storageProvider = core.getInput('storage-provider') || 'auto';
+    const storageProvider = core.getInput('storage-provider') || 'firebase';
     
     const config: StorageConfig = {
       provider: storageProvider as any

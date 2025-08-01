@@ -109,6 +109,29 @@ export class Agent {
     const startTime = Date.now();
     const screenshots: Buffer[] = [];
     
+    // Create timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Task timeout: exceeded ${this.options.timeout}ms`));
+      }, this.options.timeout!);
+    });
+    
+    // Create main execution promise
+    const executionPromise = this.executeTask(startTime, screenshots);
+    
+    // Race between execution and timeout
+    try {
+      return await Promise.race([executionPromise, timeoutPromise]);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Task timeout')) {
+        LogFormatter.formatError(`Task timed out after ${this.options.timeout}ms`);
+        this.stateManager.markCompleted(false, 'Task timeout exceeded');
+      }
+      throw error;
+    }
+  }
+  
+  private async executeTask(startTime: number, screenshots: Buffer[]): Promise<TaskResult & { reliability?: ReliabilityScore }> {
     try {
       const task = this.stateManager.getState().task;
       

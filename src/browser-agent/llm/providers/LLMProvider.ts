@@ -1,4 +1,5 @@
 import { LLMResponse } from '../../types';
+import { actionValidator } from '../../core/ActionValidator';
 
 export interface LLMConfig {
   apiKey: string;
@@ -24,37 +25,143 @@ export abstract class LLMProvider {
    */
   protected parseResponse(response: string): LLMResponse {
     try {
-      // Try to parse as JSON
-      const parsed = JSON.parse(response);
+      const parsed = this.parseJSON(response);
       
       // Check if this is a completion check response
       if ('completed' in parsed) {
-        return {
-          action: '',
-          parameters: {},
-          thinking: parsed.thinking || parsed.reasoning || '',
-          completed: parsed.completed,
-          reason: parsed.reason,
-          next_action: parsed.next_action
-        } as any;
+        return this.createCompletionResponse(parsed);
       }
       
-      return {
-        action: parsed.action || parsed.command || '',
-        parameters: parsed.parameters || parsed.params || {},
-        thinking: parsed.thinking || parsed.reasoning || '',
-        confidence: parsed.confidence
-      };
-    } catch (error) {
-      // Fallback parsing for non-JSON responses
-      const actionMatch = response.match(/action[:\s]+(\w+)/i);
-      const paramsMatch = response.match(/parameters[:\s]+({[^}]+})/i);
+      // Extract action data from various possible locations
+      const actionData = this.extractActionData(parsed);
       
+      // Validate and normalize the response
+      return this.normalizeResponse(actionData);
+      
+    } catch (error) {
+      // Fallback: try to extract from raw text
+      return this.parseRawText(response);
+    }
+  }
+  
+  /**
+   * Safely parse JSON with error handling
+   */
+  private parseJSON(response: string): any {
+    try {
+      return JSON.parse(response);
+    } catch (e) {
+      throw new Error('Invalid JSON response');
+    }
+  }
+  
+  /**
+   * Create completion check response
+   */
+  private createCompletionResponse(parsed: any): LLMResponse {
+    return {
+      action: '',
+      parameters: {},
+      thinking: parsed.thinking || parsed.reasoning || '',
+      completed: parsed.completed,
+      reason: parsed.reason,
+      next_action: parsed.next_action
+    } as any;
+  }
+  
+  /**
+   * Extract action data from various possible structures
+   */
+  private extractActionData(parsed: any): any {
+    // Priority 1: Direct structure
+    if (parsed.action) {
+      return parsed;
+    }
+    
+    // Priority 2: Nested in thinking (common LLM mistake)
+    if (parsed.thinking && typeof parsed.thinking === 'object' && parsed.thinking.action) {
       return {
-        action: actionMatch ? actionMatch[1] : '',
-        parameters: paramsMatch ? JSON.parse(paramsMatch[1]) : {},
-        thinking: response
+        ...parsed.thinking,
+        thinking: parsed.thinking.thinking || parsed.thinking.reasoning || ''
       };
+    }
+    
+    // Priority 3: Alternative field names
+    if (parsed.command) {
+      return { ...parsed, action: parsed.command };
+    }
+    
+    // Priority 4: Try to extract from thinking string
+    if (typeof parsed.thinking === 'string') {
+      const extracted = this.extractFromThinkingString(parsed.thinking);
+      if (extracted) {
+        return { ...parsed, ...extracted };
+      }
+    }
+    
+    return parsed;
+  }
+  
+  /**
+   * Extract action from thinking string that might contain JSON
+   */
+  private extractFromThinkingString(thinking: string): any | null {
+    try {
+      const jsonMatch = thinking.match(/{[\s\S]*}/);
+      if (jsonMatch) {
+        const extracted = JSON.parse(jsonMatch[0]);
+        if (extracted.action) {
+          return extracted;
+        }
+      }
+    } catch (e) {
+      // Not valid JSON in thinking
+    }
+    return null;
+  }
+  
+  /**
+   * Normalize and validate the response
+   */
+  private normalizeResponse(data: any): LLMResponse {
+    const action = data.action || data.command || '';
+    
+    // Validate action if present
+    if (action && !actionValidator.isValidAction(action)) {
+      console.warn(`Invalid action "${action}" detected. Valid actions: ${actionValidator.getValidActions().join(', ')}`);
+      // Don't modify the action here - let the Agent handle invalid actions
+    }
+    
+    return {
+      action,
+      parameters: data.parameters || data.params || {},
+      thinking: data.thinking || data.reasoning || '',
+      confidence: data.confidence
+    };
+  }
+  
+  /**
+   * Parse raw text response as fallback
+   */
+  private parseRawText(response: string): LLMResponse {
+    const actionMatch = response.match(/action[:\s]+(\w+)/i);
+    const paramsMatch = response.match(/parameters[:\s]+({[^}]+})/i);
+    
+    return {
+      action: actionMatch ? actionMatch[1] : '',
+      parameters: paramsMatch ? this.tryParseJSON(paramsMatch[1], {}) : {},
+      thinking: response
+    };
+  }
+  
+  /**
+   * Safely try to parse JSON with fallback
+   */
+  private tryParseJSON(str: string, fallback: any): any {
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      return fallback;
     }
   }
   

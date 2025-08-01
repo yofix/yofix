@@ -63,10 +63,9 @@ export class VisualRunner {
         headless: true,
         maxSteps: template.actions.length + 10, // Extra steps for validation
         llmProvider: 'anthropic',
-        viewport: template.viewport || { width: 1920, height: 1080 }
+        viewport: template.viewport || { width: 1920, height: 1080 },
+        apiKey: this.claudeApiKey
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();

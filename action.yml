@@ -221,11 +221,11 @@ runs:
         echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
         
-        # Install only production dependencies including sharp and tree-sitter
-        # This ensures native binaries are available for the runtime platform
-        npm install --production --ignore-scripts
+        # Install native modules that were externalized during build
+        # Using npm for compatibility with GitHub Actions environment
+        npm install sharp@0.33.0 tree-sitter@0.21.1 tree-sitter-typescript@0.23.2 tree-sitter-javascript@0.23.1 --no-save --production
         
-        # Rebuild sharp to ensure correct binaries
+        # Rebuild sharp to ensure correct binaries for the runtime platform
         npm rebuild sharp
         
         echo "✅ Runtime dependencies installed"

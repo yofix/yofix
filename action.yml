@@ -221,12 +221,12 @@ runs:
         echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
         
-        # Install native modules that were externalized during build
-        # Using npm for compatibility with GitHub Actions environment
-        npm install sharp@0.33.0 tree-sitter@0.21.1 tree-sitter-typescript@0.23.2 tree-sitter-javascript@0.23.1 --no-save --production
+        # Install only production dependencies including all externalized modules
+        # This restores the v1.0.17 approach which was working
+        npm install --production --ignore-scripts
         
-        # Rebuild sharp to ensure correct binaries for the runtime platform
-        npm rebuild sharp
+        # Rebuild native modules to ensure correct binaries
+        npm rebuild
         
         echo "✅ Runtime dependencies installed"
         

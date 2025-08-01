@@ -1,0 +1,255 @@
+name: 'YoFix Visual Testing - Modular'
+description: 'AI-powered visual testing with modular objectives'
+author: 'YoFix Team'
+
+branding:
+  icon: 'eye'
+  color: 'blue'
+
+inputs:
+  # Core inputs
+  mode:
+    description: 'Execution mode: full | route-extraction | visual-test | analyze-screenshots'
+    required: false
+    default: 'full'
+  
+  preview-url:
+    description: 'The preview URL to test'
+    required: true
+  
+  github-token:
+    description: 'GitHub token for PR comments'
+    required: true
+  
+  # AI Configuration
+  claude-api-key:
+    description: 'Claude API key for AI features'
+    required: false
+  
+  # Storage Configuration
+  storage-provider:
+    description: 'Storage provider (firebase or s3)'
+    required: false
+    default: 'local'
+  
+  firebase-credentials:
+    description: 'Firebase credentials (base64 encoded)'
+    required: false
+  
+  storage-bucket:
+    description: 'Storage bucket name'
+    required: false
+  
+  # Route Extraction
+  enable-route-extraction:
+    description: 'Enable automatic route extraction'
+    required: false
+    default: 'true'
+  
+  max-routes:
+    description: 'Maximum number of routes to extract'
+    required: false
+    default: '10'
+  
+  # Visual Testing
+  viewports:
+    description: 'Comma-separated list of viewports'
+    required: false
+    default: '1920x1080'
+  
+  test-timeout:
+    description: 'Timeout for each test'
+    required: false
+    default: '30s'
+  
+  # Authentication
+  auth-email:
+    description: 'Authentication email'
+    required: false
+  
+  auth-password:
+    description: 'Authentication password'
+    required: false
+  
+  auth-login-url:
+    description: 'Login page URL path (default: /login/password)'
+    required: false
+    default: '/login/password'
+  
+  # Analysis
+  enable-ai-analysis:
+    description: 'Enable AI-powered screenshot analysis'
+    required: false
+    default: 'false'
+  
+  # Debug
+  debug:
+    description: 'Enable debug logging'
+    required: false
+    default: 'false'
+
+outputs:
+  extracted-routes:
+    description: 'JSON array of extracted routes'
+    value: ${{ steps.route-extraction.outputs.routes }}
+  
+  visual-test-results:
+    description: 'Visual test results'
+    value: ${{ steps.visual-test.outputs.results }}
+  
+  analysis-results:
+    description: 'AI analysis results'
+    value: ${{ steps.analysis.outputs.results }}
+  
+  screenshot-urls:
+    description: 'URLs of captured screenshots'
+    value: ${{ steps.visual-test.outputs.screenshots }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Step 1: Setup Environment
+    - name: Setup YoFix Environment
+      id: setup
+      shell: bash
+      run: |
+        echo "🚀 YoFix Visual Testing - Modular Mode: ${{ inputs.mode }}"
+        echo "📍 Target URL: ${{ inputs.preview-url }}"
+        
+        # Validate inputs
+        if [ -z "${{ inputs.preview-url }}" ]; then
+          echo "❌ Error: preview-url is required"
+          exit 1
+        fi
+        
+        # Set execution mode
+        echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+    
+    # Step 2: Cache Management
+    - name: Setup Caches
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ${{ github.action_path }}/node_modules
+        key: yofix-cache-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          yofix-cache-${{ runner.os }}-
+    
+    # Step 3: Install Dependencies
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        echo "📦 Installing dependencies..."
+        cd ${{ github.action_path }}
+        
+        # Install production dependencies
+        npm ci --production --ignore-scripts
+        
+        # Install Playwright if needed
+        if [ "${{ inputs.mode }}" != "route-extraction" ]; then
+          npx playwright install chromium --with-deps
+        fi
+    
+    # Step 4: Route Extraction (if enabled)
+    - name: Extract Routes
+      id: route-extraction
+      if: inputs.mode == 'full' || inputs.mode == 'route-extraction'
+      shell: bash
+      run: |
+        echo "🔍 Extracting routes from ${{ inputs.preview-url }}..."
+        
+        cd ${{ github.action_path }}
+        
+        # Run route extraction module
+        node dist/modules/route-extractor.js
+      env:
+        INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
+        INPUT_MAX_ROUTES: ${{ inputs.max-routes }}
+        INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
+        INPUT_DEBUG: ${{ inputs.debug }}
+    
+    # Step 5: Visual Testing
+    - name: Run Visual Tests
+      id: visual-test
+      if: inputs.mode == 'full' || inputs.mode == 'visual-test'
+      shell: bash
+      run: |
+        echo "📸 Running visual tests..."
+        
+        cd ${{ github.action_path }}
+        
+        # Run visual testing module
+        node dist/modules/visual-tester.js
+      env:
+        INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
+        INPUT_ROUTES: ${{ steps.route-extraction.outputs.routes }}
+        INPUT_VIEWPORTS: ${{ inputs.viewports }}
+        INPUT_TEST_TIMEOUT: ${{ inputs.test-timeout }}
+        INPUT_AUTH_EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH_LOGIN_URL: ${{ inputs.auth-login-url }}
+        INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE_CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE_BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_DEBUG: ${{ inputs.debug }}
+    
+    # Step 6: AI Analysis (if enabled)
+    - name: Analyze Screenshots
+      id: analysis
+      if: (inputs.mode == 'full' || inputs.mode == 'analyze-screenshots') && inputs.enable-ai-analysis == 'true'
+      shell: bash
+      run: |
+        echo "🤖 Analyzing screenshots with AI..."
+        
+        cd ${{ github.action_path }}
+        
+        # Run analysis module
+        node dist/modules/screenshot-analyzer.js
+      env:
+        INPUT_SCREENSHOTS: ${{ steps.visual-test.outputs.screenshots }}
+        INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
+        INPUT_DEBUG: ${{ inputs.debug }}
+    
+    # Step 7: Generate Report
+    - name: Generate Report
+      id: report
+      if: always()
+      shell: bash
+      run: |
+        echo "📊 Generating report..."
+        
+        cd ${{ github.action_path }}
+        
+        # Run report generator
+        node dist/modules/report-generator.js
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_ROUTES: ${{ steps.route-extraction.outputs.routes }}
+        INPUT_TEST_RESULTS: ${{ steps.visual-test.outputs.results }}
+        INPUT_ANALYSIS_RESULTS: ${{ steps.analysis.outputs.results }}
+        INPUT_DEBUG: ${{ inputs.debug }}
+    
+    # Step 8: Post Results to PR
+    - name: Post Results
+      if: always() && inputs.github-token != ''
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const reportPath = '${{ steps.report.outputs.report-path }}';
+          const fs = require('fs');
+          
+          if (fs.existsSync(reportPath)) {
+            const report = fs.readFileSync(reportPath, 'utf8');
+            
+            // Post comment to PR
+            if (context.eventName === 'pull_request') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: report
+              });
+            }
+          }

@@ -3,7 +3,7 @@ import { Page } from 'playwright';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { EnhancedContextProvider } from '../../context/EnhancedContextProvider';
 
-export class AINavigationAnalyzer {
+export class AIRouteDiscovery {
   private claude: Anthropic;
   private contextProvider: EnhancedContextProvider;
   

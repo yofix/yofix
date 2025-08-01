@@ -1,0 +1,8 @@
+[
+  {
+    "path": "/",
+    "title": "Home",
+    "method": "static",
+    "priority": 100
+  }
+]

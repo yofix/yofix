@@ -1,0 +1,57 @@
+name: Test YoFix Locally
+
+on:
+  workflow_dispatch:
+    inputs:
+      test-url:
+        description: 'URL to test'
+        required: false
+        default: 'https://app.tryloop.ai'
+      auth-email:
+        description: 'Auth email'
+        required: false
+        default: 'test@example.com'
+      auth-password:
+        description: 'Auth password'
+        required: false
+      auth-login-url:
+        description: 'Login URL'
+        required: false
+        default: '/login/password'
+
+jobs:
+  test-authentication:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test Route Extraction
+        uses: ./
+        with:
+          mode: 'route-extraction'
+          preview-url: ${{ github.event.inputs.test-url }}
+          max-routes: '5'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Test Visual with Auth
+        uses: ./
+        with:
+          mode: 'visual-test'
+          preview-url: ${{ github.event.inputs.test-url }}
+          auth-email: ${{ github.event.inputs.auth-email }}
+          auth-password: ${{ github.event.inputs.auth-password }}
+          auth-login-url: ${{ github.event.inputs.auth-login-url }}
+          viewports: '1920x1080,375x667'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            routes.json
+            visual-test-results.json
+            auth-state.json
+            screenshots/

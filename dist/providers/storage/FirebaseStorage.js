@@ -66,7 +66,30 @@ class FirebaseStorage {
                 return null;
             }
         });
-        const serviceAccount = config || this.getServiceAccountFromEnv();
+        let serviceAccount = null;
+        if (config?.credentials) {
+            try {
+                const credentialsString = Buffer.from(config.credentials, 'base64').toString('utf-8');
+                serviceAccount = JSON.parse(credentialsString);
+                if (!serviceAccount.project_id) {
+                    throw new Error('Service account object must contain a string "project_id" property.');
+                }
+                if (config.bucket) {
+                    this.bucketName = config.bucket;
+                }
+            }
+            catch (error) {
+                this.logger.error(error, {
+                    severity: core_1.ErrorSeverity.HIGH,
+                    category: core_1.ErrorCategory.CONFIGURATION,
+                    userAction: 'Parse Firebase credentials'
+                });
+                throw error;
+            }
+        }
+        else {
+            serviceAccount = config || this.getServiceAccountFromEnv();
+        }
         if (serviceAccount) {
             (0, core_1.executeOperation)(() => this.initializeApp(serviceAccount), {
                 name: 'Initialize Firebase app',
@@ -86,11 +109,15 @@ class FirebaseStorage {
         }
     }
     async initializeApp(serviceAccount) {
+        const storageBucket = this.bucketName ||
+            (serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : undefined);
         this.app = admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
-            storageBucket: serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : undefined
+            storageBucket: storageBucket
         }, `yofix-${Date.now()}`);
-        this.bucketName = this.app.options.storageBucket || '';
+        if (!this.bucketName) {
+            this.bucketName = this.app.options.storageBucket || '';
+        }
     }
     async initialize() {
         if (!this.app) {

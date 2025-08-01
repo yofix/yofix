@@ -76,9 +76,9 @@ class VisualIssueTestGenerator {
                 headless: true,
                 maxSteps: 15,
                 llmProvider: 'anthropic',
+                apiKey: this.claudeApiKey,
                 viewport: { width: 1920, height: 1080 }
             });
-            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
             await agent.initialize();
             const result = await agent.run();
             await agent.cleanup();
@@ -106,9 +106,9 @@ class VisualIssueTestGenerator {
                 headless: true,
                 maxSteps: 20,
                 llmProvider: 'anthropic',
+                apiKey: this.claudeApiKey,
                 viewport: { width: 1920, height: 1080 }
             });
-            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
             await agent.initialize();
             const result = await agent.run();
             const agentState = agent.getState();

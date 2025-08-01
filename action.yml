@@ -21,9 +21,9 @@ inputs:
   
   # Storage Configuration
   storage-provider:
-    description: 'Storage provider: firebase, s3, or auto (auto-detect)'
+    description: 'Storage provider: firebase, s3, or github'
     required: false
-    default: 'auto'
+    default: 'firebase'
   
   # Firebase Storage
   firebase-credentials:
@@ -168,16 +168,73 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    # Get Playwright version for cache key
-    - name: Get Playwright version
+    # Step 1: Initialize YoFix
+    - name: 🚀 Initialize YoFix Visual Testing
+      shell: bash
+      run: |
+        echo "::group::YoFix Initialization"
+        echo "YoFix Version: v1.0.20"
+        echo "Preview URL: ${{ inputs.preview-url }}"
+        echo "Storage Provider: ${{ inputs.storage-provider }}"
+        echo "Test Timeout: ${{ inputs.test-timeout }}"
+        echo "Viewports: ${{ inputs.viewports }}"
+        echo "Max Routes: ${{ inputs.max-routes }}"
+        echo "::endgroup::"
+    
+    # Step 2: Validate Configuration
+    - name: ✅ Validate Configuration
+      shell: bash
+      run: |
+        echo "::group::Configuration Validation"
+        # Check required inputs
+        if [ -z "${{ inputs.preview-url }}" ]; then
+          echo "❌ Error: preview-url is required"
+          exit 1
+        fi
+        
+        if [ -z "${{ inputs.github-token }}" ]; then
+          echo "❌ Error: github-token is required"
+          exit 1
+        fi
+        
+        if [ -z "${{ inputs.claude-api-key }}" ]; then
+          echo "❌ Error: claude-api-key is required"
+          exit 1
+        fi
+        
+        # Validate storage configuration
+        if [ "${{ inputs.storage-provider }}" = "firebase" ]; then
+          if [ -z "${{ inputs.firebase-credentials }}" ] || [ -z "${{ inputs.storage-bucket }}" ]; then
+            echo "⚠️ Warning: Firebase storage configuration incomplete"
+          else
+            echo "✅ Firebase storage configuration validated"
+          fi
+        fi
+        
+        if [ "${{ inputs.storage-provider }}" = "s3" ]; then
+          if [ -z "${{ inputs.s3-bucket }}" ]; then
+            echo "❌ Error: s3-bucket is required for S3 storage"
+            exit 1
+          fi
+          echo "✅ S3 storage configuration validated"
+        fi
+        
+        echo "✅ All required configurations validated"
+        echo "::endgroup::"
+    
+    # Step 3: Get Playwright version
+    - name: 🎭 Determine Playwright Version
       id: playwright-version
       shell: bash
       run: |
+        echo "::group::Playwright Version Detection"
         # Default Playwright version
         echo "version=1.54.1" >> $GITHUB_OUTPUT
+        echo "Playwright version: 1.54.1"
+        echo "::endgroup::"
     
-    # Cache Playwright browsers and dependencies
-    - name: Cache Playwright browsers
+    # Step 4: Cache Playwright browsers
+    - name: 📦 Cache Playwright Browsers
       uses: actions/cache@v4
       id: playwright-cache
       with:
@@ -189,10 +246,11 @@ runs:
           playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-
           playwright-browsers-${{ runner.os }}-
     
-    # Install or restore Playwright
-    - name: Setup Playwright
+    # Step 5: Setup Playwright
+    - name: 🎭 Setup Playwright Environment
       shell: bash
       run: |
+        echo "::group::Playwright Setup"
         cd ${{ github.action_path }}
         
         if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
@@ -213,27 +271,108 @@ runs:
           # This handles cases where the runner image has changed
           npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
         fi
+        echo "::endgroup::"
     
-    # Install runtime dependencies (including sharp and tree-sitter with native binaries)
-    - name: Install runtime dependencies
+    # Step 6: Install runtime dependencies
+    - name: 📦 Install YoFix Dependencies
       shell: bash
       run: |
+        echo "::group::YoFix Dependencies Installation"
         echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
         
+        # List current directory contents
+        echo "Current directory contents:"
+        ls -la
+        
         # Install only production dependencies including all externalized modules
-        # This restores the v1.0.17 approach which was working
+        echo "Running: npm install --production --ignore-scripts"
         npm install --production --ignore-scripts
         
         # Rebuild native modules to ensure correct binaries
+        echo "Rebuilding native modules..."
         npm rebuild
         
-        echo "✅ Runtime dependencies installed"
+        # Verify key dependencies are installed
+        echo "Verifying key dependencies:"
+        for dep in sharp tree-sitter playwright firebase-admin; do
+          if [ -d "node_modules/$dep" ]; then
+            echo "✅ $dep installed"
+          else
+            echo "❌ $dep NOT found"
+          fi
+        done
         
-    - name: Run visual tests
+        echo "✅ Runtime dependencies installed"
+        echo "::endgroup::"
+    
+    # Step 7: Initialize Storage Provider
+    - name: 🗄️ Initialize Storage Provider
       shell: bash
       run: |
+        echo "::group::Storage Provider Setup"
+        echo "Storage Provider: ${{ inputs.storage-provider }}"
+        
+        if [ "${{ inputs.storage-provider }}" = "firebase" ]; then
+          if [ -n "${{ inputs.firebase-credentials }}" ] && [ -n "${{ inputs.storage-bucket }}" ]; then
+            echo "✅ Firebase storage will be initialized"
+            echo "Bucket: ${{ inputs.storage-bucket }}"
+          fi
+        fi
+        
+        if [ "${{ inputs.storage-provider }}" = "s3" ]; then
+          echo "✅ S3 storage will be initialized"
+          echo "Bucket: ${{ inputs.s3-bucket }}"
+          echo "Region: ${{ inputs.aws-region }}"
+        fi
+        echo "::endgroup::"
+    
+    # Step 8: Prepare Test Environment
+    - name: 🔧 Prepare Test Environment
+      shell: bash
+      run: |
+        echo "::group::Test Environment Preparation"
+        echo "Setting up environment variables..."
+        echo "Auth Mode: ${{ inputs.auth-mode }}"
+        echo "Smart Auth Enabled: ${{ inputs.enable-smart-auth }}"
+        echo "AI Navigation Enabled: ${{ inputs.enable-ai-navigation }}"
+        echo "AI Test Generation Enabled: ${{ inputs.enable-ai-test-generation }}"
+        
+        if [ -n "${{ inputs.auth-email }}" ] && [ -n "${{ inputs.auth-password }}" ]; then
+          echo "✅ Authentication credentials configured"
+        else
+          echo "ℹ️ No authentication credentials provided"
+        fi
+        
+        echo "✅ Test environment prepared"
+        echo "::endgroup::"
+    
+    # Step 9: Run Visual Tests
+    - name: 🧪 Execute Visual Tests
+      id: visual-tests
+      shell: bash
+      run: |
+        echo "::group::Visual Test Execution"
+        echo "🚀 Starting YoFix visual tests..."
+        echo "Test URL: ${{ inputs.preview-url }}"
+        
+        # Run the tests with error handling
+        set +e  # Don't exit on error
         node ${{ github.action_path }}/dist/index.js
+        EXIT_CODE=$?
+        set -e
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "✅ Visual tests completed successfully"
+          echo "test-status=success" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Visual tests failed with exit code: $EXIT_CODE"
+          echo "test-status=failed" >> $GITHUB_OUTPUT
+          # Don't exit here, let continue-on-error handle it
+        fi
+        
+        echo "::endgroup::"
+        exit $EXIT_CODE
       env:
         INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
@@ -264,3 +403,40 @@ runs:
         INPUT_ENABLE-AI-NAVIGATION: ${{ inputs.enable-ai-navigation }}
         INPUT_ENABLE-AI-TEST-GENERATION: ${{ inputs.enable-ai-test-generation }}
         INPUT_TEST-ROUTES: ${{ inputs.test-routes }}
+        INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
+    
+    # Step 10: Generate Test Summary
+    - name: 📊 Generate Test Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "::group::Test Summary"
+        echo "## YoFix Visual Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.visual-tests.outputs.test-status }}" = "success" ]; then
+          echo "✅ **Status:** All visual tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Status:** Visual tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Configuration" >> $GITHUB_STEP_SUMMARY
+        echo "- **Preview URL:** ${{ inputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Viewports:** ${{ inputs.viewports }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Max Routes:** ${{ inputs.max-routes }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Storage Provider:** ${{ inputs.storage-provider }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "${{ inputs.auth-email }}" ]; then
+          echo "- **Authentication:** Enabled" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Authentication:** Disabled" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### AI Features" >> $GITHUB_STEP_SUMMARY
+        echo "- **Smart Auth:** ${{ inputs.enable-smart-auth }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **AI Navigation:** ${{ inputs.enable-ai-navigation }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **AI Test Generation:** ${{ inputs.enable-ai-test-generation }}" >> $GITHUB_STEP_SUMMARY
+        
+        echo "::endgroup::"

@@ -22,7 +22,7 @@ jobs:
           echo "preview-url=https://your-app-pr-${{ github.event.number }}.vercel.app" >> $GITHUB_OUTPUT
       
       # YoFix with minimal config
-      - uses: yofix/yofix@v1.0.12
+      - uses: yofix/yofix@v1
         with:
           # Only 3 required inputs!
           preview-url: ${{ steps.deploy.outputs.preview-url }}

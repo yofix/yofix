@@ -5,7 +5,7 @@
 
 # CORRECT Option 1 - Use YoFix directly:
 - name: Run YoFix Visual Test
-  uses: yofix/yofix@v1.0.13  # ✅ Correct YoFix action reference
+  uses: yofix/yofix@v1  # ✅ Correct YoFix action reference
   with:
     preview-url: ${{ needs.build_and_preview.outputs.preview-url }}
     github-token: ${{ secrets.GITHUB_TOKEN }}

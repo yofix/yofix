@@ -41,7 +41,34 @@ export class FirebaseStorage implements StorageProvider {
   });
 
   constructor(config?: any) {
-    const serviceAccount = config || this.getServiceAccountFromEnv();
+    let serviceAccount = null;
+    
+    if (config?.credentials) {
+      // Parse base64 encoded credentials
+      try {
+        const credentialsString = Buffer.from(config.credentials, 'base64').toString('utf-8');
+        serviceAccount = JSON.parse(credentialsString);
+        
+        // Validate required fields
+        if (!serviceAccount.project_id) {
+          throw new Error('Service account object must contain a string "project_id" property.');
+        }
+        
+        // Set bucket name from config if provided
+        if (config.bucket) {
+          this.bucketName = config.bucket;
+        }
+      } catch (error) {
+        this.logger.error(error, {
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.CONFIGURATION,
+          userAction: 'Parse Firebase credentials'
+        });
+        throw error;
+      }
+    } else {
+      serviceAccount = config || this.getServiceAccountFromEnv();
+    }
     
     if (serviceAccount) {
       executeOperation(
@@ -66,12 +93,19 @@ export class FirebaseStorage implements StorageProvider {
   }
   
   private async initializeApp(serviceAccount: any): Promise<void> {
+    // Use the bucket name from constructor if set, otherwise derive from project_id
+    const storageBucket = this.bucketName || 
+      (serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : undefined);
+    
     this.app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as ServiceAccount),
-      storageBucket: serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : undefined
+      storageBucket: storageBucket
     }, `yofix-${Date.now()}`);
     
-    this.bucketName = this.app.options.storageBucket || '';
+    // Update bucket name if it wasn't set in constructor
+    if (!this.bucketName) {
+      this.bucketName = this.app.options.storageBucket || '';
+    }
   }
 
   /**

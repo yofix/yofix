@@ -68,7 +68,7 @@ class Agent {
         this.actionRegistry = new ActionRegistry_1.ActionRegistry();
         this.stateManager = new StateManager_1.StateManager(task);
         this.promptBuilder = new PromptBuilder_1.PromptBuilder();
-        const apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
+        const apiKey = this.options.apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
         this.llmProvider = this.createLLMProvider(apiKey);
         this.taskPlanner = new TaskPlanner_1.TaskPlanner(this.llmProvider);
         this.reliabilityScorer = new ReliabilityScorer_1.ReliabilityScorer();

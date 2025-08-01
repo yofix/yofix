@@ -29,7 +29,7 @@ jobs:
       # Run YoFix with debug logging
       - name: YoFix Visual Testing
         id: yofix
-        uses: yofix/yofix@v1.0.12
+        uses: yofix/yofix@v1
         env:
           # Enable debug logs to troubleshoot
           ACTIONS_STEP_DEBUG: true

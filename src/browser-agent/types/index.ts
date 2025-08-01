@@ -103,6 +103,7 @@ export interface AgentOptions {
   timeout?: number;
   llmProvider?: 'openai' | 'anthropic' | 'custom';
   llmModel?: string;
+  apiKey?: string;
   debug?: boolean;
   plugins?: string[];
   useVisionMode?: boolean;

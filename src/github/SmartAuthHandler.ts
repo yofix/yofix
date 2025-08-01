@@ -61,11 +61,9 @@ export class SmartAuthHandler {
       const agent = new Agent(loginTask, {
         headless: true,
         maxSteps: 10,
-        llmProvider: 'anthropic'
+        llmProvider: 'anthropic',
+      apiKey: this.claudeApiKey
       });
-      
-      // Set API key
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();
@@ -126,10 +124,9 @@ export class SmartAuthHandler {
       const agent = new Agent(logoutTask, {
         headless: true,
         maxSteps: 5,
-        llmProvider: 'anthropic'
+        llmProvider: 'anthropic',
+      apiKey: this.claudeApiKey
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       await agent.run();
@@ -180,10 +177,9 @@ export class SmartAuthHandler {
         headless: true,
         maxSteps: 15,
         llmProvider: 'anthropic',
-        viewport: { width: 1920, height: 1080 }
+        viewport: { width: 1920, height: 1080 },
+        apiKey: this.claudeApiKey
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();

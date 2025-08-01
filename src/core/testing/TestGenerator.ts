@@ -56,11 +56,9 @@ export class TestGenerator {
         headless: true,
         maxSteps: 25,
         llmProvider: 'anthropic',
-        viewport: this.viewports[0] || { width: 1920, height: 1080 }
+        viewport: this.viewports[0] || { width: 1920, height: 1080 },
+        apiKey: this.claudeApiKey
       });
-      
-      // Set API key
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();
@@ -189,10 +187,9 @@ Provide detailed analysis and practical fixes for any issues found.`;
       const agent = new Agent(authTask, {
         headless: true,
         maxSteps: 15,
-        llmProvider: 'anthropic'
+        llmProvider: 'anthropic',
+      apiKey: this.claudeApiKey
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();
@@ -244,10 +241,9 @@ Provide detailed analysis and practical fixes for any issues found.`;
     const agent = new Agent(testPlanTask, {
       headless: true,
       maxSteps: 50,
-      llmProvider: 'anthropic'
+      llmProvider: 'anthropic',
+    apiKey: this.claudeApiKey
     });
-    
-    process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
     
     try {
       await agent.initialize();

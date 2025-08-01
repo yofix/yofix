@@ -58,8 +58,8 @@ export class Agent {
     this.stateManager = new StateManager(task);
     this.promptBuilder = new PromptBuilder();
     
-    // Initialize LLM provider
-    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
+    // Initialize LLM provider - prefer options.apiKey over environment variables
+    const apiKey = this.options.apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
     this.llmProvider = this.createLLMProvider(apiKey);
     
     // Initialize planning and reliability components

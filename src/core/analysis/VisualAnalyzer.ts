@@ -37,10 +37,9 @@ export class VisualAnalyzer {
         headless: true,
         maxSteps: routes.length * 5, // 5 steps per route
         llmProvider: 'anthropic',
+        apiKey: this.claudeApiKey,
         viewport: { width: 1920, height: 1080 }
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();
@@ -154,10 +153,9 @@ export class VisualAnalyzer {
       const agent = new Agent(analysisTask, {
         headless: true,
         maxSteps: 5,
-        llmProvider: 'anthropic'
+        llmProvider: 'anthropic',
+        apiKey: this.claudeApiKey
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       
@@ -213,10 +211,9 @@ export class VisualAnalyzer {
         const agent = new Agent(fixTask, {
           headless: true,
           maxSteps: 5,
-          llmProvider: 'anthropic'
+          llmProvider: 'anthropic',
+          apiKey: this.claudeApiKey
         });
-        
-        process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
         
         await agent.initialize();
         const result = await agent.run();
@@ -407,10 +404,9 @@ export class VisualAnalyzer {
       const agent = new Agent(explanationTask, {
         headless: true,
         maxSteps: 3,
-        llmProvider: 'anthropic'
+        llmProvider: 'anthropic',
+        apiKey: this.claudeApiKey
       });
-      
-      process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
       
       await agent.initialize();
       const result = await agent.run();

@@ -299,8 +299,8 @@ export class ConfigurationManager {
 
     // Storage provider validation
     this.addValidator('storage-provider', {
-      test: (value) => ['firebase', 's3', 'github'].includes(value),
-      message: 'Must be one of: firebase, s3, github'
+      test: (value) => ['firebase', 's3', 'github', 'auto'].includes(value),
+      message: 'Must be one of: firebase, s3, github, auto'
     });
 
     // Auth mode validation

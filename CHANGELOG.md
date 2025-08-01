@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.19] - 2025-08-01
+
+### Fixed
+- Fixed storage-provider validation to include 'auto' as a valid option
+- Resolved loop-frontend CI workflow failure caused by restrictive validation
+
 ## [1.0.18] - 2025-01-19
 
 ### Major Improvements

@@ -57,9 +57,8 @@ class StorageFactory {
                 }
                 provider = new S3Storage_1.S3Storage(config.s3);
                 break;
-            case 'auto':
-                provider = await this.autoDetect(config);
-                break;
+            case 'github':
+                throw new Error('GitHub storage provider is not implemented. Use firebase or s3.');
             default:
                 throw new Error(`Unknown storage provider: ${config.provider}`);
         }
@@ -84,7 +83,7 @@ class StorageFactory {
         throw new Error('No storage configuration found. Please configure either Firebase or S3 storage.');
     }
     static async createFromInputs() {
-        const storageProvider = core.getInput('storage-provider') || 'auto';
+        const storageProvider = core.getInput('storage-provider') || 'firebase';
         const config = {
             provider: storageProvider
         };

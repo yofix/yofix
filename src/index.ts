@@ -340,8 +340,8 @@ function validateInputs(inputs: ActionInputs): string | null {
   }
   
   // Check storage configuration
-  const storageProvider = config.get('storage-provider', { defaultValue: 'auto' });
-  if (storageProvider === 'firebase' || storageProvider === 'auto') {
+  const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' });
+  if (storageProvider === 'firebase') {
     if (!inputs.firebaseCredentials && !config.get('s3-bucket')) {
       core.warning('No storage provider configured. Screenshots will not be persisted. Configure firebase-credentials or use S3 storage.');
     }

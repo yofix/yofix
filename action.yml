@@ -21,9 +21,9 @@ inputs:
   
   # Storage Configuration
   storage-provider:
-    description: 'Storage provider: firebase, s3, or auto (auto-detect)'
+    description: 'Storage provider: firebase, s3, or github'
     required: false
-    default: 'auto'
+    default: 'firebase'
   
   # Firebase Storage
   firebase-credentials:
@@ -203,7 +203,7 @@ runs:
         fi
         
         # Validate storage configuration
-        if [ "${{ inputs.storage-provider }}" = "firebase" ] || [ "${{ inputs.storage-provider }}" = "auto" ]; then
+        if [ "${{ inputs.storage-provider }}" = "firebase" ]; then
           if [ -z "${{ inputs.firebase-credentials }}" ] || [ -z "${{ inputs.storage-bucket }}" ]; then
             echo "⚠️ Warning: Firebase storage configuration incomplete"
           else
@@ -313,7 +313,7 @@ runs:
         echo "::group::Storage Provider Setup"
         echo "Storage Provider: ${{ inputs.storage-provider }}"
         
-        if [ "${{ inputs.storage-provider }}" = "firebase" ] || [ "${{ inputs.storage-provider }}" = "auto" ]; then
+        if [ "${{ inputs.storage-provider }}" = "firebase" ]; then
           if [ -n "${{ inputs.firebase-credentials }}" ] && [ -n "${{ inputs.storage-bucket }}" ]; then
             echo "✅ Firebase storage will be initialized"
             echo "Bucket: ${{ inputs.storage-bucket }}"

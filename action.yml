@@ -214,19 +214,28 @@ runs:
           npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
         fi
     
-    # Install runtime dependencies (including sharp and tree-sitter with native binaries)
+    # Install runtime dependencies (including all externalized modules)
     - name: Install runtime dependencies
       shell: bash
       run: |
         echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
         
-        # Install native modules that were externalized during build
-        # Using npm for compatibility with GitHub Actions environment
-        npm install sharp@0.33.0 tree-sitter@0.21.1 tree-sitter-typescript@0.23.2 tree-sitter-javascript@0.23.1 --no-save --production
+        # Install ALL modules that were externalized during build
+        # These need to match the target machine's architecture
+        echo "📥 Installing externalized dependencies..."
+        npm install \
+          sharp@0.33.0 \
+          tree-sitter@0.21.1 \
+          tree-sitter-typescript@0.23.2 \
+          tree-sitter-javascript@0.23.1 \
+          playwright@1.41.2 \
+          firebase-admin@12.0.0 \
+          --no-save --production
         
-        # Rebuild sharp to ensure correct binaries for the runtime platform
-        npm rebuild sharp
+        # Rebuild native modules to ensure correct binaries
+        echo "🔨 Rebuilding native modules..."
+        npm rebuild sharp tree-sitter
         
         echo "✅ Runtime dependencies installed"
         

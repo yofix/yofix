@@ -2,6 +2,15 @@ import * as admin from 'firebase-admin';
 import * as core from '@actions/core';
 import { ServiceAccount } from 'firebase-admin';
 import { StorageProvider } from '../../core/baseline/types';
+import { 
+  createModuleLogger, 
+  ErrorCategory, 
+  ErrorSeverity, 
+  CircuitBreakerFactory,
+  WithCircuitBreaker,
+  executeOperation,
+  retryOperation
+} from '../../core';
 
 /**
  * Firebase Storage wrapper for baseline and screenshot management
@@ -10,22 +19,59 @@ export class FirebaseStorage implements StorageProvider {
   private app: admin.app.App | null = null;
   private bucket: any = null; // Firebase bucket type
   private bucketName: string;
+  
+  private logger = createModuleLogger({
+    module: 'FirebaseStorage',
+    defaultCategory: ErrorCategory.STORAGE
+  });
+  
+  private circuitBreaker = CircuitBreakerFactory.getBreaker({
+    serviceName: 'FirebaseStorage',
+    failureThreshold: 3,
+    resetTimeout: 60000,
+    timeout: 30000,
+    isFailure: (error) => {
+      // Don't trip circuit for auth errors
+      return !error.message.includes('auth') && !error.message.includes('permission');
+    },
+    fallback: () => {
+      this.logger.warn('Firebase Storage circuit breaker activated - using fallback');
+      return null;
+    }
+  });
 
   constructor(config?: any) {
     const serviceAccount = config || this.getServiceAccountFromEnv();
     
     if (serviceAccount) {
-      try {
-        this.app = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount as ServiceAccount),
-          storageBucket: serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : undefined
-        }, `yofix-${Date.now()}`);
-        
-        this.bucketName = this.app.options.storageBucket || '';
-      } catch (error) {
-        core.warning(`Failed to initialize Firebase: ${error.message}`);
-      }
+      executeOperation(
+        () => this.initializeApp(serviceAccount),
+        {
+          name: 'Initialize Firebase app',
+          category: ErrorCategory.CONFIGURATION,
+          severity: ErrorSeverity.HIGH
+        }
+      ).then(result => {
+        if (!result.success) {
+          this.logger.warn('Failed to initialize Firebase app');
+        }
+      }).catch(error => {
+        this.logger.error(error, {
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.CONFIGURATION,
+          userAction: 'Initialize Firebase app'
+        });
+      });
     }
+  }
+  
+  private async initializeApp(serviceAccount: any): Promise<void> {
+    this.app = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as ServiceAccount),
+      storageBucket: serviceAccount.project_id ? `${serviceAccount.project_id}.appspot.com` : undefined
+    }, `yofix-${Date.now()}`);
+    
+    this.bucketName = this.app.options.storageBucket || '';
   }
 
   /**
@@ -38,18 +84,31 @@ export class FirebaseStorage implements StorageProvider {
     
     this.bucket = admin.storage(this.app).bucket();
     
-    // Test connection
-    try {
-      await this.bucket.exists();
-      core.info('✅ Firebase Storage connected');
-    } catch (error) {
-      throw new Error(`Failed to connect to Firebase Storage: ${error.message}`);
+    // Test connection with circuit breaker
+    const result = await executeOperation(
+      () => this.circuitBreaker.execute(() => this.bucket.exists()),
+      {
+        name: 'Test Firebase Storage connection',
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.HIGH
+      }
+    );
+    
+    if (result.success) {
+      this.logger.info('✅ Firebase Storage connected');
+    } else {
+      throw new Error(`Failed to connect to Firebase Storage: ${result.error}`);
     }
   }
 
   /**
-   * Upload file to storage
+   * Upload file to storage with circuit breaker protection
    */
+  @WithCircuitBreaker({
+    failureThreshold: 3,
+    resetTimeout: 30000,
+    timeout: 60000
+  })
   async uploadFile(
     path: string,
     buffer: Buffer,
@@ -64,13 +123,24 @@ export class FirebaseStorage implements StorageProvider {
     
     const file = this.bucket.file(path);
     
-    await file.save(buffer, {
-      metadata: {
-        contentType: metadata?.contentType || 'application/octet-stream',
-        metadata: metadata?.metadata || {}
-      },
-      resumable: false
-    });
+    // Upload with retry
+    await retryOperation(
+      () => file.save(buffer, {
+        metadata: {
+          contentType: metadata?.contentType || 'application/octet-stream',
+          metadata: metadata?.metadata || {}
+        },
+        resumable: false
+      }),
+      {
+        maxAttempts: 3,
+        delayMs: 1000,
+        backoff: true,
+        onRetry: (attempt, error) => {
+          this.logger.debug(`Upload retry attempt ${attempt} for ${path}: ${error.message}`);
+        }
+      }
+    );
     
     // Make file publicly readable
     await file.makePublic();
@@ -81,6 +151,10 @@ export class FirebaseStorage implements StorageProvider {
   /**
    * Get signed URL for private access
    */
+  @WithCircuitBreaker({
+    failureThreshold: 5,
+    resetTimeout: 30000
+  })
   async getSignedUrl(path: string, expiresIn: number = 3600): Promise<string> {
     if (!this.bucket) {
       throw new Error('Storage not initialized');
@@ -104,8 +178,23 @@ export class FirebaseStorage implements StorageProvider {
       throw new Error('Storage not initialized');
     }
     
-    const file = this.bucket.file(path);
-    await file.delete({ ignoreNotFound: true });
+    const result = await executeOperation(
+      async () => {
+        const file = this.bucket.file(path);
+        await file.delete();
+      },
+      {
+        name: `Delete file ${path}`,
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        metadata: { path }
+      }
+    );
+    
+    if (!result.success) {
+      // Log but don't throw - deletion failures are often not critical
+      this.logger.warn(`Failed to delete file ${path}: ${result.error}`);
+    }
   }
 
   /**
@@ -116,9 +205,39 @@ export class FirebaseStorage implements StorageProvider {
       throw new Error('Storage not initialized');
     }
     
+    const result = await executeOperation(
+      async () => {
+        const file = this.bucket.file(path);
+        const [exists] = await file.exists();
+        return exists;
+      },
+      {
+        name: `Check file exists ${path}`,
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        fallback: false
+      }
+    );
+    
+    return result.data ?? false;
+  }
+
+  /**
+   * Download file from storage
+   */
+  @WithCircuitBreaker({
+    failureThreshold: 3,
+    timeout: 120000 // 2 minutes for large files
+  })
+  async downloadFile(path: string): Promise<Buffer> {
+    if (!this.bucket) {
+      throw new Error('Storage not initialized');
+    }
+    
     const file = this.bucket.file(path);
-    const [exists] = await file.exists();
-    return exists;
+    const [buffer] = await file.download();
+    
+    return buffer;
   }
 
   /**
@@ -129,44 +248,61 @@ export class FirebaseStorage implements StorageProvider {
       throw new Error('Storage not initialized');
     }
     
-    const [files] = await this.bucket.getFiles({ prefix });
-    return files.map(file => file.name);
+    const result = await executeOperation(
+      async () => {
+        const [files] = await this.bucket.getFiles({ prefix });
+        return files.map(file => file.name);
+      },
+      {
+        name: `List files with prefix ${prefix}`,
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        fallback: []
+      }
+    );
+    
+    return result.data ?? [];
+  }
+
+  /**
+   * Get public URL for a file
+   */
+  getPublicUrl(path: string): string {
+    if (!this.bucketName) {
+      throw new Error('Bucket name not configured');
+    }
+    
+    return `https://storage.googleapis.com/${this.bucketName}/${path}`;
   }
 
   /**
    * Get service account from environment
    */
   private getServiceAccountFromEnv(): any {
-    const base64Creds = process.env.FIREBASE_SERVICE_ACCOUNT || 
-                       process.env.FE_FIREBASE_SERVICE_ACCOUNT_ARBOREAL_VISION_339901 ||
-                       core.getInput('firebase-service-account');
-    
-    if (!base64Creds) {
-      return null;
-    }
-    
     try {
-      const decoded = Buffer.from(base64Creds, 'base64').toString('utf-8');
-      return JSON.parse(decoded);
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+      
+      if (!projectId || !clientEmail || !privateKey) {
+        this.logger.debug('Firebase credentials not found in environment');
+        return null;
+      }
+      
+      return {
+        project_id: projectId,
+        client_email: clientEmail,
+        private_key: privateKey
+      };
     } catch (error) {
-      core.warning(`Failed to parse Firebase credentials: ${error.message}`);
+      this.logger.debug('Failed to parse Firebase credentials from environment');
       return null;
     }
   }
 
   /**
-   * Download file from storage
+   * Cleanup resources
    */
-  async downloadFile(path: string): Promise<Buffer> {
-    if (!this.bucket) {
-      throw new Error('Storage not initialized');
-    }
-    
-    const file = this.bucket.file(path);
-    const [buffer] = await file.download();
-    return buffer;
-  }
-
   /**
    * Upload multiple files in batch
    */
@@ -176,59 +312,74 @@ export class FirebaseStorage implements StorageProvider {
     contentType?: string;
     metadata?: Record<string, string>;
   }>): Promise<string[]> {
-    const uploadPromises = files.map(file => 
+    const uploadPromises = files.map(file =>
       this.uploadFile(file.path, file.content, {
         contentType: file.contentType,
         metadata: file.metadata
       })
     );
     
-    return await Promise.all(uploadPromises);
+    return Promise.all(uploadPromises);
   }
 
   /**
    * Generate storage console URL
    */
   generateStorageConsoleUrl(): string {
-    const projectId = this.app?.options.projectId;
-    if (!projectId) {
-      return 'https://console.firebase.google.com/storage';
-    }
+    const projectId = this.bucketName.replace('.appspot.com', '');
     return `https://console.firebase.google.com/project/${projectId}/storage/${this.bucketName}/files`;
   }
 
   /**
-   * Clean up old artifacts
+   * Cleanup old artifacts
    */
   async cleanupOldArtifacts(daysToKeep: number): Promise<void> {
-    if (!this.bucket) {
-      throw new Error('Storage not initialized');
-    }
-    
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
     
-    const [files] = await this.bucket.getFiles();
-    
-    for (const file of files) {
-      const [metadata] = await file.getMetadata();
-      const createdAt = new Date(metadata.timeCreated);
-      
-      if (createdAt < cutoffDate) {
-        await file.delete();
-        core.info(`Deleted old artifact: ${file.name}`);
+    const result = await executeOperation(
+      async () => {
+        const [files] = await this.bucket.getFiles();
+        const deletePromises: Promise<void>[] = [];
+        
+        for (const file of files) {
+          const metadata = file.metadata;
+          const created = new Date(metadata.timeCreated);
+          
+          if (created < cutoffDate) {
+            deletePromises.push(
+              file.delete().then(() => {
+                this.logger.info(`Deleted old file: ${file.name}`);
+              })
+            );
+          }
+        }
+        
+        await Promise.all(deletePromises);
+        this.logger.info(`Cleaned up ${deletePromises.length} old artifacts`);
+      },
+      {
+        name: 'Cleanup old artifacts',
+        category: ErrorCategory.STORAGE,
+        severity: ErrorSeverity.LOW,
+        fallback: undefined
       }
-    }
+    );
   }
 
-  /**
-   * Cleanup resources
-   */
   async cleanup(): Promise<void> {
     if (this.app) {
       await this.app.delete();
       this.app = null;
       this.bucket = null;
+      this.logger.info('Firebase app cleaned up');
     }
+  }
+  
+  /**
+   * Get circuit breaker statistics
+   */
+  getStats() {
+    return this.circuitBreaker.getStats();
   }
 }

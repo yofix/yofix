@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { Page } from 'playwright';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { EnhancedContextProvider } from '../../context/EnhancedContextProvider';
+import config from '../../config';
 
 export class AIRouteDiscovery {
   private claude: Anthropic;
@@ -67,9 +68,9 @@ Focus on routes that would show different content or UI states.`;
       
       // Use Claude to analyze navigation elements with context
       const response = await this.claude.messages.create({
-        model: 'claude-3-5-sonnet-20241022',  // Better model for navigation understanding
-        max_tokens: 1024,
-        temperature: 0.2,
+        model: config.get('ai.claude.models.navigation'),
+        max_tokens: config.get('ai.claude.maxTokens.navigation'),
+        temperature: config.get('ai.claude.temperature', 0.2),
         messages: [
           {
             role: 'user',
@@ -138,8 +139,8 @@ Format as JSON array of commands.`;
       const contextualPrompt = this.contextProvider.createContextualPrompt(basePrompt, context);
       
       const response = await this.claude.messages.create({
-        model: 'claude-3-5-sonnet-20241022',  // Better model for interaction understanding
-        max_tokens: 1024,
+        model: config.get('ai.claude.models.navigation'),
+        max_tokens: config.get('ai.claude.maxTokens.navigation'),
         temperature: 0.3,
         messages: [
           {

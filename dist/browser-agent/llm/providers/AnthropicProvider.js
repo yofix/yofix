@@ -32,10 +32,14 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnthropicProvider = void 0;
 const LLMProvider_1 = require("./LLMProvider");
 const core = __importStar(require("@actions/core"));
+const config_1 = __importDefault(require("../../../config"));
 class AnthropicProvider extends LLMProvider_1.LLMProvider {
     constructor(config) {
         super(config);
@@ -52,7 +56,7 @@ class AnthropicProvider extends LLMProvider_1.LLMProvider {
         await this.initializeClient();
         try {
             const response = await this.claude.messages.create({
-                model: this.config.model || 'claude-3-5-sonnet-20241022',
+                model: this.config.model || config_1.default.get('ai.claude.defaultModel'),
                 max_tokens: this.config.maxTokens || 1024,
                 temperature: this.config.temperature || 0.3,
                 system: systemPrompt || this.getSystemPrompt(),

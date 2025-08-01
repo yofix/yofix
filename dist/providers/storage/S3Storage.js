@@ -1,45 +1,22 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.S3Storage = void 0;
 exports.createS3StorageFromEnv = createS3StorageFromEnv;
-const core = __importStar(require("@actions/core"));
 const crypto_1 = __importDefault(require("crypto"));
+const path_1 = __importDefault(require("path"));
+const core_1 = require("../../core");
 let S3Client;
 let PutObjectCommand;
 let GetObjectCommand;
@@ -63,186 +40,296 @@ catch (error) {
 class S3Storage {
     constructor(config) {
         this.urlExpiry = 3600;
+        this.logger = (0, core_1.createModuleLogger)({
+            module: 'S3Storage',
+            defaultCategory: core_1.ErrorCategory.STORAGE
+        });
+        this.circuitBreaker = core_1.CircuitBreakerFactory.getBreaker({
+            serviceName: 'S3Storage',
+            failureThreshold: 3,
+            resetTimeout: 60000,
+            timeout: 30000,
+            isFailure: (error) => {
+                const message = error.message.toLowerCase();
+                return !message.includes('auth') &&
+                    !message.includes('permission') &&
+                    !message.includes('forbidden') &&
+                    !message.includes('access denied');
+            },
+            fallback: () => {
+                this.logger.warn('S3 Storage circuit breaker activated - using fallback');
+                return null;
+            }
+        });
         if (!S3Client) {
-            throw new Error('AWS SDK is not installed. Please install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner to use S3 storage.');
+            const error = new Error('AWS SDK is not installed. Please install @aws-sdk/client-s3 and @aws-sdk/s3-request-presigner to use S3 storage.');
+            this.logger.error(error, {
+                severity: core_1.ErrorSeverity.CRITICAL,
+                userAction: 'Initialize S3 storage'
+            });
+            throw error;
         }
         this.bucket = config.bucket;
-        this.region = config.region || 'us-east-1';
+        this.region = config.region || process.env.AWS_REGION || 'us-east-1';
         this.urlExpiry = config.urlExpiry || 3600;
-        this.client = new S3Client({
+        const clientConfig = {
             region: this.region,
-            credentials: config.accessKeyId && config.secretAccessKey ? {
+        };
+        if (config.accessKeyId && config.secretAccessKey) {
+            clientConfig.credentials = {
                 accessKeyId: config.accessKeyId,
                 secretAccessKey: config.secretAccessKey
-            } : undefined
-        });
+            };
+        }
+        this.client = new S3Client(clientConfig);
+        this.logger.info(`S3 Storage initialized for bucket: ${this.bucket} in region: ${this.region}`);
     }
     async initialize() {
-        try {
+        const result = await (0, core_1.executeOperation)(() => this.circuitBreaker.execute(async () => {
             const command = new HeadObjectCommand({
                 Bucket: this.bucket,
-                Key: '.yofix'
+                Key: '.yofix-test'
             });
-            await this.client.send(command);
-            core.info(`✅ S3 bucket ${this.bucket} is accessible`);
-        }
-        catch (error) {
-            if (error.name === 'NotFound') {
-                await this.uploadFile('.yofix', Buffer.from('YoFix Storage'), {
-                    contentType: 'text/plain'
-                });
+            try {
+                await this.client.send(command);
             }
-            else {
-                throw new Error(`S3 initialization failed: ${error.message}`);
+            catch (error) {
+                if (error.name !== 'NotFound') {
+                    throw error;
+                }
             }
-        }
-    }
-    async uploadFile(filePath, content, options) {
-        const command = new PutObjectCommand({
-            Bucket: this.bucket,
-            Key: filePath,
-            Body: content,
-            ContentType: options?.contentType || 'application/octet-stream',
-            Metadata: options?.metadata,
-            ACL: 'public-read'
+        }), {
+            name: 'Test S3 bucket access',
+            category: core_1.ErrorCategory.STORAGE,
+            severity: core_1.ErrorSeverity.HIGH
         });
-        await this.client.send(command);
-        return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${filePath}`;
+        if (result.success) {
+            this.logger.info('✅ S3 Storage connected');
+        }
+        else {
+            throw new Error(`Failed to connect to S3: ${result.error}`);
+        }
     }
-    async getSignedUrl(filePath, expiresIn) {
+    async uploadFile(key, buffer, metadata) {
+        const uploadParams = {
+            Bucket: this.bucket,
+            Key: key,
+            Body: buffer,
+            ContentType: metadata?.contentType || 'application/octet-stream',
+        };
+        if (metadata?.metadata) {
+            uploadParams.Metadata = metadata.metadata;
+        }
+        if (key.includes('screenshot') || key.includes('.png') || key.includes('.jpg')) {
+            uploadParams.ACL = 'public-read';
+        }
+        await (0, core_1.retryOperation)(() => this.client.send(new PutObjectCommand(uploadParams)), {
+            maxAttempts: 3,
+            delayMs: 1000,
+            backoff: true,
+            onRetry: (attempt, error) => {
+                this.logger.debug(`Upload retry attempt ${attempt} for ${key}: ${error.message}`);
+            }
+        });
+        return this.getPublicUrl(key);
+    }
+    async getSignedUrl(key, expiresIn) {
         const command = new GetObjectCommand({
             Bucket: this.bucket,
-            Key: filePath
+            Key: key
         });
-        return await getSignedUrl(this.client, command, {
+        const url = await getSignedUrl(this.client, command, {
             expiresIn: expiresIn || this.urlExpiry
         });
+        return url;
     }
-    async downloadFile(filePath) {
+    async deleteFile(key) {
+        const result = await (0, core_1.executeOperation)(async () => {
+            const command = new DeleteObjectCommand({
+                Bucket: this.bucket,
+                Key: key
+            });
+            await this.client.send(command);
+        }, {
+            name: `Delete file ${key}`,
+            category: core_1.ErrorCategory.STORAGE,
+            severity: core_1.ErrorSeverity.LOW,
+            metadata: { key }
+        });
+        if (!result.success) {
+            this.logger.warn(`Failed to delete file ${key}: ${result.error}`);
+        }
+    }
+    async exists(key) {
+        const result = await (0, core_1.executeOperation)(async () => {
+            const command = new HeadObjectCommand({
+                Bucket: this.bucket,
+                Key: key
+            });
+            try {
+                await this.client.send(command);
+                return true;
+            }
+            catch (error) {
+                if (error.name === 'NotFound') {
+                    return false;
+                }
+                throw error;
+            }
+        }, {
+            name: `Check file exists ${key}`,
+            category: core_1.ErrorCategory.STORAGE,
+            severity: core_1.ErrorSeverity.LOW,
+            fallback: false
+        });
+        return result.data ?? false;
+    }
+    async downloadFile(key) {
         const command = new GetObjectCommand({
             Bucket: this.bucket,
-            Key: filePath
+            Key: key
         });
         const response = await this.client.send(command);
-        if (!response.Body) {
-            throw new Error(`No content found for ${filePath}`);
-        }
         const chunks = [];
         for await (const chunk of response.Body) {
-            chunks.push(chunk);
+            chunks.push(Buffer.from(chunk));
         }
         return Buffer.concat(chunks);
     }
-    async deleteFile(filePath) {
-        const command = new DeleteObjectCommand({
-            Bucket: this.bucket,
-            Key: filePath
+    async listFiles(prefix) {
+        const result = await (0, core_1.executeOperation)(async () => {
+            const command = new ListObjectsV2Command({
+                Bucket: this.bucket,
+                Prefix: prefix
+            });
+            const response = await this.client.send(command);
+            const files = response.Contents || [];
+            return files.map((file) => file.Key).filter(Boolean);
+        }, {
+            name: `List files with prefix ${prefix}`,
+            category: core_1.ErrorCategory.STORAGE,
+            severity: core_1.ErrorSeverity.LOW,
+            fallback: []
         });
-        await this.client.send(command);
+        return result.data ?? [];
     }
-    async listFiles(prefix, maxResults) {
-        const command = new ListObjectsV2Command({
-            Bucket: this.bucket,
-            Prefix: prefix,
-            MaxKeys: maxResults || 1000
-        });
-        const response = await this.client.send(command);
-        return (response.Contents || [])
-            .map(obj => obj.Key)
-            .filter((key) => key !== undefined);
+    getPublicUrl(key) {
+        return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+    }
+    generateKey(filename, prefix) {
+        const timestamp = Date.now();
+        const hash = crypto_1.default.createHash('sha256')
+            .update(`${filename}-${timestamp}`)
+            .digest('hex')
+            .substring(0, 8);
+        const ext = path_1.default.extname(filename);
+        const base = path_1.default.basename(filename, ext);
+        const uniqueName = `${base}-${hash}${ext}`;
+        return prefix ? `${prefix}/${uniqueName}` : uniqueName;
     }
     async uploadBatch(files) {
         const uploadPromises = files.map(file => this.uploadFile(file.path, file.content, {
             contentType: file.contentType,
             metadata: file.metadata
         }));
-        return await Promise.all(uploadPromises);
+        return Promise.all(uploadPromises);
     }
     generateStorageConsoleUrl() {
-        return `https://s3.console.aws.amazon.com/s3/buckets/${this.bucket}`;
+        return `https://s3.console.aws.amazon.com/s3/buckets/${this.bucket}?region=${this.region}&tab=objects`;
     }
     async cleanupOldArtifacts(daysToKeep) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-        try {
-            const objects = await this.listFiles('screenshots/');
-            for (const key of objects) {
-                if (!key)
-                    continue;
-                const headCommand = new HeadObjectCommand({
-                    Bucket: this.bucket,
-                    Key: key
-                });
-                try {
-                    const response = await this.client.send(headCommand);
-                    if (response.LastModified && response.LastModified < cutoffDate) {
-                        await this.deleteFile(key);
-                        core.info(`Deleted old artifact: ${key}`);
-                    }
-                }
-                catch (error) {
-                    core.warning(`Failed to check artifact ${key}: ${error.message}`);
-                }
-            }
-        }
-        catch (error) {
-            core.warning(`Cleanup failed: ${error.message}`);
-        }
-    }
-    calculateFingerprint(buffer) {
-        return crypto_1.default
-            .createHash('sha256')
-            .update(buffer)
-            .digest('hex');
-    }
-    async getStorageStats() {
-        const objects = await this.listFiles('');
-        let totalSize = 0;
-        let oldestFile;
-        let newestFile;
-        for (const key of objects) {
-            if (!key)
-                continue;
-            const headCommand = new HeadObjectCommand({
+        const result = await (0, core_1.executeOperation)(async () => {
+            const listParams = {
                 Bucket: this.bucket,
-                Key: key
-            });
-            try {
-                const response = await this.client.send(headCommand);
-                if (response.ContentLength) {
-                    totalSize += response.ContentLength;
-                }
-                if (response.LastModified) {
-                    if (!oldestFile || response.LastModified < oldestFile) {
-                        oldestFile = response.LastModified;
-                    }
-                    if (!newestFile || response.LastModified > newestFile) {
-                        newestFile = response.LastModified;
+                MaxKeys: 1000
+            };
+            const listResult = await this.client.send(new ListObjectsV2Command(listParams));
+            const deleteObjects = [];
+            if (listResult.Contents) {
+                for (const obj of listResult.Contents) {
+                    if (obj.LastModified && new Date(obj.LastModified) < cutoffDate) {
+                        deleteObjects.push({ Key: obj.Key });
+                        this.logger.info(`Marking for deletion: ${obj.Key}`);
                     }
                 }
             }
-            catch (error) {
+            if (deleteObjects.length > 0) {
+                const deleteParams = {
+                    Bucket: this.bucket,
+                    Delete: {
+                        Objects: deleteObjects,
+                        Quiet: false
+                    }
+                };
+                const deleteCommand = new DeleteObjectCommand({
+                    Bucket: this.bucket,
+                    Key: deleteObjects[0].Key
+                });
+                for (const obj of deleteObjects) {
+                    await this.client.send(new DeleteObjectCommand({
+                        Bucket: this.bucket,
+                        Key: obj.Key
+                    }));
+                }
+                this.logger.info(`Cleaned up ${deleteObjects.length} old artifacts`);
             }
-        }
-        return {
-            totalFiles: objects.length,
-            totalSize,
-            oldestFile,
-            newestFile
-        };
+        }, {
+            name: 'Cleanup old artifacts',
+            category: core_1.ErrorCategory.STORAGE,
+            severity: core_1.ErrorSeverity.LOW,
+            fallback: undefined
+        });
+    }
+    async cleanup() {
+        this.logger.info('S3 Storage cleaned up');
+    }
+    getStats() {
+        return this.circuitBreaker.getStats();
     }
 }
 exports.S3Storage = S3Storage;
+__decorate([
+    (0, core_1.WithCircuitBreaker)({
+        failureThreshold: 3,
+        resetTimeout: 30000,
+        timeout: 60000
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Buffer, Object]),
+    __metadata("design:returntype", Promise)
+], S3Storage.prototype, "uploadFile", null);
+__decorate([
+    (0, core_1.WithCircuitBreaker)({
+        failureThreshold: 5,
+        resetTimeout: 30000
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number]),
+    __metadata("design:returntype", Promise)
+], S3Storage.prototype, "getSignedUrl", null);
+__decorate([
+    (0, core_1.WithCircuitBreaker)({
+        failureThreshold: 3,
+        timeout: 120000
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], S3Storage.prototype, "downloadFile", null);
 function createS3StorageFromEnv() {
-    const bucket = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET;
+    const bucket = process.env.S3_BUCKET;
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
     if (!bucket) {
-        return null;
+        throw new Error('S3_BUCKET environment variable is required');
     }
     return new S3Storage({
         bucket,
-        region: process.env.AWS_REGION || process.env.S3_REGION,
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        urlExpiry: parseInt(process.env.S3_URL_EXPIRY || '3600', 10)
+        region,
+        accessKeyId,
+        secretAccessKey
     });
 }

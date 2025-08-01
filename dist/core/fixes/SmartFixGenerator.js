@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SmartFixGenerator = void 0;
 const core = __importStar(require("@actions/core"));
@@ -40,6 +43,7 @@ const PatternMatcher_1 = require("./PatternMatcher");
 const FixValidator_1 = require("./FixValidator");
 const FixTemplates_1 = require("./FixTemplates");
 const CacheManager_1 = require("../../optimization/CacheManager");
+const config_1 = __importDefault(require("../../config"));
 class SmartFixGenerator {
     constructor(claudeApiKey, context, cache) {
         this.context = context;
@@ -57,9 +61,9 @@ class SmartFixGenerator {
                 [];
             const prompt = this.buildContextualPrompt(issue, patterns, template);
             const cacheKey = this.cache.createAIResponseKey({
-                model: 'claude-3-5-sonnet-20241022',
+                model: config_1.default.get('ai.claude.models.fixing'),
                 prompt,
-                temperature: 0.3,
+                temperature: config_1.default.get('ai.claude.temperature', 0.3),
                 maxTokens: 2048
             });
             const fixData = await this.cache.wrap(cacheKey, () => this.generateWithClaude(prompt, issue), { ttl: 7200 });
@@ -141,9 +145,9 @@ Style System: ${this.context.styleSystem || 'CSS'}`;
     async generateWithClaude(prompt, issue) {
         try {
             const response = await this.claude.messages.create({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 2048,
-                temperature: 0.3,
+                model: config_1.default.get('ai.claude.models.fixing'),
+                max_tokens: config_1.default.get('ai.claude.maxTokens.fixing'),
+                temperature: config_1.default.get('ai.claude.temperature', 0.3),
                 messages: [{
                         role: 'user',
                         content: prompt

@@ -1,44 +1,61 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LLMBrowserAgent = void 0;
 exports.authenticateWithLLM = authenticateWithLLM;
 exports.executeNaturalLanguageTask = executeNaturalLanguageTask;
 const sdk_1 = require("@anthropic-ai/sdk");
+const config_1 = __importDefault(require("../config"));
+const ErrorHandlerFactory_1 = require("../core/error/ErrorHandlerFactory");
+const core_1 = require("../core");
+const logger = (0, ErrorHandlerFactory_1.createModuleLogger)({
+    module: 'LLMBrowserAgent',
+    defaultCategory: core_1.ErrorCategory.AI
+});
+const tryCatch = (0, ErrorHandlerFactory_1.createTryCatch)(logger);
 class LLMBrowserAgent {
     constructor(apiKey) {
         this.apiKey = apiKey;
         this.claude = new sdk_1.Anthropic({ apiKey });
     }
     async executeTask(page, task, debug) {
+        const log = (0, ErrorHandlerFactory_1.createModuleLogger)({
+            module: 'LLMBrowserAgent',
+            debug,
+            defaultCategory: core_1.ErrorCategory.AI
+        });
         try {
-            if (debug)
-                console.log(`🤖 Executing task: ${task}`);
+            log.debug(`🤖 Executing task: ${task}`);
             const snapshot = await this.captureDOMSnapshot(page);
-            if (debug)
-                console.log(`📸 Captured DOM snapshot with ${snapshot.elements.length} elements`);
+            log.debug(`📸 Captured DOM snapshot with ${snapshot.elements.length} elements`);
             const actions = await this.generateActions(task, snapshot, debug);
-            if (debug)
-                console.log(`🎯 Generated ${actions.length} actions:`, actions);
+            log.debug(`🎯 Generated ${actions.length} actions:`, actions);
             for (let i = 0; i < actions.length; i++) {
                 const action = actions[i];
-                if (debug)
-                    console.log(`\n⚡ Executing action ${i + 1}/${actions.length}:`, action);
+                log.debug(`\n⚡ Executing action ${i + 1}/${actions.length}:`, action);
                 try {
                     await this.executeAction(page, action);
-                    if (debug)
-                        console.log(`  ✅ Action completed`);
+                    log.debug(`  ✅ Action completed`);
                 }
                 catch (error) {
-                    if (debug)
-                        console.log(`  ❌ Action failed:`, error.message);
+                    await log.error(error, {
+                        userAction: 'Execute browser action',
+                        severity: core_1.ErrorSeverity.MEDIUM,
+                        metadata: { action, index: i, totalActions: actions.length }
+                    });
                     throw error;
                 }
             }
             return true;
         }
         catch (error) {
-            if (debug)
-                console.error('❌ Task execution failed:', error);
+            await log.error(error, {
+                userAction: 'Execute LLM browser task',
+                severity: core_1.ErrorSeverity.HIGH,
+                metadata: { task, url: page.url() }
+            });
             return false;
         }
     }
@@ -131,77 +148,96 @@ class LLMBrowserAgent {
         }).join('\n');
         const prompt = `You are an expert web automation agent.
 
-Your goal is to generate a list of DOM-based browser actions to accomplish the user's task using Playwright.  
-You are given:
+Your task is to generate Playwright browser actions to accomplish the user's goal.
 
-1. A user-defined task
-2. A simplified snapshot of the current web page's structure (visible text, DOM elements, attributes)
+IMPORTANT: Return ONLY a JSON array of actions. No explanations, no markdown, just the JSON array.
 
-### Rules:
-- Output actions as JSON only, no other text.
-- Use Playwright-compatible selectors like \`text=\`, \`input[name=]\`, \`button:has-text()\`, \`[role=]\`, \`[aria-label=]\`.
-- Do not guess URLs unless given.
-- Each action must include:
-  - \`action\`: one of \`click\`, \`fill\`, \`goto\`, \`press\`, \`wait\`
-  - \`selector\`: DOM selector (unless \`goto\` or \`wait\`)
-  - \`value\`: (for \`fill\` or \`press\` actions)
+Task: ${task}
 
----
+Current page: ${snapshot.url}
+Page title: ${snapshot.title}
 
-### 📌 Task:
-${task}
-
-### 🌐 Page Snapshot:
-URL: ${snapshot.url}
-Title: ${snapshot.title}
-
-Elements:
+Available elements:
 ${simplifiedElements}
 
-### ✅ Output Format:
-\`\`\`json
+Valid actions:
+- fill: Fill an input field (requires: selector, value)
+- click: Click an element (requires: selector)
+- press: Press a key (requires: selector or just value for global key press)
+- wait: Wait for a duration (requires: value in milliseconds)
+- goto: Navigate to URL (requires: value as URL)
+
+Example response format:
 [
-  {
-    "action": "fill",
-    "selector": "input[name='username']",
-    "value": "my-email@example.com"
-  },
-  {
-    "action": "click",
-    "selector": "button:has-text('Sign in')"
-  }
+  {"action": "fill", "selector": "input[name='email']", "value": "user@example.com"},
+  {"action": "fill", "selector": "input[type='password']", "value": "password123"},
+  {"action": "click", "selector": "button[type='submit']"}
 ]
-\`\`\``;
+
+Generate the actions needed to: ${task}`;
         try {
             const response = await this.claude.messages.create({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 1024,
+                model: config_1.default.get('ai.claude.models.navigation'),
+                max_tokens: config_1.default.get('ai.claude.maxTokens.navigation'),
                 messages: [{
                         role: 'user',
                         content: prompt
                     }]
             });
             const content = response.content[0].type === 'text' ? response.content[0].text : '';
+            let actions = [];
             const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-            if (!jsonMatch) {
-                throw new Error('No JSON found in response');
+            if (jsonMatch) {
+                try {
+                    actions = JSON.parse(jsonMatch[1]);
+                }
+                catch (e) {
+                    logger.debug('Failed to parse JSON from code block:', e);
+                }
             }
-            const actions = JSON.parse(jsonMatch[1]);
+            if (actions.length === 0) {
+                try {
+                    const parsed = JSON.parse(content);
+                    if (Array.isArray(parsed)) {
+                        actions = parsed;
+                    }
+                    else if (parsed.actions && Array.isArray(parsed.actions)) {
+                        actions = parsed.actions;
+                    }
+                }
+                catch (e) {
+                    const arrayMatch = content.match(/\[[\s\S]*?\]/);
+                    if (arrayMatch) {
+                        try {
+                            actions = JSON.parse(arrayMatch[0]);
+                        }
+                        catch (e2) {
+                            logger.debug('Failed to parse JSON array:', e2);
+                        }
+                    }
+                }
+            }
+            if (actions.length === 0) {
+                throw new Error('No valid actions found in LLM response');
+            }
             return actions;
         }
         catch (error) {
-            if (debug)
-                console.error('Failed to generate actions:', error);
+            await logger.error(error, {
+                userAction: 'Generate browser actions from LLM',
+                severity: core_1.ErrorSeverity.HIGH,
+                metadata: { task, url: snapshot.url, elementCount: snapshot.elements.length }
+            });
             throw error;
         }
     }
     async executeAction(page, action) {
         switch (action.action) {
             case 'click':
-                await page.click(action.selector, { timeout: action.timeout || 10000 });
+                await page.click(action.selector, { timeout: action.timeout || config_1.default.get('auth.selectorTimeout') });
                 break;
             case 'fill':
-                await page.fill(action.selector, action.value || '', { timeout: action.timeout || 10000 });
+                await page.fill(action.selector, action.value || '', { timeout: action.timeout || config_1.default.get('auth.selectorTimeout') });
                 break;
             case 'goto':
                 await page.goto(action.value, { waitUntil: 'networkidle' });
@@ -218,7 +254,7 @@ ${simplifiedElements}
                 await page.waitForTimeout(action.timeout || parseInt(action.value || '1000'));
                 break;
             case 'wait_for':
-                await page.waitForSelector(action.selector, { timeout: action.timeout || 30000 });
+                await page.waitForSelector(action.selector, { timeout: action.timeout || config_1.default.get('browser.defaultTimeout') });
                 break;
             case 'screenshot':
                 await page.screenshot({ path: action.value || 'screenshot.png', fullPage: true });
@@ -230,9 +266,13 @@ ${simplifiedElements}
 }
 exports.LLMBrowserAgent = LLMBrowserAgent;
 async function authenticateWithLLM(page, email, password, loginUrl, apiKey, debug) {
+    const log = (0, ErrorHandlerFactory_1.createModuleLogger)({
+        module: 'LLMBrowserAgent.authenticate',
+        debug,
+        defaultCategory: core_1.ErrorCategory.AUTHENTICATION
+    });
     if (!apiKey) {
-        if (debug)
-            console.log('⚠️ No Claude API key provided, skipping LLM authentication');
+        log.warn('⚠️ No Claude API key provided, skipping LLM authentication');
         return false;
     }
     const agent = new LLMBrowserAgent(apiKey);
@@ -249,7 +289,7 @@ Click the submit/login button to complete authentication.`;
     const success = await agent.executeTask(page, task, debug);
     if (success) {
         try {
-            await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 5000 });
+            await page.waitForNavigation({ waitUntil: 'networkidle', timeout: config_1.default.get('testing.defaultWaitTime') * 2.5 });
         }
         catch {
             await page.waitForTimeout(2000);

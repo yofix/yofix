@@ -150,7 +150,7 @@ export interface AuthCredentials {
 }
 
 export interface AuthResult extends ActionResult {
-  method: 'smart' | 'selector' | 'manual';
+  method: 'smart' | 'selector' | 'manual' | 'llm';
   loginTime: number;
   verificationMethod?: string;
 }

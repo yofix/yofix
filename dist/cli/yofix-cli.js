@@ -42,9 +42,10 @@ const VisualAnalyzer_1 = require("../core/analysis/VisualAnalyzer");
 const FixGenerator_1 = require("../core/fixes/FixGenerator");
 const ReportFormatter_1 = require("../bot/ReportFormatter");
 const dotenv = __importStar(require("dotenv"));
-const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const chalk_1 = __importDefault(require("chalk"));
+const fs = __importStar(require("fs"));
+const core_1 = require("../core");
 const projectRoot = path.join(__dirname, '../../');
 const envLocal = path.join(projectRoot, '.env.local');
 const envDefault = path.join(projectRoot, '.env');
@@ -90,7 +91,7 @@ program
         });
         const report = formatter.formatScanResult(result);
         if (options.output) {
-            fs.writeFileSync(options.output, report);
+            await (0, core_1.write)(options.output, report, { createDirectories: true });
             console.log(chalk_1.default.green(`✅ Results saved to ${options.output}`));
         }
         else {
@@ -108,20 +109,30 @@ program
     .option('--claude-key <key>', 'Claude API key (or set CLAUDE_API_KEY env var)')
     .option('-o, --output <file>', 'Output fixes to file')
     .action(async (issueFile, options) => {
-    const claudeKey = options.claudeKey || process.env.CLAUDE_API_KEY;
+    const claudeKey = options.claudeKey || core_1.config.get('claude-api-key', {
+        defaultValue: process.env.CLAUDE_API_KEY
+    });
     if (!claudeKey) {
         console.error(chalk_1.default.red('Error: Claude API key required'));
         process.exit(1);
     }
     try {
-        const scanResult = JSON.parse(fs.readFileSync(issueFile, 'utf-8'));
+        const fileContent = await (0, core_1.read)(issueFile);
+        if (!fileContent) {
+            throw new Error(`Could not read file: ${issueFile}`);
+        }
+        const parseResult = (0, core_1.safeJSONParse)(fileContent);
+        if (!parseResult.success) {
+            throw new Error(`Invalid JSON in file: ${parseResult.error}`);
+        }
+        const scanResult = parseResult.data;
         const generator = new FixGenerator_1.FixGenerator(claudeKey);
         const formatter = new ReportFormatter_1.ReportFormatter();
         console.log(chalk_1.default.blue(`🔧 Generating fixes for ${scanResult.issues.length} issues...`));
         const fixResult = await generator.generateFixes(scanResult.issues);
         const report = formatter.formatFixResult(fixResult);
         if (options.output) {
-            fs.writeFileSync(options.output, report);
+            await (0, core_1.write)(options.output, report, { createDirectories: true });
             console.log(chalk_1.default.green(`✅ Fixes saved to ${options.output}`));
         }
         else {

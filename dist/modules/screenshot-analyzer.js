@@ -37,46 +37,58 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
 const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
+const config_1 = __importDefault(require("../config"));
+const core_1 = require("../core");
+const logger = (0, core_1.createModuleLogger)({
+    module: 'ScreenshotAnalyzer',
+    defaultCategory: core_1.ErrorCategory.AI
+});
 async function analyzeScreenshots() {
-    const screenshotsJson = process.env.INPUT_SCREENSHOTS || '[]';
-    const apiKey = process.env.INPUT_CLAUDE_API_KEY;
-    const debug = process.env.INPUT_DEBUG === 'true';
+    const screenshotsJson = core_1.config.get('screenshots', { defaultValue: '[]' });
+    const apiKey = core_1.config.getSecret('claude-api-key');
+    const debug = (0, core_1.getBooleanConfig)('debug');
     if (!apiKey) {
-        console.log('⚠️ Claude API key not provided, skipping AI analysis');
+        logger.warn('⚠️ Claude API key not provided, skipping AI analysis');
         outputResults([]);
         return;
     }
-    console.log('🤖 Analyzing screenshots with AI...');
-    let screenshots = [];
-    try {
-        screenshots = JSON.parse(screenshotsJson);
-    }
-    catch {
-        console.error('❌ Invalid screenshots input');
+    logger.info('🤖 Analyzing screenshots with AI...');
+    const parseResult = (0, core_1.safeJSONParse)(screenshotsJson, { defaultValue: [] });
+    if (!parseResult.success) {
+        await logger.error(new Error(parseResult.error), {
+            userAction: 'Parse screenshots input',
+            severity: core_1.ErrorSeverity.CRITICAL,
+            metadata: { screenshotsJson }
+        });
         process.exit(1);
     }
+    const screenshots = parseResult.data;
     if (screenshots.length === 0) {
-        console.log('⚠️ No screenshots to analyze');
+        logger.warn('⚠️ No screenshots to analyze');
         outputResults([]);
         return;
     }
     const anthropic = new sdk_1.default({ apiKey });
     const results = [];
     for (const screenshotPath of screenshots) {
-        if (!fs.existsSync(screenshotPath)) {
-            console.log(`⚠️ Screenshot not found: ${screenshotPath}`);
+        if (!await (0, core_1.exists)(screenshotPath)) {
+            logger.warn(`⚠️ Screenshot not found: ${screenshotPath}`);
             continue;
         }
-        console.log(`\n📸 Analyzing: ${path.basename(screenshotPath)}`);
+        logger.info(`\n📸 Analyzing: ${path.basename(screenshotPath)}`);
         try {
-            const imageBuffer = fs.readFileSync(screenshotPath);
-            const base64Image = imageBuffer.toString('base64');
+            const imageContent = await (0, core_1.read)(screenshotPath, { encoding: 'base64' });
+            if (!imageContent) {
+                logger.warn(`Failed to read screenshot: ${screenshotPath}`);
+                continue;
+            }
+            const base64Image = imageContent;
             const response = await anthropic.messages.create({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 1024,
+                model: config_1.default.get('ai.claude.models.screenshot'),
+                max_tokens: config_1.default.get('ai.claude.maxTokens.default'),
                 messages: [{
                         role: 'user',
                         content: [
@@ -132,15 +144,19 @@ async function analyzeScreenshots() {
                 accessibility: analysis.accessibility || []
             });
             if (debug) {
-                console.log('Analysis result:', JSON.stringify(analysis, null, 2));
+                logger.debug('Analysis result:', JSON.stringify(analysis, null, 2));
             }
             const issueCount = (analysis.issues || []).length;
-            console.log(`  ✅ Analysis complete: ${issueCount} issues found`);
+            logger.info(`  ✅ Analysis complete: ${issueCount} issues found`);
         }
         catch (error) {
-            console.error(`  ❌ Analysis failed: ${error.message}`);
+            await logger.error(error, {
+                userAction: 'Analyze screenshot',
+                severity: error.message?.includes('authentication') ? core_1.ErrorSeverity.CRITICAL : core_1.ErrorSeverity.HIGH,
+                metadata: { screenshot: screenshotPath }
+            });
             if (error.message?.includes('authentication')) {
-                console.error('⚠️ Claude API authentication failed. Please check your API key.');
+                logger.warn('⚠️ Claude API authentication failed. Please check your API key.');
                 break;
             }
         }
@@ -165,8 +181,14 @@ function outputResults(results) {
         fs.appendFileSync(githubOutput, `total-issues=${summary.summary.total_issues}\n`);
         fs.appendFileSync(githubOutput, `high-severity-issues=${summary.summary.high_severity}\n`);
     }
-    console.log(`\n✅ Analysis completed: ${summary.summary.total_issues} total issues found`);
+    logger.info(`\n✅ Analysis completed: ${summary.summary.total_issues} total issues found`);
 }
 if (require.main === module) {
-    analyzeScreenshots().catch(console.error);
+    analyzeScreenshots().catch(async (error) => {
+        await logger.error(error, {
+            userAction: 'Run screenshot analyzer',
+            severity: core_1.ErrorSeverity.CRITICAL
+        });
+        process.exit(1);
+    });
 }

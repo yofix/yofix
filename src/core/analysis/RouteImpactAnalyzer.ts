@@ -6,6 +6,7 @@ import { TreeSitterRouteAnalyzer } from './TreeSitterRouteAnalyzer';
 import * as path from 'path';
 import * as fs from 'fs';
 import { StorageProvider } from '../baseline/types';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
 
 export interface RouteImpact {
   route: string;
@@ -285,7 +286,14 @@ export class RouteImpactAnalyzer {
         }
       }
     } catch (error) {
-      core.debug(`Failed to analyze ${filePath}: ${error}`);
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.ANALYSIS,
+        userAction: 'Analyzing component imports',
+        metadata: { filePath },
+        recoverable: true,
+        skipGitHubPost: true
+      });
     }
   }
 

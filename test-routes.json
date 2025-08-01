@@ -1,7 +1,0 @@
-[
-  { "path": "/", "title": "Home" },
-  { "path": "/dashboard", "title": "Dashboard" },
-  { "path": "/stores", "title": "Stores" },
-  { "path": "/reports", "title": "Reports" },
-  { "path": "/settings", "title": "Settings" }
-]

@@ -5,6 +5,7 @@ import { CommandHandler } from './CommandHandler';
 import { BotResponse } from './types';
 import { CodebaseAnalyzer } from '../context/CodebaseAnalyzer';
 import { CodebaseContext } from '../context/types';
+import { getGitHubCommentEngine, botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
 
 /**
  * YoFix Bot - Main controller for handling GitHub comments and commands
@@ -15,7 +16,7 @@ export class YoFixBot {
   private commandHandler: CommandHandler;
   private botUsername = 'yofix';
   private codebaseContext: CodebaseContext | null = null;
-  private progressCommentId: number | null = null;
+  private commentEngine = getGitHubCommentEngine();
 
   constructor(githubToken: string, claudeApiKey: string) {
     this.octokit = github.getOctokit(githubToken);
@@ -35,13 +36,22 @@ export class YoFixBot {
       this.codebaseContext = await analyzer.analyzeRepository();
       
       // Recreate command handler with context
-      const githubToken = core.getInput('github-token') || process.env.YOFIX_GITHUB_TOKEN || '';
-      const claudeApiKey = process.env.CLAUDE_API_KEY || core.getInput('claude-api-key') || '';
+      const { config } = await import('../core');
+      const githubToken = config.get('github-token', { 
+        defaultValue: process.env.YOFIX_GITHUB_TOKEN 
+      });
+      const claudeApiKey = config.getSecret('claude-api-key');
       this.commandHandler = new CommandHandler(githubToken, claudeApiKey, this.codebaseContext);
       
       core.info('✅ Codebase context initialized successfully');
     } catch (error) {
-      core.warning(`Failed to initialize codebase context: ${error.message}`);
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.CONFIGURATION,
+        userAction: 'Initialize codebase context',
+        recoverable: true,
+        skipGitHubPost: true
+      });
     }
   }
 
@@ -69,41 +79,17 @@ export class YoFixBot {
       const command = this.commandParser.parse(comment.body);
       
       if (!command) {
-        await this.postComment(issue.number, this.getHelpMessage(), comment.id);
+        await botActivity.handleUnknownCommand(comment.body.replace(/@yofix\s*/i, ''));
         return;
       }
 
-      // Add immediate acknowledgment with 👀 reaction
-      await this.octokit.rest.reactions.createForIssueComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        comment_id: comment.id,
-        content: 'eyes'
-      });
-
-      // Post initial progress comment in the same thread
-      const progressComment = await this.postProgressComment(
-        issue.number,
-        `🔄 **Processing \`@yofix ${command.action}\`**\n\n⏳ Initializing...`,
-        comment.id
-      );
-      this.progressCommentId = progressComment.data.id;
+      // Add immediate acknowledgment
+      await this.commentEngine.reactToComment(comment.id, 'eyes');
 
       // Get preview URL for this PR
       const previewUrl = await this.getPreviewUrl(issue.number);
-      
-      // Create progress callback for updates
-      const updateProgress = async (message: string) => {
-        if (this.progressCommentId) {
-          await this.updateComment(this.progressCommentId, message);
-        }
-      };
 
-      // Pass progress callback to command handler
-      const commandHandlerWithProgress = this.commandHandler as any;
-      commandHandlerWithProgress.setProgressCallback?.(updateProgress);
-
-      // Execute command
+      // Execute command - bot activity handler will manage all updates
       const result = await this.commandHandler.execute(command, {
         prNumber: issue.number,
         repo: context.repo,
@@ -114,119 +100,23 @@ export class YoFixBot {
         },
         previewUrl
       });
-
-      // Update the progress comment with final result
-      if (this.progressCommentId) {
-        await this.updateComment(this.progressCommentId, result.message);
-      } else {
-        // Fallback: post new comment in thread
-        await this.postComment(issue.number, result.message, comment.id);
-      }
+      
+      // Result is already posted by bot activity handler
 
     } catch (error) {
-      core.error(`Bot error: ${error}`);
-      const errorMessage = `❌ YoFix encountered an error: ${error.message}\n\nTry \`@yofix help\` for available commands.`;
-      
-      if (this.progressCommentId) {
-        await this.updateComment(this.progressCommentId, errorMessage);
-      } else {
-        await this.postComment(issue.number, errorMessage, comment.id);
-      }
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.HIGH,
+        category: ErrorCategory.UNKNOWN,
+        userAction: `Bot command: ${comment.body}`,
+        metadata: {
+          issueNumber: issue.number,
+          commentId: comment.id
+        }
+      });
     }
   }
 
-  /**
-   * Post a comment to the PR (optionally in reply to another comment)
-   */
-  private async postComment(issueNumber: number, body: string, inReplyTo?: number): Promise<void> {
-    const context = github.context;
-    
-    // GitHub doesn't have direct thread support, but we can reference the original comment
-    const finalBody = inReplyTo 
-      ? `> In reply to [this comment](${context.payload.comment?.html_url || `#issuecomment-${inReplyTo}`})\n\n${body}`
-      : body;
-    
-    await this.octokit.rest.issues.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: issueNumber,
-      body: finalBody
-    });
-  }
-
-  /**
-   * Post a progress comment that will be updated
-   */
-  private async postProgressComment(issueNumber: number, body: string, inReplyTo?: number) {
-    const context = github.context;
-    
-    // Add reference to original comment for context
-    const finalBody = inReplyTo 
-      ? `> In reply to [this comment](${context.payload.comment?.html_url || `#issuecomment-${inReplyTo}`})\n\n${body}`
-      : body;
-    
-    return await this.octokit.rest.issues.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: issueNumber,
-      body: finalBody
-    });
-  }
-
-  /**
-   * Update an existing comment
-   */
-  private async updateComment(commentId: number, body: string): Promise<void> {
-    const context = github.context;
-    
-    await this.octokit.rest.issues.updateComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      comment_id: commentId,
-      body
-    });
-  }
-
-  /**
-   * Get help message with available commands
-   */
-  private getHelpMessage(): string {
-    return `## 🔧 YoFix Bot Commands
-
-I can help you detect and fix visual issues in your PR. Here are my commands:
-
-### 🔍 Scanning Commands
-- \`@yofix scan\` - Scan all routes for visual issues
-- \`@yofix scan /specific-route\` - Scan a specific route
-- \`@yofix scan --viewport mobile\` - Scan with specific viewport
-
-### 🔧 Fix Commands
-- \`@yofix fix\` - Generate fixes for all detected issues
-- \`@yofix fix #3\` - Generate fix for specific issue
-- \`@yofix apply\` - Apply all suggested fixes
-- \`@yofix apply #2\` - Apply specific fix
-
-### 📊 Analysis Commands
-- \`@yofix explain #1\` - Get detailed explanation of an issue
-- \`@yofix compare production\` - Compare with production baseline
-- \`@yofix report\` - Generate full analysis report
-- \`@yofix impact\` - Show route impact tree from PR changes
-
-### 🎯 Other Commands
-- \`@yofix baseline update\` - Update visual baseline with current state
-- \`@yofix preview\` - Preview fixes before applying
-- \`@yofix ignore\` - Skip visual testing for this PR
-- \`@yofix help\` - Show this help message
-
-### 💡 Examples
-\`\`\`
-@yofix scan /dashboard --viewport tablet
-@yofix fix #1
-@yofix apply
-\`\`\`
-
-Need more help? Check our [documentation](https://yofix.dev/docs).`;
-  }
+  // Comment handling is now done through centralized comment engine
 
   /**
    * Check if a comment is from the bot itself (to avoid loops)
@@ -271,7 +161,14 @@ Need more help? Check our [documentation](https://yofix.dev/docs).`;
       }
       
     } catch (error) {
-      core.warning(`Failed to get preview URL: ${error.message}`);
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.CONFIGURATION,
+        userAction: 'Get preview URL',
+        recoverable: true,
+        skipGitHubPost: true,
+        metadata: { prNumber }
+      });
     }
     
     return undefined;

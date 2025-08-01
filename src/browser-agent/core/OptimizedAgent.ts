@@ -9,6 +9,7 @@ import { StateManager } from './StateManager';
 import { registerBuiltInActions } from '../actions';
 import { AnthropicProvider } from '../llm/providers/AnthropicProvider';
 import * as core from '@actions/core';
+import config from '../../config';
 
 interface BatchAction {
   action: string;
@@ -57,7 +58,7 @@ export class OptimizedAgent {
     
     this.llmProvider = new AnthropicProvider({
       apiKey: process.env.ANTHROPIC_API_KEY || '',
-      model: 'claude-3-sonnet-20240229'
+      model: config.get('ai.claude.defaultModel')
     });
   }
   

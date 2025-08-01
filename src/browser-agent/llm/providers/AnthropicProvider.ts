@@ -1,6 +1,7 @@
 import { LLMProvider, LLMConfig } from './LLMProvider';
 import { LLMResponse } from '../../types';
 import * as core from '@actions/core';
+import config from '../../../config';
 
 export class AnthropicProvider extends LLMProvider {
   private claude: any;
@@ -23,7 +24,7 @@ export class AnthropicProvider extends LLMProvider {
     
     try {
       const response = await this.claude.messages.create({
-        model: this.config.model || 'claude-3-5-sonnet-20241022',
+        model: this.config.model || config.get('ai.claude.defaultModel'),
         max_tokens: this.config.maxTokens || 1024,
         temperature: this.config.temperature || 0.3,
         system: systemPrompt || this.getSystemPrompt(),

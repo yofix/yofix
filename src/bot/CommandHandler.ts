@@ -10,6 +10,7 @@ import { Agent } from '../browser-agent/core/Agent';
 import { RouteImpactAnalyzer } from '../core/analysis/RouteImpactAnalyzer';
 import { TreeSitterRouteAnalyzer } from '../core/analysis/TreeSitterRouteAnalyzer';
 import { StorageFactory } from '../providers/storage/StorageFactory';
+import { botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
 
 /**
  * Handles execution of bot commands
@@ -45,22 +46,21 @@ export class CommandHandler {
   }
 
   /**
-   * Report progress
-   */
-  private async reportProgress(message: string): Promise<void> {
-    if (this.progressCallback) {
-      await this.progressCallback(message);
-    }
-    core.info(message);
-  }
-
-  /**
    * Execute a bot command
    */
   async execute(command: BotCommand, context: BotContext): Promise<BotResponse> {
-    core.info(`Executing command: ${command.action} ${command.args}`);
+    const activityId = `bot-${Date.now()}`;
+    const commandStr = `@yofix ${command.action} ${command.args || ''}`;
+    
+    try {
+      // Start bot activity tracking
+      await botActivity.startActivity(activityId, commandStr);
+      
+      core.info(`Executing command: ${command.action} ${command.args}`);
 
-    switch (command.action) {
+      let response: BotResponse;
+      
+      switch (command.action) {
       case 'scan':
         return await this.handleScan(command, context);
       
@@ -102,10 +102,25 @@ export class CommandHandler {
       
       case 'help':
       default:
-        return {
+        response = {
           success: true,
           message: this.getHelpMessage()
         };
+    }
+    
+      // Complete activity based on response
+      if (response.success) {
+        await botActivity.completeActivity(response.data, response.message);
+      } else {
+        await botActivity.failActivity(response.message || 'Command failed');
+      }
+      
+      return response;
+      
+    } catch (error) {
+      // Handle any unexpected errors
+      await botActivity.failActivity(error as Error);
+      throw error;
     }
   }
 
@@ -114,11 +129,15 @@ export class CommandHandler {
    */
   private async handleScan(command: BotCommand, context: BotContext): Promise<BotResponse> {
     try {
+      await botActivity.addStep('Initializing scan', 'running');
       // Determine what to scan
       const routes = command.targetRoute ? [command.targetRoute] : 'auto';
       const viewport = command.options.viewport || 'all';
 
       // Run visual analysis
+      await botActivity.updateStep('Initializing scan', 'completed');
+      await botActivity.addStep('Running visual analysis', 'running');
+      
       const scanResult = await this.visualAnalyzer.scan({
         prNumber: context.prNumber,
         routes,
@@ -131,13 +150,19 @@ export class CommandHandler {
 
       // Cache result for subsequent commands
       this.currentScanResult = scanResult;
+      
+      await botActivity.updateStep('Running visual analysis', 'completed', 
+        `Found ${scanResult.issues.length} issues`);
 
       // Auto-generate test cases for detected issues
       if (scanResult.issues.length > 0) {
+        await botActivity.addStep('Generating test cases', 'running');
         const testGenerator = new VisualIssueTestGenerator();
         const tests = testGenerator.generateTestsFromIssues(scanResult.issues);
         scanResult.generatedTests = tests;
         
+        await botActivity.updateStep('Generating test cases', 'completed',
+          `Generated ${tests.length} test cases`);
         core.info(`Generated ${tests.length} test cases for detected issues`);
       }
       
@@ -150,6 +175,14 @@ export class CommandHandler {
         data: scanResult
       };
     } catch (error) {
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.HIGH,
+        category: ErrorCategory.ANALYSIS,
+        userAction: 'Visual scan command',
+        metadata: { command, context },
+        skipGitHubPost: true // Bot activity will handle posting
+      });
+      
       return {
         success: false,
         message: `❌ Scan failed: ${error.message}`
@@ -198,6 +231,14 @@ export class CommandHandler {
         data: fixResult
       };
     } catch (error) {
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.HIGH,
+        category: ErrorCategory.UNKNOWN,
+        userAction: 'Fix generation command',
+        metadata: { command, context },
+        skipGitHubPost: true
+      });
+      
       return {
         success: false,
         message: `❌ Fix generation failed: ${error.message}`
@@ -511,7 +552,7 @@ npx yofix generate-tests --pr ${context.prNumber}
    */
   private async handleImpact(command: BotCommand, context: BotContext): Promise<BotResponse> {
     try {
-      await this.reportProgress('🔄 **Analyzing route impact**\n\n📊 Fetching changed files...');
+      await botActivity.addStep('Fetching changed files', 'running');
       
       const prNumber = context.prNumber;
       
@@ -530,19 +571,32 @@ npx yofix generate-tests --pr ${context.prNumber}
       
       const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken, storageProvider);
       
-      await this.reportProgress('🔄 **Analyzing route impact**\n\n🌳 Building import graph with Tree-sitter...');
+      await botActivity.updateStep('Fetching changed files', 'completed');
+      await botActivity.addStep('Building import graph with Tree-sitter', 'running');
       
       const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
       
-      await this.reportProgress('🔄 **Analyzing route impact**\n\n🎯 Mapping affected routes...');
+      await botActivity.updateStep('Building import graph with Tree-sitter', 'completed');
+      await botActivity.addStep('Mapping affected routes', 'running');
       
       const message = impactAnalyzer.formatImpactTree(impactTree);
+      
+      await botActivity.updateStep('Mapping affected routes', 'completed',
+        `Found ${impactTree.affectedRoutes.length} affected routes`);
       
       return {
         success: true,
         message
       };
     } catch (error) {
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.MEDIUM,
+        category: ErrorCategory.ANALYSIS,
+        userAction: 'Impact analysis command',
+        metadata: { command, context },
+        skipGitHubPost: true
+      });
+      
       return {
         success: false,
         message: `❌ Impact analysis failed: ${error.message}`
@@ -556,7 +610,7 @@ npx yofix generate-tests --pr ${context.prNumber}
   private async handleCache(command: BotCommand, context: BotContext): Promise<BotResponse> {
     try {
       if (command.args.includes('clear')) {
-        await this.reportProgress('🔄 **Clearing cache**\n\n🗝️ Removing route analysis cache...');
+        await botActivity.addStep('Removing route analysis cache', 'running');
         
         // Create storage provider if available
         let storageProvider = null;
@@ -573,7 +627,8 @@ npx yofix generate-tests --pr ${context.prNumber}
         const analyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
         await analyzer.clearCache();
         
-        await this.reportProgress('🔄 **Clearing cache**\n\n✅ Cache cleared successfully!');
+        await botActivity.updateStep('Removing route analysis cache', 'completed',
+          'Cache cleared successfully');
         
         return {
           success: true,
@@ -587,7 +642,7 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
 - You want to force a fresh analysis`
         };
       } else if (command.args.includes('status')) {
-        await this.reportProgress('🔄 **Checking cache status**\n\n🔍 Analyzing cache metrics...');
+        await botActivity.addStep('Analyzing cache metrics', 'running');
         
         // Check cache status
         let storageProvider = null;
@@ -602,6 +657,8 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
         
         const analyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
         const metrics = analyzer.getMetrics();
+        
+        await botActivity.updateStep('Analyzing cache metrics', 'completed');
         
         return {
           success: true,
@@ -621,6 +678,14 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
         message: '⚠️ Use `@yofix cache clear` or `@yofix cache status`'
       };
     } catch (error) {
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.UNKNOWN,
+        userAction: 'Cache management command',
+        metadata: { command, context },
+        skipGitHubPost: true
+      });
+      
       return {
         success: false,
         message: `❌ Cache operation failed: ${error.message}`

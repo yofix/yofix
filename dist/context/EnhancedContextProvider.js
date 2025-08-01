@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EnhancedContextProvider = void 0;
 const core = __importStar(require("@actions/core"));
@@ -39,6 +42,7 @@ const fs_1 = require("fs");
 const path = __importStar(require("path"));
 const glob_1 = require("glob");
 const sdk_1 = require("@anthropic-ai/sdk");
+const config_1 = __importDefault(require("../config"));
 class EnhancedContextProvider {
     constructor(claudeApiKey) {
         this.contextCache = new Map();
@@ -133,9 +137,9 @@ Provide analysis with the same depth and accuracy as Claude Code would, understa
     async analyzeWithContext(prompt, context) {
         const enhancedPrompt = this.createContextualPrompt(prompt, context);
         const response = await this.claude.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 4096,
-            temperature: 0.2,
+            model: config_1.default.get('ai.claude.models.contextual'),
+            max_tokens: config_1.default.get('ai.claude.maxTokens.analysis'),
+            temperature: config_1.default.get('ai.claude.temperature', 0.2),
             messages: [{
                     role: 'user',
                     content: enhancedPrompt

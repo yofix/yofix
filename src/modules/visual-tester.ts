@@ -6,10 +6,23 @@
  */
 
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
-import * as fs from 'fs';
 import * as path from 'path';
+import * as fs from 'fs';
 import { authenticateWithLLM } from './llm-browser-agent';
 import { executeAuthStrategies } from './auth-strategies';
+import { 
+  createModuleLogger, 
+  ErrorCategory, 
+  ErrorSeverity, 
+  executeOperation, 
+  retryOperation,
+  config,
+  getBooleanConfig,
+  safeJSONParse,
+  write,
+  ensureDirectory,
+  parseTimeout
+} from '../core';
 
 interface Route {
   path: string;
@@ -30,326 +43,375 @@ interface TestResult {
   message?: string;
 }
 
+const logger = createModuleLogger({
+  module: 'VisualTester',
+  defaultCategory: ErrorCategory.BROWSER
+});
+
 async function runVisualTests(): Promise<void> {
-  const previewUrl = process.env.INPUT_PREVIEW_URL;
-  const routesJson = process.env.INPUT_ROUTES || '[]';
-  const viewportsStr = process.env.INPUT_VIEWPORTS || '1920x1080';
-  const timeout = process.env.INPUT_TEST_TIMEOUT || '30s';
-  const debug = process.env.INPUT_DEBUG === 'true';
+  const previewUrl = config.get('preview-url', { required: true });
+  const routesJson = config.get('routes', { defaultValue: '[]' });
+  const viewportsStr = config.get('viewports', { defaultValue: '1920x1080' });
+  const timeout = config.get('test-timeout', { defaultValue: '30s' });
+  const debug = getBooleanConfig('debug');
 
   // Authentication
-  const authEmail = process.env.INPUT_AUTH_EMAIL;
-  const authPassword = process.env.INPUT_AUTH_PASSWORD;
-  const authLoginUrl = process.env.INPUT_AUTH_LOGIN_URL || '/login/password';
-  const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
+  const authEmail = config.get('auth-email');
+  const authPassword = config.get('auth-password');
+  const authLoginUrl = config.get('auth-login-url', { defaultValue: '/login/password' });
+  const claudeApiKey = config.getSecret('claude-api-key');
 
   if (!previewUrl) {
-    console.error('❌ Preview URL is required');
+    await logger.error(new Error('Preview URL is required'), {
+      severity: ErrorSeverity.CRITICAL,
+      userAction: 'Start visual tests'
+    });
     process.exit(1);
   }
 
-  console.log(`📸 Running visual tests on ${previewUrl}`);
+  logger.info(`📸 Running visual tests on ${previewUrl}`);
 
   // Parse routes
-  let routes: Route[] = [];
-  try {
-    routes = JSON.parse(routesJson);
-  } catch {
-    // If no routes provided, test the base URL
-    routes = [{ path: '/', title: 'Home' }];
-  }
+  const routesResult = safeJSONParse<Route[]>(routesJson, { 
+    defaultValue: [{ path: '/', title: 'Home' }] 
+  });
+  const routes = routesResult.data!;
 
   // Parse viewports
   const viewports: Viewport[] = viewportsStr.split(',').map(vp => {
-    const [width, height] = vp.trim().split('x').map(Number);
+    const [width, height] = vp.split('x').map(Number);
     return {
-      width,
-      height,
+      width: width || 1920,
+      height: height || 1080,
       name: `${width}x${height}`
     };
   });
 
-  console.log(`🔍 Testing ${routes.length} routes across ${viewports.length} viewports`);
+  logger.info(`🔍 Testing ${routes.length} routes across ${viewports.length} viewports`);
 
+  // Create output directory
+  const outputDir = '.yofix/screenshots';
+  await ensureDirectory(outputDir);
+
+  // Launch browser
   const browser = await chromium.launch({
-    headless: !debug,  // Run in headed mode when debug is true
-    slowMo: debug ? 500 : 0,  // Slow down actions in debug mode
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    headless: true,
+    timeout: parseTimeout(timeout)
   });
 
   const results: TestResult[] = [];
-  const screenshots: string[] = [];
+  let screenshots: string[] = [];
 
   try {
-    // Create a persistent context to maintain session across routes
+    // Create context with custom user agent
     const context = await browser.newContext({
-      viewport: viewports[0], // Use first viewport for auth
-      // Accept all cookies to maintain session
-      acceptDownloads: false,
-      ignoreHTTPSErrors: true,
-      // Store cookies and local storage
-      storageState: undefined
+      userAgent: 'YoFix Visual Tester (Playwright)',
+      viewport: { width: 1920, height: 1080 }
     });
 
-    // Perform authentication once if credentials provided
+    // Perform authentication if credentials provided
     if (authEmail && authPassword) {
-      console.log(`🔐 Authenticating at ${authLoginUrl}...`);
-      const authSuccess = await performAuthentication(
-        context,
-        previewUrl,
-        authLoginUrl,
-        authEmail,
-        authPassword,
-        debug
-      );
+      logger.info(`🔐 Authenticating at ${authLoginUrl}...`);
       
-      if (!authSuccess) {
-        console.error('❌ Authentication failed');
-        // Continue anyway - some routes might be public
+      const authResult = await executeOperation(
+        () => performAuthentication(
+          context,
+          previewUrl,
+          authLoginUrl,
+          authEmail,
+          authPassword,
+          claudeApiKey,
+          debug
+        ),
+        {
+          name: 'Authentication',
+          category: ErrorCategory.AUTHENTICATION,
+          severity: ErrorSeverity.HIGH,
+          metadata: { authLoginUrl }
+        }
+      );
+
+      if (!authResult.success || !authResult.data) {
+        logger.warn('❌ Authentication failed - continuing with public routes');
       } else {
-        console.log('✅ Authentication successful');
+        logger.info('✅ Authentication successful');
       }
     }
 
-    // Test each route with each viewport
+    // Test each route
     for (const route of routes) {
-      console.log(`\n📍 Testing route: ${route.path}`);
+      logger.info(`\n📍 Testing route: ${route.path}`);
 
+      // Test each viewport
       for (const viewport of viewports) {
-        // Create new page with specific viewport
         const page = await context.newPage();
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
-        try {
-          // Set timeout
-          page.setDefaultTimeout(parseInt(timeout) * 1000);
-
-          // Navigate to the URL
-          const fullUrl = new URL(route.path, previewUrl).href;
-          
-          if (debug) {
-            console.log(`  🌐 Navigating to: ${fullUrl}`);
-          }
-          
-          const response = await page.goto(fullUrl, { waitUntil: 'networkidle' });
-          
-          // Check if we were redirected to login (indicates auth failure)
-          const currentUrl = page.url();
-          const wasRedirectedToLogin = currentUrl.includes('/login') && !route.path.includes('/login');
-          
-          if (wasRedirectedToLogin) {
-            console.log(`  ⚠️ ${viewport.name} - Redirected to login (auth may have expired)`);
+        const result = await executeOperation(
+          async () => {
+            const fullUrl = new URL(route.path, previewUrl).href;
             
-            // Try to re-authenticate
-            if (authEmail && authPassword) {
-              console.log('  🔐 Re-authenticating...');
-              await page.close();
-              const reAuthSuccess = await performAuthentication(
-                context,
-                previewUrl,
-                authLoginUrl,
-                authEmail,
-                authPassword,
-                debug
-              );
+            if (debug) {
+              logger.debug(`  🌐 Navigating to: ${fullUrl}`);
+            }
+
+            // Navigate with retry
+            await retryOperation(
+              () => page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }),
+              {
+                maxAttempts: 3,
+                delayMs: 2000,
+                onRetry: (attempt) => logger.debug(`Retry attempt ${attempt} for ${fullUrl}`)
+              }
+            );
+
+            // Wait for page to stabilize
+            await page.waitForTimeout(2000);
+
+            // Check if we were redirected to login
+            const currentUrl = page.url();
+            const wasRedirectedToLogin = currentUrl.includes('login') && !route.path.includes('login');
+
+            if (wasRedirectedToLogin) {
+              logger.warn(`  ⚠️ ${viewport.name} - Redirected to login (auth may have expired)`);
               
-              if (reAuthSuccess) {
-                // Retry the route on a new page
-                const retryPage = await context.newPage();
-                await retryPage.setViewportSize({ width: viewport.width, height: viewport.height });
-                await retryPage.goto(fullUrl, { waitUntil: 'networkidle' });
-                
-                // Close old page and use retry page
+              // Try to re-authenticate
+              if (authEmail && authPassword) {
+                logger.info('  🔐 Re-authenticating...');
                 await page.close();
                 
-                // Continue with retry page
-                await retryPage.waitForLoadState('networkidle');
-                await retryPage.waitForTimeout(1000);
+                const authPage = await context.newPage();
+                const reAuthResult = await executeOperation(
+                  () => performAuthentication(
+                    context,
+                    previewUrl,
+                    authLoginUrl,
+                    authEmail,
+                    authPassword,
+                    claudeApiKey,
+                    debug
+                  ),
+                  {
+                    name: 'Re-authentication',
+                    category: ErrorCategory.AUTHENTICATION,
+                    severity: ErrorSeverity.MEDIUM
+                  }
+                );
+
+                if (reAuthResult.success && reAuthResult.data) {
+                  // Try the route again after re-auth
+                  const retryPage = await context.newPage();
+                  await retryPage.setViewportSize({ width: viewport.width, height: viewport.height });
+                  
+                  await retryPage.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                  await retryPage.waitForTimeout(2000);
+
+                  // Capture screenshot
+                  const screenshotPath = path.join(outputDir, `${route.path.replace(/\//g, '-')}-${viewport.name}.png`);
+                  await retryPage.screenshot({ 
+                    path: screenshotPath,
+                    fullPage: true 
+                  });
+                  
+                  screenshots.push(screenshotPath);
+                  
+                  logger.info(`  ✅ ${viewport.name} - Screenshot captured after re-auth`);
+                  await retryPage.close();
+                  
+                  return {
+                    route: route.path,
+                    viewport: viewport.name,
+                    screenshot: screenshotPath,
+                    status: 'warning' as const,
+                    message: 'Required re-authentication'
+                  };
+                }
                 
-                // Capture screenshot with retry page
-                const screenshotName = `${route.path.replace(/\//g, '-')}-${viewport.name}.png`;
-                const screenshotPath = path.join(process.cwd(), 'screenshots', screenshotName);
-                fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-                
-                await retryPage.screenshot({
-                  path: screenshotPath,
-                  fullPage: true
-                });
-                
-                screenshots.push(screenshotPath);
-                
-                results.push({
-                  route: route.path,
-                  viewport: viewport.name,
-                  screenshot: screenshotPath,
-                  status: 'passed',
-                  message: 'Screenshot captured successfully after re-authentication'
-                });
-                
-                console.log(`  ✅ ${viewport.name} - Screenshot captured after re-auth`);
-                await retryPage.close();
-                continue; // Skip to next viewport
+                await authPage.close();
               }
+              
+              return {
+                route: route.path,
+                viewport: viewport.name,
+                screenshot: '',
+                status: 'warning' as const,
+                message: 'Authentication required'
+              };
             }
+
+            // Capture screenshot
+            const screenshotPath = path.join(outputDir, `${route.path.replace(/\//g, '-')}-${viewport.name}.png`);
+            await page.screenshot({ 
+              path: screenshotPath,
+              fullPage: true 
+            });
+            
+            screenshots.push(screenshotPath);
+
+            logger.info(`  ✅ ${viewport.name} - Screenshot captured`);
+
+            return {
+              route: route.path,
+              viewport: viewport.name,
+              screenshot: screenshotPath,
+              status: 'passed' as const
+            };
+          },
+          {
+            name: `Test route ${route.path} at ${viewport.name}`,
+            category: ErrorCategory.BROWSER,
+            severity: ErrorSeverity.MEDIUM,
+            metadata: { route: route.path, viewport: viewport.name }
           }
+        );
 
-          // Wait for content to stabilize
-          await page.waitForLoadState('networkidle');
-          await page.waitForTimeout(1000); // Additional wait for animations
-
-          // Capture screenshot
-          const screenshotName = `${route.path.replace(/\//g, '-')}-${viewport.name}.png`;
-          const screenshotPath = path.join(process.cwd(), 'screenshots', screenshotName);
-          
-          // Ensure directory exists
-          fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-
-          await page.screenshot({
-            path: screenshotPath,
-            fullPage: true
-          });
-
-          screenshots.push(screenshotPath);
-
-          // Record result
-          results.push({
-            route: route.path,
-            viewport: viewport.name,
-            screenshot: screenshotPath,
-            status: wasRedirectedToLogin ? 'warning' : 'passed',
-            message: wasRedirectedToLogin 
-              ? 'Screenshot captured but route may require authentication' 
-              : 'Screenshot captured successfully'
-          });
-
-          console.log(`  ✅ ${viewport.name} - Screenshot captured`);
-
-        } catch (error: any) {
-          console.error(`  ❌ ${viewport.name} - Test failed:`, error.message);
-          
+        if (result.success && result.data) {
+          results.push(result.data);
+        } else {
           results.push({
             route: route.path,
             viewport: viewport.name,
             screenshot: '',
             status: 'failed',
-            message: error.message
+            message: result.error
           });
-        } finally {
-          await page.close();
         }
+
+        await page.close();
       }
     }
 
-    // Save context state for potential reuse
-    if (authEmail && authPassword) {
-      const statePath = path.join(process.cwd(), 'auth-state.json');
+    // Save authentication state if we have it
+    const statePath = path.join(outputDir, 'auth-state.json');
+    if (authEmail && (await context.storageState()).cookies.length > 0) {
       await context.storageState({ path: statePath });
-      console.log(`\n💾 Saved authentication state to ${statePath}`);
+      logger.info(`\n💾 Saved authentication state to ${statePath}`);
     }
+
+    await context.close();
 
     // Output results
-    const outputPath = path.join(process.cwd(), 'visual-test-results.json');
-    fs.writeFileSync(outputPath, JSON.stringify({
-      results,
-      screenshots,
-      summary: {
-        total: results.length,
-        passed: results.filter(r => r.status === 'passed').length,
-        failed: results.filter(r => r.status === 'failed').length,
-        warnings: results.filter(r => r.status === 'warning').length
-      }
-    }, null, 2));
+    const summary = {
+      total: results.length,
+      passed: results.filter(r => r.status === 'passed').length,
+      failed: results.filter(r => r.status === 'failed').length,
+      warnings: results.filter(r => r.status === 'warning').length,
+      results
+    };
 
-    // Set GitHub Action output
-    const githubOutput = process.env.GITHUB_OUTPUT;
-    if (githubOutput) {
-      fs.appendFileSync(githubOutput, `results=${JSON.stringify(results)}\n`);
-      fs.appendFileSync(githubOutput, `screenshots=${JSON.stringify(screenshots)}\n`);
-      fs.appendFileSync(githubOutput, `test-count=${results.length}\n`);
-      fs.appendFileSync(githubOutput, `passed-count=${results.filter(r => r.status === 'passed').length}\n`);
-    }
+    fs.writeFileSync('.yofix/test-results.json', JSON.stringify(summary, null, 2));
+    
+    // Set outputs for GitHub Actions
+    process.stdout.write(`::set-output name=screenshots::${JSON.stringify(screenshots)}\n`);
+    process.stdout.write(`::set-output name=results::${JSON.stringify(summary)}\n`);
 
-    console.log(`\n✅ Visual testing completed: ${results.filter(r => r.status === 'passed').length}/${results.length} passed`);
+    logger.info(`\n✅ Visual testing completed: ${results.filter(r => r.status === 'passed').length}/${results.length} passed`);
 
   } catch (error) {
-    console.error('❌ Visual testing failed:', error);
+    await logger.error(error as Error, {
+      userAction: 'Run visual tests',
+      severity: ErrorSeverity.CRITICAL
+    });
     process.exit(1);
   } finally {
     await browser.close();
   }
 }
 
-/**
- * Perform authentication on a dedicated login page
- */
 async function performAuthentication(
   context: BrowserContext,
-  baseUrl: string,
+  previewUrl: string,
   loginPath: string,
   email: string,
   password: string,
-  debug: boolean
+  claudeApiKey?: string,
+  debug?: boolean
 ): Promise<boolean> {
+  const log = createModuleLogger({
+    module: 'VisualTester.Auth',
+    debug,
+    defaultCategory: ErrorCategory.AUTHENTICATION
+  });
+
   const page = await context.newPage();
   
   try {
-    // Navigate to login page
-    const loginUrl = new URL(loginPath, baseUrl).href;
+    const loginUrl = new URL(loginPath, previewUrl).href;
+    
     if (debug) {
-      console.log(`  🌐 Navigating to login: ${loginUrl}`);
+      log.debug(`  🌐 Navigating to login: ${loginUrl}`);
     }
     
-    await page.goto(loginUrl, { waitUntil: 'networkidle' });
+    await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     
-    // Wait for login form to be visible
-    try {
-      await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-    } catch (error) {
+    // Check if we can find a password field (indicates we're on a login page)
+    const passwordField = await page.$('input[type="password"]');
+    
+    if (!passwordField) {
       if (debug) {
-        console.log('  ⚠️ Password field not found within 10 seconds');
+        log.debug('  ⚠️ Password field not found within 10 seconds');
         // Take a screenshot for debugging
         await page.screenshot({ path: 'debug-login-page.png', fullPage: true });
-        console.log('  📸 Debug screenshot saved: debug-login-page.png');
+        log.debug('  📸 Debug screenshot saved: debug-login-page.png');
       }
-      throw new Error('Login form not found - password field missing');
+      await page.close();
+      return false;
     }
     
-    // Try LLM authentication if API key is available
-    const claudeApiKey = process.env.INPUT_CLAUDE_API_KEY;
+    // Try LLM authentication first if API key is available
     if (claudeApiKey) {
-      console.log('  🤖 Attempting LLM-powered authentication...');
-      const llmSuccess = await authenticateWithLLM(
-        page,
-        email,
-        password,
-        undefined, // Already on login page
-        claudeApiKey,
-        debug
+      log.info('  🤖 Attempting LLM-powered authentication...');
+      
+      const llmResult = await executeOperation(
+        () => authenticateWithLLM(
+          page,
+          email,
+          password,
+          loginUrl,
+          claudeApiKey,
+          debug
+        ),
+        {
+          name: 'LLM authentication',
+          category: ErrorCategory.AUTHENTICATION,
+          fallback: false
+        }
       );
       
-      if (llmSuccess) {
-        console.log('  ✅ LLM authentication successful');
+      if (llmResult.success && llmResult.data) {
+        log.info('  ✅ LLM authentication successful');
         return true;
       } else {
-        console.log('  ⚠️ LLM authentication failed, trying smart strategies...');
+        log.warn('  ⚠️ LLM authentication failed, trying smart strategies...');
       }
     }
     
     // Fallback to smart authentication strategies
-    console.log('  🧠 Using smart authentication strategies...');
+    log.info('  🧠 Using smart authentication strategies...');
     const success = await executeAuthStrategies(page, email, password, debug);
     
+    await page.close();
     return success;
     
   } catch (error: any) {
-    console.error(`  ❌ Authentication error: ${error.message}`);
+    await log.error(error, {
+      userAction: 'Perform authentication',
+      severity: ErrorSeverity.HIGH,
+      metadata: { loginPath }
+    });
     return false;
-  } finally {
-    await page.close();
   }
 }
 
+// parseTimeout function removed - using centralized utility from core
+
 // Run if called directly
 if (require.main === module) {
-  runVisualTests().catch(console.error);
+  runVisualTests().catch(async (error) => {
+    await logger.error(error, {
+      userAction: 'Run visual tester module',
+      severity: ErrorSeverity.CRITICAL
+    });
+    process.exit(1);
+  });
 }

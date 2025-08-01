@@ -119,6 +119,11 @@ inputs:
     required: false
     default: '/login/password'
   
+  auth-mode:
+    description: 'Authentication mode: llm (AI-powered), selectors, or smart'
+    required: false
+    default: 'llm'
+  
   enable-smart-auth:
     description: 'Enable AI-powered smart authentication'
     required: false

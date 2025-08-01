@@ -5,9 +5,10 @@ import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
 import { FixGenerator } from '../core/fixes/FixGenerator';
 import { ReportFormatter } from '../bot/ReportFormatter';
 import * as dotenv from 'dotenv';
-import * as fs from 'fs';
 import * as path from 'path';
 import chalk from 'chalk';
+import * as fs from 'fs';
+import { config, exists, read, write, safeJSONParse, Validators } from '../core';
 
 // Load environment variables with priority: .env.local > .env > system
 const projectRoot = path.join(__dirname, '../../');
@@ -64,7 +65,7 @@ program
       const report = formatter.formatScanResult(result);
       
       if (options.output) {
-        fs.writeFileSync(options.output, report);
+        await write(options.output, report, { createDirectories: true });
         console.log(chalk.green(`✅ Results saved to ${options.output}`));
       } else {
         console.log(report);
@@ -82,7 +83,9 @@ program
   .option('--claude-key <key>', 'Claude API key (or set CLAUDE_API_KEY env var)')
   .option('-o, --output <file>', 'Output fixes to file')
   .action(async (issueFile, options) => {
-    const claudeKey = options.claudeKey || process.env.CLAUDE_API_KEY;
+    const claudeKey = options.claudeKey || config.get('claude-api-key', {
+      defaultValue: process.env.CLAUDE_API_KEY
+    });
     
     if (!claudeKey) {
       console.error(chalk.red('Error: Claude API key required'));
@@ -90,7 +93,15 @@ program
     }
     
     try {
-      const scanResult = JSON.parse(fs.readFileSync(issueFile, 'utf-8'));
+      const fileContent = await read(issueFile);
+      if (!fileContent) {
+        throw new Error(`Could not read file: ${issueFile}`);
+      }
+      const parseResult = safeJSONParse(fileContent);
+      if (!parseResult.success) {
+        throw new Error(`Invalid JSON in file: ${parseResult.error}`);
+      }
+      const scanResult = parseResult.data;
       const generator = new FixGenerator(claudeKey);
       const formatter = new ReportFormatter();
       
@@ -100,7 +111,7 @@ program
       const report = formatter.formatFixResult(fixResult);
       
       if (options.output) {
-        fs.writeFileSync(options.output, report);
+        await write(options.output, report, { createDirectories: true });
         console.log(chalk.green(`✅ Fixes saved to ${options.output}`));
       } else {
         console.log(report);

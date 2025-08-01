@@ -40,6 +40,7 @@ const CodebaseAnalyzer_1 = require("../../context/CodebaseAnalyzer");
 const TreeSitterRouteAnalyzer_1 = require("./TreeSitterRouteAnalyzer");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+const __1 = require("..");
 class RouteImpactAnalyzer {
     constructor(githubToken, storageProvider) {
         this.githubToken = githubToken;
@@ -202,7 +203,14 @@ class RouteImpactAnalyzer {
             }
         }
         catch (error) {
-            core.debug(`Failed to analyze ${filePath}: ${error}`);
+            await __1.errorHandler.handleError(error, {
+                severity: __1.ErrorSeverity.LOW,
+                category: __1.ErrorCategory.ANALYSIS,
+                userAction: 'Analyzing component imports',
+                metadata: { filePath },
+                recoverable: true,
+                skipGitHubPost: true
+            });
         }
     }
     resolveImportPath(fromFile, importPath) {

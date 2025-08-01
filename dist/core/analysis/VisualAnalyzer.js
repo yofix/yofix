@@ -37,6 +37,7 @@ exports.VisualAnalyzer = void 0;
 const core = __importStar(require("@actions/core"));
 const Agent_1 = require("../../browser-agent/core/Agent");
 const CacheManager_1 = require("../../optimization/CacheManager");
+const __1 = require("../");
 class VisualAnalyzer {
     constructor(claudeApiKey, githubToken = '', cache) {
         this.claudeApiKey = claudeApiKey;
@@ -112,7 +113,13 @@ class VisualAnalyzer {
             return scanResult;
         }
         catch (error) {
-            core.error(`Visual scan failed: ${error}`);
+            await __1.errorHandler.handleError(error, {
+                severity: __1.ErrorSeverity.HIGH,
+                category: __1.ErrorCategory.ANALYSIS,
+                userAction: 'Visual scan',
+                metadata: { prNumber: options.prNumber, routes: options.routes },
+                skipGitHubPost: true
+            });
             return {
                 timestamp: startTime,
                 duration: Date.now() - startTime,
@@ -162,7 +169,14 @@ class VisualAnalyzer {
             return typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
         }
         catch (error) {
-            core.warning(`Screenshot analysis failed: ${error}`);
+            await __1.errorHandler.handleError(error, {
+                severity: __1.ErrorSeverity.MEDIUM,
+                category: __1.ErrorCategory.ANALYSIS,
+                userAction: 'Analyze screenshot with AI',
+                metadata: { prompt },
+                recoverable: true,
+                skipGitHubPost: true
+            });
             return 'Unable to analyze screenshot';
         }
     }
@@ -207,7 +221,18 @@ class VisualAnalyzer {
                 await agent.cleanup();
             }
             catch (error) {
-                core.warning(`Failed to generate fix for issue ${issue.id}: ${error}`);
+                await __1.errorHandler.handleError(error, {
+                    severity: __1.ErrorSeverity.MEDIUM,
+                    category: __1.ErrorCategory.ANALYSIS,
+                    userAction: 'Generate fix for visual issue',
+                    metadata: {
+                        issueId: issue.id,
+                        issueType: issue.type,
+                        severity: issue.severity
+                    },
+                    recoverable: true,
+                    skipGitHubPost: true
+                });
                 fixes.push({
                     issue,
                     fix: issue.fix?.description || 'Manual review required'
@@ -340,7 +365,18 @@ class VisualAnalyzer {
             return typeof explanation === 'string' ? explanation : JSON.stringify(explanation);
         }
         catch (error) {
-            core.warning(`Failed to explain issue ${issue.id}: ${error}`);
+            await __1.errorHandler.handleError(error, {
+                severity: __1.ErrorSeverity.LOW,
+                category: __1.ErrorCategory.ANALYSIS,
+                userAction: 'Explain visual issue',
+                metadata: {
+                    issueId: issue.id,
+                    issueType: issue.type,
+                    severity: issue.severity
+                },
+                recoverable: true,
+                skipGitHubPost: true
+            });
             return `Issue: ${issue.description}\n\nThis ${issue.severity} severity issue requires manual review to determine the best fix approach.`;
         }
     }

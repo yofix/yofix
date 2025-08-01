@@ -4,34 +4,30 @@ exports.LogFormatter = void 0;
 class LogFormatter {
     static formatStepStart(stepNumber, description) {
         this.currentStep = stepNumber;
-        console.log(`\n<pre>`);
-        console.log(`=== STEP ${stepNumber}: ${description} ===`);
-        console.log(`</pre>`);
+        console.log(`\n┌─ STEP ${stepNumber}: ${description} ─────────────────────────`);
     }
     static formatStepEnd(success, duration) {
-        const status = success ? 'SUCCESS' : 'FAILED';
-        console.log(`<pre>Step Result: ${status} (${duration}ms)</pre>\n`);
+        const status = success ? '✅ SUCCESS' : '❌ FAILED';
+        console.log(`└─ Step Result: ${status} (${duration}ms)\n`);
     }
     static formatAction(action, params, thinking) {
-        console.log(`<pre>`);
-        console.log(`ACTION: ${action}`);
+        console.log(`🎯 ACTION: ${action}`);
         if (thinking) {
-            console.log(`THINKING: ${thinking}`);
+            console.log(`💭 THINKING: ${thinking}`);
         }
-        console.log(`PARAMS: ${JSON.stringify(params, null, 2)}`);
-        console.log(`</pre>`);
+        console.log(`📝 PARAMS: ${JSON.stringify(params, null, 2)}`);
     }
     static formatActionResult(success, duration, data) {
         const status = success ? 'SUCCESS' : 'FAILED';
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`RESULT: ${status} (${duration}ms)`);
         if (data) {
             console.log(`DATA: ${JSON.stringify(data, null, 2)}`);
         }
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatVerification(success, confidence, issues) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`VERIFICATION:`);
         console.log(`  SUCCESS: ${success}`);
         console.log(`  CONFIDENCE: ${confidence}%`);
@@ -39,30 +35,30 @@ class LogFormatter {
             console.log(`  ISSUES:`);
             issues.forEach(issue => console.log(`    - ${issue}`));
         }
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatDOMInfo(totalElements, interactiveElements, indexTime) {
-        console.log(`<pre>DOM: ${totalElements} elements, ${interactiveElements} interactive (${indexTime}ms)</pre>`);
+        console.log(`DOM: ${totalElements} elements, ${interactiveElements} interactive (${indexTime}ms)`);
     }
     static formatTaskPlan(steps, complexity, criteria) {
-        console.log(`\n<pre>`);
+        console.log(`\n`);
         console.log(`TASK PLAN: ${steps} steps, ${complexity} complexity`);
         console.log(`SUCCESS CRITERIA:`);
         criteria.forEach((criterion) => {
             console.log(`  - ${criterion}`);
         });
-        console.log(`</pre>\n`);
+        console.log(`\n`);
     }
     static formatTaskCompletion(success, score, completeness, confidence) {
-        console.log(`\n<pre>`);
+        console.log(`\n`);
         console.log(`TASK ${success ? 'COMPLETED' : 'FAILED'}`);
         console.log(`Overall Score: ${score}%`);
         console.log(`Completeness: ${completeness}%`);
         console.log(`Confidence: ${confidence}%`);
-        console.log(`</pre>\n`);
+        console.log(`\n`);
     }
     static formatLLMResponse(response, type) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`LLM ${type} RESPONSE:`);
         if (response.thinking) {
             console.log(`  THINKING: ${response.thinking}`);
@@ -77,52 +73,52 @@ class LogFormatter {
             console.log(`  VERIFICATION: ${response.verification.success ? 'PASS' : 'FAIL'}`);
             console.log(`  CONFIDENCE: ${(response.verification.confidence * 100).toFixed(0)}%`);
         }
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatError(error, context) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`ERROR${context ? ` [${context}]` : ''}: ${error}`);
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatDebug(message) {
         if (process.env.NODE_ENV === 'development' || process.env.DEBUG) {
-            console.log(`<pre>DEBUG: ${message}</pre>`);
+            console.log(`DEBUG: ${message}`);
         }
     }
     static formatAgentStart(agentType, task) {
-        console.log(`\n<pre>`);
+        console.log(`\n`);
         console.log(`${agentType.toUpperCase()} AGENT STARTING`);
         console.log(`TASK: ${task}`);
-        console.log(`</pre>\n`);
+        console.log(`\n`);
     }
     static formatBrowserInit(headless, viewport) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`BROWSER INITIALIZATION:`);
         console.log(`  Mode: ${headless ? 'HEADLESS' : 'VISIBLE'}`);
         console.log(`  Viewport: ${viewport.width}x${viewport.height}`);
         console.log(`  Status: Ready`);
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatPageIndexing(totalElements, interactiveElements, url) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`PAGE INDEXING:`);
         console.log(`  URL: ${url}`);
         console.log(`  Total Elements: ${totalElements}`);
         console.log(`  Interactive Elements: ${interactiveElements}`);
         console.log(`  Status: Complete`);
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatLLMRequest(prompt, provider) {
         const truncatedPrompt = prompt.length > 200 ? prompt.substring(0, 200) + '...' : prompt;
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`LLM REQUEST:`);
         console.log(`  Provider: ${provider}`);
         console.log(`  Prompt: ${truncatedPrompt}`);
         console.log(`  Status: Waiting for response...`);
-        console.log(`</pre>`);
+        console.log(``);
     }
     static formatReliabilityScore(score) {
-        console.log(`\n<pre>`);
+        console.log(`\n`);
         console.log(`RELIABILITY REPORT:`);
         console.log(`  Overall Score: ${(score.overall * 100).toFixed(1)}%`);
         console.log(`  Task Completeness: ${(score.factors.taskCompleteness * 100).toFixed(1)}%`);
@@ -133,10 +129,10 @@ class LogFormatter {
                 console.log(`    - ${issue}`);
             });
         }
-        console.log(`</pre>\n`);
+        console.log(`\n`);
     }
     static formatElementSelection(candidates) {
-        console.log(`<pre>`);
+        console.log(``);
         console.log(`ELEMENT SELECTION:`);
         console.log(`TOP CANDIDATES:`);
         candidates.slice(0, 3).forEach((candidate, index) => {
@@ -144,7 +140,7 @@ class LogFormatter {
             console.log(`  ${rank} [${candidate.element.index}] "${candidate.element.text?.substring(0, 50) || ''}" (Score: ${candidate.score})`);
             console.log(`      Reasons: ${candidate.reasons.join(', ')}`);
         });
-        console.log(`</pre>`);
+        console.log(``);
     }
 }
 exports.LogFormatter = LogFormatter;

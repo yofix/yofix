@@ -54,9 +54,9 @@ class VisualAnalyzer {
                 headless: true,
                 maxSteps: routes.length * 5,
                 llmProvider: 'anthropic',
+                apiKey: this.claudeApiKey,
                 viewport: { width: 1920, height: 1080 }
             });
-            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
             await agent.initialize();
             const result = await agent.run();
             const agentState = agent.getState();
@@ -155,9 +155,9 @@ class VisualAnalyzer {
             const agent = new Agent_1.Agent(analysisTask, {
                 headless: true,
                 maxSteps: 5,
-                llmProvider: 'anthropic'
+                llmProvider: 'anthropic',
+                apiKey: this.claudeApiKey
             });
-            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
             await agent.initialize();
             const agentState = agent.getState();
             agentState.fileSystem.set('/analysis-screenshot.png', screenshot.toString('base64'));
@@ -203,9 +203,9 @@ class VisualAnalyzer {
                 const agent = new Agent_1.Agent(fixTask, {
                     headless: true,
                     maxSteps: 5,
-                    llmProvider: 'anthropic'
+                    llmProvider: 'anthropic',
+                    apiKey: this.claudeApiKey
                 });
-                process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
                 await agent.initialize();
                 const result = await agent.run();
                 const agentState = agent.getState();
@@ -352,9 +352,9 @@ class VisualAnalyzer {
             const agent = new Agent_1.Agent(explanationTask, {
                 headless: true,
                 maxSteps: 3,
-                llmProvider: 'anthropic'
+                llmProvider: 'anthropic',
+                apiKey: this.claudeApiKey
             });
-            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
             await agent.initialize();
             const result = await agent.run();
             const agentState = agent.getState();

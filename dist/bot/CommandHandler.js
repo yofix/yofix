@@ -398,9 +398,9 @@ npx yofix generate-tests --pr ${context.prNumber}
                 headless: false,
                 maxSteps: 10,
                 llmProvider: 'anthropic',
-                viewport: { width: 1920, height: 1080 }
+                viewport: { width: 1920, height: 1080 },
+                apiKey: this.claudeApiKey
             });
-            process.env.ANTHROPIC_API_KEY = this.claudeApiKey;
             await this.browserAgent.initialize();
             const result = await this.browserAgent.run();
             await this.browserAgent.cleanup();

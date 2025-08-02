@@ -153,3 +153,24 @@ export const defaultConfig: YoFixConfig = {
     includeTimestamp: true
   }
 };
+
+// Action.yml default values for reference
+export const actionDefaults = {
+  'storage-provider': 'firebase',
+  'aws-region': 'us-east-1',
+  'cache-ttl': '3600',
+  'mcp-provider': 'built-in',
+  'mcp-options': '{}',
+  'build-system': '',
+  'test-timeout': '5m',
+  'cleanup-days': '30',
+  'viewports': '1920x1080,768x1024,375x667',
+  'max-routes': '10',
+  'auth-login-url': '/login/password',
+  'auth-mode': 'llm',
+  'enable-smart-auth': 'false',
+  'enable-ai-navigation': 'false',
+  'enable-ai-test-generation': 'false',
+  'test-routes': '',
+  'clear-cache': 'false'
+};

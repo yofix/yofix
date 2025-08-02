@@ -1,0 +1,467 @@
+name: Test Before Release
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      test-level:
+        description: 'Test level to run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - quick
+          - standard
+          - full
+          - release
+
+env:
+  NODE_VERSION: '18'
+  PLAYWRIGHT_VERSION: '1.54.1'
+
+jobs:
+  # Job 1: Code Quality Checks
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linting
+        run: npm run lint
+
+      - name: TypeScript Type Check
+        run: npm run typecheck
+
+      - name: Check Code Formatting
+        run: npx prettier --check src
+
+      - name: Security Audit
+        run: npm audit --audit-level=moderate || true
+
+  # Job 2: Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16, 18, 20]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Unit Tests
+        run: npm test -- --coverage
+        env:
+          FORCE_COLOR: 1
+
+      - name: Upload Coverage
+        if: matrix.node == 18
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  # Job 3: Storage Provider Tests
+  storage-tests:
+    name: Storage Provider Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        provider: [firebase, s3]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Setup Firebase Emulator
+        if: matrix.provider == 'firebase'
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:start --only storage &
+          sleep 10
+
+      - name: Setup LocalStack (S3)
+        if: matrix.provider == 's3'
+        run: |
+          pip install localstack awscli-local
+          docker run -d --name localstack \
+            -p 4566:4566 \
+            -e SERVICES=s3 \
+            localstack/localstack
+          sleep 10
+          awslocal s3 mb s3://test-bucket
+
+      - name: Test ${{ matrix.provider }} Storage
+        run: npm run test:storage:ci
+        env:
+          STORAGE_PROVIDER: ${{ matrix.provider }}
+          # Firebase test credentials
+          FIREBASE_CREDENTIALS: ${{ matrix.provider == 'firebase' && secrets.TEST_FIREBASE_CREDENTIALS || '' }}
+          FIREBASE_STORAGE_BUCKET: ${{ matrix.provider == 'firebase' && 'test-bucket.appspot.com' || '' }}
+          # S3 test credentials
+          S3_BUCKET: ${{ matrix.provider == 's3' && 'test-bucket' || '' }}
+          AWS_ACCESS_KEY_ID: ${{ matrix.provider == 's3' && 'test' || '' }}
+          AWS_SECRET_ACCESS_KEY: ${{ matrix.provider == 's3' && 'test' || '' }}
+          AWS_ENDPOINT: ${{ matrix.provider == 's3' && 'http://localhost:4566' || '' }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ "${{ matrix.provider }}" = "firebase" ]; then
+            pkill -f "firebase emulators:start" || true
+          elif [ "${{ matrix.provider }}" = "s3" ]; then
+            docker stop localstack || true
+            docker rm localstack || true
+          fi
+
+  # Job 4: Browser Agent Tests
+  browser-tests:
+    name: Browser Agent Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/playwright-deps
+          key: playwright-browsers-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright
+        run: |
+          npx playwright@${{ env.PLAYWRIGHT_VERSION }} install chromium --with-deps
+
+      - name: Run Browser Agent Tests
+        run: npm run test:browser-agent
+        env:
+          HEADLESS: true
+          TEST_TIMEOUT: 60000
+
+  # Job 5: Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Setup Test Firebase Project
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:start --project demo-test &
+          sleep 15
+
+      - name: Run Integration Tests
+        run: npm run test:integration
+        env:
+          FIREBASE_DEMO_PROJECT: true
+          TEST_PREVIEW_URL: http://localhost:5000
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_API_KEY: ${{ secrets.TEST_CLAUDE_API_KEY || 'test-key' }}
+
+  # Job 6: Action Test
+  action-test:
+    name: Test GitHub Action
+    runs-on: ubuntu-latest
+    needs: [browser-tests, storage-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Test Preview Site
+        run: |
+          mkdir -p test-site
+          cat > test-site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head><title>Test Site</title></head>
+          <body>
+            <h1>YoFix Test Site</h1>
+            <div id="content">Test Content</div>
+          </body>
+          </html>
+          EOF
+          npx serve test-site -p 3000 &
+          sleep 5
+
+      - name: Test YoFix Action (Firebase)
+        uses: ./
+        with:
+          preview-url: 'http://localhost:3000'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.TEST_CLAUDE_API_KEY || 'test-key' }}
+          storage-provider: 'firebase'
+          firebase-credentials: ${{ secrets.TEST_FIREBASE_CREDENTIALS || 'test' }}
+          storage-bucket: 'test-bucket.appspot.com'
+          test-routes: '/'
+          max-routes: '1'
+        continue-on-error: true
+
+      - name: Test YoFix Action (S3)
+        uses: ./
+        with:
+          preview-url: 'http://localhost:3000'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          claude-api-key: ${{ secrets.TEST_CLAUDE_API_KEY || 'test-key' }}
+          storage-provider: 's3'
+          s3-bucket: 'test-bucket'
+          aws-region: 'us-east-1'
+          test-routes: '/'
+          max-routes: '1'
+        continue-on-error: true
+
+  # Job 7: Build and Bundle Tests
+  build-test:
+    name: Build and Bundle
+    runs-on: ubuntu-latest
+    needs: [code-quality]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build:ts
+
+      - name: Bundle with ncc
+        run: npm run build:bundle
+
+      - name: Verify Bundle
+        run: |
+          # Check bundle size
+          BUNDLE_SIZE=$(stat -f%z dist/index.js 2>/dev/null || stat -c%s dist/index.js)
+          echo "Bundle size: $BUNDLE_SIZE bytes"
+          
+          # Verify main entry point exists
+          test -f dist/index.js || exit 1
+          
+          # Check for common issues
+          if grep -q "require(\s*['\"]@actions/core['\"]" dist/index.js; then
+            echo "✅ Bundle includes required dependencies"
+          else
+            echo "❌ Bundle may be missing dependencies"
+            exit 1
+          fi
+
+      - name: Test Bundle Execution
+        run: |
+          # Create minimal test
+          cat > test-bundle.js << 'EOF'
+          try {
+            require('./dist/index.js');
+            console.log('✅ Bundle loads successfully');
+          } catch (error) {
+            console.error('❌ Bundle failed to load:', error.message);
+            process.exit(1);
+          }
+          EOF
+          node test-bundle.js
+
+  # Job 8: Documentation Tests
+  docs-test:
+    name: Documentation Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Documentation
+        run: |
+          # Check if all required docs exist
+          required_docs=(
+            "README.md"
+            "CLAUDE.md"
+            "action.yml"
+            "docs/config_storage-setup.md"
+            "docs/guide_quickstart.md"
+          )
+          
+          for doc in "${required_docs[@]}"; do
+            if [ -f "$doc" ]; then
+              echo "✅ $doc exists"
+            else
+              echo "❌ Missing required documentation: $doc"
+              exit 1
+            fi
+          done
+
+      - name: Validate action.yml
+        run: |
+          # Simple YAML validation
+          python -c "import yaml; yaml.safe_load(open('action.yml'))" || exit 1
+          echo "✅ action.yml is valid"
+
+      - name: Check for Broken Links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+        continue-on-error: true
+
+  # Job 9: Release Preparation Tests
+  release-prep:
+    name: Release Preparation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test-level == 'release'
+    needs: [integration-tests, action-test, build-test, docs-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check Version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          ACTION_VERSION=$(grep -E "YoFix Version: v[0-9]+\.[0-9]+\.[0-9]+" action.yml | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+")
+          
+          echo "Package version: v$PACKAGE_VERSION"
+          echo "Action version: $ACTION_VERSION"
+          
+          if [ "v$PACKAGE_VERSION" != "$ACTION_VERSION" ]; then
+            echo "❌ Version mismatch between package.json and action.yml"
+            exit 1
+          fi
+          echo "✅ Versions match"
+
+      - name: Verify Dist is Up to Date
+        run: |
+          npm run build
+          if [ -n "$(git status --porcelain dist/)" ]; then
+            echo "❌ dist/ folder is not up to date. Run 'npm run build' and commit changes."
+            exit 1
+          fi
+          echo "✅ dist/ folder is up to date"
+
+      - name: Create Release Checklist
+        run: |
+          cat > release-checklist.md << 'EOF'
+          # Release Checklist for YoFix
+          
+          ## Pre-Release
+          - [ ] All tests pass
+          - [ ] Version numbers updated in package.json and action.yml
+          - [ ] CHANGELOG.md updated
+          - [ ] dist/ folder built and committed
+          - [ ] Documentation reviewed and updated
+          
+          ## Testing
+          - [ ] Firebase storage tested
+          - [ ] S3 storage tested
+          - [ ] Browser agent tested
+          - [ ] Route impact analysis tested
+          - [ ] PR commenting tested
+          
+          ## Release
+          - [ ] Create GitHub release with tag
+          - [ ] Publish to GitHub Marketplace
+          - [ ] Update examples in documentation
+          - [ ] Announce release
+          EOF
+          
+          echo "📋 Release checklist created"
+
+  # Summary Job
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [code-quality, unit-tests, storage-tests, browser-tests, integration-tests, action-test, build-test, docs-test]
+    steps:
+      - name: Test Results Summary
+        run: |
+          echo "## 📊 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check job results
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Storage Tests | ${{ needs.storage-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser Tests | ${{ needs.browser-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Action Test | ${{ needs.action-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Test | ${{ needs.build-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documentation | ${{ needs.docs-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall result
+          if [ "${{ needs.code-quality.result }}" == "success" ] && \
+             [ "${{ needs.unit-tests.result }}" == "success" ] && \
+             [ "${{ needs.build-test.result }}" == "success" ] && \
+             [ "${{ needs.docs-test.result }}" == "success" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All required tests passed!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Some tests failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import { ActionDefinition, ActionResult, AgentContext } from '../types';
+import { actionValidator } from './ActionValidator';
 
 export type ActionHandler = (params: any, context: AgentContext) => Promise<ActionResult>;
 
@@ -22,6 +23,9 @@ export class ActionRegistry {
       definition,
       handler
     });
+    
+    // Automatically register with validator
+    actionValidator.registerAction(definition.name);
   }
 
   /**

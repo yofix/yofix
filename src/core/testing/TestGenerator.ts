@@ -34,8 +34,24 @@ export class TestGenerator {
     
     // Test each route
     for (const route of analysis.routes) {
-      const result = await this.testRoute(route, analysis);
-      results.push(result);
+      try {
+        const result = await this.testRoute(route, analysis);
+        results.push(result);
+      } catch (error) {
+        core.warning(`Failed to test route ${route}: ${error}. Continuing with next route...`);
+        results.push({
+          route,
+          success: false,
+          duration: 0,
+          issues: [{
+            type: 'test-error',
+            severity: 'critical',
+            description: `Test was canceled or failed: ${error}`
+          }],
+          screenshots: [],
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
     
     core.info(`✅ Completed ${results.length} route tests`);
@@ -54,7 +70,7 @@ export class TestGenerator {
       
       const agent = new Agent(testTask, {
         headless: true,
-        maxSteps: 25,
+        maxSteps: 50, // Increased from 25 to allow for authentication and navigation retries
         llmProvider: 'anthropic',
         viewport: this.viewports[0] || { width: 1920, height: 1080 },
         apiKey: this.claudeApiKey

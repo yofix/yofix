@@ -40,9 +40,16 @@ export class AnthropicProvider extends LLMProvider {
       const content = response.content[0];
       const text = content.type === 'text' ? content.text : '';
       
-      core.debug(`LLM Response: ${text}`);
+      // Enhanced debugging for LLM response
+      console.log(`LLM ACTION RESPONSE:`);
+      console.log(`  THINKING: ${text.substring(0, 500)}${text.length > 500 ? '...' : ''}`);
       
-      return this.parseResponse(text);
+      const parsed = this.parseResponse(text);
+      
+      console.log(`  ACTION: ${parsed.action}`);
+      console.log(`  PARAMS: ${JSON.stringify(parsed.parameters)}`);
+      
+      return parsed;
     } catch (error) {
       core.error(`Anthropic API error: ${error}`);
       throw error;

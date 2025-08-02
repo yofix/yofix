@@ -2,16 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.20] - 2025-08-01
+## [1.0.20] - 2025-08-02
 
 ### Changed
 - Changed default storage-provider from 'auto' to 'firebase'
 - Removed 'auto' as a valid storage-provider option for clarity
 - Simplified storage provider configuration
+- **Optimized build process for GitHub Marketplace**: Single bundled file (5.7MB) with externalized dependencies
+- Removed unnecessary CLI files from GitHub Action distribution (CLI available via separate build command)
+- Updated package.json files list to only include essential action files
 
 ### Fixed
 - Fixed loop-frontend CI workflow failures by removing ambiguous 'auto' option
 - Storage provider validation now correctly matches action defaults
+- Fixed crypto import in CacheManager for proper TypeScript compilation
+- Fixed base64 credential parsing in FirebaseStorage initialization
+
+### Added
+- Comprehensive test workflow for release preparation
+- Storage integration tests for Firebase and S3 providers
+- Markdown link checking in CI pipeline
+- Separate `build:cli` command for local CLI development
 
 ## [1.0.18] - 2025-01-19
 

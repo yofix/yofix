@@ -135,29 +135,41 @@ async function runVisualTesting(): Promise<void> {
         const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken, storageProvider);
         impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
         
-        // Extract affected routes from the impact tree
-        if (impactTree.affectedRoutes.length > 0) {
-          affectedRoutes = impactTree.affectedRoutes.map((impact: any) => impact.route);
-          core.info(`🎯 Found ${affectedRoutes.length} affected routes from PR changes`);
-        }
-        
-        // Also extract routes from componentRouteMapping
+        // FIXED: Extract routes from component mappings FIRST
+        // This is the primary source of truth for component changes
         if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
           const componentRoutes = new Set<string>();
+          
+          // Log component mappings for debugging
+          core.info(`🎯 Component mappings found:`);
           for (const [component, routes] of impactTree.componentRouteMapping) {
-            routes.forEach((r: any) => {
-              // Extract the actual route path, not the component name
-              componentRoutes.add(r.routePath);
-            });
+            core.info(`  ${component} affects ${routes.length} routes:`);
+            for (const route of routes) {
+              // Use the actual route path from the mapping
+              if (route.routePath) {
+                core.info(`    - ${route.routePath} (in ${route.routeFile || 'unknown'})`);
+                componentRoutes.add(route.routePath);
+              }
+            }
           }
           
-          // Merge with affected routes, avoiding duplicates
-          const allRoutes = new Set([...affectedRoutes, ...componentRoutes]);
-          affectedRoutes = Array.from(allRoutes);
-          
-          core.info(`🎯 Found ${componentRoutes.size} routes from component mapping`);
-          core.info(`📍 Total unique routes to test: ${affectedRoutes.length}`);
+          affectedRoutes = Array.from(componentRoutes);
+          core.info(`📍 Found ${affectedRoutes.length} routes from component mappings`);
         }
+        
+        // Then add any directly affected routes (route file changes)
+        if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+          const directRoutes = impactTree.affectedRoutes
+            .filter((impact: any) => impact.route && !affectedRoutes.includes(impact.route))
+            .map((impact: any) => impact.route);
+          
+          if (directRoutes.length > 0) {
+            affectedRoutes = [...affectedRoutes, ...directRoutes];
+            core.info(`🎯 Found ${directRoutes.length} additional routes from direct changes`);
+          }
+        }
+        
+        core.info(`📍 Total unique routes to test: ${affectedRoutes.length}`);
         
         if (affectedRoutes.length === 0) {
           core.info('ℹ️ No routes affected by PR changes, testing homepage');

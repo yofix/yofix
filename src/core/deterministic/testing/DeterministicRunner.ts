@@ -71,11 +71,34 @@ export class DeterministicRunner {
     core.info(`🎯 Testing route deterministically: ${url}`);
     
     try {
-      // Navigate directly - no LLM needed
-      await this.page.goto(url, { 
-        waitUntil: 'networkidle',
-        timeout: 30000 
-      });
+      // Navigate with more resilient strategy
+      try {
+        // First try with networkidle (most thorough)
+        await this.page.goto(url, { 
+          waitUntil: 'networkidle',
+          timeout: 15000 
+        });
+      } catch (timeoutError) {
+        core.warning(`Network idle timeout, trying with domcontentloaded...`);
+        // If networkidle times out, try with domcontentloaded
+        try {
+          await this.page.goto(url, { 
+            waitUntil: 'domcontentloaded',
+            timeout: 10000 
+          });
+          // Give the page some time to render after DOM is loaded
+          await this.page.waitForTimeout(3000);
+        } catch (domError) {
+          core.warning(`DOM content loaded timeout, trying with commit...`);
+          // Last resort: just wait for navigation to commit
+          await this.page.goto(url, { 
+            waitUntil: 'commit',
+            timeout: 5000 
+          });
+          // Give more time for page to render
+          await this.page.waitForTimeout(5000);
+        }
+      }
       
       // Wait for any animations to complete
       await this.page.waitForTimeout(1000);
@@ -132,10 +155,25 @@ export class DeterministicRunner {
       
     } catch (error) {
       core.error(`Failed to test route ${route}: ${error}`);
+      
+      // Try to take a screenshot of the current state for debugging
+      let debugScreenshot: Buffer | undefined;
+      let currentUrl: string | undefined;
+      try {
+        currentUrl = this.page.url();
+        core.info(`Current URL during error: ${currentUrl}`);
+        debugScreenshot = await this.page.screenshot({ fullPage: true, type: 'png' });
+        core.info(`Captured debug screenshot of error state`);
+      } catch (screenshotError) {
+        core.warning(`Could not capture debug screenshot: ${screenshotError}`);
+      }
+      
       return {
         route,
+        actualUrl: currentUrl,
         success: false,
-        screenshots: [],
+        screenshots: debugScreenshot ? [debugScreenshot] : [],
+        screenshotUrls: currentUrl ? [currentUrl] : [],
         error: error instanceof Error ? error.message : String(error)
       };
     }

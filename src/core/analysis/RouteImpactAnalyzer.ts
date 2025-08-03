@@ -488,46 +488,8 @@ export class RouteImpactAnalyzer {
       output += '\n';
     }
     
-    output += '```\nRoute Tree:\n';
-    
-    for (let i = 0; i < tree.affectedRoutes.length; i++) {
-      const impact = tree.affectedRoutes[i];
-      const isLast = i === tree.affectedRoutes.length - 1;
-      const prefix = isLast ? '└── ' : '├── ';
-      const childPrefix = isLast ? '    ' : '│   ';
-      
-      output += `${prefix}${impact.route}\n`;
-      
-      // Collect all files to determine which is last
-      const allFiles: Array<{file: string, type: string}> = [];
-      
-      // Add direct changes
-      for (const file of impact.directChanges) {
-        allFiles.push({file, type: 'route file'});
-      }
-      
-      // Add component changes
-      for (const file of impact.componentChanges) {
-        const isShared = impact.sharedComponents.includes(file);
-        const label = isShared ? 'shared component' : 'component';
-        allFiles.push({file, type: label});
-      }
-      
-      // Add style changes
-      for (const file of impact.styleChanges) {
-        allFiles.push({file, type: 'styles'});
-      }
-      
-      // Output all files with proper tree structure
-      for (let j = 0; j < allFiles.length; j++) {
-        const {file, type} = allFiles[j];
-        const isLastFile = j === allFiles.length - 1;
-        const filePrefix = isLastFile ? '└── ' : '├── ';
-        output += `${childPrefix}${filePrefix}${path.basename(file)} (${type})\n`;
-      }
-    }
-    
-    output += '```';
+    // Note: Route Tree section has been removed to keep comments concise
+    // The component usage section above already shows which routes are affected
     
     return output;
   }

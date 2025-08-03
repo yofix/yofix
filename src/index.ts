@@ -219,7 +219,7 @@ async function runVisualTesting(): Promise<void> {
     
     // Initialize browser-agent powered components
     const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);
-    const visualAnalyzer = new VisualAnalyzer(inputs.claudeApiKey, inputs.githubToken);
+    const visualAnalyzer = new VisualAnalyzer(inputs.claudeApiKey, inputs.githubToken, undefined, inputs.previewUrl);
     
     // Run tests using browser-agent
     core.info('🤖 Running tests with Browser Agent...');
@@ -229,6 +229,7 @@ async function runVisualTesting(): Promise<void> {
     core.info('👁️ Running visual analysis with Browser Agent...');
     const scanResult = await visualAnalyzer.scan({
       prNumber: prNumber,
+      previewUrl: inputs.previewUrl,
       routes: analysis.routes,
       viewports: viewports.map(v => `${v.width}x${v.height}`),
       options: {

@@ -161,6 +161,8 @@ export class TestGenerator {
     const url = `${this.firebaseConfig.previewUrl}${route}`;
     
     core.info(`Testing route: ${route}`);
+    core.info(`Full URL: ${url}`);
+    core.info(`Note: Agent should navigate from current page to this URL`);
     
     if (!this.sharedAgent || !this.sharedAgent.isActive()) {
       throw new Error('Shared agent is not active');
@@ -274,13 +276,17 @@ export class TestGenerator {
   private buildRouteTestTaskForSharedSession(route: string, url: string, analysis: RouteAnalysisResult): string {
     const tasks: string[] = [];
     
-    // Start with navigation (no auth needed in shared session)
-    tasks.push(`1. Navigate to ${url}`);
-    tasks.push(`2. Wait for the page to fully load`);
-    tasks.push(`3. Take a screenshot for baseline comparison`);
-    tasks.push('4. Run check_visual_issues with screenshot=true to detect layout problems');
-    tasks.push('5. Test navigation by clicking on interactive elements');
-    tasks.push('6. Check for broken images or missing content');
+    // CRITICAL: Navigate to the target route (shared session already authenticated)
+    tasks.push(`1. FIRST: Check your current URL using get_page_info`);
+    tasks.push(`2. IMPORTANT: Navigate to the target URL: ${url}`);
+    tasks.push(`   - Use go_to action to navigate to ${url}`);
+    tasks.push(`   - Current page doesn't matter - just navigate to ${url}`);
+    tasks.push(`3. Verify navigation succeeded by checking you're now at ${url}`);
+    tasks.push(`4. Wait for the page to fully load (wait for network idle)`);
+    tasks.push(`4. Take a screenshot for baseline comparison`);
+    tasks.push('5. Run check_visual_issues with screenshot=true to detect layout problems');
+    tasks.push('6. Test navigation by clicking on interactive elements');
+    tasks.push('7. Check for broken images or missing content');
 
     // Add responsive testing for UI changes
     if (analysis.hasUIChanges) {
@@ -307,7 +313,14 @@ export class TestGenerator {
     tasks.push(`10. Save any issues found to /results${route.replace(/\//g, '_')}.json`);
     tasks.push('11. Generate fixes for any critical issues using generate_visual_fix');
 
-    return `Test the ${route} page comprehensively:\n\n${tasks.join('\n')}
+    return `IMPORTANT: You are currently authenticated but may not be on the correct page.
+REGARDLESS of your current location, you MUST navigate to the target route.
+
+Test the ${route} page comprehensively:\n\n${tasks.join('\n')}
+
+CRITICAL: Do NOT assume you are already on the correct page!
+The FIRST meaningful action must be to navigate to ${url} using the go_to action!
+DO NOT take screenshots or run tests until you have confirmed you are at ${url}!
 
 Focus on:
 - Visual layout issues (overlaps, overflows, alignment)

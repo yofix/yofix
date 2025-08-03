@@ -9,15 +9,18 @@ export class VisualAnalyzer {
   private claudeApiKey: string;
   private githubToken: string;
   private cache: CacheManager;
+  private previewUrl?: string;
 
-  constructor(claudeApiKey: string, githubToken: string = '', cache?: CacheManager) {
+  constructor(claudeApiKey: string, githubToken: string = '', cache?: CacheManager, previewUrl?: string) {
     this.claudeApiKey = claudeApiKey;
     this.githubToken = githubToken;
     this.cache = cache || new CacheManager();
+    this.previewUrl = previewUrl;
   }
 
   async scan(options: {
     prNumber: number;
+    previewUrl?: string;
     routes: string[] | 'auto';
     viewports: string[];
     options: any;
@@ -31,7 +34,7 @@ export class VisualAnalyzer {
       const routes = await this.getRoutesToTest(options.routes);
       
       // Create comprehensive visual testing task
-      const visualTestTask = this.buildVisualTestTask(routes, options.viewports);
+      const visualTestTask = this.buildVisualTestTask(routes, options.viewports, options.previewUrl);
       
       const agent = new Agent(visualTestTask, {
         headless: true,
@@ -260,15 +263,27 @@ export class VisualAnalyzer {
   /**
    * Build comprehensive visual testing task
    */
-  private buildVisualTestTask(routes: string[], viewports: string[]): string {
+  private buildVisualTestTask(routes: string[], viewports: string[], previewUrl?: string): string {
+    const baseUrl = previewUrl || this.previewUrl || '';
+    
+    if (!baseUrl) {
+      core.warning('No preview URL provided for visual testing!');
+    }
+    
     const tasks: string[] = [
       'Comprehensive Visual Testing Plan:',
+      '',
+      `IMPORTANT: Base URL for all routes is: ${baseUrl}`,
+      'You MUST use the full URLs provided below, not placeholder URLs!',
       ''
     ];
     
     routes.forEach((route, index) => {
+      const fullUrl = baseUrl ? `${baseUrl}${route}` : route;
       tasks.push(`Route ${index + 1}: ${route}`);
-      tasks.push(`1. Navigate to ${route}`);
+      tasks.push(`FULL URL TO NAVIGATE TO: ${fullUrl}`);
+      tasks.push(`1. Navigate to exactly this URL: ${fullUrl}`);
+      tasks.push(`   DO NOT use any other URL like app.yofix.com!`);
       tasks.push(`2. Wait for page to fully load`);
       tasks.push(`3. Run check_visual_issues with screenshot=true`);
       tasks.push(`4. Test responsive behavior on different viewport sizes`);

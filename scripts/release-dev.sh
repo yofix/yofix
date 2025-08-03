@@ -38,10 +38,11 @@ if ! git diff-index --quiet HEAD --; then
     git status --short
     
     # Ask if we should commit
-    echo -e "\n${YELLOW}Do you want to commit these changes? (y/n)${NC}"
+    echo -e "\n${YELLOW}Do you want to commit these changes? (Y/n)${NC}"
     read -r response
     
-    if [[ "$response" =~ ^[Yy]$ ]]; then
+    # Default to "Y" if user just presses Enter
+    if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
         # Add all changes
         echo -e "\n${BLUE}📦 Staging all changes...${NC}"
         git add -A
@@ -132,8 +133,7 @@ This is a development version for testing only. For production, use the latest s
 gh release create "$DEV_VERSION" \
     --title "$DEV_VERSION - Development Build" \
     --notes "$RELEASE_NOTES" \
-    --prerelease \
-    --target "$COMMIT_HASH"
+    --prerelease
 
 echo -e "\n${GREEN}✅ Dev release created successfully!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

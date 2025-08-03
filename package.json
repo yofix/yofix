@@ -26,8 +26,6 @@
     "release": "./scripts/release.sh",
     "release:dev": "./scripts/release-dev.sh",
     "release:alpha": "./scripts/release-pre.sh alpha",
-    "release:beta": "./scripts/release-pre.sh beta",
-    "release:rc": "./scripts/release-pre.sh rc",
     "test:storage": "ts-node tests/test-storage-local.ts",
     "test:storage:ci": "ts-node tests/test-storage-integration.ts",
     "test:cache": "echo 'Cache test not implemented yet'",

@@ -2,11 +2,10 @@
 
 # Advanced pre-release script with multiple release types
 # Usage: ./scripts/release-pre.sh [type] [version-base]
-# Types: dev, alpha, beta, rc
+# Types: dev, alpha
 # Examples: 
 #   ./scripts/release-pre.sh dev
 #   ./scripts/release-pre.sh alpha 1.0.22
-#   ./scripts/release-pre.sh beta
 
 set -e
 
@@ -22,9 +21,9 @@ NC='\033[0m' # No Color
 RELEASE_TYPE=${1:-dev}
 
 # Validate release type
-if [[ ! "$RELEASE_TYPE" =~ ^(dev|alpha|beta|rc)$ ]]; then
+if [[ ! "$RELEASE_TYPE" =~ ^(dev|alpha)$ ]]; then
     echo -e "${RED}❌ Invalid release type: ${RELEASE_TYPE}${NC}"
-    echo -e "Valid types: dev, alpha, beta, rc"
+    echo -e "Valid types: dev, alpha"
     exit 1
 fi
 
@@ -132,18 +131,6 @@ generate_version() {
             local next_alpha=$((alpha_count + 1))
             version="v${BASE_VERSION}-alpha.${next_alpha}"
             ;;
-        beta)
-            # Check for existing beta releases
-            local beta_count=$(git tag -l "v${BASE_VERSION}-beta.*" | wc -l | tr -d ' ')
-            local next_beta=$((beta_count + 1))
-            version="v${BASE_VERSION}-beta.${next_beta}"
-            ;;
-        rc)
-            # Check for existing RC releases
-            local rc_count=$(git tag -l "v${BASE_VERSION}-rc.*" | wc -l | tr -d ' ')
-            local next_rc=$((rc_count + 1))
-            version="v${BASE_VERSION}-rc.${next_rc}"
-            ;;
     esac
     
     echo "$version"
@@ -211,14 +198,6 @@ generate_release_notes() {
             emoji="🧪"
             warning="Alpha release - expect bugs"
             ;;
-        beta)
-            emoji="🎯"
-            warning="Beta release - feature complete but may have issues"
-            ;;
-        rc)
-            emoji="🏁"
-            warning="Release candidate - final testing phase"
-            ;;
     esac
     
     cat << EOF
@@ -267,8 +246,7 @@ RELEASE_NOTES=$(generate_release_notes)
 gh release create "$PRE_VERSION" \
     --title "${PRE_VERSION} - ${RELEASE_TYPE^} Release" \
     --notes "$RELEASE_NOTES" \
-    --prerelease \
-    --target "$COMMIT_HASH"
+    --prerelease
 
 # Success message
 echo -e "\n${GREEN}═══════════════════════════════════════${NC}"
@@ -289,12 +267,6 @@ case $RELEASE_TYPE in
         ;;
     alpha)
         echo -e "${YELLOW}💡 Alpha Tip:${NC} Test core functionality thoroughly"
-        ;;
-    beta)
-        echo -e "${YELLOW}💡 Beta Tip:${NC} Focus on edge cases and integration tests"
-        ;;
-    rc)
-        echo -e "${YELLOW}💡 RC Tip:${NC} This should be production-ready, test extensively"
         ;;
 esac
 echo ""

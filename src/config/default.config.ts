@@ -45,15 +45,18 @@ export interface YoFixConfig {
         clientEmailEnv: string;
         privateKeyEnv: string;
         storageBucketEnv: string;
+        signedUrlExpiryHours: number;
       };
       s3: {
         accessKeyIdEnv: string;
         secretAccessKeyEnv: string;
         regionEnv: string;
         bucketEnv: string;
+        signedUrlExpiryHours: number;
       };
     };
     defaultProvider: 'firebase' | 's3';
+    basePath: string;
   };
 
   // GitHub Integration
@@ -70,6 +73,21 @@ export interface YoFixConfig {
     retryAttempts: number;
     retryDelay: number;
     sessionMode: 'sharedAgent' | 'independentAgent';
+  };
+  
+  // Engine Mode Configuration
+  engine: {
+    mode: 'deterministic' | 'assisted';
+    deterministicOptions: {
+      pixelDiffThreshold: number; // Percentage threshold for visual differences
+      enableBaselines: boolean;
+      baselineUpdateStrategy: 'manual' | 'auto';
+    };
+    assistedOptions: {
+      enableVisualAnalysis: boolean;
+      enableSmartNavigation: boolean;
+      enableFixGeneration: boolean;
+    };
   };
 
   // Authentication Configuration
@@ -122,16 +140,19 @@ export const defaultConfig: YoFixConfig = {
         projectIdEnv: 'FIREBASE_PROJECT_ID',
         clientEmailEnv: 'FIREBASE_CLIENT_EMAIL',
         privateKeyEnv: 'FIREBASE_PRIVATE_KEY',
-        storageBucketEnv: 'FIREBASE_STORAGE_BUCKET'
+        storageBucketEnv: 'FIREBASE_STORAGE_BUCKET',
+        signedUrlExpiryHours: 24
       },
       s3: {
         accessKeyIdEnv: 'AWS_ACCESS_KEY_ID',
         secretAccessKeyEnv: 'AWS_SECRET_ACCESS_KEY',
         regionEnv: 'AWS_REGION',
-        bucketEnv: 'S3_BUCKET'
+        bucketEnv: 'S3_BUCKET',
+        signedUrlExpiryHours: 24
       }
     },
-    defaultProvider: 'firebase'
+    defaultProvider: 'firebase',
+    basePath: 'yofix'
   },
   github: {
     defaultBranch: 'main',
@@ -144,6 +165,19 @@ export const defaultConfig: YoFixConfig = {
     retryAttempts: 3,
     retryDelay: 1000,
     sessionMode: 'sharedAgent'
+  },
+  engine: {
+    mode: 'deterministic', // Default to deterministic for speed and reliability
+    deterministicOptions: {
+      pixelDiffThreshold: 0.1, // 0.1% difference threshold
+      enableBaselines: true,
+      baselineUpdateStrategy: 'manual'
+    },
+    assistedOptions: {
+      enableVisualAnalysis: false,
+      enableSmartNavigation: false,
+      enableFixGeneration: true
+    }
   },
   auth: {
     defaultMode: 'selectors',
@@ -175,5 +209,7 @@ export const actionDefaults = {
   'enable-ai-test-generation': 'false',
   'test-routes': '',
   'session-mode': 'sharedAgent',
-  'clear-cache': 'false'
+  'clear-cache': 'false',
+  'engine-mode': 'deterministic',
+  'enable-llm-visual-analysis': 'false'
 };

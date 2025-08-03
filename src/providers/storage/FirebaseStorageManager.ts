@@ -17,9 +17,15 @@ export class FirebaseStorageManager {
     storageConfig: FirebaseStorageConfig,
     serviceAccountBase64: string
   ) {
-    this.firebaseConfig = firebaseConfig;
     this.config = storageConfig;
     this.prNumber = this.extractPRNumber(firebaseConfig.previewUrl);
+    
+    // Extract project ID from service account before initializing
+    const serviceAccount = this.parseServiceAccount(serviceAccountBase64);
+    this.firebaseConfig = {
+      ...firebaseConfig,
+      projectId: serviceAccount.project_id || firebaseConfig.projectId
+    };
     
     this.initializeFirebase(serviceAccountBase64);
   }
@@ -58,6 +64,19 @@ export class FirebaseStorageManager {
       core.info(`Firebase Storage initialized for bucket: ${this.config.bucket}`);
     } catch (error) {
       FirebaseErrorHandler.handleError(error, 'Firebase Storage initialization');
+    }
+  }
+
+  /**
+   * Parse service account from base64
+   */
+  private parseServiceAccount(serviceAccountBase64: string): any {
+    try {
+      const serviceAccountJson = Buffer.from(serviceAccountBase64, 'base64').toString('utf-8');
+      return JSON.parse(serviceAccountJson);
+    } catch (error) {
+      core.warning('Failed to parse service account for project ID extraction');
+      return {};
     }
   }
 

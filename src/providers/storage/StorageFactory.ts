@@ -8,7 +8,6 @@ export interface StorageConfig {
   firebase?: {
     credentials: string;
     bucket: string;
-    projectId?: string;
   };
   s3?: {
     bucket: string;
@@ -35,8 +34,7 @@ export class StorageFactory {
         }
         provider = new FirebaseStorage({
           credentials: config.firebase.credentials,
-          bucket: config.firebase.bucket,
-          projectId: config.firebase.projectId
+          bucket: config.firebase.bucket
         });
         break;
 
@@ -70,8 +68,7 @@ export class StorageFactory {
       core.info('Auto-detected Firebase storage configuration');
       return new FirebaseStorage({
         credentials: config.firebase?.credentials || process.env.FIREBASE_CREDENTIALS!,
-        bucket: config.firebase?.bucket || process.env.FIREBASE_STORAGE_BUCKET!,
-        projectId: config.firebase?.projectId || process.env.FIREBASE_PROJECT_ID
+        bucket: config.firebase?.bucket || process.env.FIREBASE_STORAGE_BUCKET!
       });
     }
 
@@ -105,8 +102,7 @@ export class StorageFactory {
     if (firebaseCredentials && storageBucket) {
       config.firebase = {
         credentials: firebaseCredentials,
-        bucket: storageBucket,
-        projectId: core.getInput('firebase-project-id') || undefined
+        bucket: storageBucket
       };
     }
 

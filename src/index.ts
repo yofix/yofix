@@ -6,6 +6,7 @@ import * as github from '@actions/github';
 
 import { TestGenerator } from './core/testing/TestGenerator';
 import { VisualAnalyzer } from './core/analysis/VisualAnalyzer';
+import { DeterministicVisualAnalyzer } from './core/deterministic/visual/DeterministicVisualAnalyzer';
 import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
 import { YoFixBot } from './bot/YoFixBot';
@@ -25,6 +26,7 @@ import {
   deleteFile,
   parseTimeout
 } from './core';
+import { defaultConfig } from './config/default.config';
 async function run(): Promise<void> {
   try {
     // Initialize core services first
@@ -96,9 +98,9 @@ async function runVisualTesting(): Promise<void> {
     // Create temporary output directory
     outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'yofix-'));
     
-    // Create Firebase config from inputs
+    // Create Firebase config from inputs (project ID will be auto-detected from credentials)
     const firebaseConfig: FirebaseConfig = {
-      projectId: inputs.firebaseProjectId || 'default-project',
+      projectId: 'auto-detect', // Will be replaced by FirebaseStorageManager
       target: inputs.firebaseTarget || 'default-target',
       buildSystem: inputs.buildSystem || 'vite',
       previewUrl: inputs.previewUrl,
@@ -217,37 +219,122 @@ async function runVisualTesting(): Promise<void> {
     
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);
     
-    // Initialize browser-agent powered components
+    // Initialize test runner (uses hybrid approach: LLM auth + deterministic testing)
     const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);
-    const visualAnalyzer = new VisualAnalyzer(inputs.claudeApiKey, inputs.githubToken, undefined, inputs.previewUrl);
     
     // Run tests using browser-agent
     core.info('🤖 Running tests with Browser Agent...');
     const testResults = await testRunner.runTests(analysis);
     
-    // Run visual analysis using browser-agent
-    core.info('👁️ Running visual analysis with Browser Agent...');
-    const scanResult = await visualAnalyzer.scan({
+    // Use deterministic visual analysis by default
+    core.info('👁️ Running deterministic visual analysis...');
+    const useLLMAnalysis = getBooleanConfig('enable-llm-visual-analysis');
+    
+    // Create deterministic analyzer
+    const deterministicAnalyzer = new DeterministicVisualAnalyzer(
+      inputs.previewUrl,
+      useLLMAnalysis ? inputs.claudeApiKey : undefined
+    );
+    
+    const scanResult = await deterministicAnalyzer.scan({
       prNumber: prNumber,
-      previewUrl: inputs.previewUrl,
       routes: analysis.routes,
       viewports: viewports.map(v => `${v.width}x${v.height}`),
-      options: {
-        enableScreenshots: true,
-        maxRetries: 3,
-        timeout: 30000
-      }
+      useLLMAnalysis: useLLMAnalysis
     });
     
     // Generate fixes for any issues found
     if (scanResult.issues && scanResult.issues.length > 0) {
       core.info(`🔧 Generating fixes for ${scanResult.issues.length} issues...`);
-      const fixes = await visualAnalyzer.generateFixes(scanResult.issues);
+      const fixes = await deterministicAnalyzer.generateFixes(scanResult.issues);
       
       // Log fixes
       fixes.forEach(({ issue, fix }) => {
         core.info(`Fix for ${issue.type}: ${fix.substring(0, 100)}...`);
       });
+    }
+    
+    // Save screenshots to disk and prepare for upload
+    const allScreenshots = [];
+    for (const result of testResults) {
+      for (const [screenshotIndex, screenshotBuffer] of result.screenshots.entries()) {
+        const filename = `${result.route.replace(/\//g, '-')}_screenshot-${screenshotIndex}.png`;
+        const screenshotPath = path.join(outputDir!, filename);
+        
+        // Save screenshot to disk
+        await fs.writeFile(screenshotPath, screenshotBuffer);
+        
+        allScreenshots.push({
+          name: filename,
+          path: screenshotPath,
+          viewport: viewports[screenshotIndex % viewports.length],
+          timestamp: Date.now(),
+          route: result.route
+        });
+      }
+    }
+    
+    // Upload screenshots to Firebase if configured
+    let uploadedScreenshots = allScreenshots;
+    let screenshotsUrl = ''; // Will be set after upload or constructed from bucket
+    
+    if (inputs.firebaseCredentials && inputs.storageBucket) {
+      try {
+        core.info('📤 Uploading screenshots to Firebase Storage...');
+        core.info(`  Storage Bucket: ${inputs.storageBucket}`);
+        core.info(`  Number of screenshots: ${allScreenshots.length}`);
+        
+        // Check if firebaseCredentials is a file path for testing
+        let credentialsBase64 = inputs.firebaseCredentials;
+        if (inputs.firebaseCredentials.endsWith('.json')) {
+          try {
+            const credentialsContent = await fs.readFile(inputs.firebaseCredentials, 'utf-8');
+            credentialsBase64 = Buffer.from(credentialsContent).toString('base64');
+            core.info('  Using Firebase credentials from file');
+          } catch (error) {
+            core.debug(`Not a file path, treating as base64: ${error}`);
+          }
+        }
+        
+        const { FirebaseStorageManager } = await import('./providers/storage/FirebaseStorageManager');
+        
+        const storageManager = new FirebaseStorageManager(
+          firebaseConfig,
+          {
+            bucket: inputs.storageBucket,
+            basePath: defaultConfig.storage.basePath,
+            signedUrlExpiry: defaultConfig.storage.providers.firebase.signedUrlExpiryHours * 60 * 60 * 1000
+          },
+          credentialsBase64
+        );
+        
+        uploadedScreenshots = await storageManager.uploadScreenshots(allScreenshots);
+        
+        // Log uploaded URLs
+        core.info('✅ Screenshots uploaded successfully:');
+        let uploadedCount = 0;
+        for (const screenshot of uploadedScreenshots) {
+          if (screenshot.firebaseUrl) {
+            core.info(`  📸 ${screenshot.name}: ${screenshot.firebaseUrl}`);
+            uploadedCount++;
+          }
+        }
+        core.info(`  Total uploaded: ${uploadedCount}/${allScreenshots.length}`);
+        
+        // Get storage console URL
+        screenshotsUrl = storageManager.generateStorageConsoleUrl();
+        core.info(`\n🔗 View all screenshots in Firebase Console: ${screenshotsUrl}`);
+        
+      } catch (error) {
+        core.warning(`Failed to upload screenshots to Firebase: ${error}`);
+        core.warning('Screenshots are saved locally but not uploaded to cloud storage');
+        core.debug(`Firebase credentials present: ${!!inputs.firebaseCredentials}`);
+        core.debug(`Storage bucket: ${inputs.storageBucket}`);
+      }
+    } else {
+      core.warning('Firebase storage not configured. Screenshots saved locally only.');
+      core.warning(`Firebase credentials present: ${!!inputs.firebaseCredentials}`);
+      core.warning(`Storage bucket configured: ${!!inputs.storageBucket}`);
     }
     
     // Create verification result
@@ -264,17 +351,20 @@ async function runVisualTesting(): Promise<void> {
         testName: `Route Test: ${r.route}`,
         status: r.success ? 'passed' : 'failed',
         duration: r.duration,
-        screenshots: r.screenshots.map((buf, i) => ({
-          name: `screenshot-${i}.png`,
-          path: `/tmp/screenshot-${i}.png`,
-          viewport: viewports[0],
-          timestamp: Date.now()
-        })),
+        screenshots: uploadedScreenshots
+          .filter(s => s.route === r.route)
+          .map(s => ({
+            name: s.name,
+            path: s.path,
+            viewport: s.viewport,
+            timestamp: s.timestamp,
+            firebaseUrl: s.firebaseUrl
+          })),
         videos: [],
         errors: r.error ? [r.error] : [],
         consoleMessages: []
       })),
-      screenshotsUrl: 'https://storage.googleapis.com/yofix-screenshots/',
+      screenshotsUrl,
       summary: {
         componentsVerified: analysis.components,
         routesTested: analysis.routes,
@@ -340,10 +430,9 @@ function parseInputs(): ActionInputs {
   return {
     previewUrl: getRequiredConfig('preview-url'),
     firebaseCredentials: config.get('firebase-credentials'),
-    storageBucket: config.get('firebase-storage-bucket'),
+    storageBucket: config.get('storage-bucket'),
     githubToken: getRequiredConfig('github-token'),
     claudeApiKey: config.getSecret('claude-api-key'),
-    firebaseProjectId: config.get('firebase-project-id'),
     firebaseTarget: config.get('firebase-target'),
     buildSystem: config.get('build-system', { defaultValue: 'vite' }) as 'vite' | 'react',
     testTimeout: config.get('test-timeout', { defaultValue: '30000' }),

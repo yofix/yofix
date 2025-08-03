@@ -27,6 +27,7 @@
     "release:dev": "./scripts/release-dev.sh",
     "release:alpha": "./scripts/release-pre.sh alpha",
     "test:storage": "ts-node tests/test-storage-local.ts",
+    "test:firebase": "ts-node src/cli/test-firebase.ts",
     "test:storage:ci": "ts-node tests/test-storage-integration.ts",
     "test:cache": "echo 'Cache test not implemented yet'",
     "test:browser-agent": "jest src/browser-agent --passWithNoTests",

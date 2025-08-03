@@ -73,10 +73,6 @@ inputs:
     required: false
     default: '{}'
   
-  firebase-project-id:
-    description: 'Firebase project ID (auto-detected from preview URL if not provided)'
-    required: false
-  
   firebase-target:
     description: 'Firebase hosting target (auto-detected from preview URL if not provided)'
     required: false
@@ -160,9 +156,6 @@ outputs:
   
   summary-url:
     description: 'URL to the test results summary'
-  
-  firebase-project:
-    description: 'Detected Firebase project ID'
   
   firebase-target:
     description: 'Detected Firebase hosting target'
@@ -391,7 +384,6 @@ runs:
         INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
         INPUT_REDIS-URL: ${{ inputs.redis-url }}
         INPUT_CACHE-TTL: ${{ inputs.cache-ttl }}
-        INPUT_FIREBASE-PROJECT-ID: ${{ inputs.firebase-project-id }}
         INPUT_FIREBASE-TARGET: ${{ inputs.firebase-target }}
         INPUT_BUILD-SYSTEM: ${{ inputs.build-system }}
         INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}

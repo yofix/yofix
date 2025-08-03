@@ -869,4 +869,18 @@ export class Agent {
   importState(data: string): void {
     this.stateManager.importState(data);
   }
+  
+  /**
+   * Get the browser context for external use
+   */
+  getBrowserContext(): BrowserContext | null {
+    return this.browserContext;
+  }
+  
+  /**
+   * Get the current page for external use
+   */
+  getPage(): Page | null {
+    return this.page;
+  }
 }

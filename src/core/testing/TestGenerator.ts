@@ -1,6 +1,8 @@
 import * as core from '@actions/core';
 import { Agent } from '../../browser-agent/core/Agent';
 import { RouteAnalysisResult, Viewport, FirebaseConfig } from '../../types';
+import { DeterministicRunner, DeterministicTestResult } from '../deterministic/testing/DeterministicRunner';
+import { StorageFactory } from '../../providers/storage/StorageFactory';
 
 export interface TestResult {
   route: string;
@@ -79,9 +81,10 @@ export class TestGenerator {
    */
   private async runTestsWithSharedSession(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     const results: TestResult[] = [];
+    let deterministicRunner: DeterministicRunner | null = null;
     
     try {
-      // Initialize shared agent with authentication task
+      // Step 1: Use browser-agent ONLY for authentication
       const authEmail = core.getInput('auth-email');
       const authPassword = core.getInput('auth-password');
       const authMode = core.getInput('auth-mode') || 'llm';
@@ -100,7 +103,7 @@ export class TestGenerator {
       
       core.info('🔐 Initializing shared browser session with authentication...');
       
-      // Create shared agent
+      // Create shared agent for auth only
       this.sharedAgent = new Agent(initialTask, {
         headless: true,
         maxSteps: 10,
@@ -119,11 +122,39 @@ export class TestGenerator {
       
       core.info('✅ Shared session authenticated successfully');
       
-      // Test each route using the shared session
+      // Step 2: Get browser context from agent and use deterministic runner
+      const browserContext = this.sharedAgent.getBrowserContext();
+      if (!browserContext) {
+        throw new Error('Failed to get browser context from agent');
+      }
+      
+      // Initialize storage provider
+      const storageProvider = await StorageFactory.createFromInputs();
+      
+      // Create deterministic runner with the authenticated context
+      deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider);
+      await deterministicRunner.initializeFromContext(browserContext);
+      
+      // Step 3: Test each route deterministically
       for (const route of analysis.routes) {
         try {
-          const result = await this.testRouteWithSharedAgent(route, analysis);
+          core.info(`\n📍 Testing route: ${route}`);
+          
+          // Use deterministic navigation and screenshots
+          const deterministicResult = await deterministicRunner.testRoute(route, this.viewports);
+          
+          // Convert deterministic result to TestResult format
+          const result: TestResult = {
+            route,
+            success: deterministicResult.success,
+            duration: 0, // Can add timing if needed
+            issues: this.convertPixelDiffsToIssues(deterministicResult.pixelDiffs),
+            screenshots: deterministicResult.screenshots,
+            error: deterministicResult.error
+          };
+          
           results.push(result);
+          
         } catch (error) {
           core.warning(`Failed to test route ${route}: ${error}. Continuing with next route...`);
           results.push({
@@ -142,14 +173,17 @@ export class TestGenerator {
       }
       
     } finally {
-      // Clean up shared agent
+      // Clean up
+      if (deterministicRunner) {
+        await deterministicRunner.cleanup();
+      }
       if (this.sharedAgent) {
         await this.sharedAgent.cleanup();
         this.sharedAgent = null;
       }
     }
     
-    core.info(`✅ Completed ${results.length} route tests with shared session`);
+    core.info(`\n✅ Completed ${results.length} route tests with hybrid approach`);
     return results;
   }
 
@@ -445,6 +479,23 @@ Provide detailed analysis and practical fixes for any issues found.`;
         error: error instanceof Error ? error.message : String(error)
       };
     }
+  }
+
+  /**
+   * Convert pixel diffs to issues format
+   */
+  private convertPixelDiffsToIssues(pixelDiffs?: DeterministicTestResult['pixelDiffs']): TestResult['issues'] {
+    if (!pixelDiffs || pixelDiffs.length === 0) {
+      return [];
+    }
+    
+    return pixelDiffs.map(diff => ({
+      type: 'visual-regression',
+      severity: diff.diffPercentage > 5 ? 'critical' : 
+               diff.diffPercentage > 1 ? 'warning' : 'info' as any,
+      description: `Visual regression detected: ${diff.diffPercentage.toFixed(2)}% difference at ${diff.viewport.width}x${diff.viewport.height}`,
+      fix: 'Review visual changes and update baseline if intentional'
+    }));
   }
 
   async generateAndRunTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {

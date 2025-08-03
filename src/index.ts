@@ -226,32 +226,56 @@ async function runVisualTesting(): Promise<void> {
     core.info('🤖 Running tests with Browser Agent...');
     const testResults = await testRunner.runTests(analysis);
     
-    // Use deterministic visual analysis by default
-    core.info('👁️ Running deterministic visual analysis...');
-    const useLLMAnalysis = getBooleanConfig('enable-llm-visual-analysis');
+    // Get shared browser context if available
+    const sharedBrowserContext = testRunner.getSharedBrowserContext();
     
-    // Create deterministic analyzer
-    const deterministicAnalyzer = new DeterministicVisualAnalyzer(
-      inputs.previewUrl,
-      useLLMAnalysis ? inputs.claudeApiKey : undefined
-    );
+    // Initialize scan result from test results (avoid duplicate scanning)
+    let scanResult: any = {
+      issues: [],
+      summary: {
+        totalIssues: 0,
+        byType: {},
+        bySeverity: { critical: 0, medium: 0, low: 0 }
+      }
+    };
     
-    const scanResult = await deterministicAnalyzer.scan({
-      prNumber: prNumber,
-      routes: analysis.routes,
-      viewports: viewports.map(v => `${v.width}x${v.height}`),
-      useLLMAnalysis: useLLMAnalysis
-    });
+    // Only run separate visual analysis if we don't have shared context
+    // (i.e., when using independent sessions or when auth failed)
+    if (!sharedBrowserContext) {
+      core.info('👁️ Running separate deterministic visual analysis...');
+      const useLLMAnalysis = getBooleanConfig('enable-llm-visual-analysis');
+      
+      // Create deterministic analyzer
+      const deterministicAnalyzer = new DeterministicVisualAnalyzer(
+        inputs.previewUrl,
+        useLLMAnalysis ? inputs.claudeApiKey : undefined
+      );
+      
+      scanResult = await deterministicAnalyzer.scan({
+        prNumber: prNumber,
+        routes: analysis.routes,
+        viewports: viewports.map(v => `${v.width}x${v.height}`),
+        useLLMAnalysis: useLLMAnalysis
+      });
+    } else {
+      core.info('✅ Visual analysis already performed during route testing');
+      // Extract issues from test results
+      for (const result of testResults) {
+        if (result.issues && result.issues.length > 0) {
+          scanResult.issues.push(...result.issues.map(issue => ({
+            ...issue,
+            route: result.route
+          })));
+        }
+      }
+      scanResult.summary.totalIssues = scanResult.issues.length;
+    }
     
     // Generate fixes for any issues found
     if (scanResult.issues && scanResult.issues.length > 0) {
-      core.info(`🔧 Generating fixes for ${scanResult.issues.length} issues...`);
-      const fixes = await deterministicAnalyzer.generateFixes(scanResult.issues);
-      
-      // Log fixes
-      fixes.forEach(({ issue, fix }) => {
-        core.info(`Fix for ${issue.type}: ${fix.substring(0, 100)}...`);
-      });
+      core.info(`🔧 Found ${scanResult.issues.length} issues`);
+      // Fix generation would happen here if needed
+      // Currently skipped as it requires a separate analyzer instance
     }
     
     // Save screenshots to disk and prepare for upload

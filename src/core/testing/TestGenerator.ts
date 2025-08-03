@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import { BrowserContext } from 'playwright';
 import { Agent } from '../../browser-agent/core/Agent';
 import { RouteAnalysisResult, Viewport, FirebaseConfig } from '../../types';
 import { DeterministicRunner, DeterministicTestResult } from '../deterministic/testing/DeterministicRunner';
@@ -25,11 +26,19 @@ export class TestGenerator {
   private viewports: Viewport[];
   private claudeApiKey: string;
   private sharedAgent: Agent | null = null;
+  private sharedBrowserContext: BrowserContext | null = null;
 
   constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string) {
     this.firebaseConfig = firebaseConfig;
     this.viewports = viewports;
     this.claudeApiKey = claudeApiKey;
+  }
+  
+  /**
+   * Get the shared browser context (if using shared session mode)
+   */
+  getSharedBrowserContext(): BrowserContext | null {
+    return this.sharedBrowserContext;
   }
 
   async runTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {
@@ -124,18 +133,21 @@ export class TestGenerator {
       
       core.info('✅ Shared session authenticated successfully');
       
-      // Step 2: Get the authenticated page from agent to preserve session
-      const authenticatedPage = this.sharedAgent.getPage();
-      if (!authenticatedPage) {
-        throw new Error('Failed to get authenticated page from agent');
+      // Step 2: Get the browser context from agent to preserve session
+      const browserContext = this.sharedAgent.getBrowserContext();
+      if (!browserContext) {
+        throw new Error('Failed to get browser context from agent');
       }
+      
+      // Store for later use by visual analyzer
+      this.sharedBrowserContext = browserContext;
       
       // Initialize storage provider
       const storageProvider = await StorageFactory.createFromInputs();
       
-      // Create deterministic runner with the authenticated page (preserves session)
+      // Create deterministic runner with the authenticated context
       deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider);
-      await deterministicRunner.initializeFromPage(authenticatedPage);
+      await deterministicRunner.initializeFromContext(browserContext);
       
       // Step 3: Test each route deterministically
       for (const route of analysis.routes) {
@@ -184,6 +196,7 @@ export class TestGenerator {
       if (this.sharedAgent) {
         await this.sharedAgent.cleanup();
         this.sharedAgent = null;
+        this.sharedBrowserContext = null;
       }
     }
     

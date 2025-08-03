@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import { BrowserContext } from 'playwright';
 import { VisualIssue, ScanResult } from '../../../bot/types';
 import { DeterministicRunner } from '../testing/DeterministicRunner';
 import { Agent } from '../../../browser-agent/core/Agent';
@@ -8,10 +9,12 @@ import { errorHandler, ErrorCategory, ErrorSeverity } from '../../../core';
 export class DeterministicVisualAnalyzer {
   private previewUrl: string;
   private claudeApiKey?: string;
+  private sharedContext?: BrowserContext;
   
-  constructor(previewUrl: string, claudeApiKey?: string) {
+  constructor(previewUrl: string, claudeApiKey?: string, sharedContext?: BrowserContext) {
     this.previewUrl = previewUrl;
     this.claudeApiKey = claudeApiKey;
+    this.sharedContext = sharedContext;
   }
   
   /**
@@ -38,8 +41,14 @@ export class DeterministicVisualAnalyzer {
         storageProvider
       );
       
-      // Initialize standalone (no auth needed for visual analysis)
-      await runner.initializeStandalone(true);
+      // Use shared context if available (preserves authentication)
+      if (this.sharedContext) {
+        core.info('Using shared browser context for visual analysis...');
+        await runner.initializeFromContext(this.sharedContext);
+      } else {
+        // Initialize standalone (no auth needed for visual analysis)
+        await runner.initializeStandalone(true);
+      }
       
       // Parse viewports
       const viewports = options.viewports.map(v => {

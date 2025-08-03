@@ -117,9 +117,9 @@ export class TestGenerator {
       if (authEmail && authPassword) {
         const loginUrl = core.getInput('auth-login-url') || '/login';
         if (authMode === 'llm') {
-          initialTask = `Authenticate using llm_login with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}". After successful login, wait for navigation to complete.`;
+          initialTask = `Authenticate using llm_login with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}".`;
         } else {
-          initialTask = `Authenticate using smart_login with email="${authEmail}" password="${authPassword}" url="${loginUrl}". After successful login, wait for navigation to complete.`;
+          initialTask = `Authenticate using smart_login with email="${authEmail}" password="${authPassword}" url="${loginUrl}".`;
         }
       } else {
         initialTask = `Navigate to ${this.firebaseConfig.previewUrl} and wait for page to load.`;

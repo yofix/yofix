@@ -69,7 +69,7 @@ export class DeterministicEngine {
     
     core.info('🔐 Authenticating with LLM assistance...');
     
-    const authTask = `Authenticate using llm_login with email="${credentials.email}" password="${credentials.password}" loginUrl="${credentials.loginUrl}". After successful login, wait for navigation to complete.`;
+    const authTask = `Authenticate using llm_login with email="${credentials.email}" password="${credentials.password}" loginUrl="${credentials.loginUrl}".`;
     
     this.authAgent = new Agent(authTask, {
       headless: true,

@@ -89,11 +89,21 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
           await page.keyboard.press('Enter');
         }
         
-        // Wait for navigation or DOM change
-        await Promise.race([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {}),
-          page.waitForTimeout(5000)
-        ]);
+        // Wait for navigation with proper conditions
+        try {
+          await page.waitForNavigation({ 
+            waitUntil: 'networkidle', 
+            timeout: 10000 
+          });
+        } catch (error) {
+          // Navigation might have already happened or redirected
+          // Check if we're no longer on the login page
+          const currentUrl = page.url();
+          if (currentUrl.includes(loginUrl)) {
+            // Still on login page, wait a bit for any client-side routing
+            await page.waitForTimeout(1000);
+          }
+        }
         
         // Check for 2FA
         if (params.totpSecret) {

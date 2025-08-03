@@ -124,18 +124,18 @@ export class TestGenerator {
       
       core.info('✅ Shared session authenticated successfully');
       
-      // Step 2: Get browser context from agent and use deterministic runner
-      const browserContext = this.sharedAgent.getBrowserContext();
-      if (!browserContext) {
-        throw new Error('Failed to get browser context from agent');
+      // Step 2: Get the authenticated page from agent to preserve session
+      const authenticatedPage = this.sharedAgent.getPage();
+      if (!authenticatedPage) {
+        throw new Error('Failed to get authenticated page from agent');
       }
       
       // Initialize storage provider
       const storageProvider = await StorageFactory.createFromInputs();
       
-      // Create deterministic runner with the authenticated context
+      // Create deterministic runner with the authenticated page (preserves session)
       deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider);
-      await deterministicRunner.initializeFromContext(browserContext);
+      await deterministicRunner.initializeFromPage(authenticatedPage);
       
       // Step 3: Test each route deterministically
       for (const route of analysis.routes) {

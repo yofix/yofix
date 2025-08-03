@@ -39,6 +39,15 @@ export class DeterministicRunner {
   }
   
   /**
+   * Initialize with existing authenticated page (preferred for session persistence)
+   */
+  async initializeFromPage(page: Page): Promise<void> {
+    this.page = page;
+    this.context = page.context();
+    core.info('🤖 DeterministicRunner initialized with authenticated page');
+  }
+  
+  /**
    * Initialize standalone browser (for non-auth scenarios)
    */
   async initializeStandalone(headless = true): Promise<void> {

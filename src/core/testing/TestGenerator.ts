@@ -20,6 +20,7 @@ export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
   private viewports: Viewport[];
   private claudeApiKey: string;
+  private sharedAgent: Agent | null = null;
 
   constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string) {
     this.firebaseConfig = firebaseConfig;
@@ -28,8 +29,23 @@ export class TestGenerator {
   }
 
   async runTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {
-    core.info('🤖 Running tests with Browser Agent...');
+    // Get session mode from input or use default from config
+    const sessionMode = core.getInput('session-mode') || 
+                       require('../../config/default.config').actionDefaults['session-mode'];
     
+    if (sessionMode === 'sharedAgent') {
+      core.info('🤖 Running tests with shared browser session...');
+      return await this.runTestsWithSharedSession(analysis);
+    } else {
+      core.info('🤖 Running tests with independent browser sessions...');
+      return await this.runTestsIndependently(analysis);
+    }
+  }
+
+  /**
+   * Run tests with independent browser sessions (original behavior)
+   */
+  private async runTestsIndependently(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     const results: TestResult[] = [];
     
     // Test each route
@@ -56,6 +72,141 @@ export class TestGenerator {
     
     core.info(`✅ Completed ${results.length} route tests`);
     return results;
+  }
+
+  /**
+   * Run tests with shared browser session for efficiency
+   */
+  private async runTestsWithSharedSession(analysis: RouteAnalysisResult): Promise<TestResult[]> {
+    const results: TestResult[] = [];
+    
+    try {
+      // Initialize shared agent with authentication task
+      const authEmail = core.getInput('auth-email');
+      const authPassword = core.getInput('auth-password');
+      const authMode = core.getInput('auth-mode') || 'llm';
+      
+      let initialTask = '';
+      if (authEmail && authPassword) {
+        const loginUrl = core.getInput('auth-login-url') || '/login';
+        if (authMode === 'llm') {
+          initialTask = `Authenticate using llm_login with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}". After successful login, wait for navigation to complete.`;
+        } else {
+          initialTask = `Authenticate using smart_login with email="${authEmail}" password="${authPassword}" url="${loginUrl}". After successful login, wait for navigation to complete.`;
+        }
+      } else {
+        initialTask = `Navigate to ${this.firebaseConfig.previewUrl} and wait for page to load.`;
+      }
+      
+      core.info('🔐 Initializing shared browser session with authentication...');
+      
+      // Create shared agent
+      this.sharedAgent = new Agent(initialTask, {
+        headless: true,
+        maxSteps: 10,
+        llmProvider: 'anthropic',
+        viewport: this.viewports[0] || { width: 1920, height: 1080 },
+        apiKey: this.claudeApiKey
+      });
+      
+      await this.sharedAgent.initialize();
+      const authResult = await this.sharedAgent.run();
+      
+      if (!authResult.success) {
+        core.error('Failed to authenticate in shared session');
+        throw new Error('Authentication failed');
+      }
+      
+      core.info('✅ Shared session authenticated successfully');
+      
+      // Test each route using the shared session
+      for (const route of analysis.routes) {
+        try {
+          const result = await this.testRouteWithSharedAgent(route, analysis);
+          results.push(result);
+        } catch (error) {
+          core.warning(`Failed to test route ${route}: ${error}. Continuing with next route...`);
+          results.push({
+            route,
+            success: false,
+            duration: 0,
+            issues: [{
+              type: 'test-error',
+              severity: 'critical',
+              description: `Test was canceled or failed: ${error}`
+            }],
+            screenshots: [],
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+      
+    } finally {
+      // Clean up shared agent
+      if (this.sharedAgent) {
+        await this.sharedAgent.cleanup();
+        this.sharedAgent = null;
+      }
+    }
+    
+    core.info(`✅ Completed ${results.length} route tests with shared session`);
+    return results;
+  }
+
+  /**
+   * Test a route using the shared agent
+   */
+  private async testRouteWithSharedAgent(route: string, analysis: RouteAnalysisResult): Promise<TestResult> {
+    const startTime = Date.now();
+    const url = `${this.firebaseConfig.previewUrl}${route}`;
+    
+    core.info(`Testing route: ${route}`);
+    
+    if (!this.sharedAgent || !this.sharedAgent.isActive()) {
+      throw new Error('Shared agent is not active');
+    }
+    
+    try {
+      // Build simplified task for route testing (no authentication needed)
+      const testTask = this.buildRouteTestTaskForSharedSession(route, url, analysis);
+      
+      // Run the task in the existing browser session
+      const result = await this.sharedAgent.runTask(testTask);
+      
+      // Extract results from agent's memory
+      const state = this.sharedAgent.getState();
+      const visualIssues = state.memory.get('visual_issues') || [];
+      const responsiveResults = state.memory.get('responsive_test_results') || [];
+      
+      // Process issues
+      const issues = visualIssues.map((issue: any) => ({
+        type: issue.type,
+        severity: issue.severity,
+        description: issue.description,
+        fix: issue.suggestedFix
+      }));
+      
+      return {
+        route,
+        success: result.success,
+        duration: Date.now() - startTime,
+        issues,
+        screenshots: result.screenshots,
+        error: result.error
+      };
+      
+    } catch (error) {
+      core.error(`Failed to test route ${route}: ${error}`);
+      
+      return {
+        route,
+        success: false,
+        duration: Date.now() - startTime,
+        issues: [],
+        screenshots: [],
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 
   private async testRoute(route: string, analysis: RouteAnalysisResult): Promise<TestResult> {
@@ -115,6 +266,57 @@ export class TestGenerator {
         error: error instanceof Error ? error.message : String(error)
       };
     }
+  }
+
+  /**
+   * Build test task for shared session (no authentication needed)
+   */
+  private buildRouteTestTaskForSharedSession(route: string, url: string, analysis: RouteAnalysisResult): string {
+    const tasks: string[] = [];
+    
+    // Start with navigation (no auth needed in shared session)
+    tasks.push(`1. Navigate to ${url}`);
+    tasks.push(`2. Wait for the page to fully load`);
+    tasks.push(`3. Take a screenshot for baseline comparison`);
+    tasks.push('4. Run check_visual_issues with screenshot=true to detect layout problems');
+    tasks.push('5. Test navigation by clicking on interactive elements');
+    tasks.push('6. Check for broken images or missing content');
+
+    // Add responsive testing for UI changes
+    if (analysis.hasUIChanges) {
+      tasks.push('7. Run test_responsive to check mobile and tablet layouts');
+    }
+
+    // Add form testing if forms are detected
+    const hasFormComponents = analysis.components.some(comp => 
+      comp.toLowerCase().includes('form') || 
+      comp.toLowerCase().includes('input') ||
+      comp.toLowerCase().includes('login')
+    );
+    
+    if (hasFormComponents) {
+      tasks.push('8. Test form interactions by filling out any visible forms');
+    }
+
+    // Add error boundary testing for high-risk changes
+    if (analysis.riskLevel === 'high') {
+      tasks.push('9. Test error boundaries by triggering edge cases');
+    }
+
+    // Add results saving
+    tasks.push(`10. Save any issues found to /results${route.replace(/\//g, '_')}.json`);
+    tasks.push('11. Generate fixes for any critical issues using generate_visual_fix');
+
+    return `Test the ${route} page comprehensively:\n\n${tasks.join('\n')}
+
+Focus on:
+- Visual layout issues (overlaps, overflows, alignment)
+- Responsive behavior across viewports
+- Interactive element functionality
+- Loading performance and errors
+- Accessibility concerns
+
+Provide detailed analysis and practical fixes for any issues found.`;
   }
 
   private buildRouteTestTask(route: string, url: string, analysis: RouteAnalysisResult): string {

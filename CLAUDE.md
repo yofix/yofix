@@ -120,6 +120,12 @@ The bot responds to `@yofix` mentions in PR comments:
 2. Use `yarn test:local` for local runner
 3. Test specific providers with environment flags
 
+### Test Output Guidelines
+- **Screenshots and test results should be saved in `/test-results` directory**
+- Do not create new directories for each test run
+- Use descriptive filenames with timestamps if needed
+- Example: `/test-results/route-home-2024-08-03.png`
+
 ## AI Integration
 
 ### Claude API Usage

@@ -69,6 +69,7 @@ export interface YoFixConfig {
     defaultWaitTime: number;
     retryAttempts: number;
     retryDelay: number;
+    sessionMode: 'sharedAgent' | 'independentAgent';
   };
 
   // Authentication Configuration
@@ -141,7 +142,8 @@ export const defaultConfig: YoFixConfig = {
     screenshotQuality: 90,
     defaultWaitTime: 2000,
     retryAttempts: 3,
-    retryDelay: 1000
+    retryDelay: 1000,
+    sessionMode: 'sharedAgent'
   },
   auth: {
     defaultMode: 'selectors',
@@ -172,5 +174,6 @@ export const actionDefaults = {
   'enable-ai-navigation': 'false',
   'enable-ai-test-generation': 'false',
   'test-routes': '',
+  'session-mode': 'sharedAgent',
   'clear-cache': 'false'
 };

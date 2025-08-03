@@ -211,6 +211,7 @@ Large images could be optimized for better performance
 | `auth-password` | ❌ | - | Auth password for protected routes |
 | `auth-login-url` | ❌ | `/login` | Login page URL |
 | `auth-mode` | ❌ | `llm` | Authentication mode: `llm` (AI-powered), `selectors`, or `smart` |
+| `session-mode` | ❌ | `sharedAgent` | Browser session mode: `sharedAgent` (reuse session) or `independentAgent` |
 | `cleanup-days` | ❌ | `30` | Days to keep screenshots |
 
 *Required based on storage provider choice

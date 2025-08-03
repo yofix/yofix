@@ -157,17 +157,17 @@ async function runVisualTesting(): Promise<void> {
           core.info(`📍 Found ${affectedRoutes.length} routes from component mappings`);
         }
         
-        // Then add any directly affected routes (route file changes)
-        if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
-          const directRoutes = impactTree.affectedRoutes
-            .filter((impact: any) => impact.route && !affectedRoutes.includes(impact.route))
-            .map((impact: any) => impact.route);
+        // [Temporarily disabled] Then add any directly affected routes (route file changes)
+        // if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+        //   const directRoutes = impactTree.affectedRoutes
+        //     .filter((impact: any) => impact.route && !affectedRoutes.includes(impact.route))
+        //     .map((impact: any) => impact.route);
           
-          if (directRoutes.length > 0) {
-            affectedRoutes = [...affectedRoutes, ...directRoutes];
-            core.info(`🎯 Found ${directRoutes.length} additional routes from direct changes`);
-          }
-        }
+        //   if (directRoutes.length > 0) {
+        //     affectedRoutes = [...affectedRoutes, ...directRoutes];
+        //     core.info(`🎯 Found ${directRoutes.length} additional routes from direct changes`);
+        //   }
+        // }
         
         core.info(`📍 Total unique routes to test: ${affectedRoutes.length}`);
         

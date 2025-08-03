@@ -144,6 +144,11 @@ inputs:
     required: false
     default: ''
   
+  session-mode:
+    description: 'Browser session mode: sharedAgent (reuse session) or independentAgent (new session per route)'
+    required: false
+    default: 'sharedAgent'
+  
   clear-cache:
     description: 'Clear route analysis cache before running'
     required: false

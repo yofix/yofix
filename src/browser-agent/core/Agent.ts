@@ -818,6 +818,43 @@ export class Agent {
   registerAction(definition: any, handler: any): void {
     this.actionRegistry.register(definition, handler);
   }
+
+  /**
+   * Reset agent state for a new task while keeping browser session alive
+   */
+  async reset(newTask: string): Promise<void> {
+    // Clean up old state manager
+    this.stateManager.cleanup();
+    
+    // Create new state manager with new task
+    this.stateManager = new StateManager(newTask);
+    
+    // Clear memory but keep browser context
+    this.currentDOM = null;
+    this.taskPlan = null;
+    this.stepVerifications = [];
+    this.currentStep = null;
+    
+    core.info('Agent state reset for new task while maintaining browser session');
+  }
+
+  /**
+   * Run a new task in the existing browser session
+   */
+  async runTask(task: string): Promise<TaskResult & { reliability?: ReliabilityScore }> {
+    // Reset state for new task
+    await this.reset(task);
+    
+    // Run the task using existing browser
+    return await this.run();
+  }
+
+  /**
+   * Check if browser is still active
+   */
+  isActive(): boolean {
+    return this.browser !== null && this.page !== null;
+  }
   
   /**
    * Export agent state for persistence

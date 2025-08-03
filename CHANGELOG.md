@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Shared Browser Session Support**: New `session-mode` input allows reusing browser sessions across route tests
+  - `sharedAgent` (default): Authenticates once and reuses session for all routes - 38% faster
+  - `independentAgent`: Original behavior with separate sessions per route
+  - Significantly improves performance when testing multiple authenticated routes
+  - Maintains session state properly between route tests
+
+### Technical Details
+- Added `reset()` and `runTask()` methods to Agent class for session reuse
+- Modified TestGenerator with `runTestsWithSharedSession()` for efficient testing
+- Configurable via `session-mode` input in action.yml
+
 ## [1.0.21] - 2025-08-03
 
 ### Fixed

@@ -38,6 +38,7 @@ firestore-debug.log
 coverage/
 .nyc_output
 junit.xml
+test-results/
 
 # Temporary files
 *.tmp

@@ -524,30 +524,43 @@ async function verifyLoginSuccess(page: Page, username?: string): Promise<boolea
   const url = page.url();
   const content = await page.textContent('body');
   
-  // Check URL changed from login
-  if (url.includes('/login') || url.includes('/signin')) {
-    return false;
-  }
-  
-  // Look for success indicators
+  // Look for success indicators first - some apps stay on login URL after auth
   const successIndicators = [
     'dashboard', 'home', 'profile', 'account', 'welcome',
-    'logout', 'sign out', 'settings'
+    'logout', 'sign out', 'settings', 'my account'
   ];
   
   const hasSuccessIndicator = successIndicators.some(indicator => 
     content.toLowerCase().includes(indicator)
   );
   
-  // Check for username in page
+  // Check for username/email in page (strong indicator of successful login)
   if (username && content.includes(username)) {
     return true;
   }
   
   // Check for user menu elements
-  const userElements = await page.$$('[class*="user"], [class*="avatar"], [class*="profile"]');
+  const userElements = await page.$$('[class*="user"], [class*="avatar"], [class*="profile"], [aria-label*="user menu"], [aria-label*="account"]');
   
-  return hasSuccessIndicator || userElements.length > 0;
+  // If we found success indicators or user elements, consider it a success
+  if (hasSuccessIndicator || userElements.length > 0) {
+    return true;
+  }
+  
+  // Check for authentication failure indicators
+  const failureIndicators = [
+    'invalid password', 'incorrect password', 'wrong password',
+    'invalid credentials', 'authentication failed', 'login failed',
+    'please try again', 'error'
+  ];
+  
+  const hasFailureIndicator = failureIndicators.some(indicator => 
+    content.toLowerCase().includes(indicator)
+  );
+  
+  // Only consider it a failure if we have explicit failure indicators
+  // Otherwise, assume success (some apps don't redirect from login page)
+  return !hasFailureIndicator;
 }
 
 /**

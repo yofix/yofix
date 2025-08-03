@@ -298,16 +298,33 @@ Generate the actions needed to: ${task}`;
   }
 
   /**
+   * Escape CSS special characters in selectors
+   */
+  private escapeCSSelector(selector: string): string {
+    // If selector starts with #: (like React dynamic IDs), escape the colon
+    if (selector.match(/^#:[^:]+:$/)) {
+      // For selectors like #:r2:, we need to escape the colons
+      return selector.replace(/:/g, '\\:');
+    }
+    // Return selector as-is for other cases (xpath, regular CSS, etc.)
+    return selector;
+  }
+
+  /**
    * Execute a single browser action
    */
   async executeAction(page: Page, action: BrowserAction): Promise<void> {
     switch (action.action) {
       case 'click':
-        await page.click(action.selector!, { timeout: action.timeout || config.get('auth.selectorTimeout') });
+        // Escape CSS special characters in selector if needed
+        const clickSelector = this.escapeCSSelector(action.selector!);
+        await page.click(clickSelector, { timeout: action.timeout || config.get('auth.selectorTimeout') });
         break;
 
       case 'fill':
-        await page.fill(action.selector!, action.value || '', { timeout: action.timeout || config.get('auth.selectorTimeout') });
+        // Escape CSS special characters in selector if needed
+        const fillSelector = this.escapeCSSelector(action.selector!);
+        await page.fill(fillSelector, action.value || '', { timeout: action.timeout || config.get('auth.selectorTimeout') });
         break;
 
       case 'goto':

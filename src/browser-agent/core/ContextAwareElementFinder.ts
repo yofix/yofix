@@ -123,10 +123,7 @@ Respond in JSON format:
 }`;
 
     try {
-      const response = await this.llmProvider.complete([{
-        role: 'user',
-        content: prompt
-      }]);
+      const response = await this.llmProvider.complete(prompt);
       
       // Parse LLM response
       const classification = JSON.parse(response.content || '{}');

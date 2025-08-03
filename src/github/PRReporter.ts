@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import { VerificationResult } from '../types';
 import { getGitHubCommentEngine, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
+import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
 
 /**
  * PR Reporter - Now uses centralized GitHub comment engine
@@ -12,17 +13,13 @@ export class PRReporter {
 
   constructor() {
     // Comment engine is already initialized globally
-    const context = require('@actions/github').context;
-    this.prNumber = context.payload.pull_request?.number;
+    // Use GitHubServiceFactory to get context
+    const githubService = GitHubServiceFactory.getService();
+    const context = githubService.getContext();
+    this.prNumber = context.prNumber || 0;
 
     if (!this.prNumber) {
-      const error = new Error('No pull request number found in context');
-      errorHandler.handleError(error, {
-        severity: ErrorSeverity.HIGH,
-        category: ErrorCategory.CONFIGURATION,
-        userAction: 'Initialize PR Reporter'
-      });
-      throw error;
+      core.warning('No PR number found, cannot post comment');
     }
   }
 
@@ -30,6 +27,11 @@ export class PRReporter {
    * Post comprehensive verification results to PR
    */
   async postResults(result: VerificationResult, storageConsoleUrl?: string): Promise<void> {
+    if (!this.prNumber) {
+      core.warning('No PR number found, cannot post comment');
+      return;
+    }
+    
     try {
       core.info(`Posting verification results to PR #${this.prNumber}...`);
       
@@ -56,6 +58,11 @@ export class PRReporter {
    * Post a simple status update (for early failures)
    */
   async postStatusUpdate(status: 'running' | 'failed' | 'skipped', message: string): Promise<void> {
+    if (!this.prNumber) {
+      core.warning('No PR number found, cannot post status update');
+      return;
+    }
+    
     try {
       const statusEmoji = {
         running: '🔄',

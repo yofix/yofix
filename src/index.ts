@@ -124,6 +124,7 @@ async function runVisualTesting(): Promise<void> {
       return { width, height, name: `${width}x${height}` };
     });
     
+    // Get PR number from GitHub context
     prNumber = parseInt(process.env.PR_NUMBER || GitHubServiceFactory.getService().getContext().prNumber?.toString() || '0');
     
     // Analyze route impact and get affected routes

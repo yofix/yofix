@@ -228,6 +228,7 @@ async function runVisualTesting(): Promise<void> {
     
     // Get shared browser context if available
     const sharedBrowserContext = testRunner.getSharedBrowserContext();
+    core.info(`Shared browser context available: ${!!sharedBrowserContext}`);
     
     // Initialize scan result from test results (avoid duplicate scanning)
     let scanResult: any = {
@@ -239,9 +240,13 @@ async function runVisualTesting(): Promise<void> {
       }
     };
     
-    // Only run separate visual analysis if we don't have shared context
-    // (i.e., when using independent sessions or when auth failed)
-    if (!sharedBrowserContext) {
+    // Check if we actually have screenshots from the test results
+    const hasScreenshots = testResults.some(r => r.screenshots && r.screenshots.length > 0);
+    core.info(`Test results contain screenshots: ${hasScreenshots}`);
+    
+    // Only run separate visual analysis if we don't have screenshots from tests
+    // (i.e., when tests failed or didn't capture screenshots)
+    if (!hasScreenshots) {
       core.info('👁️ Running separate deterministic visual analysis...');
       const useLLMAnalysis = getBooleanConfig('enable-llm-visual-analysis');
       
@@ -416,6 +421,9 @@ async function runVisualTesting(): Promise<void> {
     // Report to PR
     const reporter = new PRReporter(inputs.githubToken);
     await reporter.postResults(verificationResult, prNumber.toString());
+    
+    // Clean up test runner resources after visual analysis is complete
+    await testRunner.cleanup();
     
     // Set outputs
     core.setOutput('success', verificationResult.status === 'success');

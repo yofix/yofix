@@ -40,6 +40,17 @@ export class TestGenerator {
   getSharedBrowserContext(): BrowserContext | null {
     return this.sharedBrowserContext;
   }
+  
+  /**
+   * Clean up resources (call this after visual analysis is done)
+   */
+  async cleanup(): Promise<void> {
+    if (this.sharedAgent) {
+      await this.sharedAgent.cleanup();
+      this.sharedAgent = null;
+      this.sharedBrowserContext = null;
+    }
+  }
 
   async runTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     // Get session mode from input or use default from config
@@ -193,11 +204,8 @@ export class TestGenerator {
       if (deterministicRunner) {
         await deterministicRunner.cleanup();
       }
-      if (this.sharedAgent) {
-        await this.sharedAgent.cleanup();
-        this.sharedAgent = null;
-        this.sharedBrowserContext = null;
-      }
+      // Don't clean up shared context yet - it might be needed for visual analysis
+      // Cleanup will be called explicitly later
     }
     
     core.info(`\n✅ Completed ${results.length} route tests with hybrid approach`);

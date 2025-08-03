@@ -8,7 +8,8 @@ import { errorHandler, ErrorCategory, ErrorSeverity } from '../../core';
 
 const domIndexer = new DOMIndexer();
 
-export const authActions: Array<{ definition: ActionDefinition; handler: ActionHandler }> = [
+export function getAuthActions(llmProvider?: any): Array<{ definition: ActionDefinition; handler: ActionHandler }> {
+  return [
   {
     definition: {
       name: 'smart_login',
@@ -69,6 +70,9 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
           await page.waitForTimeout(500);
         }
         
+        // Store the login URL before submitting
+        const loginUrl = page.url();
+        
         // Fill password field
         core.info(`Filling password field at index ${loginElements.passwordField.index}`);
         await page.fill(`xpath=${loginElements.passwordField.xpath}`, params.password);
@@ -103,21 +107,29 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
           // Navigation might have already happened or be client-side only
           // Check if we're no longer on the login page
           const currentUrl = page.url();
+          const authMode = core.getInput('auth-mode') || 'llm';
+          
           if (currentUrl === loginUrl || currentUrl.includes('/login')) {
             // Still on login page, might be client-side routing
             // Wait for URL change or max 2 seconds
             try {
               await page.waitForFunction(
                 (originalUrl) => window.location.href !== originalUrl,
-                { timeout: 2000 },
-                loginUrl
+                loginUrl,
+                { timeout: 2000 }
               );
             } catch {
               // URL didn't change, but login might still have worked
-              // Check for common post-login indicators
-              const hasLogoutButton = await page.$('[aria-label*="logout"], button:has-text("Logout"), a:has-text("Sign out")').catch(() => null);
-              if (!hasLogoutButton) {
-                // Still appears to be on login page
+              if (authMode === 'llm' && llmProvider) {
+                // Use LLM to intelligently detect if we're logged in
+                const isLoggedIn = await detectLoggedInStateWithLLM(page, llmProvider);
+                if (!isLoggedIn) {
+                  // Still appears to be on login page
+                  await page.waitForTimeout(1000);
+                }
+              } else {
+                // Use deterministic check - assume still on login page if URL didn't change
+                core.debug('Using deterministic login detection (auth-mode not llm)');
                 await page.waitForTimeout(1000);
               }
             }
@@ -387,6 +399,10 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
     }
   }
 ];
+}
+
+// Export for backward compatibility
+export const authActions = getAuthActions();
 
 interface LoginElements {
   usernameField: DOMElement | null;
@@ -573,4 +589,119 @@ function findUserMenuElements(dom: IndexedDOM, indexer: DOMIndexer): DOMElement[
   }
   
   return menuElements;
+}
+
+/**
+ * Use LLM to intelligently detect if user is logged in
+ */
+async function detectLoggedInStateWithLLM(page: Page, llmProvider: any): Promise<boolean> {
+  try {
+    core.info('🤖 Using LLM to detect logged-in state...');
+    
+    // Get current page state
+    const pageTitle = await page.title();
+    const currentUrl = page.url();
+    
+    // Index the DOM to understand what's on the page
+    const indexedDOM = await domIndexer.indexPage(page);
+    
+    // Get visible text content
+    const visibleText = await page.evaluate(() => {
+      const getTextContent = (element: Element): string => {
+        if (element.tagName === 'SCRIPT' || element.tagName === 'STYLE') return '';
+        
+        let text = '';
+        const children = Array.from(element.childNodes);
+        for (const child of children) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            text += child.textContent?.trim() + ' ';
+          } else if (child.nodeType === Node.ELEMENT_NODE) {
+            text += getTextContent(child as Element);
+          }
+        }
+        return text;
+      };
+      
+      return getTextContent(document.body).substring(0, 1000); // First 1000 chars
+    });
+    
+    // Prepare context for LLM
+    const elementsArray = Array.from(indexedDOM.elements.values());
+    const pageContext = {
+      url: currentUrl,
+      title: pageTitle,
+      hasLoginForm: elementsArray.some(el => 
+        el.tag === 'form' && (el.text?.toLowerCase().includes('login') || el.attributes?.action?.includes('login'))
+      ),
+      hasPasswordInput: elementsArray.some(el => 
+        el.tag === 'input' && el.attributes?.type === 'password'
+      ),
+      interactiveElements: elementsArray
+        .filter(el => el.isInteractive)
+        .slice(0, 20) // First 20 interactive elements
+        .map(el => ({
+          tag: el.tag,
+          text: el.text?.substring(0, 50),
+          href: el.attributes?.href
+        })),
+      visibleTextSnippet: visibleText.substring(0, 500)
+    };
+    
+    // Ask LLM to analyze if user is logged in
+    const prompt = `Analyze the current page state and determine if the user is successfully logged in.
+
+Page Context:
+- URL: ${pageContext.url}
+- Title: ${pageContext.title}
+- Has login form visible: ${pageContext.hasLoginForm}
+- Has password input visible: ${pageContext.hasPasswordInput}
+
+Interactive Elements (first 20):
+${pageContext.interactiveElements.map(el => `- ${el.tag}: "${el.text || ''}" ${el.href ? `(${el.href})` : ''}`).join('\n')}
+
+Visible Text (first 500 chars):
+"${pageContext.visibleTextSnippet}"
+
+Based on this information, determine if the user is logged in. Look for:
+1. Absence of login forms or password inputs
+2. Presence of user-specific content (dashboard, profile links, welcome messages)
+3. Navigation elements that typically appear after login
+4. URLs that indicate authenticated areas (/dashboard, /home, /app, etc.)
+
+Respond with a JSON object: { "isLoggedIn": true/false, "confidence": 0-100, "indicators": ["list", "of", "indicators"] }`;
+
+    // Use LLM provider if available, otherwise fallback
+    if (!llmProvider) {
+      core.warning('No LLM provider available for login detection');
+      return false;
+    }
+    
+    const response = await llmProvider.complete(prompt);
+    
+    try {
+      const analysis = JSON.parse(response);
+      core.debug(`LLM login detection: ${JSON.stringify(analysis)}`);
+      
+      // Return true if LLM is reasonably confident user is logged in
+      return analysis.isLoggedIn && analysis.confidence >= 70;
+    } catch (parseError) {
+      // If parsing fails, try simple text analysis
+      const lowerResponse = response.toLowerCase();
+      return lowerResponse.includes('"isloggedin": true') || 
+             lowerResponse.includes('"isloggedin":true') ||
+             (lowerResponse.includes('logged in') && !lowerResponse.includes('not logged in'));
+    }
+    
+  } catch (error) {
+    core.warning(`LLM login detection failed: ${error}. Falling back to simple checks.`);
+    
+    // Fallback: Simple URL and form checks
+    const currentUrl = page.url();
+    const hasLoginForm = await page.$('form[action*="login"], input[type="password"]').then(el => !!el);
+    
+    // Assume logged in if:
+    // 1. URL changed from login page AND
+    // 2. No visible login form
+    return !currentUrl.includes('/login') && !hasLoginForm;
+  }
 }

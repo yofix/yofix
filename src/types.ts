@@ -70,6 +70,8 @@ export interface Screenshot {
   firebaseUrl?: string;
   viewport: Viewport;
   timestamp: number;
+  route?: string;
+  actualUrl?: string; // The actual URL where screenshot was taken (after redirects)
 }
 
 export interface Video {

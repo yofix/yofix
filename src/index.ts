@@ -258,7 +258,23 @@ async function runVisualTesting(): Promise<void> {
     const allScreenshots = [];
     for (const result of testResults) {
       for (const [screenshotIndex, screenshotBuffer] of result.screenshots.entries()) {
-        const filename = `${result.route.replace(/\//g, '-')}_screenshot-${screenshotIndex}.png`;
+        // Extract the path from the actual URL where screenshot was taken
+        let urlPath = result.route;
+        if (result.screenshotUrls && result.screenshotUrls[screenshotIndex]) {
+          try {
+            const actualUrl = new URL(result.screenshotUrls[screenshotIndex]);
+            urlPath = actualUrl.pathname || result.route;
+          } catch (e) {
+            // If URL parsing fails, use the original route
+            urlPath = result.route;
+          }
+        }
+        
+        // Create filename with actual URL path
+        const sanitizedPath = urlPath.replace(/\//g, '-').replace(/^-+|-+$/g, '') || 'root';
+        const wasRedirected = result.actualUrl && !result.actualUrl.includes(result.route);
+        const redirectSuffix = wasRedirected ? '_redirected' : '';
+        const filename = `${sanitizedPath}${redirectSuffix}_viewport-${screenshotIndex}.png`;
         const screenshotPath = path.join(outputDir!, filename);
         
         // Save screenshot to disk
@@ -269,7 +285,8 @@ async function runVisualTesting(): Promise<void> {
           path: screenshotPath,
           viewport: viewports[screenshotIndex % viewports.length],
           timestamp: Date.now(),
-          route: result.route
+          route: result.route,
+          actualUrl: result.screenshotUrls?.[screenshotIndex] || result.actualUrl
         });
       }
     }

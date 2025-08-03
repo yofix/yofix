@@ -7,8 +7,10 @@ import { StorageProvider } from '../../../providers/storage/types';
 
 export interface DeterministicTestResult {
   route: string;
+  actualUrl?: string; // URL after any redirects
   success: boolean;
   screenshots: Buffer[];
+  screenshotUrls?: string[]; // Actual URLs where screenshots were taken
   pixelDiffs?: Array<{
     viewport: Viewport;
     diffPercentage: number;
@@ -69,8 +71,15 @@ export class DeterministicRunner {
       // Wait for any animations to complete
       await this.page.waitForTimeout(1000);
       
+      // Get the actual URL after navigation (may be different due to redirects)
+      const actualUrl = this.page.url();
+      if (actualUrl !== url) {
+        core.info(`🔄 Redirected to: ${actualUrl}`);
+      }
+      
       // Collect screenshots at different viewports
       const screenshots: Buffer[] = [];
+      const screenshotUrls: string[] = [];
       const pixelDiffs: DeterministicTestResult['pixelDiffs'] = [];
       
       for (const viewport of viewports) {
@@ -78,6 +87,10 @@ export class DeterministicRunner {
         
         await this.page.setViewportSize(viewport);
         await this.page.waitForTimeout(500); // Let viewport settle
+        
+        // Capture current URL in case it changed
+        const currentUrl = this.page.url();
+        screenshotUrls.push(currentUrl);
         
         const screenshot = await this.page.screenshot({ 
           fullPage: true,
@@ -101,8 +114,10 @@ export class DeterministicRunner {
       
       return {
         route,
+        actualUrl,
         success,
         screenshots,
+        screenshotUrls,
         pixelDiffs: pixelDiffs.length > 0 ? pixelDiffs : undefined
       };
       

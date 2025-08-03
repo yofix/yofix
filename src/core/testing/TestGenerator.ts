@@ -6,6 +6,8 @@ import { StorageFactory } from '../../providers/storage/StorageFactory';
 
 export interface TestResult {
   route: string;
+  actualUrl?: string; // URL after any redirects
+  screenshotUrls?: string[]; // Actual URLs where screenshots were taken
   success: boolean;
   duration: number;
   issues: Array<{
@@ -146,6 +148,8 @@ export class TestGenerator {
           // Convert deterministic result to TestResult format
           const result: TestResult = {
             route,
+            actualUrl: deterministicResult.actualUrl,
+            screenshotUrls: deterministicResult.screenshotUrls,
             success: deterministicResult.success,
             duration: 0, // Can add timing if needed
             issues: this.convertPixelDiffsToIssues(deterministicResult.pixelDiffs),

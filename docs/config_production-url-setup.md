@@ -12,11 +12,13 @@ The `production-url` configuration has been fully implemented to enable dynamic 
 - uses: yofix/yofix@v1
   with:
     preview-url: https://project--pr-123-app.web.app
-    production-url: https://myapp.com  # ✅ Now implemented
+    production-url: https://myapp.com  # Required for visual baseline comparisons
     github-token: ${{ secrets.GITHUB_TOKEN }}
     claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
     # ... other inputs
 ```
+
+> **Note**: The `production-url` input is **optional** but **required for visual baseline comparisons**. Without it, YoFix will skip baseline creation and visual regression testing.
 
 ### Environment Variable
 
@@ -46,11 +48,10 @@ INPUT_PRODUCTION-URL: ${{ inputs.production-url }}
 
 ### 4. Baseline Manager Integration
 
-The `DynamicBaselineManager` uses the production URL in this priority order:
+The `DynamicBaselineManager` behavior:
 
-1. **Production URL** (from `production-url` input)
-2. **Auto-detected Production URL** (auto-detected from main branch GitHub deployments)
-3. **Fallback**: Skip baseline creation if no URL is available
+1. **Production URL Configured**: Creates baselines from the specified `production-url`
+2. **No Production URL**: Skips baseline creation and visual comparisons entirely
 
 ## Usage Scenarios
 
@@ -70,25 +71,33 @@ production-url: https://staging.myapp.com
 
 Uses staging environment as the baseline source (useful for comparing feature branches against staging).
 
-### 3. Auto-Detection
+### 3. No Configuration
 
-If `production-url` is not provided, the system will:
-- Attempt to auto-detect the production URL from main branch deployment URLs in GitHub
-- Skip baseline creation if no production URL is available
+If `production-url` is not provided:
+- Visual baseline comparisons are skipped
+- Tests will still run but without baseline validation
+- Logs will clearly indicate that baseline comparisons are disabled
 
 ## Baseline Creation Flow
 
+**When `production-url` is configured:**
 1. **Route Discovery**: Routes are discovered and saved to storage via `RouteImpactAnalyzer`
 2. **Baseline Check**: System checks if baselines exist for discovered routes
 3. **Baseline Creation**: If missing, creates baselines from production URL
 4. **Visual Comparison**: Compares preview screenshots against baselines using pixel-perfect matching
 
+**When `production-url` is NOT configured:**
+1. **Route Discovery**: Routes are still discovered for impact analysis
+2. **Skip Baselines**: Baseline creation and visual comparisons are skipped
+3. **Standard Testing**: Other tests (functional, accessibility) continue normally
+
 ## Benefits
 
-- **Accurate Comparisons**: Compare against known-good production state
-- **Flexible Configuration**: Support both production and staging environments  
-- **Auto-Detection**: Automatically discovers production URL from GitHub deployments when not configured
+- **Accurate Comparisons**: Compare against known-good production state when configured
+- **Flexible Configuration**: Support both production and staging environments
+- **Simple and Reliable**: No complex auto-detection that might fail
 - **Performance**: Only creates missing baselines (incremental approach)
+- **Clear Behavior**: Explicitly requires configuration for baseline comparisons
 
 ## Example Workflow
 

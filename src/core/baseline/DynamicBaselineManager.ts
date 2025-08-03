@@ -307,84 +307,23 @@ export class DynamicBaselineManager {
     }
   }
 
-  /**
-   * Try to auto-detect production URL from GitHub deployments
-   */
-  async autoDetectProductionUrl(): Promise<boolean> {
-    try {
-      // Get GitHub context
-      const context = github.context;
-      
-      // Try to get production URL from GitHub deployments
-      const octokit = github.getOctokit(this.config.githubToken);
-      
-      // Get deployments for main branch (which is production)
-      const { data: deployments } = await octokit.rest.repos.listDeployments({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        ref: context.payload.repository?.default_branch || 'main',
-        per_page: 10
-      });
-
-      if (deployments.length === 0) {
-        core.warning('No deployments found for main branch');
-        return false;
-      }
-
-      // Get the latest successful deployment
-      for (const deployment of deployments) {
-        const { data: statuses } = await octokit.rest.repos.listDeploymentStatuses({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          deployment_id: deployment.id
-        });
-
-        const successStatus = statuses.find(s => s.state === 'success');
-        if (successStatus && successStatus.target_url) {
-          this.config.productionUrl = successStatus.target_url;
-          core.info(`📍 Auto-detected production URL: ${successStatus.target_url}`);
-          return true;
-        }
-      }
-
-      core.warning('No successful deployments found for main branch');
-      return false;
-
-    } catch (error) {
-      await errorHandler.handleError(error as Error, {
-        severity: ErrorSeverity.MEDIUM,
-        category: ErrorCategory.API,
-        userAction: 'Auto-detect production URL',
-        recoverable: true,
-        skipGitHubPost: true
-      });
-      return false;
-    }
-  }
 
   /**
-   * Intelligently create baselines on demand
+   * Create baselines on demand when production URL is available
    */
   async ensureBaselines(routes: string[], viewports: Array<{ width: number; height: number }>): Promise<void> {
-    // First, check if we have any baselines at all
+    // Skip baseline creation if no production URL is configured
+    if (!this.config.productionUrl) {
+      core.info('ℹ️ No production URL configured. Skipping baseline creation and visual comparisons.');
+      return;
+    }
+
+    // Check if we have any baselines at all
     const hasAnyBaselines = await this.hasAnyBaselines();
     
     if (!hasAnyBaselines) {
-      core.info('🎯 No baselines found. Creating initial baselines...');
-      
-      // If no production URL is configured, try to auto-detect from deployments
-      if (!this.config.productionUrl) {
-        core.info('📍 No production URL configured, attempting auto-detection...');
-        await this.autoDetectProductionUrl();
-      }
-      
-      if (this.config.productionUrl) {
-        // Create baselines from production URL (configured or auto-detected)
-        core.info('📸 Creating baselines from production URL...');
-        await this.createBaselines(routes, viewports);
-      } else {
-        core.warning('⚠️ No production URL available for baseline creation. Visual comparisons will be skipped.');
-      }
+      core.info('🎯 No baselines found. Creating initial baselines from production URL...');
+      await this.createBaselines(routes, viewports);
     } else {
       // Create missing baselines only
       await this.createMissingBaselines(routes, viewports);

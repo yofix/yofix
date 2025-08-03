@@ -25,13 +25,15 @@ export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
   private viewports: Viewport[];
   private claudeApiKey: string;
+  private githubToken: string;
   private sharedAgent: Agent | null = null;
   private sharedBrowserContext: BrowserContext | null = null;
 
-  constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string) {
+  constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string, githubToken: string) {
     this.firebaseConfig = firebaseConfig;
     this.viewports = viewports;
     this.claudeApiKey = claudeApiKey;
+    this.githubToken = githubToken;
   }
   
   /**
@@ -157,7 +159,7 @@ export class TestGenerator {
       const storageProvider = await StorageFactory.createFromInputs();
       
       // Create deterministic runner with the authenticated context
-      deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider);
+      deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider, this.githubToken);
       await deterministicRunner.initializeFromContext(browserContext);
       
       // Step 3: Test each route deterministically

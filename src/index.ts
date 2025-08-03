@@ -295,7 +295,7 @@ async function runVisualTesting(): Promise<void> {
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);
     
     // Initialize test runner (uses hybrid approach: LLM auth + deterministic testing)
-    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);
+    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey, inputs.githubToken);
     
     // Run tests using browser-agent
     core.info('🤖 Running tests with Browser Agent...');
@@ -328,7 +328,8 @@ async function runVisualTesting(): Promise<void> {
       // Create deterministic analyzer
       const deterministicAnalyzer = new DeterministicVisualAnalyzer(
         inputs.previewUrl,
-        useLLMAnalysis ? inputs.claudeApiKey : undefined
+        useLLMAnalysis ? inputs.claudeApiKey : undefined,
+        inputs.githubToken
       );
       
       scanResult = await deterministicAnalyzer.scan({

@@ -1,5 +1,3 @@
-import * as core from '@actions/core';
-import * as github from '@actions/github';
 import { CodebaseAnalyzer } from '../../context/CodebaseAnalyzer';
 import { CodebaseContext, Route, Component } from '../../context/types';
 import { TreeSitterRouteAnalyzer } from './TreeSitterRouteAnalyzer';
@@ -7,6 +5,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { StorageProvider } from '../baseline/types';
 import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
+import { LoggerHook, LoggerFactory } from '../hooks/LoggerHook';
+import { GitHubServiceFactory, GitHubService } from '../github/GitHubServiceFactory';
+import * as core from '@actions/core';
 
 export interface RouteImpact {
   route: string;
@@ -35,15 +36,19 @@ export interface RouteImpactTree {
  * Analyzes the impact of file changes on routes
  */
 export class RouteImpactAnalyzer {
-  private octokit: ReturnType<typeof github.getOctokit>;
+  private logger: LoggerHook;
+  private github: GitHubService;
+  private context: ReturnType<GitHubService['getContext']>;
   private codebaseContext: CodebaseContext | null = null;
   private componentUsageMap: Map<string, Set<string>> = new Map(); // component -> routes
   private routeAnalyzer: TreeSitterRouteAnalyzer;
   private storageProvider?: StorageProvider;
   private previewUrl?: string;
 
-  constructor(private githubToken: string, storageProvider?: StorageProvider, previewUrl?: string) {
-    this.octokit = github.getOctokit(githubToken);
+  constructor(storageProvider?: StorageProvider, previewUrl?: string) {
+    this.logger = LoggerFactory.getLogger();
+    this.github = GitHubServiceFactory.getService();
+    this.context = this.github.getContext();
     this.storageProvider = storageProvider;
     this.routeAnalyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
     this.previewUrl = previewUrl;
@@ -53,14 +58,14 @@ export class RouteImpactAnalyzer {
    * Analyze PR changes and create route impact tree
    */
   async analyzePRImpact(prNumber: number): Promise<RouteImpactTree> {
-    core.info('🔍 Analyzing route impact from PR changes...');
+    this.logger.info('🔍 Analyzing route impact from PR changes...');
     
     // IMPORTANT: GitHub Actions runs with the PR's code checked out
     // We have full access to all files in the repository at the PR's HEAD commit
     
     // Step 1: Get list of changed files from GitHub API
     const changedFiles = await this.getChangedFiles(prNumber);
-    core.info(`Found ${changedFiles.length} changed files in PR #${prNumber}`);
+    this.logger.info(`Found ${changedFiles.length} changed files in PR #${prNumber}`);
     
     // Step 2: Analyze the entire codebase structure (has access to all files)
     // This reads from the checked-out repository on disk
@@ -73,7 +78,7 @@ export class RouteImpactAnalyzer {
     
     // Skip full analysis if no changed files
     if (changedFiles.length === 0) {
-      core.info('No changed files found, skipping route analysis');
+      this.logger.info('No changed files found, skipping route analysis');
       const affectedRoutes: RouteImpact[] = [];
       const sharedComponents = new Map<string, string[]>();
       const componentRouteMapping = new Map<string, Array<{ routePath: string; routeFile: string }>>();
@@ -88,7 +93,7 @@ export class RouteImpactAnalyzer {
     }
     
     await this.routeAnalyzer.initialize(clearCache);
-    core.info(`Initialized route analyzer with Tree-sitter${clearCache ? ' (cache cleared)' : ''}`);
+    this.logger.info(`Initialized route analyzer with Tree-sitter${clearCache ? ' (cache cleared)' : ''}`);
     
     // Step 4: For each changed file, find which routes it affects
     const affectedRoutes = await this.analyzeWithBacktracking(changedFiles);
@@ -151,12 +156,11 @@ export class RouteImpactAnalyzer {
    * Get changed files from PR
    */
   private async getChangedFiles(prNumber: number): Promise<string[]> {
-    const { data: files } = await this.octokit.rest.pulls.listFiles({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      pull_number: prNumber,
-      per_page: 100
-    });
+    const files = await this.github.listPullRequestFiles(
+      this.context.owner,
+      this.context.repo,
+      prNumber
+    );
 
     return files
       .filter(file => file.status !== 'removed')
@@ -504,7 +508,7 @@ export class RouteImpactAnalyzer {
    */
   private async saveRouteManifest(): Promise<void> {
     if (!this.storageProvider) {
-      core.debug('No storage provider configured, skipping route manifest save');
+      this.logger.debug('No storage provider configured, skipping route manifest save');
       return;
     }
     
@@ -538,26 +542,26 @@ export class RouteImpactAnalyzer {
       const manifest = {
         version: '1.0',
         timestamp: Date.now(),
-        repository: github.context.repo.repo,
+        repository: this.github.getContext().repo,
         totalRoutes: allRoutes.size,
         routes: Array.from(allRoutes).sort(),
         routeDetails: routeDetails.sort((a, b) => a.path.localeCompare(b.path))
       };
       
       // Save to storage
-      const manifestKey = `yofix-cache/${github.context.repo.repo}/route-manifest.json`;
+      const manifestKey = `yofix-cache/${this.github.getContext().repo}/route-manifest.json`;
       const manifestBuffer = Buffer.from(JSON.stringify(manifest, null, 2));
       
       await this.storageProvider.uploadFile(manifestKey, manifestBuffer, {
         contentType: 'application/json',
         metadata: {
-          repository: github.context.repo.repo,
+          repository: this.github.getContext().repo,
           timestamp: manifest.timestamp.toString(),
           totalRoutes: manifest.totalRoutes.toString()
         }
       });
       
-      core.info(`✅ Saved route manifest with ${manifest.totalRoutes} routes to storage`);
+      this.logger.info(`✅ Saved route manifest with ${manifest.totalRoutes} routes to storage`);
     } catch (error) {
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.LOW,
@@ -581,7 +585,7 @@ export class RouteImpactAnalyzer {
     }
     
     try {
-      const manifestKey = `yofix-cache/${github.context.repo.repo}/route-manifest.json`;
+      const manifestKey = `yofix-cache/${this.github.getContext().repo}/route-manifest.json`;
       const manifestBuffer = await this.storageProvider.downloadFile(manifestKey);
       
       if (!manifestBuffer) {
@@ -594,7 +598,7 @@ export class RouteImpactAnalyzer {
         routeDetails: manifest.routeDetails || []
       };
     } catch (error) {
-      core.debug(`Failed to get route manifest: ${error}`);
+      this.logger.debug(`Failed to get route manifest: ${error}`);
       return null;
     }
   }

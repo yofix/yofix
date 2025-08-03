@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import { getConfiguration } from '../../core/hooks/ConfigurationHook';
 import { StorageProvider } from '../../core/baseline/types';
 import { FirebaseStorage } from './FirebaseStorage';
 import { S3Storage, createS3StorageFromEnv } from './S3Storage';
@@ -89,15 +90,15 @@ export class StorageFactory {
    */
   static async createFromInputs(): Promise<StorageProvider> {
     // Check which provider to use
-    const storageProvider = core.getInput('storage-provider') || 'firebase';
+    const storageProvider = getConfiguration().getInput('storage-provider') || 'firebase';
     
     const config: StorageConfig = {
       provider: storageProvider as any
     };
 
     // Firebase configuration from inputs
-    const firebaseCredentials = core.getInput('firebase-credentials');
-    const storageBucket = core.getInput('storage-bucket');
+    const firebaseCredentials = getConfiguration().getInput('firebase-credentials');
+    const storageBucket = getConfiguration().getInput('storage-bucket');
     
     if (firebaseCredentials && storageBucket) {
       config.firebase = {
@@ -107,14 +108,14 @@ export class StorageFactory {
     }
 
     // S3 configuration from inputs
-    const s3Bucket = core.getInput('s3-bucket');
+    const s3Bucket = getConfiguration().getInput('s3-bucket');
     
     if (s3Bucket) {
       config.s3 = {
         bucket: s3Bucket,
-        region: core.getInput('aws-region') || undefined,
-        accessKeyId: core.getInput('aws-access-key-id') || undefined,
-        secretAccessKey: core.getInput('aws-secret-access-key') || undefined
+        region: getConfiguration().getInput('aws-region') || undefined,
+        accessKeyId: getConfiguration().getInput('aws-access-key-id') || undefined,
+        secretAccessKey: getConfiguration().getInput('aws-secret-access-key') || undefined
       };
     }
 

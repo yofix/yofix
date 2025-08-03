@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import { getConfiguration } from '../core/hooks/ConfigurationHook';
 import { BotCommand, BotContext, BotResponse, ScanResult, VisualIssue } from './types';
 import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
 import { FixGenerator } from '../core/fixes/FixGenerator';
@@ -23,16 +24,14 @@ export class CommandHandler {
   private baselineManager: BaselineManager;
   private browserAgent: Agent | null = null;
   private claudeApiKey: string;
-  private githubToken: string;
   
   // In-memory cache for current PR analysis
   private currentScanResult: ScanResult | null = null;
   private progressCallback: ((message: string) => Promise<void>) | null = null;
 
-  constructor(githubToken: string, claudeApiKey: string, codebaseContext?: CodebaseContext) {
-    this.githubToken = githubToken;
+  constructor(claudeApiKey: string, codebaseContext?: CodebaseContext) {
     this.claudeApiKey = claudeApiKey;
-    this.visualAnalyzer = new VisualAnalyzer(claudeApiKey, githubToken);
+    this.visualAnalyzer = new VisualAnalyzer(claudeApiKey);
     this.fixGenerator = new FixGenerator(claudeApiKey, codebaseContext);
     this.reportFormatter = new ReportFormatter();
     this.baselineManager = new BaselineManager();
@@ -357,8 +356,7 @@ Visual comparison feature coming soon! This will show side-by-side differences w
       
       // Add bot context
       const botContext = {
-        ...context,
-        githubToken: this.githubToken
+        ...context
       };
       
       // Delegate to baseline command handler
@@ -539,7 +537,7 @@ npx yofix generate-tests --pr ${context.prNumber}
       // Create storage provider for route analyzer
       let storageProvider = null;
       try {
-        const storageProviderName = core.getInput('storage-provider') || 'github';
+        const storageProviderName = getConfiguration().getInput('storage-provider') || 'github';
         if (storageProviderName !== 'github') {
           storageProvider = await StorageFactory.createFromInputs();
         }
@@ -547,7 +545,7 @@ npx yofix generate-tests --pr ${context.prNumber}
         core.debug(`Storage provider initialization failed: ${error}`);
       }
       
-      const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken, storageProvider, context.previewUrl);
+      const impactAnalyzer = new RouteImpactAnalyzer(storageProvider, context.previewUrl);
       
       await botActivity.updateStep('Fetching changed files', 'completed');
       await botActivity.addStep('Building import graph with Tree-sitter', 'running');
@@ -593,7 +591,7 @@ npx yofix generate-tests --pr ${context.prNumber}
         // Create storage provider if available
         let storageProvider = null;
         try {
-          const storageProviderName = core.getInput('storage-provider') || 'github';
+          const storageProviderName = getConfiguration().getInput('storage-provider') || 'github';
           if (storageProviderName !== 'github') {
             storageProvider = await StorageFactory.createFromInputs();
           }
@@ -625,7 +623,7 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
         // Check cache status
         let storageProvider = null;
         try {
-          const storageProviderName = core.getInput('storage-provider') || 'github';
+          const storageProviderName = getConfiguration().getInput('storage-provider') || 'github';
           if (storageProviderName !== 'github') {
             storageProvider = await StorageFactory.createFromInputs();
           }

@@ -109,7 +109,7 @@ export interface ActionInputs {
   previewUrl: string;
   firebaseCredentials: string;
   storageBucket: string;
-  githubToken: string;
+  // githubToken: string; // Removed - now handled by GitHubServiceFactory
   claudeApiKey: string;
   productionUrl?: string;
   firebaseTarget?: string;

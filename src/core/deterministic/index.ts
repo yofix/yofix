@@ -9,6 +9,7 @@
  */
 
 import * as core from '@actions/core';
+import { getConfiguration } from '../hooks/ConfigurationHook';
 import { DeterministicRunner } from './testing/DeterministicRunner';
 import { DeterministicVisualAnalyzer } from './visual/DeterministicVisualAnalyzer';
 import { DeterministicEngineConfig, DeterministicReport, DeterministicScanOptions, DeterministicTestResult } from './types';
@@ -52,7 +53,7 @@ export class DeterministicEngine {
     // Create analyzer
     this.analyzer = new DeterministicVisualAnalyzer(
       this.config.previewUrl,
-      this.config.mode === 'assisted' ? core.getInput('claude-api-key') : undefined
+      this.config.mode === 'assisted' ? getConfiguration().getInput('claude-api-key') : undefined
     );
   }
   
@@ -60,7 +61,7 @@ export class DeterministicEngine {
    * Authenticate using LLM (when needed)
    */
   async authenticate(credentials: { email: string; password: string; loginUrl: string }): Promise<void> {
-    const authMode = core.getInput('auth-mode') || 'llm';
+    const authMode = getConfiguration().getInput('auth-mode') || 'llm';
     
     if (authMode !== 'llm') {
       core.info('📋 Non-LLM auth mode selected, skipping authentication');
@@ -76,7 +77,7 @@ export class DeterministicEngine {
       maxSteps: 10,
       llmProvider: 'anthropic',
       viewport: this.config.viewports[0] || { width: 1920, height: 1080 },
-      apiKey: core.getInput('claude-api-key')
+      apiKey: getConfiguration().getInput('claude-api-key')
     });
     
     await this.authAgent.initialize();

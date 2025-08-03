@@ -4,6 +4,7 @@
  */
 
 import * as core from '@actions/core';
+import { getConfiguration } from '../hooks/ConfigurationHook';
 import { errorHandler, ErrorCategory, ErrorSeverity } from '../error/CentralizedErrorHandler';
 import { createModuleLogger } from '../error/ErrorHandlerFactory';
 
@@ -63,7 +64,7 @@ export class ConfigurationManager {
     // Try GitHub Action input first
     try {
       const inputKey = this.toInputKey(key);
-      value = core.getInput(inputKey);
+      value = getConfiguration().getInput(inputKey);
       if (value) {
         this.logger.debug(`Found ${key} in GitHub inputs`);
       }

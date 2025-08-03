@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import { getConfiguration } from '../hooks/ConfigurationHook';
 import { BrowserContext } from 'playwright';
 import { Agent } from '../../browser-agent/core/Agent';
 import { RouteAnalysisResult, Viewport, FirebaseConfig } from '../../types';
@@ -25,15 +26,15 @@ export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
   private viewports: Viewport[];
   private claudeApiKey: string;
-  private githubToken: string;
+  // private githubToken: string; // Removed - now handled by GitHubServiceFactory
   private sharedAgent: Agent | null = null;
   private sharedBrowserContext: BrowserContext | null = null;
 
-  constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string, githubToken: string) {
+  constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string) {
     this.firebaseConfig = firebaseConfig;
     this.viewports = viewports;
     this.claudeApiKey = claudeApiKey;
-    this.githubToken = githubToken;
+    // this.githubToken = githubToken; // Removed - now handled by GitHubServiceFactory
   }
   
   /**
@@ -56,7 +57,7 @@ export class TestGenerator {
 
   async runTests(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     // Get session mode from input or use default from config
-    const sessionMode = core.getInput('session-mode') || 
+    const sessionMode = getConfiguration().getInput('session-mode') || 
                        require('../../config/default.config').actionDefaults['session-mode'];
     
     if (sessionMode === 'sharedAgent') {
@@ -109,13 +110,13 @@ export class TestGenerator {
     
     try {
       // Step 1: Use browser-agent ONLY for authentication
-      const authEmail = core.getInput('auth-email');
-      const authPassword = core.getInput('auth-password');
-      const authMode = core.getInput('auth-mode') || 'llm';
+      const authEmail = getConfiguration().getInput('auth-email');
+      const authPassword = getConfiguration().getInput('auth-password');
+      const authMode = getConfiguration().getInput('auth-mode') || 'llm';
       
       let initialTask = '';
       if (authEmail && authPassword) {
-        const loginUrl = core.getInput('auth-login-url') || '/login';
+        const loginUrl = getConfiguration().getInput('auth-login-url') || '/login';
         if (authMode === 'llm') {
           initialTask = `Authenticate using llm_login with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}".`;
         } else {
@@ -159,7 +160,7 @@ export class TestGenerator {
       const storageProvider = await StorageFactory.createFromInputs();
       
       // Create deterministic runner with the authenticated context
-      deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider, this.githubToken);
+      deterministicRunner = new DeterministicRunner(this.firebaseConfig, storageProvider);
       await deterministicRunner.initializeFromContext(browserContext);
       
       // Step 3: Test each route deterministically
@@ -397,12 +398,12 @@ Provide detailed analysis and practical fixes for any issues found.`;
     const tasks: string[] = [];
     
     // Check if authentication is needed
-    const authEmail = core.getInput('auth-email');
-    const authPassword = core.getInput('auth-password');
-    const authMode = core.getInput('auth-mode') || 'llm';
+    const authEmail = getConfiguration().getInput('auth-email');
+    const authPassword = getConfiguration().getInput('auth-password');
+    const authMode = getConfiguration().getInput('auth-mode') || 'llm';
     
     if (authEmail && authPassword) {
-      const loginUrl = core.getInput('auth-login-url') || '/login';
+      const loginUrl = getConfiguration().getInput('auth-login-url') || '/login';
       if (authMode === 'llm') {
         tasks.push(`1. Use llm_login to authenticate with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}"`);
       } else {

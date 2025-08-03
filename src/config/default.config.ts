@@ -1,7 +1,14 @@
 /**
  * Default configuration for YoFix
  * All configuration variables should be defined here with sensible defaults
+ * Automatically loads .env.local files for enhanced development experience
  */
+
+import { loadEnvironmentConfig, initializeEnvironment } from './env-loader';
+
+// Initialize environment from .env.local on import
+// This ensures .env.local variables are available throughout the application
+initializeEnvironment();
 
 export interface YoFixConfig {
   // AI Model Configuration
@@ -104,6 +111,47 @@ export interface YoFixConfig {
   };
 }
 
+/**
+ * Environment-independent default values
+ * These provide sensible defaults when no environment variables are set
+ */
+export const environmentDefaults = {
+  // GitHub Configuration (no real tokens, safe for testing)
+  github: {
+    token: 'mock-github-token',
+    repository: 'test-owner/test-repo',
+    sha: 'mock-sha-123456',
+    actor: 'yofix-bot',
+    eventName: 'pull_request',
+    actions: 'false' // Not in GitHub Actions by default
+  },
+  
+  // Storage Configuration (mock/test values)
+  storage: {
+    firebase: {
+      projectId: 'yofix-test-project',
+      clientEmail: 'test@yofix-test-project.iam.gserviceaccount.com',
+      privateKey: '-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY_FOR_TESTING\n-----END PRIVATE KEY-----\n',
+      storageBucket: 'yofix-test-project.appspot.com'
+    },
+    s3: {
+      accessKeyId: 'MOCK_ACCESS_KEY_ID',
+      secretAccessKey: 'mock-secret-access-key',
+      region: 'us-east-1',
+      bucket: 'yofix-test-bucket'
+    }
+  },
+  
+  // AI Configuration
+  ai: {
+    claudeApiKey: 'mock-claude-api-key',
+    anthropicApiKey: 'mock-anthropic-api-key'
+  },
+  
+  // Environment
+  nodeEnv: 'development'
+};
+
 export const defaultConfig: YoFixConfig = {
   ai: {
     claude: {
@@ -189,6 +237,88 @@ export const defaultConfig: YoFixConfig = {
     includeTimestamp: true
   }
 };
+
+/**
+ * Get environment variable with .env.local support and smart defaults
+ * Priority: process.env > .env.local > environmentDefaults
+ */
+export function getEnvWithDefaults(key: string): string | undefined {
+  // Load merged environment config (process.env + .env.local)
+  const envConfig = loadEnvironmentConfig();
+  
+  // First check merged environment (process.env + .env.local)
+  if (envConfig[key] !== undefined) {
+    return envConfig[key];
+  }
+  
+  // Then check environment defaults
+  return getEnvironmentDefault(key);
+}
+
+/**
+ * Get default values for common environment variables
+ */
+function getEnvironmentDefault(key: string): string | undefined {
+  // GitHub-related defaults
+  if (key === 'GITHUB_TOKEN' || key === 'INPUT_GITHUB_TOKEN') {
+    return environmentDefaults.github.token;
+  }
+  if (key === 'GITHUB_REPOSITORY') {
+    return environmentDefaults.github.repository;
+  }
+  if (key === 'GITHUB_SHA') {
+    return environmentDefaults.github.sha;
+  }
+  if (key === 'GITHUB_ACTOR') {
+    return environmentDefaults.github.actor;
+  }
+  if (key === 'GITHUB_EVENT_NAME') {
+    return environmentDefaults.github.eventName;
+  }
+  if (key === 'GITHUB_ACTIONS') {
+    return environmentDefaults.github.actions;
+  }
+  
+  // AI API keys
+  if (key === 'CLAUDE_API_KEY' || key === 'ANTHROPIC_API_KEY') {
+    return environmentDefaults.ai.claudeApiKey;
+  }
+  
+  // Firebase defaults
+  if (key === 'FIREBASE_PROJECT_ID') {
+    return environmentDefaults.storage.firebase.projectId;
+  }
+  if (key === 'FIREBASE_CLIENT_EMAIL') {
+    return environmentDefaults.storage.firebase.clientEmail;
+  }
+  if (key === 'FIREBASE_PRIVATE_KEY') {
+    return environmentDefaults.storage.firebase.privateKey;
+  }
+  if (key === 'FIREBASE_STORAGE_BUCKET') {
+    return environmentDefaults.storage.firebase.storageBucket;
+  }
+  
+  // AWS S3 defaults
+  if (key === 'AWS_ACCESS_KEY_ID') {
+    return environmentDefaults.storage.s3.accessKeyId;
+  }
+  if (key === 'AWS_SECRET_ACCESS_KEY') {
+    return environmentDefaults.storage.s3.secretAccessKey;
+  }
+  if (key === 'AWS_REGION') {
+    return environmentDefaults.storage.s3.region;
+  }
+  if (key === 'S3_BUCKET') {
+    return environmentDefaults.storage.s3.bucket;
+  }
+  
+  // Node environment
+  if (key === 'NODE_ENV') {
+    return environmentDefaults.nodeEnv;
+  }
+  
+  return undefined;
+}
 
 // Action.yml default values for reference
 export const actionDefaults = {

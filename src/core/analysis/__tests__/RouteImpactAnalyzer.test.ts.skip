@@ -1,12 +1,11 @@
 /// <reference types="jest" />
 
 import { RouteImpactAnalyzer } from '../RouteImpactAnalyzer';
-import * as github from '@actions/github';
+import { GitHubServiceFactory, MockGitHubService } from '../../github/GitHubServiceFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // Mock dependencies
-jest.mock('@actions/github');
 jest.mock('fs');
 
 // Mock tree-sitter modules - these need to be mocked before importing the module under test
@@ -16,19 +15,33 @@ jest.mock('tree-sitter-javascript');
 
 describe('RouteImpactAnalyzer', () => {
   let analyzer: RouteImpactAnalyzer;
-  let mockOctokit: any;
+  let mockService: MockGitHubService;
 
   beforeEach(() => {
-    mockOctokit = {
-      rest: {
-        pulls: {
-          listFiles: jest.fn()
-        }
-      }
-    };
+    // Reset factory and set up mock service
+    GitHubServiceFactory.reset();
+    mockService = new MockGitHubService();
+    GitHubServiceFactory.setService(mockService);
     
-    (github.getOctokit as jest.Mock).mockReturnValue(mockOctokit);
-    analyzer = new RouteImpactAnalyzer('test-token');
+    // Configure mock service
+    mockService.configure({
+      token: 'test-token',
+      owner: 'test-owner',
+      repo: 'test-repo'
+    });
+    
+    // Set up mock context
+    mockService.setMockContext({
+      owner: 'test-owner',
+      repo: 'test-repo',
+      prNumber: 123
+    });
+    
+    analyzer = new RouteImpactAnalyzer();
+  });
+  
+  afterEach(() => {
+    GitHubServiceFactory.reset();
   });
 
   describe('formatImpactTree', () => {
@@ -140,9 +153,8 @@ describe('RouteImpactAnalyzer', () => {
 
   describe('analyzePRImpact', () => {
     it('should handle PR with no changed files', async () => {
-      mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: []
-      });
+      // Set up mock to return no files
+      mockService.setMockPRFiles('test-owner', 'test-repo', 123, []);
 
       // Mock file system
       (fs.existsSync as jest.Mock).mockReturnValue(false);
@@ -154,12 +166,11 @@ describe('RouteImpactAnalyzer', () => {
     });
 
     it('should detect route file changes', async () => {
-      mockOctokit.rest.pulls.listFiles.mockResolvedValue({
-        data: [
-          { filename: 'pages/index.tsx', status: 'modified' },
-          { filename: 'pages/products/index.tsx', status: 'added' }
-        ]
-      });
+      // Set up mock PR files
+      mockService.setMockPRFiles('test-owner', 'test-repo', 123, [
+        { filename: 'pages/index.tsx', status: 'modified', additions: 5, deletions: 2, changes: 7 },
+        { filename: 'pages/products/index.tsx', status: 'added', additions: 50, deletions: 0, changes: 50 }
+      ]);
 
       // Mock codebase structure
       const mockRoutes = [
@@ -168,8 +179,13 @@ describe('RouteImpactAnalyzer', () => {
       ];
 
       // This would need more mocking of CodebaseAnalyzer
-      // For now, just verify the structure
+      // For now, just verify the structure and that it can call the GitHub service
       expect(analyzer).toBeDefined();
+      
+      // Verify that the mock service can be called
+      const files = await mockService.listPullRequestFiles('test-owner', 'test-repo', 123);
+      expect(files).toHaveLength(2);
+      expect(files[0].filename).toBe('pages/index.tsx');
     });
   });
 });

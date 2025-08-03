@@ -1,16 +1,19 @@
-import * as github from '@actions/github';
 import { ServiceContainer, DefaultServiceContainer, SERVICE_TOKENS } from '../core/ServiceContainer';
 import { CommandRegistry, CommandRegistryBuilder } from '../core/CommandRegistry';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
 import { ImpactCommandHandler, DefaultRouteAnalyzerFactory } from '../handlers/ImpactCommandHandler';
 import { ProgressReporter, NullProgressReporter } from '../core/ProgressReporter';
+import { GitHubHook, GitHubFactory, GitHubActionsHook } from '../../core/hooks/GitHubHook';
+import { LoggerHook, LoggerFactory } from '../../core/hooks/LoggerHook';
+// import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
+import { GitHubServiceFactory } from '../../core/github/GitHubServiceFactory';
 import * as core from '@actions/core';
 
 /**
  * Bot configuration interface
  */
 export interface BotConfig {
-  githubToken: string;
+  // githubToken: string; // Removed - now handled by GitHubServiceFactory
   claudeApiKey: string;
   rootPath?: string;
   storageProvider?: string;
@@ -34,7 +37,7 @@ export class BotConfigurationBuilder {
   configureCoreServices(): this {
     // GitHub client
     this.container.registerSingleton(SERVICE_TOKENS.GITHUB_CLIENT, () => 
-      github.getOctokit(this.config.githubToken)
+      GitHubServiceFactory.getService()
     );
 
     // Storage provider
@@ -52,7 +55,6 @@ export class BotConfigurationBuilder {
     // Route analyzer factory
     this.container.registerSingleton(SERVICE_TOKENS.ROUTE_ANALYZER_FACTORY, () => 
       new DefaultRouteAnalyzerFactory(
-        this.config.githubToken,
         this.config.rootPath
       )
     );

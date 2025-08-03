@@ -146,12 +146,8 @@ import { getGitHubCommentEngine } from './github/GitHubCommentEngine';
 /**
  * Initialize all core services
  */
-export function initializeCoreServices(githubToken: string): void {
-  // Initialize error handler with GitHub integration
-  errorHandler.initialize(githubToken);
-  
-  // Initialize global comment engine
-  getGitHubCommentEngine(githubToken);
+export function initializeCoreServices(): void {
+  // Core services now use GitHubServiceFactory which handles lazy initialization
   
   // Log initialization
   console.log('✅ YoFix core services initialized');
@@ -164,6 +160,6 @@ export async function finalizeCoreServices(): Promise<void> {
   // Post error summary if there were any errors
   await errorHandler.postErrorSummary();
   
-  // Reset for next run
-  errorHandler.reset();
+  // Clear error buffer for next run
+  errorHandler.clearErrorBuffer();
 }

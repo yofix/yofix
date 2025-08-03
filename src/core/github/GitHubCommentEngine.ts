@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
-import * as github from '@actions/github';
-import { GitHub } from '@actions/github/lib/utils';
+import { GitHubServiceFactory, GitHubService } from './GitHubServiceFactory';
 
 export interface CommentOptions {
   /**
@@ -57,8 +56,8 @@ export interface ErrorContext {
 }
 
 export class GitHubCommentEngine {
-  private octokit: InstanceType<typeof GitHub>;
-  private context: typeof github.context;
+  private github: GitHubService;
+  private context: ReturnType<GitHubService['getContext']>;
   private prNumber: number;
   private owner: string;
   private repo: string;
@@ -70,15 +69,14 @@ export class GitHubCommentEngine {
   private errorCount = 0;
   private errorSummary: Array<{ timestamp: Date; error: string; location?: string }> = [];
 
-  constructor(githubToken: string) {
-    this.octokit = github.getOctokit(githubToken);
-    this.context = github.context;
-    this.owner = this.context.repo.owner;
-    this.repo = this.context.repo.repo;
+  constructor() {
+    this.github = GitHubServiceFactory.getService();
+    this.context = this.github.getContext();
+    this.owner = this.context.owner;
+    this.repo = this.context.repo;
     
     // Get PR number from context
-    this.prNumber = this.context.payload.pull_request?.number || 
-                   this.context.payload.issue?.number || 
+    this.prNumber = this.context.prNumber || 
                    parseInt(process.env.PR_NUMBER || '0');
   }
 
@@ -96,72 +94,83 @@ export class GitHubCommentEngine {
       
       // Add thread reference if replying
       if (options.inReplyTo) {
-        const replyUrl = `${this.context.payload.repository?.html_url}/pull/${this.prNumber}#issuecomment-${options.inReplyTo}`;
+        const replyUrl = `https://github.com/${this.owner}/${this.repo}/pull/${this.prNumber}#issuecomment-${options.inReplyTo}`;
         body = `> In reply to [this comment](${replyUrl})\n\n${message}`;
       }
       
       // Add signature if provided
       if (options.signature) {
-        body = `${body}\n\n<!-- ${options.signature} -->`;
+        body += `\n\n<!-- ${options.signature} -->`;
       }
       
-      // Format error messages
+      // Handle thread-based comments
+      if (options.threadId) {
+        const existingThreadId = this.threadCache.get(options.threadId);
+        if (existingThreadId) {
+          options.inReplyTo = existingThreadId;
+        }
+      }
+      
+      // Format for error messages
       if (options.isError) {
-        body = this.formatErrorMessage(body);
+        body = `❌ **Error**\n\n${body}`;
+        this.errorCount++;
       }
       
-      // Format progress messages
+      // Format for progress messages
       if (options.isProgress) {
-        body = this.formatProgressMessage(body);
+        body = `⏳ ${body}`;
       }
-
+      
       let commentId: number;
       
       // Update existing comment if requested
       if (options.updateExisting && options.signature) {
         const existingComment = await this.findCommentBySignature(options.signature);
+        
         if (existingComment) {
-          await this.octokit.rest.issues.updateComment({
-            owner: this.owner,
-            repo: this.repo,
-            comment_id: existingComment.id,
+          await this.github.updateComment(
+            this.owner,
+            this.repo,
+            existingComment.id,
             body
-          });
+          );
           commentId = existingComment.id;
           core.info(`Updated existing comment #${commentId}`);
         } else {
-          const response = await this.octokit.rest.issues.createComment({
-            owner: this.owner,
-            repo: this.repo,
-            issue_number: this.prNumber,
+          const result = await this.github.createComment(
+            this.owner,
+            this.repo,
+            this.prNumber,
             body
-          });
-          commentId = response.data.id;
+          );
+          commentId = result.id;
           core.info(`Created new comment #${commentId}`);
         }
       } else {
-        const response = await this.octokit.rest.issues.createComment({
-          owner: this.owner,
-          repo: this.repo,
-          issue_number: this.prNumber,
+        const result = await this.github.createComment(
+          this.owner,
+          this.repo,
+          this.prNumber,
           body
-        });
-        commentId = response.data.id;
-        core.info(`Created new comment #${commentId}`);
+        );
+        commentId = result.id;
+        core.info(`Created comment #${commentId}`);
+      }
+      
+      // Cache thread ID
+      if (options.threadId && !this.threadCache.has(options.threadId)) {
+        this.threadCache.set(options.threadId, commentId);
       }
       
       // Add reactions if requested
       if (options.reactions && options.reactions.length > 0) {
-        await this.addReactions(commentId, options.reactions);
-      }
-      
-      // Cache thread ID
-      if (options.threadId) {
-        this.threadCache.set(options.threadId, commentId);
+        for (const reaction of options.reactions) {
+          await this.addReaction(commentId, reaction);
+        }
       }
       
       return commentId;
-      
     } catch (error) {
       core.error(`Failed to post comment: ${error}`);
       return null;
@@ -169,293 +178,271 @@ export class GitHubCommentEngine {
   }
 
   /**
-   * Post an error with context and troubleshooting tips
+   * Post an error comment with enhanced context
    */
   async postError(error: Error | string, context?: ErrorContext): Promise<void> {
-    try {
-      this.errorCount++;
-      const errorMessage = error instanceof Error ? error.message : error;
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      
-      // Track error for summary
-      this.errorSummary.push({
-        timestamp: new Date(),
-        error: errorMessage,
-        location: context?.location
-      });
-      
-      // Build error message
-      let message = `### ❌ YoFix Error #${this.errorCount}\n\n`;
-      
-      if (context?.userAction) {
-        message += `**Action**: ${context.userAction}\n`;
-      }
-      
-      if (context?.location) {
-        message += `**Location**: \`${context.location}\`\n`;
-      }
-      
-      message += `**Error**: ${errorMessage}\n`;
-      
-      if (context?.metadata) {
-        message += '\n**Context**:\n```json\n' + JSON.stringify(context.metadata, null, 2) + '\n```\n';
-      }
-      
-      if (context?.includeStackTrace && errorStack) {
-        message += '\n<details>\n<summary>Stack Trace</summary>\n\n```\n' + errorStack + '\n```\n</details>\n';
-      }
-      
-      // Add troubleshooting tips
-      const tips = context?.tips || this.generateTroubleshootingTips(errorMessage);
-      if (tips.length > 0) {
-        message += '\n#### 💡 Troubleshooting Tips:\n' + tips.map(tip => `- ${tip}`).join('\n');
-      }
-      
-      // Add standard help footer
-      message += '\n\n---\n';
-      message += '📚 [Documentation](https://github.com/yofix/yofix#troubleshooting) | ';
-      message += '🐛 [Report Issue](https://github.com/yofix/yofix/issues/new) | ';
-      message += '💬 [Get Help](https://github.com/yofix/yofix/discussions)';
-      
-      await this.postComment(message, {
-        isError: true,
-        signature: 'yofix-error',
-        updateExisting: false // Always create new comment for errors
-      });
-      
-    } catch (postError) {
-      // If we can't post to GitHub, at least log it
-      core.error(`Failed to post error to GitHub: ${postError}`);
-      core.error(`Original error: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : error;
+    const errorStack = error instanceof Error && context?.includeStackTrace ? error.stack : undefined;
+    
+    // Track error
+    this.errorSummary.push({
+      timestamp: new Date(),
+      error: errorMessage,
+      location: context?.location
+    });
+    
+    let message = `### 🚨 Error Occurred\n\n`;
+    message += `**Error**: ${errorMessage}\n\n`;
+    
+    if (context?.location) {
+      message += `**Location**: \`${context.location}\`\n\n`;
     }
+    
+    if (context?.userAction) {
+      message += `**During**: ${context.userAction}\n\n`;
+    }
+    
+    if (context?.metadata && Object.keys(context.metadata).length > 0) {
+      message += `**Context**:\n`;
+      for (const [key, value] of Object.entries(context.metadata)) {
+        message += `- ${key}: ${JSON.stringify(value)}\n`;
+      }
+      message += '\n';
+    }
+    
+    if (context?.tips && context.tips.length > 0) {
+      message += `**💡 Troubleshooting Tips**:\n`;
+      for (const tip of context.tips) {
+        message += `- ${tip}\n`;
+      }
+      message += '\n';
+    }
+    
+    if (errorStack) {
+      message += `<details>\n<summary>Stack Trace</summary>\n\n\`\`\`\n${errorStack}\n\`\`\`\n</details>\n`;
+    }
+    
+    await this.postComment(message, { isError: true, signature: 'yofix-error' });
   }
 
   /**
-   * Start a new comment thread
+   * Post a progress update
    */
-  async startThread(threadId: string, message: string, options: Omit<CommentOptions, 'threadId'> = {}): Promise<number | null> {
+  async postProgress(message: string, options: { threadId?: string; reaction?: '+1' | 'eyes' | 'rocket' } = {}): Promise<void> {
     const commentId = await this.postComment(message, {
-      ...options,
-      threadId,
-      signature: `yofix-thread-${threadId}`
+      isProgress: true,
+      threadId: options.threadId,
+      reactions: options.reaction ? [options.reaction] : undefined
     });
     
-    if (commentId) {
-      this.threadCache.set(threadId, commentId);
+    if (commentId && options.reaction) {
+      await this.addReaction(commentId, options.reaction);
+    }
+  }
+
+  /**
+   * Post a summary comment (typically at the end of processing)
+   */
+  async postSummary(summary: { 
+    title: string; 
+    sections: Array<{ heading: string; content: string }>;
+    status?: 'success' | 'warning' | 'error';
+  }): Promise<void> {
+    let message = `## ${summary.title}\n\n`;
+    
+    // Add status indicator
+    const statusEmoji = {
+      success: '✅',
+      warning: '⚠️',
+      error: '❌'
+    };
+    
+    if (summary.status) {
+      message = `${statusEmoji[summary.status]} ${message}`;
     }
     
-    return commentId;
-  }
-
-  /**
-   * Reply to a thread
-   */
-  async replyToThread(threadId: string, message: string, options: Omit<CommentOptions, 'threadId' | 'inReplyTo'> = {}): Promise<number | null> {
-    const parentCommentId = this.threadCache.get(threadId);
-    if (!parentCommentId) {
-      core.warning(`Thread ${threadId} not found, creating new comment`);
-      return this.postComment(message, options);
+    // Add sections
+    for (const section of summary.sections) {
+      message += `### ${section.heading}\n\n`;
+      message += `${section.content}\n\n`;
     }
     
-    return this.postComment(message, {
-      ...options,
-      inReplyTo: parentCommentId
-    });
-  }
-
-  /**
-   * Update a thread's main comment
-   */
-  async updateThread(threadId: string, message: string, options: Omit<CommentOptions, 'threadId' | 'updateExisting'> = {}): Promise<void> {
-    await this.postComment(message, {
-      ...options,
-      updateExisting: true,
-      signature: `yofix-thread-${threadId}`
-    });
-  }
-
-  /**
-   * Post a progress update (updates existing comment)
-   */
-  async postProgress(taskId: string, message: string, options: Omit<CommentOptions, 'updateExisting' | 'signature'> = {}): Promise<void> {
-    await this.postComment(message, {
-      ...options,
-      updateExisting: true,
-      signature: `yofix-progress-${taskId}`,
-      isProgress: true
-    });
-  }
-
-  /**
-   * Add reactions to a comment
-   */
-  async addReactions(commentId: number, reactions: CommentOptions['reactions']): Promise<void> {
-    if (!reactions) return;
-    
-    for (const reaction of reactions) {
-      try {
-        await this.octokit.rest.reactions.createForIssueComment({
-          owner: this.owner,
-          repo: this.repo,
-          comment_id: commentId,
-          content: reaction
-        });
-      } catch (error) {
-        core.warning(`Failed to add reaction ${reaction}: ${error}`);
+    // Add error summary if any
+    if (this.errorCount > 0) {
+      message += `### ⚠️ Errors Encountered\n\n`;
+      message += `Total errors: ${this.errorCount}\n\n`;
+      
+      if (this.errorSummary.length > 0) {
+        message += `<details>\n<summary>Error Details</summary>\n\n`;
+        for (const error of this.errorSummary) {
+          message += `- **${error.timestamp.toISOString()}**`;
+          if (error.location) {
+            message += ` at \`${error.location}\``;
+          }
+          message += `: ${error.error}\n`;
+        }
+        message += `\n</details>\n`;
       }
     }
+    
+    await this.postComment(message, {
+      signature: 'yofix-summary',
+      updateExisting: true
+    });
   }
 
   /**
-   * React to an existing comment
+   * Add a reaction to a comment
    */
-  async reactToComment(commentId: number, reaction: CommentOptions['reactions'][0]): Promise<void> {
+  private async addReaction(commentId: number, reaction: string): Promise<void> {
     try {
-      await this.octokit.rest.reactions.createForIssueComment({
-        owner: this.owner,
-        repo: this.repo,
-        comment_id: commentId,
-        content: reaction
-      });
+      await this.github.addReaction(
+        this.owner,
+        this.repo,
+        commentId,
+        reaction as any
+      );
+      core.debug(`Added ${reaction} reaction to comment #${commentId}`);
+    } catch (error) {
+      core.warning(`Failed to add reaction: ${error}`);
+    }
+  }
+
+  /**
+   * Post a quick reaction to the triggering comment
+   */
+  async postReaction(reaction: 'eyes' | '+1' | '-1' | 'rocket' | 'confused'): Promise<void> {
+    try {
+      // Get the comment that triggered this action
+      const triggeringCommentId = this.getTriggeringCommentId();
+      
+      if (triggeringCommentId) {
+        await this.addReaction(triggeringCommentId, reaction);
+      }
+    } catch (error) {
+      core.warning(`Failed to post reaction: ${error}`);
+    }
+  }
+
+  /**
+   * React to a specific comment
+   */
+  async reactToComment(commentId: number, reaction: 'eyes' | '+1' | '-1' | 'rocket' | 'confused'): Promise<void> {
+    try {
+      await this.addReaction(commentId, reaction);
     } catch (error) {
       core.warning(`Failed to react to comment: ${error}`);
     }
   }
 
   /**
-   * Post error summary at the end of run
+   * Start a new thread
    */
-  async postErrorSummary(): Promise<void> {
-    if (this.errorSummary.length === 0) return;
+  async startThread(threadId: string, message: string, options?: { reactions?: string[] }): Promise<number | null> {
+    const commentId = await this.postComment(message, {
+      threadId,
+      reactions: options?.reactions as any
+    });
     
-    let message = `## 📊 Error Summary\n\n`;
-    message += `Total errors encountered: **${this.errorCount}**\n\n`;
-    message += '| Time | Error | Location |\n';
-    message += '|------|-------|----------|\n';
-    
-    for (const error of this.errorSummary) {
-      const time = error.timestamp.toLocaleTimeString();
-      const errorMsg = error.error.length > 50 ? error.error.substring(0, 50) + '...' : error.error;
-      const location = error.location || 'Unknown';
-      message += `| ${time} | ${errorMsg} | ${location} |\n`;
-    }
-    
+    return commentId;
+  }
+
+  /**
+   * Update a thread
+   */
+  async updateThread(threadId: string, message: string, options?: { reactions?: string[] }): Promise<void> {
     await this.postComment(message, {
-      signature: 'yofix-error-summary',
-      updateExisting: true
+      threadId,
+      updateExisting: true,
+      signature: `yofix-thread-${threadId}`,
+      reactions: options?.reactions as any
     });
   }
 
   /**
-   * Find existing comment by signature
+   * Reply to a thread
    */
-  private async findCommentBySignature(signature: string): Promise<{ id: number } | null> {
+  async replyToThread(threadId: string, message: string, options?: { reactions?: string[] }): Promise<void> {
+    const threadCommentId = this.threadCache.get(threadId);
+    
+    await this.postComment(message, {
+      threadId,
+      inReplyTo: threadCommentId,
+      reactions: options?.reactions as any
+    });
+  }
+
+  /**
+   * Get the ID of the comment that triggered this action
+   */
+  private getTriggeringCommentId(): number | null {
+    // This would come from GitHub Actions context
+    const commentId = parseInt(process.env.GITHUB_EVENT_PATH ? 
+      JSON.parse(require('fs').readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'))?.comment?.id || '0' : '0'
+    );
+    
+    return commentId || null;
+  }
+
+  /**
+   * Find a comment by its signature
+   */
+  private async findCommentBySignature(signature: string): Promise<{ id: number; body: string } | null> {
     try {
-      const comments = await this.octokit.rest.issues.listComments({
-        owner: this.owner,
-        repo: this.repo,
-        issue_number: this.prNumber,
-        per_page: 100
-      });
-      
-      const signatureComment = `<!-- ${signature} -->`;
-      const existingComment = comments.data.find(comment => 
-        comment.body?.includes(signatureComment)
+      const comments = await this.github.listComments(
+        this.owner,
+        this.repo,
+        this.prNumber
       );
       
-      return existingComment ? { id: existingComment.id } : null;
+      const signaturePattern = `<!-- ${signature} -->`;
+      const existingComment = comments.find(comment => 
+        comment.body.includes(signaturePattern)
+      );
+      
+      return existingComment || null;
     } catch (error) {
-      core.warning(`Failed to find existing comment: ${error}`);
+      core.warning(`Failed to find comment by signature: ${error}`);
       return null;
     }
   }
 
   /**
-   * Format error message with styling
+   * Delete all bot comments (useful for cleanup)
    */
-  private formatErrorMessage(message: string): string {
-    return `🚨 **Error** 🚨\n\n${message}`;
-  }
-
-  /**
-   * Format progress message with styling
-   */
-  private formatProgressMessage(message: string): string {
-    const timestamp = new Date().toLocaleTimeString();
-    return `🔄 **Progress Update** (${timestamp})\n\n${message}`;
-  }
-
-  /**
-   * Generate troubleshooting tips based on error message
-   */
-  private generateTroubleshootingTips(errorMessage: string): string[] {
-    const tips: string[] = [];
-    
-    if (errorMessage.includes('Claude API') || errorMessage.includes('authentication_error')) {
-      tips.push('🔑 Verify your Claude API key is valid and has sufficient credits');
-      tips.push('📋 Set `CLAUDE_API_KEY` secret in your repository settings');
-    }
-    
-    if (errorMessage.includes('Firebase') || errorMessage.includes('storage')) {
-      tips.push('🔥 Check your Firebase credentials and storage bucket');
-      tips.push('📋 Ensure `firebase-credentials` is base64 encoded correctly');
-      tips.push('💡 Alternative: Use `storage-provider: s3` for AWS S3 storage');
-    }
-    
-    if (errorMessage.includes('preview-url') || errorMessage.includes('accessible')) {
-      tips.push('🌐 The preview URL might not be accessible');
-      tips.push('⏳ Wait for deployment to complete before running YoFix');
-      tips.push('🔒 Check if the URL requires authentication');
-    }
-    
-    if (errorMessage.includes('auth') || errorMessage.includes('login')) {
-      tips.push('🔐 Check your test credentials');
-      tips.push('🤖 Try `auth-mode: smart` if LLM auth fails');
-      tips.push('📍 Verify `auth-login-url` points to the correct login page');
-    }
-    
-    if (errorMessage.includes('timeout')) {
-      tips.push('⏱️ Increase `test-timeout` value (e.g., `10m`)');
-      tips.push('🌐 Check if the site is loading slowly');
-      tips.push('🔄 Try running the test again');
-    }
-    
-    if (errorMessage.includes('screenshot') || errorMessage.includes('visual')) {
-      tips.push('🖼️ Ensure the page is fully loaded before screenshots');
-      tips.push('📱 Check if the viewport size is appropriate');
-      tips.push('🔄 Clear browser cache and retry');
-    }
-    
-    if (tips.length === 0) {
-      tips.push('📖 Check the [documentation](https://github.com/yofix/yofix#configuration)');
-      tips.push('🐛 [Report an issue](https://github.com/yofix/yofix/issues) if the problem persists');
-    }
-    
-    return tips;
-  }
-  
-  /**
-   * Get thread history
-   */
-  async getThreadHistory(threadId: string): Promise<any[]> {
-    const parentCommentId = this.threadCache.get(threadId);
-    if (!parentCommentId) return [];
-    
+  async deleteAllBotComments(): Promise<void> {
     try {
-      const comments = await this.octokit.rest.issues.listComments({
-        owner: this.owner,
-        repo: this.repo,
-        issue_number: this.prNumber
-      });
-      
-      // Find all comments that reference the parent
-      return comments.data.filter(comment => 
-        comment.body?.includes(`#issuecomment-${parentCommentId}`)
+      const comments = await this.github.listComments(
+        this.owner,
+        this.repo,
+        this.prNumber
       );
+      
+      const botComments = comments.filter(comment => 
+        comment.user.login.includes('[bot]') ||
+        comment.body.includes('<!-- yofix-')
+      );
+      
+      // Note: GitHub API doesn't provide a delete comment method
+      // This would need to be implemented in GitHubService if needed
+      core.info(`Found ${botComments.length} bot comments`);
     } catch (error) {
-      core.warning(`Failed to get thread history: ${error}`);
-      return [];
+      core.warning(`Failed to list comments: ${error}`);
     }
+  }
+
+  /**
+   * Get the current PR number
+   */
+  getPRNumber(): number {
+    return this.prNumber;
+  }
+
+  /**
+   * Check if we're in a valid PR context
+   */
+  isValidContext(): boolean {
+    return this.prNumber > 0;
   }
 }
 
@@ -465,10 +452,9 @@ let globalInstance: GitHubCommentEngine | null = null;
 /**
  * Get or create global GitHub comment engine instance
  */
-export function getGitHubCommentEngine(githubToken?: string): GitHubCommentEngine {
+export function getGitHubCommentEngine(): GitHubCommentEngine {
   if (!globalInstance) {
-    const token = githubToken || core.getInput('github-token', { required: true });
-    globalInstance = new GitHubCommentEngine(token);
+    globalInstance = new GitHubCommentEngine();
   }
   return globalInstance;
 }

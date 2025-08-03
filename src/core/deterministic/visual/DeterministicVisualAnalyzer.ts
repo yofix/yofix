@@ -9,13 +9,13 @@ import { errorHandler, ErrorCategory, ErrorSeverity } from '../../../core';
 export class DeterministicVisualAnalyzer {
   private previewUrl: string;
   private claudeApiKey?: string;
-  private githubToken?: string;
+  // private githubToken?: string; // Removed - now handled by GitHubServiceFactory
   private sharedContext?: BrowserContext;
   
-  constructor(previewUrl: string, claudeApiKey?: string, githubToken?: string, sharedContext?: BrowserContext) {
+  constructor(previewUrl: string, claudeApiKey?: string, sharedContext?: BrowserContext) {
     this.previewUrl = previewUrl;
     this.claudeApiKey = claudeApiKey;
-    this.githubToken = githubToken;
+    // this.githubToken = githubToken; // Removed - now handled by GitHubServiceFactory
     this.sharedContext = sharedContext;
   }
   
@@ -40,8 +40,8 @@ export class DeterministicVisualAnalyzer {
       // Create deterministic runner
       const runner = new DeterministicRunner(
         { previewUrl: this.previewUrl } as any,
-        storageProvider,
-        this.githubToken
+        storageProvider
+        // this.githubToken // Removed - now handled by GitHubServiceFactory
       );
       // Parse viewports
       const viewports = options.viewports.map(v => {

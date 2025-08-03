@@ -10,7 +10,7 @@ export class PRReporter {
   private commentEngine = getGitHubCommentEngine();
   private prNumber: number;
 
-  constructor(githubToken: string) {
+  constructor() {
     // Comment engine is already initialized globally
     const context = require('@actions/github').context;
     this.prNumber = context.payload.pull_request?.number;

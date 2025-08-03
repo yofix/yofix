@@ -4,12 +4,12 @@ import TSX from 'tree-sitter-typescript/tsx';
 import JavaScript from 'tree-sitter-javascript';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as core from '@actions/core';
 import crypto from 'crypto';
 import { ComponentRouteMapper } from './ComponentRouteMapper';
 import { StorageProvider } from '../baseline/types';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
-import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
+import { LoggerHook, LoggerFactory } from '../hooks/LoggerHook';
+import { ErrorCategory, ErrorSeverity, SimpleErrorHandler, ErrorHandlerFactory } from '../hooks/ErrorHook';
 
 interface ImportNode {
   source: string;
@@ -50,6 +50,8 @@ export class TreeSitterRouteAnalyzer {
   private tsParser: Parser;
   private tsxParser: Parser;
   private jsParser: Parser;
+  private logger: LoggerHook;
+  private errorHandler: SimpleErrorHandler;
   
   // Multi-level caching
   private astCache: Map<string, { tree: Parser.Tree; hash: string }> = new Map();
@@ -66,6 +68,10 @@ export class TreeSitterRouteAnalyzer {
   private cacheKey: string;
   
   constructor(private rootPath: string = process.cwd(), storageProvider?: StorageProvider) {
+    // Initialize logger
+    this.logger = LoggerFactory.getLogger();
+    this.errorHandler = ErrorHandlerFactory.getErrorHandler(this.logger);
+    
     // Initialize TypeScript parser
     this.tsParser = new Parser();
     this.tsParser.setLanguage(TypeScript);
@@ -95,7 +101,7 @@ export class TreeSitterRouteAnalyzer {
    * Clear all caches (both in-memory and persistent)
    */
   async clearCache(): Promise<void> {
-    core.info('🗑️ Clearing all route analysis caches...');
+    this.logger.info('🗑️ Clearing all route analysis caches...');
     
     // Clear in-memory caches
     this.astCache.clear();
@@ -109,17 +115,17 @@ export class TreeSitterRouteAnalyzer {
       if (this.storageProvider) {
         // Delete from storage provider
         await (this.storageProvider as any).deleteFile?.(this.cacheKey);
-        core.info(`✅ Cleared cache from storage: ${this.cacheKey}`);
+        this.logger.info(`✅ Cleared cache from storage: ${this.cacheKey}`);
       } else {
         // Delete local cache
         const localCacheDir = path.join(this.rootPath, '.yofix-cache');
         if (fs.existsSync(localCacheDir)) {
           await fs.promises.rm(localCacheDir, { recursive: true, force: true });
-          core.info(`✅ Cleared local cache directory: ${localCacheDir}`);
+          this.logger.info(`✅ Cleared local cache directory: ${localCacheDir}`);
         }
       }
     } catch (error) {
-      await errorHandler.handleError(error as Error, {
+      this.errorHandler.handle(error as Error, {
         severity: ErrorSeverity.LOW,
         category: ErrorCategory.STORAGE,
         userAction: 'Clear persistent cache',
@@ -140,36 +146,36 @@ export class TreeSitterRouteAnalyzer {
     if (!this.storageProvider) {
       try {
         // Try to create storage provider from inputs
-        const storageProviderName = core.getInput('storage-provider') || 'github';
+        const storageProviderName = process.env.INPUT_STORAGE_PROVIDER || 'github';
         if (storageProviderName === 'github') {
           // For GitHub provider, we'll use local cache as fallback
-          core.info('Using local cache for import graph (GitHub storage)');
+          this.logger.info('Using local cache for import graph (GitHub storage)');
         } else {
           this.storageProvider = await StorageFactory.createFromInputs();
         }
       } catch (error) {
-        core.warning(`Storage provider initialization failed, using local cache: ${error}`);
+        this.logger.warning(`Storage provider initialization failed, using local cache: ${error}`);
       }
     }
     
     // Check if cache should be cleared
     if (forceRebuild) {
-      core.info('🔄 Force rebuild requested, clearing cache...');
+      this.logger.info('🔄 Force rebuild requested, clearing cache...');
       await this.clearCache();
     }
     
     // Try to load existing graph
     if (!forceRebuild && await this.loadPersistedGraph()) {
-      core.info(`✅ Loaded import graph from cache in ${Date.now() - start}ms`);
+      this.logger.info(`✅ Loaded import graph from cache in ${Date.now() - start}ms`);
       return;
     }
     
     // Build new graph
-    core.info('🔨 Building import graph with Tree-sitter...');
+    this.logger.info('🔨 Building import graph with Tree-sitter...');
     await this.buildImportGraph();
     await this.persistGraph();
     
-    core.info(`✅ Built import graph in ${Date.now() - start}ms`);
+    this.logger.info(`✅ Built import graph in ${Date.now() - start}ms`);
   }
   
   /**
@@ -207,7 +213,10 @@ export class TreeSitterRouteAnalyzer {
   }>> {
     const results = new Map();
     
+    this.logger.info(`🔍 Analyzing route info for ${changedFiles.length} changed files`);
+    
     for (const file of changedFiles) {
+      this.logger.debug(`Processing changed file: ${file}`);
       const routes = await this.detectRoutesForFile(file);
       const node = this.importGraph.get(file);
       const fileNode = this.fileCache.get(file);
@@ -216,6 +225,12 @@ export class TreeSitterRouteAnalyzer {
       let routeFileType: 'primary' | 'test' | 'component-with-routes' | undefined;
       if (node?.isRouteFile) {
         routeFileType = this.classifyRouteFile(file);
+      }
+      
+      if (routes.length > 0) {
+        this.logger.info(`✅ File ${file} affects ${routes.length} routes: ${routes.join(', ')}`);
+      } else {
+        this.logger.info(`❌ File ${file} affects no routes`);
       }
       
       results.set(file, {
@@ -245,7 +260,7 @@ export class TreeSitterRouteAnalyzer {
       
       processed += batch.length;
       if (processed % 100 === 0) {
-        core.info(`Processed ${processed}/${totalFiles} files...`);
+        this.logger.info(`Processed ${processed}/${totalFiles} files...`);
       }
     }
     
@@ -267,7 +282,7 @@ export class TreeSitterRouteAnalyzer {
       // Check file size first to avoid parsing huge files
       const stats = await fs.promises.stat(fullPath);
       if (stats.size > 1024 * 1024) { // Skip files larger than 1MB
-        core.debug(`Skipping large file ${filePath} (${stats.size} bytes)`);
+        this.logger.debug(`Skipping large file ${filePath} (${stats.size} bytes)`);
         return {
           path: filePath,
           imports: [],
@@ -282,7 +297,7 @@ export class TreeSitterRouteAnalyzer {
       
       // Skip files with null bytes (likely binary)
       if (content.includes('\0')) {
-        core.debug(`Skipping binary file ${filePath}`);
+        this.logger.debug(`Skipping binary file ${filePath}`);
         return {
           path: filePath,
           imports: [],
@@ -312,11 +327,11 @@ export class TreeSitterRouteAnalyzer {
         tree = parser.parse(content);
       } catch (parseError) {
         // If parsing fails, try with a more permissive parser
-        core.debug(`Parse error for ${filePath}: ${parseError}. Trying TSX parser as fallback.`);
+        this.logger.debug(`Parse error for ${filePath}: ${parseError}. Trying TSX parser as fallback.`);
         try {
           tree = this.tsxParser.parse(content);
         } catch (fallbackError) {
-          core.debug(`Fallback parse also failed for ${filePath}: ${fallbackError}`);
+          this.logger.debug(`Fallback parse also failed for ${filePath}: ${fallbackError}`);
           throw fallbackError;
         }
       }
@@ -347,9 +362,9 @@ export class TreeSitterRouteAnalyzer {
       // More detailed error logging
       if (error.code === 'ENOENT') {
         // File not found is expected for some cases
-        core.debug(`File not found: ${filePath}`);
+        this.logger.debug(`File not found: ${filePath}`);
       } else {
-        await errorHandler.handleError(error as Error, {
+        this.errorHandler.handle(error as Error, {
           severity: ErrorSeverity.LOW,
           category: ErrorCategory.ANALYSIS,
           userAction: 'Parse file with Tree-sitter',
@@ -657,7 +672,7 @@ export class TreeSitterRouteAnalyzer {
     let iterations = 0;
     
     // Log for debugging deep component chains
-    core.debug(`Detecting routes for file: ${filePath}`);
+    this.logger.debug(`Detecting routes for file: ${filePath}`);
     
     // BFS for shortest paths - but go deep enough for nested components
     while (queue.length > 0 && iterations < MAX_ITERATIONS) {
@@ -669,13 +684,13 @@ export class TreeSitterRouteAnalyzer {
       
       // Depth protection
       if (depth > MAX_DEPTH) {
-        core.debug(`Max depth ${MAX_DEPTH} reached while traversing from ${filePath}`);
+        this.logger.debug(`Max depth ${MAX_DEPTH} reached while traversing from ${filePath}`);
         continue;
       }
       
       const node = this.importGraph.get(file);
       if (!node) {
-        core.debug(`No import graph node found for: ${file}`);
+        this.logger.debug(`No import graph node found for: ${file}`);
         continue;
       }
       
@@ -685,7 +700,7 @@ export class TreeSitterRouteAnalyzer {
         if (fileNode) {
           fileNode.routes.forEach(r => {
             routes.add(r.path);
-            core.debug(`Found route ${r.path} at depth ${depth} via ${file}`);
+            this.logger.debug(`Found route ${r.path} at depth ${depth} via ${file}`);
           });
         }
         
@@ -702,14 +717,14 @@ export class TreeSitterRouteAnalyzer {
     }
     
     if (iterations >= MAX_ITERATIONS) {
-      core.warning(`Reached maximum iteration limit (${MAX_ITERATIONS}) while detecting routes for ${filePath}. Possible circular dependency.`);
+      this.logger.warning(`Reached maximum iteration limit (${MAX_ITERATIONS}) while detecting routes for ${filePath}. Possible circular dependency.`);
     }
     
     const result = Array.from(routes);
     this.routeCache.set(filePath, result);
     
     if (result.length === 0) {
-      core.debug(`No routes found for ${filePath} after traversing ${visited.size} files`);
+      this.logger.debug(`No routes found for ${filePath} after traversing ${visited.size} files`);
     }
     
     return result;
@@ -779,7 +794,13 @@ export class TreeSitterRouteAnalyzer {
     node.isRouteFile = fileNode.routes.length > 0;
     
     if (fileNode.routes.length > 0) {
-      core.info(`Found ${fileNode.routes.length} routes in ${filePath}: ${fileNode.routes.map(r => r.path).join(', ')}`);
+      this.logger.info(`Found ${fileNode.routes.length} routes in ${filePath}: ${fileNode.routes.map(r => r.path).join(', ')}`);
+      // Log route components for debugging
+      fileNode.routes.forEach(route => {
+        if (route.component && route.component !== 'unknown') {
+          this.logger.debug(`  Route ${route.path} uses component: ${route.component}`);
+        }
+      });
     }
   }
   
@@ -830,7 +851,7 @@ export class TreeSitterRouteAnalyzer {
             timestamp: data.timestamp.toString()
           }
         });
-        core.info(`✅ Persisted import graph to storage: ${this.cacheKey}`);
+        this.logger.info(`✅ Persisted import graph to storage: ${this.cacheKey}`);
       } else {
         // Fallback to local cache
         const localCacheDir = path.join(this.rootPath, '.yofix-cache');
@@ -841,10 +862,10 @@ export class TreeSitterRouteAnalyzer {
         }
         
         await fs.promises.writeFile(localCacheFile, jsonData);
-        core.info(`✅ Persisted import graph to local cache: ${localCacheFile}`);
+        this.logger.info(`✅ Persisted import graph to local cache: ${localCacheFile}`);
       }
     } catch (error) {
-      await errorHandler.handleError(error as Error, {
+      this.errorHandler.handle(error as Error, {
         severity: ErrorSeverity.LOW,
         category: ErrorCategory.STORAGE,
         userAction: 'Persist import graph to storage',
@@ -871,7 +892,7 @@ export class TreeSitterRouteAnalyzer {
             jsonData = buffer.toString('utf-8');
           }
         } catch (error) {
-          core.debug(`Failed to load from storage provider: ${error}`);
+          this.logger.debug(`Failed to load from storage provider: ${error}`);
         }
       }
       
@@ -915,7 +936,7 @@ export class TreeSitterRouteAnalyzer {
       
       return true;
     } catch (error) {
-      core.debug(`Failed to load persisted graph: ${error}`);
+      this.logger.debug(`Failed to load persisted graph: ${error}`);
       return false;
     }
   }
@@ -928,7 +949,7 @@ export class TreeSitterRouteAnalyzer {
     try {
       return await (this.storageProvider as any).downloadFile(key);
     } catch (error) {
-      core.debug(`Failed to download file ${key}: ${error}`);
+      this.logger.debug(`Failed to download file ${key}: ${error}`);
       return null;
     }
   }
@@ -940,7 +961,7 @@ export class TreeSitterRouteAnalyzer {
     try {
       return await (this.storageProvider as any).listFiles(prefix);
     } catch (error) {
-      core.debug(`Failed to list files with prefix ${prefix}: ${error}`);
+      this.logger.debug(`Failed to list files with prefix ${prefix}: ${error}`);
       return null;
     }
   }
@@ -1048,7 +1069,7 @@ export class TreeSitterRouteAnalyzer {
         }
       } catch (error) {
         // Skip directories we can't read
-        core.debug(`Skipping directory ${dir}: ${error}`);
+        this.logger.debug(`Skipping directory ${dir}: ${error}`);
       }
     };
     
@@ -1089,7 +1110,8 @@ export class TreeSitterRouteAnalyzer {
       const absolutePath = path.join(this.rootPath, fullPath);
       if (fs.existsSync(absolutePath)) {
         // Normalize path to use forward slashes
-        return fullPath.replace(/\\/g, '/');
+        const normalizedPath = fullPath.replace(/\\/g, '/');
+        return normalizedPath;
       }
     }
     
@@ -1099,11 +1121,15 @@ export class TreeSitterRouteAnalyzer {
       const absolutePath = path.join(this.rootPath, fullPath);
       if (fs.existsSync(absolutePath)) {
         // Normalize path to use forward slashes
-        return fullPath.replace(/\\/g, '/');
+        const normalizedPath = fullPath.replace(/\\/g, '/');
+        this.logger.debug(`Resolved import ${importPath} → ${normalizedPath}`);
+        return normalizedPath;
       }
     }
     
-    core.debug(`Could not resolve import: ${importPath} from ${fromFile}`);
+    // Log failed resolution for debugging
+    this.logger.debug(`Could not resolve import: ${importPath} from ${fromFile}`);
+    this.logger.debug(`  Tried paths: ${extensions.map(e => resolvedPath + e).concat(indexExtensions.map(e => resolvedPath + e)).join(', ')}`);
     return null;
   }
   
@@ -1163,7 +1189,7 @@ export class TreeSitterRouteAnalyzer {
     
     // Validate input
     if (!componentFile) {
-      core.debug('findRoutesServingComponent called with undefined componentFile');
+      this.logger.debug('findRoutesServingComponent called with undefined componentFile');
       return servingRoutes;
     }
     
@@ -1207,7 +1233,7 @@ export class TreeSitterRouteAnalyzer {
           }
         } catch (error) {
           // Ignore errors reading individual files
-          core.debug(`Error analyzing ${filePath}: ${error}`);
+          this.logger.debug(`Error analyzing ${filePath}: ${error}`);
         }
       }
     }

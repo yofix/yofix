@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { getOctokit } from '@actions/github';
+import { GitHubServiceFactory, GitHubService } from '../../core/github/GitHubServiceFactory';
 
 export interface FirebaseJsonConfig {
   hosting?: Array<{
@@ -21,10 +21,12 @@ export interface FirebaseJsonConfig {
 }
 
 export class FirebaseConfigDetector {
-  private octokit: ReturnType<typeof getOctokit>;
+  private github: GitHubService;
+  private context: ReturnType<GitHubService['getContext']>;
 
-  constructor(githubToken: string) {
-    this.octokit = getOctokit(githubToken);
+  constructor() {
+    this.github = GitHubServiceFactory.getService();
+    this.context = this.github.getContext();
   }
 
   /**
@@ -32,21 +34,20 @@ export class FirebaseConfigDetector {
    */
   async getFirebaseConfig(): Promise<FirebaseJsonConfig | null> {
     try {
-      const context = require('@actions/github').context;
-      const { owner, repo } = context.repo;
-      const ref = context.payload.pull_request?.head?.sha || context.sha;
+      const { owner, repo } = this.context;
+      const ref = this.context.sha;
 
       core.info('Fetching firebase.json from repository...');
 
-      const response = await this.octokit.rest.repos.getContent({
+      const response = await this.github.getContent(
         owner,
         repo,
-        path: 'firebase.json',
+        'firebase.json',
         ref
-      });
+      );
 
-      if ('content' in response.data) {
-        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+      if ('content' in response) {
+        const content = Buffer.from(response.content, 'base64').toString('utf-8');
         const firebaseConfig = JSON.parse(content) as FirebaseJsonConfig;
         
         core.info('Successfully parsed firebase.json');
@@ -230,19 +231,18 @@ export class FirebaseConfigDetector {
     buildScript?: string;
   } | null> {
     try {
-      const context = require('@actions/github').context;
-      const { owner, repo } = context.repo;
-      const ref = context.payload.pull_request?.head?.sha || context.sha;
+      const { owner, repo } = this.context;
+      const ref = this.context.sha;
 
-      const response = await this.octokit.rest.repos.getContent({
+      const response = await this.github.getContent(
         owner,
         repo,
-        path: 'package.json',
+        'package.json',
         ref
-      });
+      );
 
-      if ('content' in response.data) {
-        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+      if ('content' in response) {
+        const content = Buffer.from(response.content, 'base64').toString('utf-8');
         const packageJson = JSON.parse(content);
         
         const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };

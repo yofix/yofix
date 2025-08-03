@@ -26,8 +26,8 @@ export class BotActivityHandler {
   private activities: Map<string, BotActivity> = new Map();
   private currentActivity: BotActivity | null = null;
 
-  constructor(githubToken?: string) {
-    this.commentEngine = getGitHubCommentEngine(githubToken);
+  constructor() {
+    this.commentEngine = getGitHubCommentEngine();
   }
 
   /**
@@ -224,6 +224,26 @@ export class BotActivityHandler {
   }
 
   /**
+   * Track an activity with automatic handling
+   */
+  async trackActivity<T>(
+    operation: string,
+    handler: () => Promise<T>
+  ): Promise<T> {
+    const activityId = `activity-${Date.now()}`;
+    
+    try {
+      await this.startActivity(activityId, operation);
+      const result = await handler();
+      await this.completeActivity(result);
+      return result;
+    } catch (error) {
+      await this.failActivity(error as Error);
+      throw error;
+    }
+  }
+
+  /**
    * Handle unknown command
    */
   async handleUnknownCommand(command: string, suggestions?: string[]): Promise<void> {
@@ -347,5 +367,5 @@ export class BotActivityHandler {
   }
 }
 
-// Export singleton for easy access
+// Export singleton instance
 export const botActivity = new BotActivityHandler();

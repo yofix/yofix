@@ -1,15 +1,16 @@
 import * as core from '@actions/core';
-import * as github from '@actions/github';
+// import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 import { BotCommand, BotContext } from '../types';
 import { CommandRegistry } from './CommandRegistry';
 import { ProgressReporter, ProgressReporterFactory } from './ProgressReporter';
 import { CommandParser } from '../CommandParser';
+import { GitHubServiceFactory, GitHubService } from '../../core/github/GitHubServiceFactory';
 
 /**
  * Bot interface - follows Interface Segregation Principle
  */
 export interface Bot {
-  handleIssueComment(context: typeof github.context): Promise<void>;
+  handleIssueComment(context: ReturnType<GitHubService['getContext']>): Promise<void>;
 }
 
 /**
@@ -42,21 +43,40 @@ export interface GitHubInteractor {
  * Default GitHub interactor implementation
  */
 export class DefaultGitHubInteractor implements GitHubInteractor {
-  constructor(private octokit: ReturnType<typeof github.getOctokit>) {}
+  private github: GitHubService;
+  private context: ReturnType<GitHubService['getContext']>;
+
+  constructor() {
+    this.github = GitHubServiceFactory.getService();
+    this.context = this.github.getContext();
+  }
 
   async addReaction(params: Parameters<GitHubInteractor['addReaction']>[0]): Promise<void> {
-    await this.octokit.rest.reactions.createForIssueComment({
-      ...params,
-      content: params.content as any
-    });
+    await this.github.addReaction(
+      params.owner,
+      params.repo,
+      params.comment_id,
+      params.content as any
+    );
   }
 
   async createComment(params: Parameters<GitHubInteractor['createComment']>[0]) {
-    return await this.octokit.rest.issues.createComment(params);
+    const result = await this.github.createComment(
+      params.owner,
+      params.repo,
+      params.issue_number,
+      params.body
+    );
+    return { data: { id: result.id } };
   }
 
   async updateComment(params: Parameters<GitHubInteractor['updateComment']>[0]): Promise<void> {
-    await this.octokit.rest.issues.updateComment(params);
+    await this.github.updateComment(
+      params.owner,
+      params.repo,
+      params.comment_id,
+      params.body
+    );
   }
 }
 
@@ -74,7 +94,7 @@ export class YoFixBotRefactored implements Bot {
     this.commandParser = new CommandParser();
   }
 
-  async handleIssueComment(context: typeof github.context): Promise<void> {
+  async handleIssueComment(context: ReturnType<GitHubService['getContext']>): Promise<void> {
     const { issue, comment } = context.payload;
     
     if (!issue?.pull_request || !comment) {
@@ -110,7 +130,7 @@ export class YoFixBotRefactored implements Bot {
 
   private async executeCommand(
     command: BotCommand,
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     comment: any
   ): Promise<void> {
     // Add acknowledgment
@@ -139,7 +159,10 @@ export class YoFixBotRefactored implements Bot {
     // Build context
     const botContext: BotContext = {
       prNumber: context.payload.issue.number,
-      repo: context.repo,
+      repo: {
+        owner: context.owner,
+        repo: context.repo
+      },
       comment: {
         id: comment.id,
         user: comment.user,
@@ -161,40 +184,40 @@ export class YoFixBotRefactored implements Bot {
   }
 
   private async acknowledge(
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     comment: any
   ): Promise<void> {
     await this.githubInteractor.addReaction({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner: context.owner,
+      repo: context.repo,
       comment_id: comment.id,
       content: 'eyes'
     });
   }
 
   private async createProgressComment(
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     originalComment: any,
     initialMessage: string
   ) {
     const body = `> In reply to [this comment](${originalComment.html_url})\n\n${initialMessage}`;
     
     return await this.githubInteractor.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner: context.owner,
+      repo: context.repo,
       issue_number: context.payload.issue.number,
       body
     });
   }
 
   private createProgressReporter(
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     commentId: number
   ): ProgressReporter {
     const updateComment = async (id: number, body: string) => {
       await this.githubInteractor.updateComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
+        owner: context.owner,
+        repo: context.repo,
         comment_id: id,
         body
       });
@@ -204,7 +227,7 @@ export class YoFixBotRefactored implements Bot {
   }
 
   private async handleInvalidCommand(
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     comment: any
   ): Promise<void> {
     const helpMessage = this.commandRegistry.getAllHandlers()
@@ -212,21 +235,21 @@ export class YoFixBotRefactored implements Bot {
       .join('\n');
 
     await this.githubInteractor.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner: context.owner,
+      repo: context.repo,
       issue_number: context.payload.issue.number,
       body: `## 🔧 YoFix Bot Commands\n\n${helpMessage}`
     });
   }
 
   private async handleUnknownCommand(
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     comment: any,
     command: BotCommand
   ): Promise<void> {
     await this.githubInteractor.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner: context.owner,
+      repo: context.repo,
       issue_number: context.payload.issue.number,
       body: `❓ Unknown command: \`${command.action}\`\n\nTry \`@yofix help\` for available commands.`
     });
@@ -234,14 +257,14 @@ export class YoFixBotRefactored implements Bot {
 
   private async handleError(
     error: Error,
-    context: typeof github.context,
+    context: ReturnType<GitHubService['getContext']>,
     comment: any
   ): Promise<void> {
     core.error(`Bot error: ${error}`);
     
     await this.githubInteractor.createComment({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
+      owner: context.owner,
+      repo: context.repo,
       issue_number: context.payload.issue.number,
       body: `❌ YoFix encountered an error: ${error.message}\n\nTry \`@yofix help\` for available commands.`
     });
@@ -268,11 +291,9 @@ export class YoFixBotRefactored implements Bot {
  */
 export class BotFactory {
   static create(
-    githubToken: string,
     commandRegistry: CommandRegistry
   ): Bot {
-    const octokit = github.getOctokit(githubToken);
-    const githubInteractor = new DefaultGitHubInteractor(octokit);
+    const githubInteractor = new DefaultGitHubInteractor();
     
     return new YoFixBotRefactored(
       githubInteractor,

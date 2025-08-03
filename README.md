@@ -16,10 +16,40 @@ YoFix automatically detects visual issues in your web applications and generates
 - 🎯 **Framework Support**: React, Next.js, Vue, Angular, and more
 - 📸 **Visual Baselines**: Track and compare UI changes over time
 - 🔐 **LLM-Powered Auth**: AI understands any login form - no selectors needed!
+- ⚡ **Zero-Setup Development**: Works immediately without environment configuration
+- 🏗️ **Modular Architecture**: Hook-based system for maximum testability and independence
+
+## 🏗️ Architecture
+
+YoFix features a **decoupled, hook-based architecture** that eliminates external dependencies for development and testing:
+
+### Zero-Setup Development
+```bash
+# Works immediately - no environment setup required!
+git clone https://github.com/yofix/yofix.git
+cd yofix
+npm install
+npm test        # ✅ All tests pass with smart defaults
+npm run build   # ✅ Builds successfully
+```
+
+### Smart Defaults System
+YoFix includes intelligent defaults that automatically configure:
+- **GitHub Integration**: Mock tokens and repository context for testing
+- **Storage Providers**: Test-safe Firebase and S3 configurations  
+- **AI Services**: Mock API keys for development
+- **Environment Variables**: Sensible fallbacks for all configuration
+
+### Hook-Based Architecture
+All core functionality uses abstraction hooks for maximum testability:
+- **`GitHubServiceFactory`**: Centralized GitHub operations with caching and rate limiting
+- **`EnvironmentHook`**: Environment variable access with smart defaults
+- **`ConfigurationHook`**: GitHub Actions input abstraction
+- **`StorageHook`**: Provider-agnostic storage operations
 
 ## 🚀 Quick Start
 
-### Installation
+### For GitHub Actions (Production Use)
 
 Add YoFix to your GitHub Actions workflow:
 
@@ -66,9 +96,36 @@ jobs:
           max-routes: "10"
 ```
 
-## 📋 Prerequisites
+### For Local Development
 
-Before using YoFix, you'll need:
+YoFix works immediately without any setup:
+
+```bash
+# Clone and test
+git clone https://github.com/yofix/yofix.git
+cd yofix
+npm install
+npm test                    # ✅ Works with smart defaults
+
+# Build and run
+npm run build              # ✅ No environment setup needed
+npm run yofix-cli --help   # CLI usage
+
+# Override defaults when needed
+export GITHUB_TOKEN=ghp_your_token
+export CLAUDE_API_KEY=your_key
+npm test                   # ✅ Uses real values when provided
+```
+
+**Smart defaults include:**
+- Mock GitHub token and repository context
+- Test-safe storage configurations  
+- Development AI API keys
+- All necessary environment variables
+
+## 📋 Prerequisites (Production Only)
+
+For **production use in GitHub Actions**, you'll need:
 
 ### 1. Claude API Key
 Get your API key from [console.anthropic.com](https://console.anthropic.com)
@@ -76,18 +133,20 @@ Get your API key from [console.anthropic.com](https://console.anthropic.com)
 ### 2. Storage Provider (choose one)
 
 **Option A: Firebase Storage**
-- Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+- Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)  
 - Generate a service account key (Project Settings → Service Accounts)
 - Base64 encode the JSON file: `base64 -i service-account.json`
 - Set as `FIREBASE_SERVICE_ACCOUNT` secret
 
 **Option B: AWS S3**
 - Create an S3 bucket with public read access
-- Create IAM user with S3 write permissions
+- Create IAM user with S3 write permissions  
 - Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` secrets
 
-### 3. GitHub Token
+### 3. GitHub Token (Automatic)
 The `YOFIX_GITHUB_TOKEN` is automatically available in GitHub Actions
+
+> **Note**: For local development, **no setup is required** - YoFix includes smart defaults for all services!
 
 ## 🤖 Bot Commands
 
@@ -281,7 +340,52 @@ Ensure accessibility compliance:
 
 ## 🔧 Configuration System
 
-YoFix supports flexible configuration through multiple sources. You can customize AI models, browser settings, timeouts, and more.
+YoFix features a **layered configuration system** with smart defaults that eliminate setup requirements:
+
+### Configuration Priority
+1. **Environment Variables** (highest priority)
+2. **Smart Defaults** (automatic fallbacks)
+3. **Configuration Files** (optional customization)
+
+### Smart Defaults (`src/config/default.config.ts`)
+```typescript
+// GitHub Integration - works immediately
+github: {
+  token: 'mock-github-token',         // For testing
+  repository: 'test-owner/test-repo', // Default context
+  // ... more defaults
+}
+
+// Storage Providers - test-safe configurations  
+storage: {
+  firebase: {
+    projectId: 'yofix-test-project',  // Safe for development
+    // ... mock credentials
+  }
+}
+```
+
+### Architecture Components
+
+#### GitHubServiceFactory
+Centralized GitHub operations with enterprise features:
+```typescript
+// Automatic service selection
+const service = GitHubServiceFactory.getInstance();
+
+// Enhanced features
+- LRU Caching with TTL expiration
+- Token bucket rate limiting  
+- Exponential backoff retry logic
+- Mock service for testing
+```
+
+#### Hook System
+Abstraction layers for all external dependencies:
+- **`EnvironmentHook`**: Environment variable access with defaults
+- **`ConfigurationHook`**: GitHub Actions input abstraction  
+- **`StorageHook`**: Provider-agnostic storage (Firebase/S3)
+- **`LoggerHook`**: Unified logging across environments
 
 ### Configuration File
 

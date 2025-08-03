@@ -168,8 +168,8 @@ export class FirebaseStorage implements StorageProvider {
       }),
       {
         maxAttempts: 3,
-        delayMs: 1000,
-        backoff: true,
+        delay: 1000,
+        backoff: 2,
         onRetry: (attempt, error) => {
           this.logger.debug(`Upload retry attempt ${attempt} for ${path}: ${error.message}`);
         }

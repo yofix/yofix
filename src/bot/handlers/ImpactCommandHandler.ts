@@ -38,12 +38,11 @@ export interface RouteAnalyzerFactory {
  */
 export class DefaultRouteAnalyzerFactory implements RouteAnalyzerFactory {
   constructor(
-    private readonly githubToken: string,
     private readonly rootPath: string = process.cwd()
   ) {}
 
   create(storageProvider?: StorageProvider, previewUrl?: string): RouteAnalyzer {
-    return new RouteImpactAnalyzer(this.githubToken, storageProvider, previewUrl);
+    return new RouteImpactAnalyzer(storageProvider, previewUrl);
   }
 }
 

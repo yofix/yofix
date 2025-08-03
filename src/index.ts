@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-import * as github from '@actions/github';
+// import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 
 import { TestGenerator } from './core/testing/TestGenerator';
 import { VisualAnalyzer } from './core/analysis/VisualAnalyzer';
@@ -12,6 +12,7 @@ import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult }
 import { YoFixBot } from './bot/YoFixBot';
 import { RouteImpactAnalyzer } from './core/analysis/RouteImpactAnalyzer';
 import { StorageFactory } from './providers/storage/StorageFactory';
+import { GitHubServiceFactory } from './core/github/GitHubServiceFactory';
 import { 
   initializeCoreServices, 
   finalizeCoreServices, 
@@ -30,11 +31,10 @@ import { defaultConfig } from './config/default.config';
 async function run(): Promise<void> {
   try {
     // Initialize core services first
-    const githubToken = getRequiredConfig('github-token');
-    initializeCoreServices(githubToken);
+    initializeCoreServices();
     
     // Check if this is a bot command
-    const eventName = github.context.eventName;
+    const eventName = GitHubServiceFactory.getService().getContext().eventName;
     
     if (eventName === 'issue_comment') {
       await handleBotCommand();
@@ -64,14 +64,14 @@ async function run(): Promise<void> {
 async function handleBotCommand(): Promise<void> {
   try {
     const inputs = parseInputs();
-    const bot = new YoFixBot(inputs.githubToken, inputs.claudeApiKey);
-    await bot.handleIssueComment(github.context);
+    const bot = new YoFixBot(inputs.claudeApiKey);
+    await bot.handleIssueComment(GitHubServiceFactory.getService().getContext());
   } catch (error) {
     await errorHandler.handleError(error as Error, {
       severity: ErrorSeverity.HIGH,
       category: ErrorCategory.UNKNOWN,
       userAction: 'Bot command execution',
-      metadata: { eventName: github.context.eventName }
+      metadata: { eventName: GitHubServiceFactory.getService().getContext().eventName }
     });
     core.setFailed(`Bot error: ${error}`);
   }
@@ -124,7 +124,7 @@ async function runVisualTesting(): Promise<void> {
       return { width, height, name: `${width}x${height}` };
     });
     
-    prNumber = parseInt(process.env.PR_NUMBER || github.context.payload.pull_request?.number?.toString() || '0');
+    prNumber = parseInt(process.env.PR_NUMBER || GitHubServiceFactory.getService().getContext().prNumber?.toString() || '0');
     
     // Analyze route impact and get affected routes
     let affectedRoutes: string[] = ['/'];
@@ -143,7 +143,7 @@ async function runVisualTesting(): Promise<void> {
           core.debug(`Storage provider initialization failed: ${error}`);
         }
         
-        const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken, storageProvider, inputs.previewUrl);
+        const impactAnalyzer = new RouteImpactAnalyzer(storageProvider, inputs.previewUrl);
         
         // Add timeout to route analysis to prevent hanging
         core.info('⏱️ Starting route analysis with 60s timeout...');
@@ -200,16 +200,17 @@ async function runVisualTesting(): Promise<void> {
         
         // Post route impact tree as a comment with timeout
         const impactMessage = impactAnalyzer.formatImpactTree(impactTree);
-        const octokit = github.getOctokit(inputs.githubToken);
+        const githubService = GitHubServiceFactory.getService();
+        const context = githubService.getContext();
         
         try {
           await Promise.race([
-            octokit.rest.issues.createComment({
-              owner: github.context.repo.owner,
-              repo: github.context.repo.repo,
-              issue_number: prNumber,
-              body: impactMessage
-            }),
+            githubService.createComment(
+              context.owner,
+              context.repo,
+              prNumber,
+              impactMessage
+            ),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('GitHub comment timeout')), 15000)
             )
@@ -295,7 +296,7 @@ async function runVisualTesting(): Promise<void> {
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);
     
     // Initialize test runner (uses hybrid approach: LLM auth + deterministic testing)
-    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey, inputs.githubToken);
+    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);
     
     // Run tests using browser-agent
     core.info('🤖 Running tests with Browser Agent...');
@@ -329,7 +330,7 @@ async function runVisualTesting(): Promise<void> {
       const deterministicAnalyzer = new DeterministicVisualAnalyzer(
         inputs.previewUrl,
         useLLMAnalysis ? inputs.claudeApiKey : undefined,
-        inputs.githubToken
+        // inputs.githubToken // Removed - now handled by GitHubServiceFactory
       );
       
       scanResult = await deterministicAnalyzer.scan({
@@ -497,7 +498,7 @@ async function runVisualTesting(): Promise<void> {
     // Report to PR with timeout
     core.info('📝 Posting results to PR...');
     const reportStartTime = Date.now();
-    const reporter = new PRReporter(inputs.githubToken);
+    const reporter = new PRReporter();
     
     try {
       await Promise.race([
@@ -585,7 +586,7 @@ function parseInputs(): ActionInputs {
     previewUrl: getRequiredConfig('preview-url'),
     firebaseCredentials: config.get('firebase-credentials'),
     storageBucket: config.get('storage-bucket'),
-    githubToken: getRequiredConfig('github-token'),
+    // githubToken: getRequiredConfig('github-token'), // Removed - now handled by GitHubServiceFactory
     claudeApiKey: config.getSecret('claude-api-key'),
     productionUrl: config.get('production-url'),
     firebaseTarget: config.get('firebase-target'),

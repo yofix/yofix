@@ -3,6 +3,7 @@ import { ActionHandler } from '../core/ActionRegistry';
 import { Page } from 'playwright';
 import { DOMIndexer } from '../core/DOMIndexer';
 import * as core from '@actions/core';
+import { getConfiguration } from '../../core/hooks/ConfigurationHook';
 import { authenticateWithLLM } from '../../modules/llm-browser-agent';
 import { errorHandler, ErrorCategory, ErrorSeverity } from '../../core';
 
@@ -107,7 +108,7 @@ export function getAuthActions(llmProvider?: any): Array<{ definition: ActionDef
           // Navigation might have already happened or be client-side only
           // Check if we're no longer on the login page
           const currentUrl = page.url();
-          const authMode = core.getInput('auth-mode') || 'llm';
+          const authMode = getConfiguration().getInput('auth-mode') || 'llm';
           
           if (currentUrl === loginUrl || currentUrl.includes('/login')) {
             // Still on login page, might be client-side routing
@@ -286,7 +287,7 @@ export function getAuthActions(llmProvider?: any): Array<{ definition: ActionDef
       
       try {
         const { page, state } = context;
-        const claudeApiKey = process.env.CLAUDE_API_KEY || core.getInput('claude-api-key');
+        const claudeApiKey = process.env.CLAUDE_API_KEY || getConfiguration().getInput('claude-api-key');
         
         if (!claudeApiKey) {
           return {

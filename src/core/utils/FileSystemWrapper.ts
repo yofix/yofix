@@ -296,8 +296,8 @@ export class FileSystem {
       },
       {
         maxAttempts: 3,
-        delayMs: 1000,
-        backoff: true,
+        delay: 1000,
+        backoff: 2,
         onRetry: (attempt, error) => {
           logger.debug(`Copy retry ${attempt}: ${error.message}`);
         }

@@ -27,14 +27,13 @@ export class DeterministicRunner {
   private storageProvider?: StorageProvider;
   private baselineManager?: DynamicBaselineManager;
   
-  constructor(private firebaseConfig: FirebaseConfig, storageProvider?: StorageProvider, githubToken?: string) {
+  constructor(private firebaseConfig: FirebaseConfig, storageProvider?: StorageProvider) {
     this.storageProvider = storageProvider;
     
     // Initialize baseline manager if storage is available
     if (storageProvider) {
       this.baselineManager = new DynamicBaselineManager({
         storageProvider,
-        githubToken: githubToken || process.env.GITHUB_TOKEN || '',
         productionUrl: process.env.PRODUCTION_URL
       });
     }

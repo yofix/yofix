@@ -3,9 +3,10 @@
  * Provides clean, predictable patterns for common operations
  */
 
-import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
-import { getGitHubCommentEngine } from '../github/GitHubCommentEngine';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '../error/CentralizedErrorHandler';
+import { GitHubServiceFactory, GitHubService } from '../github/GitHubServiceFactory';
 import { botActivity } from '../bot/BotActivityHandler';
+import { getConfiguration } from '../hooks/ConfigurationHook';
 import * as core from '@actions/core';
 
 /**
@@ -72,17 +73,67 @@ export async function executeOperation<T>(
  * Standard pattern for GitHub comment operations
  */
 export class GitHubOperations {
-  private static commentEngine = getGitHubCommentEngine();
+  private static github: GitHubService | null = null;
+  private static context: ReturnType<GitHubService['getContext']> | null = null;
+  
+  private static ensureInitialized(): void {
+    if (!this.github) {
+      this.github = GitHubServiceFactory.getService();
+      this.context = this.github.getContext();
+    }
+  }
   
   static async postProgress(message: string, threadId?: string): Promise<void> {
-    await this.commentEngine.postComment(message, {
-      threadId,
-      updateExisting: true,
-      signature: 'yofix-progress'
-    });
+    this.ensureInitialized();
+    
+    if (!this.context?.prNumber) {
+      core.warning('No PR context available, skipping progress comment');
+      return;
+    }
+    
+    const signature = threadId ? `yofix-progress-${threadId}` : 'yofix-progress';
+    const body = `⏳ ${message}\n\n<!-- ${signature} -->`;
+    
+    try {
+      // Try to find and update existing comment
+      const comments = await this.github!.listComments(
+        this.context.owner,
+        this.context.repo,
+        this.context.prNumber
+      );
+      
+      const existingComment = comments.find(comment => 
+        comment.body.includes(`<!-- ${signature} -->`)
+      );
+      
+      if (existingComment) {
+        await this.github!.updateComment(
+          this.context.owner,
+          this.context.repo,
+          existingComment.id,
+          body
+        );
+      } else {
+        await this.github!.createComment(
+          this.context.owner,
+          this.context.repo,
+          this.context.prNumber,
+          body
+        );
+      }
+    } catch (error) {
+      core.warning(`Failed to post progress comment: ${error}`);
+    }
   }
   
   static async postResult(result: OperationResult<any>, operation: string): Promise<void> {
+    this.ensureInitialized();
+    
+    if (!this.context?.prNumber) {
+      core.warning('No PR context available, skipping result comment');
+      return;
+    }
+    
     const emoji = result.success ? '✅' : '❌';
     const status = result.success ? 'Success' : 'Failed';
     
@@ -96,123 +147,142 @@ export class GitHubOperations {
       message += '\n\n**Details**:\n```json\n' + JSON.stringify(result.data, null, 2) + '\n```';
     }
     
-    await this.commentEngine.postComment(message, {
-      updateExisting: true,
-      signature: `yofix-${operation.toLowerCase().replace(/\s+/g, '-')}`
-    });
-  }
-}
-
-/**
- * Standard pattern for bot activity tracking
- */
-export class BotOperations {
-  private static botActivityHandler = botActivity;
-  
-  static async trackOperation<T>(
-    operation: () => Promise<T>,
-    context: {
-      id: string;
-      command: string;
-      steps: Array<{
-        name: string;
-        operation: () => Promise<any>;
-      }>;
+    if (result.metadata && Object.keys(result.metadata).length > 0) {
+      message += '\n\n**Metadata**:\n';
+      for (const [key, value] of Object.entries(result.metadata)) {
+        message += `- ${key}: ${value}\n`;
+      }
     }
-  ): Promise<OperationResult<T>> {
-    await this.botActivityHandler.startActivity(context.id, context.command);
+    
+    const signature = `yofix-result-${operation.toLowerCase().replace(/\s+/g, '-')}`;
+    message += `\n\n<!-- ${signature} -->`;
     
     try {
-      // Execute steps sequentially
-      for (const step of context.steps) {
-        await this.botActivityHandler.addStep(step.name, 'running');
-        
-        try {
-          await step.operation();
-          await this.botActivityHandler.updateStep(step.name, 'completed');
-        } catch (error) {
-          await this.botActivityHandler.updateStep(step.name, 'failed');
-          throw error;
-        }
-      }
-      
-      // Execute main operation
-      const result = await operation();
-      await this.botActivityHandler.completeActivity(result);
-      
-      return {
-        success: true,
-        data: result
-      };
+      await this.github!.createComment(
+        this.context.owner,
+        this.context.repo,
+        this.context.prNumber,
+        message
+      );
     } catch (error) {
-      await this.botActivityHandler.failActivity(error instanceof Error ? error.message : 'Operation failed');
+      core.warning(`Failed to post result comment: ${error}`);
+    }
+  }
+  
+  static async addReaction(reaction: '+1' | '-1' | 'eyes' | 'rocket' | 'confused'): Promise<void> {
+    this.ensureInitialized();
+    
+    if (!this.context?.prNumber) {
+      return;
+    }
+    
+    try {
+      // Try to find the triggering comment
+      const triggeringCommentId = this.getTriggeringCommentId();
       
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+      if (triggeringCommentId) {
+        await this.github!.addReaction(
+          this.context.owner,
+          this.context.repo,
+          triggeringCommentId,
+          reaction
+        );
+      }
+    } catch (error) {
+      core.debug(`Failed to add reaction: ${error}`);
+    }
+  }
+  
+  private static getTriggeringCommentId(): number | null {
+    try {
+      const eventPath = process.env.GITHUB_EVENT_PATH;
+      if (!eventPath) return null;
+      
+      const event = JSON.parse(require('fs').readFileSync(eventPath, 'utf8'));
+      return event?.comment?.id || null;
+    } catch {
+      return null;
     }
   }
 }
 
 /**
- * Standard pattern for configuration access
+ * Standard pattern for bot operations
+ */
+export class BotOperations {
+  static async trackActivity(
+    operation: string,
+    handler: () => Promise<any>
+  ): Promise<OperationResult<any>> {
+    return botActivity.trackActivity(operation, async () => {
+      const result = await executeOperation(handler, {
+        name: operation,
+        category: ErrorCategory.MODULE
+      });
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Operation failed');
+      }
+      
+      return result.data;
+    }).then(data => ({
+      success: true,
+      data
+    })).catch(error => ({
+      success: false,
+      error: error.message
+    }));
+  }
+}
+
+/**
+ * Configuration pattern for consistent settings access
  */
 export class ConfigPattern {
-  static get<T>(path: string, defaultValue: T): T {
+  private static config = getConfiguration();
+  
+  static get(key: string, defaultValue?: string): string {
+    return this.config.getInput(key) || defaultValue || '';
+  }
+  
+  static getBoolean(key: string, defaultValue: boolean = false): boolean {
+    return this.config.getBooleanInput(key) || defaultValue;
+  }
+  
+  static getNumber(key: string, defaultValue: number = 0): number {
+    const value = this.config.getInput(key);
+    if (!value) return defaultValue;
+    const num = parseInt(value, 10);
+    return isNaN(num) ? defaultValue : num;
+  }
+  
+  static getJson<T>(key: string, defaultValue: T): T {
+    const value = this.config.getInput(key);
+    if (!value) return defaultValue;
+    
     try {
-      // Try environment variable first
-      const envKey = `YOFIX_${path.toUpperCase().replace(/\./g, '_')}`;
-      const envValue = process.env[envKey];
-      
-      if (envValue !== undefined) {
-        // Parse JSON values
-        try {
-          return JSON.parse(envValue) as T;
-        } catch {
-          return envValue as unknown as T;
-        }
-      }
-      
-      // Try GitHub Action input
-      const inputKey = path.toLowerCase().replace(/\./g, '-');
-      const inputValue = core.getInput(inputKey);
-      
-      if (inputValue) {
-        try {
-          return JSON.parse(inputValue) as T;
-        } catch {
-          return inputValue as unknown as T;
-        }
-      }
-      
-      // Return default
-      return defaultValue;
-    } catch (error) {
-      core.debug(`Failed to get config ${path}: ${error}`);
+      return JSON.parse(value);
+    } catch {
       return defaultValue;
     }
   }
 }
 
 /**
- * Standard pattern for retryable operations
+ * Retry pattern for flaky operations
  */
 export async function retryOperation<T>(
   operation: () => Promise<T>,
   options: {
     maxAttempts?: number;
-    delayMs?: number;
-    backoff?: boolean;
+    delay?: number;
+    backoff?: number;
     onRetry?: (attempt: number, error: Error) => void;
   } = {}
 ): Promise<T> {
-  const { 
-    maxAttempts = 3, 
-    delayMs = 1000, 
-    backoff = true,
-    onRetry 
-  } = options;
+  const maxAttempts = options.maxAttempts || 3;
+  const delay = options.delay || 1000;
+  const backoff = options.backoff || 2;
   
   let lastError: Error;
   
@@ -223,12 +293,12 @@ export async function retryOperation<T>(
       lastError = error as Error;
       
       if (attempt < maxAttempts) {
-        if (onRetry) {
-          onRetry(attempt, lastError);
+        if (options.onRetry) {
+          options.onRetry(attempt, lastError);
         }
         
-        const delay = backoff ? delayMs * attempt : delayMs;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const waitTime = delay * Math.pow(backoff, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
   }
@@ -237,54 +307,55 @@ export async function retryOperation<T>(
 }
 
 /**
- * Standard pattern for parallel operations with error collection
+ * Parallel execution pattern with error collection
  */
 export async function executeParallel<T>(
-  operations: Array<{
-    name: string;
-    operation: () => Promise<T>;
-  }>
-): Promise<{
-  results: Array<{ name: string; result?: T; error?: Error }>;
-  hasErrors: boolean;
-}> {
-  const results = await Promise.allSettled(
-    operations.map(async ({ name, operation }) => {
-      try {
-        const result = await operation();
-        return { name, result };
-      } catch (error) {
-        return { name, error: error as Error };
-      }
-    })
-  );
+  operations: Array<() => Promise<T>>,
+  options: {
+    maxConcurrency?: number;
+    continueOnError?: boolean;
+  } = {}
+): Promise<Array<OperationResult<T>>> {
+  const maxConcurrency = options.maxConcurrency || operations.length;
+  const results: Array<OperationResult<T>> = [];
   
-  const processedResults = results.map((result, index) => {
-    if (result.status === 'fulfilled') {
-      return result.value;
-    } else {
-      return {
-        name: operations[index].name,
-        error: result.reason as Error
-      };
-    }
-  });
+  const queue = [...operations];
+  const executing: Array<Promise<void>> = [];
   
-  // Log all errors
-  for (const result of processedResults) {
-    if (result.error) {
-      await errorHandler.handleError(result.error, {
-        severity: ErrorSeverity.MEDIUM,
-        category: ErrorCategory.UNKNOWN,
-        userAction: `Parallel operation: ${result.name}`,
-        recoverable: true,
-        skipGitHubPost: true
+  while (queue.length > 0 || executing.length > 0) {
+    while (executing.length < maxConcurrency && queue.length > 0) {
+      const operation = queue.shift()!;
+      const index = operations.indexOf(operation);
+      
+      const promise = operation()
+        .then(data => {
+          results[index] = { success: true, data };
+        })
+        .catch(error => {
+          results[index] = { 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          };
+          
+          if (!options.continueOnError) {
+            throw error;
+          }
+        });
+      
+      executing.push(promise);
+      
+      promise.finally(() => {
+        const idx = executing.indexOf(promise);
+        if (idx !== -1) {
+          executing.splice(idx, 1);
+        }
       });
+    }
+    
+    if (executing.length > 0) {
+      await Promise.race(executing);
     }
   }
   
-  return {
-    results: processedResults,
-    hasErrors: processedResults.some(r => r.error !== undefined)
-  };
+  return results;
 }

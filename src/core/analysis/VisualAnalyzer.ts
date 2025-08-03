@@ -7,13 +7,11 @@ import { errorHandler, ErrorCategory, ErrorSeverity } from '../';
 
 export class VisualAnalyzer {
   private claudeApiKey: string;
-  private githubToken: string;
   private cache: CacheManager;
   private previewUrl?: string;
 
-  constructor(claudeApiKey: string, githubToken: string = '', cache?: CacheManager, previewUrl?: string) {
+  constructor(claudeApiKey: string, cache?: CacheManager, previewUrl?: string) {
     this.claudeApiKey = claudeApiKey;
-    this.githubToken = githubToken;
     this.cache = cache || new CacheManager();
     this.previewUrl = previewUrl;
   }

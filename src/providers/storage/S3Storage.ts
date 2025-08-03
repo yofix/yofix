@@ -180,8 +180,8 @@ export class S3Storage implements StorageProvider {
       () => this.client.send(new PutObjectCommand(uploadParams)),
       {
         maxAttempts: 3,
-        delayMs: 1000,
-        backoff: true,
+        delay: 1000,
+        backoff: 2,
         onRetry: (attempt, error) => {
           this.logger.debug(`Upload retry attempt ${attempt} for ${key}: ${error.message}`);
         }

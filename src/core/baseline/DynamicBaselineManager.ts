@@ -10,7 +10,6 @@ import pixelmatch from 'pixelmatch';
 export interface DynamicBaselineConfig {
   productionUrl?: string;
   storageProvider: StorageProvider;
-  githubToken: string;
 }
 
 export interface BaselineResult {
@@ -28,7 +27,7 @@ export class DynamicBaselineManager {
   private impactAnalyzer: RouteImpactAnalyzer;
 
   constructor(private config: DynamicBaselineConfig) {
-    this.impactAnalyzer = new RouteImpactAnalyzer(config.githubToken, config.storageProvider);
+    this.impactAnalyzer = new RouteImpactAnalyzer(config.storageProvider);
   }
 
   /**
@@ -339,6 +338,46 @@ export class DynamicBaselineManager {
       return files && files.length > 0;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Create baselines from main branch deployments (if available)
+   */
+  async createBaselinesFromMainBranch(): Promise<boolean> {
+    core.info('🔍 Attempting to create baselines from main branch deployments...');
+    
+    // This method would typically:
+    // 1. Check for existing deployments from main branch
+    // 2. Find the latest successful deployment URL
+    // 3. Use that URL to create baselines
+    
+    // For now, we'll try to use the production URL if available
+    if (this.config.productionUrl) {
+      const routes = await this.getDiscoveredRoutes();
+      const viewports = [
+        { width: 1920, height: 1080 },
+        { width: 768, height: 1024 },
+        { width: 375, height: 667 }
+      ];
+      
+      const results = await this.createBaselines(routes, viewports);
+      return results.length > 0;
+    }
+    
+    core.warning('No production URL configured for main branch baseline creation');
+    return false;
+  }
+
+  /**
+   * Get discovered routes from route manifest
+   */
+  private async getDiscoveredRoutes(): Promise<string[]> {
+    try {
+      const manifest = await this.impactAnalyzer.getRouteManifest();
+      return manifest?.routes || ['/'];
+    } catch {
+      return ['/'];
     }
   }
 }

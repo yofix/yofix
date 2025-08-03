@@ -160,7 +160,7 @@ async function runVisualTests(): Promise<void> {
               () => page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }),
               {
                 maxAttempts: 3,
-                delayMs: 2000,
+                delay: 2000,
                 onRetry: (attempt) => logger.debug(`Retry attempt ${attempt} for ${fullUrl}`)
               }
             );

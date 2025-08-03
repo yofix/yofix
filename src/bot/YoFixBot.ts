@@ -1,27 +1,31 @@
 import * as core from '@actions/core';
-import * as github from '@actions/github';
+import { getConfiguration } from '../core/hooks/ConfigurationHook';
+// import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 import { CommandParser } from './CommandParser';
 import { CommandHandler } from './CommandHandler';
 import { BotResponse } from './types';
 import { CodebaseAnalyzer } from '../context/CodebaseAnalyzer';
 import { CodebaseContext } from '../context/types';
 import { getGitHubCommentEngine, botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
+import { GitHubServiceFactory, GitHubService } from '../core/github/GitHubServiceFactory';
 
 /**
  * YoFix Bot - Main controller for handling GitHub comments and commands
  */
 export class YoFixBot {
-  private octokit: ReturnType<typeof github.getOctokit>;
+  private github: GitHubService;
+  private context: ReturnType<GitHubService['getContext']>;
   private commandParser: CommandParser;
   private commandHandler: CommandHandler;
   private botUsername = 'yofix';
   private codebaseContext: CodebaseContext | null = null;
   private commentEngine = getGitHubCommentEngine();
 
-  constructor(githubToken: string, claudeApiKey: string) {
-    this.octokit = github.getOctokit(githubToken);
+  constructor(claudeApiKey: string) {
+    this.github = GitHubServiceFactory.getService();
+    this.context = this.github.getContext();
     this.commandParser = new CommandParser();
-    this.commandHandler = new CommandHandler(githubToken, claudeApiKey);
+    this.commandHandler = new CommandHandler(claudeApiKey);
     
     // Initialize codebase analysis in the background
     this.initializeCodebaseContext();
@@ -37,11 +41,8 @@ export class YoFixBot {
       
       // Recreate command handler with context
       const { config } = await import('../core');
-      const githubToken = config.get('github-token', { 
-        defaultValue: process.env.YOFIX_GITHUB_TOKEN 
-      });
       const claudeApiKey = config.getSecret('claude-api-key');
-      this.commandHandler = new CommandHandler(githubToken, claudeApiKey, this.codebaseContext);
+      this.commandHandler = new CommandHandler(claudeApiKey, this.codebaseContext);
       
       core.info('✅ Codebase context initialized successfully');
     } catch (error) {
@@ -58,7 +59,7 @@ export class YoFixBot {
   /**
    * Listen for mentions in PR comments
    */
-  async handleIssueComment(context: typeof github.context): Promise<void> {
+  async handleIssueComment(context: ReturnType<GitHubService['getContext']>): Promise<void> {
     const { issue, comment } = context.payload;
     
     if (!issue?.pull_request || !comment) {
@@ -92,7 +93,10 @@ export class YoFixBot {
       // Execute command - bot activity handler will manage all updates
       const result = await this.commandHandler.execute(command, {
         prNumber: issue.number,
-        repo: context.repo,
+        repo: {
+          owner: context.owner,
+          repo: context.repo
+        },
         comment: {
           id: comment.id,
           user: comment.user,
@@ -130,21 +134,21 @@ export class YoFixBot {
    * Get preview URL for a PR
    */
   private async getPreviewUrl(prNumber: number): Promise<string | undefined> {
-    const context = github.context;
+    const context = this.github.getContext();
     
     try {
       // First, check if there's a preview URL in the environment
-      const envUrl = process.env.PREVIEW_URL || core.getInput('preview-url');
+      const envUrl = process.env.PREVIEW_URL || getConfiguration().getInput('preview-url');
       if (envUrl) {
         return envUrl;
       }
       
       // Try to find preview URL from PR comments
-      const { data: comments } = await this.octokit.rest.issues.listComments({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        issue_number: prNumber
-      });
+      const comments = await this.github.listComments(
+        this.context.owner,
+        this.context.repo,
+        prNumber
+      );
       
       // Look for Firebase preview URL in comments
       for (const comment of comments) {
@@ -155,7 +159,7 @@ export class YoFixBot {
       }
       
       // Try to construct URL based on pattern
-      const projectId = process.env.FIREBASE_PROJECT_ID || core.getInput('firebase-project-id');
+      const projectId = process.env.FIREBASE_PROJECT_ID || getConfiguration().getInput('firebase-project-id');
       if (projectId) {
         return `https://${projectId}--pr-${prNumber}.web.app`;
       }

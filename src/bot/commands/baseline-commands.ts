@@ -36,7 +36,6 @@ async function createBaselines(args: string[], context: BotContext): Promise<str
     // Create baseline manager
     const baselineManager = new DynamicBaselineManager({
       storageProvider,
-      githubToken: context.githubToken,
       productionUrl: process.env.PRODUCTION_URL
     });
     
@@ -93,8 +92,7 @@ async function updateBaselines(args: string[], context: BotContext): Promise<str
     
     // Create baseline manager
     const baselineManager = new DynamicBaselineManager({
-      storageProvider,
-      githubToken: context.githubToken
+      storageProvider
     });
     
     const viewports = [

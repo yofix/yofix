@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import * as github from '@actions/github';
+import { GitHubServiceFactory, GitHubService } from '../core/github/GitHubServiceFactory';
 import { createHash } from 'crypto';
 
 export interface AuthAttempt {
@@ -34,6 +34,11 @@ export interface AuthMetrics {
 export class AuthMonitor {
   private attempts: AuthAttempt[] = [];
   private readonly maxAttempts = 100; // Keep last 100 attempts in memory
+  private github: GitHubService;
+
+  constructor() {
+    this.github = GitHubServiceFactory.getService();
+  }
 
   /**
    * Record an authentication attempt
@@ -193,16 +198,16 @@ export class AuthMonitor {
     }
 
     try {
-      const octokit = github.getOctokit(process.env.GITHUB_TOKEN || '');
+      const context = this.github.getContext();
       const report = this.generateFeedbackReport();
 
-      await octokit.rest.issues.create({
-        owner: 'yofix',
-        repo: 'yofix',
-        title: `Auth Handler Feedback: ${metrics.successRate}% success rate`,
-        body: report + '\n\n*This issue was automatically generated from anonymous usage data*',
-        labels: ['feedback', 'auth-handler']
-      });
+      await this.github.createIssue(
+        'yofix',
+        'yofix',
+        `Auth Handler Feedback: ${metrics.successRate}% success rate`,
+        report + '\n\n*This issue was automatically generated from anonymous usage data*',
+        ['feedback', 'auth-handler']
+      );
 
       core.info('📝 Feedback issue created for auth handler improvements');
     } catch (error) {

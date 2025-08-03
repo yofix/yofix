@@ -234,7 +234,7 @@ export class FirebaseUrlHandler {
       };
     } else {
       // Use enhanced detection
-      const detector = new FirebaseConfigDetector(githubToken);
+      const detector = new FirebaseConfigDetector();
       
       try {
         const detectedConfig = await detector.detectFirebaseConfiguration(previewUrl);

@@ -9,7 +9,6 @@ import pixelmatch from 'pixelmatch';
 
 export interface DynamicBaselineConfig {
   productionUrl?: string;
-  mainBranchUrl?: string;
   storageProvider: StorageProvider;
   githubToken: string;
 }
@@ -33,15 +32,15 @@ export class DynamicBaselineManager {
   }
 
   /**
-   * Create baselines for routes from production or main branch
+   * Create baselines for routes from production URL
    */
   async createBaselines(routes: string[], viewports: Array<{ width: number; height: number }>): Promise<BaselineResult[]> {
-    const baseUrl = this.config.productionUrl || this.config.mainBranchUrl;
-    
-    if (!baseUrl) {
-      core.warning('No production or main branch URL configured for baseline creation');
+    if (!this.config.productionUrl) {
+      core.warning('No production URL configured for baseline creation');
       return [];
     }
+
+    const baseUrl = this.config.productionUrl;
 
     core.info(`📸 Creating baselines from: ${baseUrl}`);
     const results: BaselineResult[] = [];
@@ -309,23 +308,17 @@ export class DynamicBaselineManager {
   }
 
   /**
-   * Create baselines from PR's main branch deployment
+   * Try to auto-detect production URL from GitHub deployments
    */
-  async createBaselinesFromMainBranch(): Promise<boolean> {
+  async autoDetectProductionUrl(): Promise<boolean> {
     try {
       // Get GitHub context
       const context = github.context;
-      const prNumber = context.payload.pull_request?.number;
       
-      if (!prNumber) {
-        core.warning('Not running in PR context, cannot determine main branch URL');
-        return false;
-      }
-
-      // Try to get main branch preview URL from GitHub deployments
+      // Try to get production URL from GitHub deployments
       const octokit = github.getOctokit(this.config.githubToken);
       
-      // Get deployments for main branch
+      // Get deployments for main branch (which is production)
       const { data: deployments } = await octokit.rest.repos.listDeployments({
         owner: context.repo.owner,
         repo: context.repo.repo,
@@ -348,17 +341,8 @@ export class DynamicBaselineManager {
 
         const successStatus = statuses.find(s => s.state === 'success');
         if (successStatus && successStatus.target_url) {
-          this.config.mainBranchUrl = successStatus.target_url;
-          core.info(`Found main branch deployment: ${successStatus.target_url}`);
-          
-          // Get all routes and create baselines
-          const viewports = [
-            { width: 1920, height: 1080 },
-            { width: 768, height: 1024 },
-            { width: 375, height: 667 }
-          ];
-          
-          await this.createAllBaselines(viewports);
+          this.config.productionUrl = successStatus.target_url;
+          core.info(`📍 Auto-detected production URL: ${successStatus.target_url}`);
           return true;
         }
       }
@@ -370,7 +354,7 @@ export class DynamicBaselineManager {
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.MEDIUM,
         category: ErrorCategory.API,
-        userAction: 'Create baselines from main branch',
+        userAction: 'Auto-detect production URL',
         recoverable: true,
         skipGitHubPost: true
       });
@@ -388,13 +372,18 @@ export class DynamicBaselineManager {
     if (!hasAnyBaselines) {
       core.info('🎯 No baselines found. Creating initial baselines...');
       
-      // Try to create from main branch first
-      const createdFromMain = await this.createBaselinesFromMainBranch();
+      // If no production URL is configured, try to auto-detect from deployments
+      if (!this.config.productionUrl) {
+        core.info('📍 No production URL configured, attempting auto-detection...');
+        await this.autoDetectProductionUrl();
+      }
       
-      if (!createdFromMain && this.config.productionUrl) {
-        // Fallback to production URL
+      if (this.config.productionUrl) {
+        // Create baselines from production URL (configured or auto-detected)
         core.info('📸 Creating baselines from production URL...');
         await this.createBaselines(routes, viewports);
+      } else {
+        core.warning('⚠️ No production URL available for baseline creation. Visual comparisons will be skipped.');
       }
     } else {
       // Create missing baselines only

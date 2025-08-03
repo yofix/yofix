@@ -37,8 +37,7 @@ async function createBaselines(args: string[], context: BotContext): Promise<str
     const baselineManager = new DynamicBaselineManager({
       storageProvider,
       githubToken: context.githubToken,
-      productionUrl: process.env.PRODUCTION_URL,
-      mainBranchUrl: process.env.MAIN_BRANCH_URL
+      productionUrl: process.env.PRODUCTION_URL
     });
     
     // Default viewports

@@ -49,8 +49,8 @@ INPUT_PRODUCTION-URL: ${{ inputs.production-url }}
 The `DynamicBaselineManager` uses the production URL in this priority order:
 
 1. **Production URL** (from `production-url` input)
-2. **Main Branch URL** (auto-detected from GitHub deployments)
-3. **Fallback**: Skip baseline creation if neither is available
+2. **Auto-detected Production URL** (auto-detected from main branch GitHub deployments)
+3. **Fallback**: Skip baseline creation if no URL is available
 
 ## Usage Scenarios
 
@@ -70,11 +70,11 @@ production-url: https://staging.myapp.com
 
 Uses staging environment as the baseline source (useful for comparing feature branches against staging).
 
-### 3. No Configuration
+### 3. Auto-Detection
 
 If `production-url` is not provided, the system will:
-- Attempt to auto-detect main branch deployment URLs from GitHub
-- Skip baseline creation if no URL is available
+- Attempt to auto-detect the production URL from main branch deployment URLs in GitHub
+- Skip baseline creation if no production URL is available
 
 ## Baseline Creation Flow
 
@@ -86,8 +86,8 @@ If `production-url` is not provided, the system will:
 ## Benefits
 
 - **Accurate Comparisons**: Compare against known-good production state
-- **Flexible Configuration**: Support both production and staging environments
-- **Automatic Fallbacks**: Intelligent fallback to main branch deployments
+- **Flexible Configuration**: Support both production and staging environments  
+- **Auto-Detection**: Automatically discovers production URL from GitHub deployments when not configured
 - **Performance**: Only creates missing baselines (incremental approach)
 
 ## Example Workflow

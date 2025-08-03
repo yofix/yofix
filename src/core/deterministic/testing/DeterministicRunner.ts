@@ -35,8 +35,7 @@ export class DeterministicRunner {
       this.baselineManager = new DynamicBaselineManager({
         storageProvider,
         githubToken: process.env.GITHUB_TOKEN || '',
-        productionUrl: process.env.PRODUCTION_URL,
-        mainBranchUrl: process.env.MAIN_BRANCH_URL
+        productionUrl: process.env.PRODUCTION_URL
       });
     }
   }

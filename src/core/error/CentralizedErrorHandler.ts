@@ -264,10 +264,21 @@ export class CentralizedErrorHandler {
   async postErrorSummary(): Promise<void> {
     if (this.errorStats.total === 0 || !this.commentEngine) return;
     
-    await this.commentEngine.postComment(this.getErrorSummary(), {
-      signature: 'yofix-error-summary',
-      updateExisting: true
-    });
+    try {
+      // Add timeout to prevent hanging
+      await Promise.race([
+        this.commentEngine.postComment(this.getErrorSummary(), {
+          signature: 'yofix-error-summary',
+          updateExisting: true
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Error summary posting timeout')), 30000)
+        )
+      ]);
+    } catch (error) {
+      console.warn(`Failed to post error summary: ${error}`);
+      // Don't throw - we don't want to block the workflow
+    }
   }
 
   /**

@@ -4,6 +4,7 @@ import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import { Viewport, FirebaseConfig } from '../../../types';
 import { StorageProvider } from '../../../providers/storage/types';
+import { DynamicBaselineManager } from '../../../core/baseline/DynamicBaselineManager';
 
 export interface DeterministicTestResult {
   route: string;
@@ -24,9 +25,20 @@ export class DeterministicRunner {
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private storageProvider?: StorageProvider;
+  private baselineManager?: DynamicBaselineManager;
   
   constructor(private firebaseConfig: FirebaseConfig, storageProvider?: StorageProvider) {
     this.storageProvider = storageProvider;
+    
+    // Initialize baseline manager if storage is available
+    if (storageProvider) {
+      this.baselineManager = new DynamicBaselineManager({
+        storageProvider,
+        githubToken: process.env.GITHUB_TOKEN || '',
+        productionUrl: process.env.PRODUCTION_URL,
+        mainBranchUrl: process.env.MAIN_BRANCH_URL
+      });
+    }
   }
   
   /**
@@ -132,10 +144,14 @@ export class DeterministicRunner {
         screenshots.push(screenshot);
         
         // Compare with baseline if available
-        if (this.storageProvider) {
-          const diff = await this.compareWithBaseline(route, viewport, screenshot);
-          if (diff) {
-            pixelDiffs.push(diff);
+        if (this.baselineManager) {
+          const comparison = await this.baselineManager.compareWithBaseline(route, viewport, screenshot);
+          if (comparison.hasDifference) {
+            pixelDiffs.push({
+              viewport,
+              diffPercentage: comparison.diffPercentage,
+              diffImage: comparison.diffImage
+            });
           }
         }
       }
@@ -180,69 +196,13 @@ export class DeterministicRunner {
   }
   
   /**
-   * Compare screenshot with baseline using pixel comparison
+   * Initialize baselines before testing
    */
-  private async compareWithBaseline(
-    route: string, 
-    viewport: Viewport, 
-    screenshot: Buffer
-  ): Promise<DeterministicTestResult['pixelDiffs'][0] | null> {
-    try {
-      // Try to get baseline from storage
-      const baselineKey = `baselines/${route.replace(/\//g, '_')}_${viewport.width}x${viewport.height}.png`;
-      const baseline = await this.storageProvider?.downloadFile?.(baselineKey);
-      
-      if (!baseline) {
-        // No baseline, save current as baseline
-        await this.storageProvider?.uploadFile?.(baselineKey, screenshot);
-        core.info(`📸 Saved new baseline for ${route} at ${viewport.width}x${viewport.height}`);
-        return null;
-      }
-      
-      // Perform pixel comparison
-      const currentImg = PNG.sync.read(screenshot);
-      const baselineImg = PNG.sync.read(baseline);
-      
-      // Ensure same dimensions
-      if (currentImg.width !== baselineImg.width || currentImg.height !== baselineImg.height) {
-        core.warning(`Image dimensions mismatch for ${route}`);
-        return null;
-      }
-      
-      const diffImg = new PNG({ width: currentImg.width, height: currentImg.height });
-      
-      const numDiffPixels = pixelmatch(
-        baselineImg.data,
-        currentImg.data,
-        diffImg.data,
-        currentImg.width,
-        currentImg.height,
-        {
-          threshold: 0.1,
-          includeAA: true,
-          alpha: 0.1
-        }
-      );
-      
-      const totalPixels = currentImg.width * currentImg.height;
-      const diffPercentage = (numDiffPixels / totalPixels) * 100;
-      
-      if (diffPercentage > 0.1) {
-        core.warning(`🔍 Visual difference detected: ${diffPercentage.toFixed(2)}% for ${route}`);
-        
-        return {
-          viewport,
-          diffPercentage,
-          diffImage: PNG.sync.write(diffImg)
-        };
-      }
-      
-      return null;
-      
-    } catch (error) {
-      core.warning(`Baseline comparison failed: ${error}`);
-      return null;
-    }
+  async initializeBaselines(routes: string[], viewports: Viewport[]): Promise<void> {
+    if (!this.baselineManager) return;
+    
+    // Ensure baselines exist for all routes
+    await this.baselineManager.ensureBaselines(routes, viewports);
   }
   
   /**

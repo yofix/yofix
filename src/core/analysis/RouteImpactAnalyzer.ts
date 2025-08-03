@@ -39,9 +39,11 @@ export class RouteImpactAnalyzer {
   private codebaseContext: CodebaseContext | null = null;
   private componentUsageMap: Map<string, Set<string>> = new Map(); // component -> routes
   private routeAnalyzer: TreeSitterRouteAnalyzer;
+  private storageProvider?: StorageProvider;
 
   constructor(private githubToken: string, storageProvider?: StorageProvider) {
     this.octokit = github.getOctokit(githubToken);
+    this.storageProvider = storageProvider;
     this.routeAnalyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
   }
 
@@ -66,6 +68,23 @@ export class RouteImpactAnalyzer {
     // Step 3: Initialize Tree-sitter analyzer for high-performance route detection
     // Check if cache should be cleared
     const clearCache = core.getInput('clear-cache') === 'true';
+    
+    // Skip full analysis if no changed files
+    if (changedFiles.length === 0) {
+      core.info('No changed files found, skipping route analysis');
+      const affectedRoutes: RouteImpact[] = [];
+      const sharedComponents = new Map<string, string[]>();
+      const componentRouteMapping = new Map<string, Array<{ routePath: string; routeFile: string }>>();
+      
+      return {
+        affectedRoutes,
+        sharedComponents,
+        totalFilesChanged: 0,
+        totalRoutesAffected: 0,
+        componentRouteMapping
+      };
+    }
+    
     await this.routeAnalyzer.initialize(clearCache);
     core.info(`Initialized route analyzer with Tree-sitter${clearCache ? ' (cache cleared)' : ''}`);
     
@@ -92,6 +111,9 @@ export class RouteImpactAnalyzer {
         }
       }
     }
+    
+    // Step 7: Save discovered routes manifest
+    await this.saveRouteManifest();
     
     return {
       affectedRoutes,
@@ -454,6 +476,106 @@ export class RouteImpactAnalyzer {
     return sharedMap;
   }
 
+  /**
+   * Save route manifest to storage
+   */
+  private async saveRouteManifest(): Promise<void> {
+    if (!this.storageProvider) {
+      core.debug('No storage provider configured, skipping route manifest save');
+      return;
+    }
+    
+    try {
+      // Get all discovered routes from the file cache
+      const allRoutes = new Set<string>();
+      const routeDetails: Array<{
+        path: string;
+        file: string;
+        component: string;
+      }> = [];
+      
+      // Collect all routes from the route analyzer's cache
+      const fileCache = (this.routeAnalyzer as any).fileCache;
+      if (fileCache) {
+        for (const [filePath, fileNode] of fileCache) {
+          if (fileNode.routes && fileNode.routes.length > 0) {
+            for (const route of fileNode.routes) {
+              allRoutes.add(route.path);
+              routeDetails.push({
+                path: route.path,
+                file: filePath,
+                component: route.component
+              });
+            }
+          }
+        }
+      }
+      
+      // Create manifest
+      const manifest = {
+        version: '1.0',
+        timestamp: Date.now(),
+        repository: github.context.repo.repo,
+        totalRoutes: allRoutes.size,
+        routes: Array.from(allRoutes).sort(),
+        routeDetails: routeDetails.sort((a, b) => a.path.localeCompare(b.path))
+      };
+      
+      // Save to storage
+      const manifestKey = `yofix-cache/${github.context.repo.repo}/route-manifest.json`;
+      const manifestBuffer = Buffer.from(JSON.stringify(manifest, null, 2));
+      
+      await this.storageProvider.uploadFile(manifestKey, manifestBuffer, {
+        contentType: 'application/json',
+        metadata: {
+          repository: github.context.repo.repo,
+          timestamp: manifest.timestamp.toString(),
+          totalRoutes: manifest.totalRoutes.toString()
+        }
+      });
+      
+      core.info(`✅ Saved route manifest with ${manifest.totalRoutes} routes to storage`);
+    } catch (error) {
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.LOW,
+        category: ErrorCategory.STORAGE,
+        userAction: 'Save route manifest',
+        recoverable: true,
+        skipGitHubPost: true
+      });
+    }
+  }
+  
+  /**
+   * Get route manifest from storage
+   */
+  async getRouteManifest(): Promise<{
+    routes: string[];
+    routeDetails: Array<{ path: string; file: string; component: string }>;
+  } | null> {
+    if (!this.storageProvider) {
+      return null;
+    }
+    
+    try {
+      const manifestKey = `yofix-cache/${github.context.repo.repo}/route-manifest.json`;
+      const manifestBuffer = await this.storageProvider.downloadFile(manifestKey);
+      
+      if (!manifestBuffer) {
+        return null;
+      }
+      
+      const manifest = JSON.parse(manifestBuffer.toString('utf-8'));
+      return {
+        routes: manifest.routes || [],
+        routeDetails: manifest.routeDetails || []
+      };
+    } catch (error) {
+      core.debug(`Failed to get route manifest: ${error}`);
+      return null;
+    }
+  }
+  
   /**
    * Format the impact tree for GitHub comment
    */

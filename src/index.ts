@@ -92,6 +92,12 @@ async function runVisualTesting(): Promise<void> {
     // Parse inputs
     inputs = parseInputs();
     
+    // Set environment variables for baseline creation
+    if (inputs.productionUrl) {
+      process.env.PRODUCTION_URL = inputs.productionUrl;
+      core.info(`📍 Production URL set for baseline creation: ${inputs.productionUrl}`);
+    }
+    
     // Validate critical inputs early
     const validationError = validateInputs(inputs);
     if (validationError) {
@@ -138,7 +144,19 @@ async function runVisualTesting(): Promise<void> {
         }
         
         const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken, storageProvider);
-        impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
+        
+        // Add timeout to route analysis to prevent hanging
+        core.info('⏱️ Starting route analysis with 60s timeout...');
+        const routeAnalysisStartTime = Date.now();
+        
+        impactTree = await Promise.race([
+          impactAnalyzer.analyzePRImpact(prNumber),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Route analysis timeout')), 60000)
+          )
+        ]);
+        
+        core.info(`✅ Route analysis completed in ${Date.now() - routeAnalysisStartTime}ms`);
         
         // FIXED: Extract routes from component mappings FIRST
         // This is the primary source of truth for component changes
@@ -180,17 +198,27 @@ async function runVisualTesting(): Promise<void> {
           core.info('ℹ️ No routes affected by PR changes, testing homepage');
         }
         
-        // Post route impact tree as a comment
+        // Post route impact tree as a comment with timeout
         const impactMessage = impactAnalyzer.formatImpactTree(impactTree);
         const octokit = github.getOctokit(inputs.githubToken);
-        await octokit.rest.issues.createComment({
-          owner: github.context.repo.owner,
-          repo: github.context.repo.repo,
-          issue_number: prNumber,
-          body: impactMessage
-        });
         
-        core.info('✅ Posted route impact tree to PR');
+        try {
+          await Promise.race([
+            octokit.rest.issues.createComment({
+              owner: github.context.repo.owner,
+              repo: github.context.repo.repo,
+              issue_number: prNumber,
+              body: impactMessage
+            }),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('GitHub comment timeout')), 15000)
+            )
+          ]);
+          core.info('✅ Posted route impact tree to PR');
+        } catch (error) {
+          core.warning(`Failed to post impact tree to PR: ${error}`);
+          // Continue execution
+        }
       } catch (error) {
         await errorHandler.handleError(error as Error, {
           severity: ErrorSeverity.MEDIUM,
@@ -206,18 +234,62 @@ async function runVisualTesting(): Promise<void> {
     // Use the affected routes for testing
     const routes = affectedRoutes
     
+    // Extract unique components from impact tree
+    let components: string[] = ['App']; // Default fallback
+    
+    if (impactTree) {
+      const allComponents = new Set<string>();
+      
+      // Get components from affected routes
+      if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+        for (const route of impactTree.affectedRoutes) {
+          // Add direct changes (files that define routes)
+          if (route.directChanges) {
+            route.directChanges.forEach((file: string) => {
+              const componentName = path.basename(file, path.extname(file));
+              if (componentName && componentName !== 'index') {
+                allComponents.add(componentName);
+              }
+            });
+          }
+          
+          // Add component changes (files that affect routes)
+          if (route.componentChanges) {
+            route.componentChanges.forEach((file: string) => {
+              const componentName = path.basename(file, path.extname(file));
+              if (componentName && componentName !== 'index') {
+                allComponents.add(componentName);
+              }
+            });
+          }
+        }
+      }
+      
+      // Get components from component route mapping
+      if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+        for (const [componentFile] of impactTree.componentRouteMapping) {
+          const componentName = path.basename(componentFile, path.extname(componentFile));
+          if (componentName && componentName !== 'index') {
+            allComponents.add(componentName);
+          }
+        }
+      }
+      
+      if (allComponents.size > 0) {
+        components = Array.from(allComponents).slice(0, 10); // Limit to avoid spam
+      }
+    }
+    
+    core.info(`📦 Found ${components.length} components: ${components.join(', ')}`);
+    
     // Create route analysis result that matches expected interface
     const analysis: RouteAnalysisResult = {
-      hasUIChanges: impactTree?.affectedRoutes.length > 0,
+      hasUIChanges: (impactTree?.affectedRoutes?.length || 0) > 0 || (impactTree?.componentRouteMapping?.size || 0) > 0,
       changedPaths: routes,
-      components: impactTree?.affectedRoutes.flatMap((r: any) => 
-        [...r.directChanges, ...r.componentChanges].map((f: string) => 
-          path.basename(f, path.extname(f))
-        )
-      ) || ['App'],
+      components: components,
       routes: routes,
       testSuggestions: routes.map(r => `Test route ${r} for visual regressions`),
-      riskLevel: impactTree?.sharedComponents.size > 0 ? 'high' : 'medium'
+      riskLevel: (impactTree?.sharedComponents?.size || 0) > 0 ? 'high' : 'medium'
     };
     
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);
@@ -421,12 +493,23 @@ async function runVisualTesting(): Promise<void> {
       }
     };
     
-    // Report to PR
+    // Report to PR with timeout
     core.info('📝 Posting results to PR...');
     const reportStartTime = Date.now();
     const reporter = new PRReporter(inputs.githubToken);
-    await reporter.postResults(verificationResult, prNumber.toString());
-    core.info(`✅ PR report posted in ${Date.now() - reportStartTime}ms`);
+    
+    try {
+      await Promise.race([
+        reporter.postResults(verificationResult, prNumber.toString()),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('PR report posting timeout')), 30000)
+        )
+      ]);
+      core.info(`✅ PR report posted in ${Date.now() - reportStartTime}ms`);
+    } catch (error) {
+      core.warning(`Failed to post PR report: ${error}`);
+      // Continue with cleanup
+    }
     
     // Clean up test runner resources after visual analysis is complete
     core.info('🧹 Cleaning up browser resources...');
@@ -503,6 +586,7 @@ function parseInputs(): ActionInputs {
     storageBucket: config.get('storage-bucket'),
     githubToken: getRequiredConfig('github-token'),
     claudeApiKey: config.getSecret('claude-api-key'),
+    productionUrl: config.get('production-url'),
     firebaseTarget: config.get('firebase-target'),
     buildSystem: config.get('build-system', { defaultValue: 'vite' }) as 'vite' | 'react',
     testTimeout: config.get('test-timeout', { defaultValue: '30000' }),
@@ -608,5 +692,11 @@ if (require.main === module) {
     core.setFailed(error.message);
   }).finally(() => {
     core.info(`⏱️ Total workflow time: ${Date.now() - mainStartTime}ms`);
+    
+    // Force exit after a short delay to prevent hanging
+    setTimeout(() => {
+      core.info('🔄 Force exiting to prevent hanging...');
+      process.exit(0);
+    }, 5000);
   });
 }

@@ -4,6 +4,7 @@ import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
 import { FixGenerator } from '../core/fixes/FixGenerator';
 import { ReportFormatter } from './ReportFormatter';
 import { BaselineManager } from '../core/baseline/BaselineManager';
+import { handleBaselineCommand } from './commands/baseline-commands';
 import { CodebaseContext } from '../context/types';
 import { VisualIssueTestGenerator } from '../core/testing/VisualIssueTestGenerator';
 import { Agent } from '../browser-agent/core/Agent';
@@ -350,49 +351,27 @@ Visual comparison feature coming soon! This will show side-by-side differences w
    * Handle baseline command
    */
   private async handleBaseline(command: BotCommand, context: BotContext): Promise<BotResponse> {
-    if (!command.args.includes('update')) {
-      return {
-        success: false,
-        message: '⚠️ Use `@yofix baseline update` to update the visual baseline.'
-      };
-    }
-
     try {
-      // Get current scan results
-      if (!this.currentScanResult) {
-        return {
-          success: false,
-          message: '⚠️ Please run `@yofix scan` first to capture screenshots.'
-        };
-      }
+      // Parse baseline command arguments
+      const args = command.args.split(' ').filter(arg => arg.length > 0);
       
-      // Prepare screenshots for baseline update
-      const screenshots: Array<{
-        route: string;
-        viewport: string;
-        buffer: Buffer;
-        metadata?: any;
-      }> = [];
+      // Add bot context
+      const botContext = {
+        ...context,
+        githubToken: this.githubToken
+      };
       
-      // TODO: Get actual screenshot buffers from scan results
-      // For now, we'll need to re-capture them
-      core.warning('Baseline update needs screenshot buffer implementation');
-      
-      await this.baselineManager.updateBaseline({
-        prNumber: context.prNumber,
-        screenshots
-      });
+      // Delegate to baseline command handler
+      const message = await handleBaselineCommand(command.action, args, botContext);
       
       return {
         success: true,
-        message: `✅ Visual baseline updated successfully!
-
-The current state has been saved as the new baseline for future comparisons.`
+        message
       };
     } catch (error) {
       return {
         success: false,
-        message: `❌ Baseline update failed: ${error.message}`
+        message: `❌ Baseline command failed: ${error.message}`
       };
     }
   }
@@ -728,8 +707,12 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
 - \`@yofix cache clear\` - Clear route analysis cache
 - \`@yofix cache status\` - Check cache status
 
+### Baseline Management
+- \`@yofix baseline create [main|production]\` - Create baselines from main/production
+- \`@yofix baseline update [routes...]\` - Update baselines for specific routes
+- \`@yofix baseline status\` - Show baseline coverage status
+
 ### Other
-- \`@yofix baseline update\` - Update baseline
 - \`@yofix help\` - This message`;
   }
 }

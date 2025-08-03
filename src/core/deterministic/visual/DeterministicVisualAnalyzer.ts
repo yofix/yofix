@@ -40,6 +40,15 @@ export class DeterministicVisualAnalyzer {
         { previewUrl: this.previewUrl } as any,
         storageProvider
       );
+      // Parse viewports
+      const viewports = options.viewports.map(v => {
+        const [width, height] = v.split('x').map(Number);
+        return { width, height, name: v };
+      });
+      
+      
+      // Initialize baselines before testing
+      await runner.initializeBaselines(options.routes, viewports);
       
       // Use shared context if available (preserves authentication)
       if (this.sharedContext) {
@@ -50,11 +59,6 @@ export class DeterministicVisualAnalyzer {
         await runner.initializeStandalone(true);
       }
       
-      // Parse viewports
-      const viewports = options.viewports.map(v => {
-        const [width, height] = v.split('x').map(Number);
-        return { width, height, name: v };
-      });
       
       // Test each route
       for (const route of options.routes) {

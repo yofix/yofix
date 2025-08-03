@@ -19,6 +19,11 @@ inputs:
     description: 'Claude API key for intelligent route analysis'
     required: true
   
+  # Baseline Configuration
+  production-url:
+    description: 'Production or staging URL for creating visual baselines (e.g., https://myapp.com)'
+    required: false
+  
   # Storage Configuration
   storage-provider:
     description: 'Storage provider: firebase, s3, or github'
@@ -375,6 +380,7 @@ runs:
         INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
         INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_PRODUCTION-URL: ${{ inputs.production-url }}
         INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
         INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
         INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}

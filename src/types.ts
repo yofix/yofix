@@ -111,6 +111,7 @@ export interface ActionInputs {
   storageBucket: string;
   githubToken: string;
   claudeApiKey: string;
+  productionUrl?: string;
   firebaseTarget?: string;
   buildSystem?: 'vite' | 'react';
   testTimeout: string;

@@ -40,11 +40,13 @@ export class RouteImpactAnalyzer {
   private componentUsageMap: Map<string, Set<string>> = new Map(); // component -> routes
   private routeAnalyzer: TreeSitterRouteAnalyzer;
   private storageProvider?: StorageProvider;
+  private previewUrl?: string;
 
-  constructor(private githubToken: string, storageProvider?: StorageProvider) {
+  constructor(private githubToken: string, storageProvider?: StorageProvider, previewUrl?: string) {
     this.octokit = github.getOctokit(githubToken);
     this.storageProvider = storageProvider;
     this.routeAnalyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
+    this.previewUrl = previewUrl;
   }
 
   /**
@@ -115,11 +117,32 @@ export class RouteImpactAnalyzer {
     // Step 7: Save discovered routes manifest
     await this.saveRouteManifest();
     
+    // Count unique routes from all sources
+    const uniqueRoutes = new Set<string>();
+    
+    // Add routes from affectedRoutes
+    affectedRoutes.forEach(impact => {
+      if (impact.route) {
+        uniqueRoutes.add(impact.route);
+      }
+    });
+    
+    // Add routes from componentRouteMapping
+    if (componentRouteMapping) {
+      for (const routes of componentRouteMapping.values()) {
+        routes.forEach(r => {
+          if (r.routePath) {
+            uniqueRoutes.add(r.routePath);
+          }
+        });
+      }
+    }
+    
     return {
       affectedRoutes,
       sharedComponents,
       totalFilesChanged: changedFiles.length,
-      totalRoutesAffected: affectedRoutes.length,
+      totalRoutesAffected: uniqueRoutes.size,
       componentRouteMapping
     };
   }
@@ -577,6 +600,22 @@ export class RouteImpactAnalyzer {
   }
   
   /**
+   * Build full URL for a route
+   */
+  private buildRouteUrl(routePath: string): string {
+    if (!this.previewUrl) return routePath;
+    
+    // Ensure route path starts with /
+    const cleanPath = routePath.startsWith('/') ? routePath : `/${routePath}`;
+    
+    // Remove trailing slash from preview URL if present
+    const baseUrl = this.previewUrl.endsWith('/') ? this.previewUrl.slice(0, -1) : this.previewUrl;
+    
+    // Build the full URL
+    return `${baseUrl}${cleanPath}`;
+  }
+  
+  /**
    * Format the impact tree for GitHub comment
    */
   formatImpactTree(tree: RouteImpactTree): string {
@@ -594,7 +633,13 @@ export class RouteImpactAnalyzer {
         const componentName = path.basename(component);
         output += `- \`${componentName}\` served by:\n`;
         for (const route of routes) {
-          output += `  - \`${route.routePath}\` in ${path.basename(route.routeFile)}\n`;
+          // Create hyperlink if preview URL is available
+          if (this.previewUrl && route.routePath) {
+            const routeUrl = this.buildRouteUrl(route.routePath);
+            output += `  - [\`${route.routePath}\`](${routeUrl}) in \`${route.routeFile}\`\n`;
+          } else {
+            output += `  - \`${route.routePath}\` in \`${route.routeFile}\`\n`;
+          }
         }
       }
       output += '\n';

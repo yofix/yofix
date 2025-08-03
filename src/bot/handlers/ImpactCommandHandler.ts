@@ -30,7 +30,7 @@ export interface RouteAnalyzer {
  * Factory for creating route analyzers
  */
 export interface RouteAnalyzerFactory {
-  create(storageProvider?: StorageProvider): RouteAnalyzer;
+  create(storageProvider?: StorageProvider, previewUrl?: string): RouteAnalyzer;
 }
 
 /**
@@ -42,8 +42,8 @@ export class DefaultRouteAnalyzerFactory implements RouteAnalyzerFactory {
     private readonly rootPath: string = process.cwd()
   ) {}
 
-  create(storageProvider?: StorageProvider): RouteAnalyzer {
-    return new RouteImpactAnalyzer(this.githubToken, storageProvider);
+  create(storageProvider?: StorageProvider, previewUrl?: string): RouteAnalyzer {
+    return new RouteImpactAnalyzer(this.githubToken, storageProvider, previewUrl);
   }
 }
 
@@ -69,7 +69,7 @@ export class ImpactCommandHandler implements BotCommandHandler {
       );
 
       // Create analyzer using factory (Dependency Inversion)
-      const analyzer = this.analyzerFactory.create(this.storageProvider);
+      const analyzer = this.analyzerFactory.create(this.storageProvider, context.previewUrl);
 
       // Report building graph
       await this.progressReporter?.report(

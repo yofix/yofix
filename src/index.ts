@@ -143,7 +143,7 @@ async function runVisualTesting(): Promise<void> {
           core.debug(`Storage provider initialization failed: ${error}`);
         }
         
-        const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken, storageProvider);
+        const impactAnalyzer = new RouteImpactAnalyzer(inputs.githubToken, storageProvider, inputs.previewUrl);
         
         // Add timeout to route analysis to prevent hanging
         core.info('⏱️ Starting route analysis with 60s timeout...');

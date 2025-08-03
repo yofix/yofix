@@ -547,7 +547,7 @@ npx yofix generate-tests --pr ${context.prNumber}
         core.debug(`Storage provider initialization failed: ${error}`);
       }
       
-      const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken, storageProvider);
+      const impactAnalyzer = new RouteImpactAnalyzer(this.githubToken, storageProvider, context.previewUrl);
       
       await botActivity.updateStep('Fetching changed files', 'completed');
       await botActivity.addStep('Building import graph with Tree-sitter', 'running');

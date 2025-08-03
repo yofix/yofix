@@ -652,28 +652,45 @@ export class TreeSitterRouteAnalyzer {
     const routes = new Set<string>();
     const visited = new Set<string>();
     const queue: Array<{ file: string; depth: number }> = [{ file: filePath, depth: 0 }];
+    const MAX_DEPTH = 20; // Reasonable max depth to prevent infinite loops
+    const MAX_ITERATIONS = 1000; // Maximum iterations to prevent runaway loops
+    let iterations = 0;
     
-    // BFS for shortest paths
-    while (queue.length > 0) {
+    // Log for debugging deep component chains
+    core.debug(`Detecting routes for file: ${filePath}`);
+    
+    // BFS for shortest paths - but go deep enough for nested components
+    while (queue.length > 0 && iterations < MAX_ITERATIONS) {
+      iterations++;
       const { file, depth } = queue.shift()!;
       
       if (visited.has(file)) continue;
       visited.add(file);
       
+      // Depth protection
+      if (depth > MAX_DEPTH) {
+        core.debug(`Max depth ${MAX_DEPTH} reached while traversing from ${filePath}`);
+        continue;
+      }
+      
       const node = this.importGraph.get(file);
-      if (!node) continue;
+      if (!node) {
+        core.debug(`No import graph node found for: ${file}`);
+        continue;
+      }
       
       // Check if this file has routes
       if (node.isRouteFile) {
         const fileNode = this.fileCache.get(file);
         if (fileNode) {
-          fileNode.routes.forEach(r => routes.add(r.path));
+          fileNode.routes.forEach(r => {
+            routes.add(r.path);
+            core.debug(`Found route ${r.path} at depth ${depth} via ${file}`);
+          });
         }
         
-        // Early termination - we found routes
-        if (routes.size > 0 && depth > 2) {
-          break;
-        }
+        // Don't terminate early for deeply nested components
+        // Continue searching to find all possible routes
       }
       
       // Add importers to queue (parallel branches)
@@ -684,8 +701,17 @@ export class TreeSitterRouteAnalyzer {
       }
     }
     
+    if (iterations >= MAX_ITERATIONS) {
+      core.warning(`Reached maximum iteration limit (${MAX_ITERATIONS}) while detecting routes for ${filePath}. Possible circular dependency.`);
+    }
+    
     const result = Array.from(routes);
     this.routeCache.set(filePath, result);
+    
+    if (result.length === 0) {
+      core.debug(`No routes found for ${filePath} after traversing ${visited.size} files`);
+    }
+    
     return result;
   }
   
@@ -1053,16 +1079,31 @@ export class TreeSitterRouteAnalyzer {
       resolvedPath = path.normalize(path.join(fromDir, importPath));
     }
     
-    // Try different extensions
-    const extensions = ['', '.tsx', '.ts', '.jsx', '.js', '/index.tsx', '/index.ts', '/index.jsx', '/index.js'];
+    // Try different extensions and index files
+    const extensions = ['', '.tsx', '.ts', '.jsx', '.js'];
+    const indexExtensions = ['/index.tsx', '/index.ts', '/index.jsx', '/index.js'];
     
+    // First try direct file extensions
     for (const ext of extensions) {
-      const fullPath = resolvedPath + ext;
-      if (fs.existsSync(path.join(this.rootPath, fullPath))) {
-        return fullPath;
+      const fullPath = resolvedPath.endsWith(ext) ? resolvedPath : resolvedPath + ext;
+      const absolutePath = path.join(this.rootPath, fullPath);
+      if (fs.existsSync(absolutePath)) {
+        // Normalize path to use forward slashes
+        return fullPath.replace(/\\/g, '/');
       }
     }
     
+    // Then try index files in the directory
+    for (const ext of indexExtensions) {
+      const fullPath = resolvedPath + ext;
+      const absolutePath = path.join(this.rootPath, fullPath);
+      if (fs.existsSync(absolutePath)) {
+        // Normalize path to use forward slashes
+        return fullPath.replace(/\\/g, '/');
+      }
+    }
+    
+    core.debug(`Could not resolve import: ${importPath} from ${fromFile}`);
     return null;
   }
   

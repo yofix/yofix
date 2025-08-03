@@ -51,7 +51,10 @@ async function run(): Promise<void> {
     throw error;
   } finally {
     // Finalize and post summaries
+    core.info('📊 Finalizing core services...');
+    const finalizeStartTime = Date.now();
     await finalizeCoreServices();
+    core.info(`✅ Core services finalized in ${Date.now() - finalizeStartTime}ms`);
   }
 }
 
@@ -419,11 +422,25 @@ async function runVisualTesting(): Promise<void> {
     };
     
     // Report to PR
+    core.info('📝 Posting results to PR...');
+    const reportStartTime = Date.now();
     const reporter = new PRReporter(inputs.githubToken);
     await reporter.postResults(verificationResult, prNumber.toString());
+    core.info(`✅ PR report posted in ${Date.now() - reportStartTime}ms`);
     
     // Clean up test runner resources after visual analysis is complete
-    await testRunner.cleanup();
+    core.info('🧹 Cleaning up browser resources...');
+    const cleanupStartTime = Date.now();
+    try {
+      // Add timeout to prevent hanging
+      await Promise.race([
+        testRunner.cleanup(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))
+      ]);
+      core.info(`✅ Browser cleanup completed in ${Date.now() - cleanupStartTime}ms`);
+    } catch (error) {
+      core.warning(`Browser cleanup failed or timed out: ${error}`);
+    }
     
     // Set outputs
     core.setOutput('success', verificationResult.status === 'success');
@@ -444,7 +461,7 @@ async function runVisualTesting(): Promise<void> {
       }
     }
     
-    core.info(`⏱️ Total execution time: ${Date.now() - startTime}ms`);
+    core.info(`⏱️ Total test execution time: ${Date.now() - startTime}ms`);
     
   } catch (error) {
     // Use centralized error handler
@@ -464,9 +481,13 @@ async function runVisualTesting(): Promise<void> {
   } finally {
     // Cleanup using centralized file system
     if (outputDir) {
+      core.info('🗑️ Cleaning up temporary directory...');
+      const cleanupStartTime = Date.now();
       const deleted = await deleteFile(outputDir);
       if (!deleted) {
         core.warning(`Failed to cleanup ${outputDir}`);
+      } else {
+        core.info(`✅ Temp directory cleaned up in ${Date.now() - cleanupStartTime}ms`);
       }
     }
   }
@@ -582,7 +603,10 @@ export { run };
 
 // Main execution
 if (require.main === module) {
+  const mainStartTime = Date.now();
   run().catch(error => {
     core.setFailed(error.message);
+  }).finally(() => {
+    core.info(`⏱️ Total workflow time: ${Date.now() - mainStartTime}ms`);
   });
 }

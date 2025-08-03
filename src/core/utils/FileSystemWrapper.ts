@@ -165,16 +165,31 @@ export class FileSystem {
   }
 
   /**
-   * Delete file with error handling
+   * Delete file or directory with error handling
    */
   static async delete(filePath: string): Promise<boolean> {
     const result = await executeOperation(
       async () => {
-        await fs.unlink(filePath);
-        return true;
+        try {
+          const stats = await fs.stat(filePath);
+          if (stats.isDirectory()) {
+            // Delete directory recursively
+            await fs.rm(filePath, { recursive: true, force: true });
+          } else {
+            // Delete file
+            await fs.unlink(filePath);
+          }
+          return true;
+        } catch (error: any) {
+          // If ENOENT, consider it already deleted
+          if (error.code === 'ENOENT') {
+            return true;
+          }
+          throw error;
+        }
       },
       {
-        name: `Delete file: ${path.basename(filePath)}`,
+        name: `Delete: ${path.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: ErrorSeverity.LOW,
         metadata: { filePath },

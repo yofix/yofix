@@ -89,19 +89,38 @@ export const authActions: Array<{ definition: ActionDefinition; handler: ActionH
           await page.keyboard.press('Enter');
         }
         
-        // Wait for navigation with proper conditions
+        // Wait for navigation with fallback strategy
         try {
+          // First try domcontentloaded (faster, more reliable)
           await page.waitForNavigation({ 
-            waitUntil: 'networkidle', 
-            timeout: 10000 
+            waitUntil: 'domcontentloaded', 
+            timeout: 5000 
           });
+          
+          // Then wait a bit for any client-side rendering
+          await page.waitForTimeout(500);
         } catch (error) {
-          // Navigation might have already happened or redirected
+          // Navigation might have already happened or be client-side only
           // Check if we're no longer on the login page
           const currentUrl = page.url();
-          if (currentUrl.includes(loginUrl)) {
-            // Still on login page, wait a bit for any client-side routing
-            await page.waitForTimeout(1000);
+          if (currentUrl === loginUrl || currentUrl.includes('/login')) {
+            // Still on login page, might be client-side routing
+            // Wait for URL change or max 2 seconds
+            try {
+              await page.waitForFunction(
+                (originalUrl) => window.location.href !== originalUrl,
+                { timeout: 2000 },
+                loginUrl
+              );
+            } catch {
+              // URL didn't change, but login might still have worked
+              // Check for common post-login indicators
+              const hasLogoutButton = await page.$('[aria-label*="logout"], button:has-text("Logout"), a:has-text("Sign out")').catch(() => null);
+              if (!hasLogoutButton) {
+                // Still appears to be on login page
+                await page.waitForTimeout(1000);
+              }
+            }
           }
         }
         

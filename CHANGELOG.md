@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Firebase Storage Upload**: Screenshots are now uploaded to Firebase Storage with signed URLs
+  - Signed URL expiry is configurable via `default.config.ts` (default: 24 hours)
+  - Support for file-based credentials in testing (reads from `.json` files)
+  - Comprehensive logging of uploaded screenshot URLs in GitHub Action logs
+  - Firebase Console URL provided for easy access to all screenshots
+- **Singleton Pattern for FirebaseStorageManager**: Prevents multiple Firebase app instances
+  - Automatically detects configuration changes and recreates instance when needed
+  - Proper cleanup of Firebase app instances to prevent resource leaks
+
+### Fixed
+- **URL Construction Bug**: Fixed missing slash in route URL construction that caused malformed URLs
+- **Firebase Initialization Error**: Fixed "The default Firebase app does not exist" error by using named app instances
+- **Dynamic Storage URL**: Removed hardcoded storage URL and now uses dynamic bucket-based URL construction
+
+### Changed
+- **Removed Redundant Configuration**: Eliminated `firebase-project-id` input as it's automatically extracted from service account JSON
+  - Project ID is now auto-detected from Firebase credentials
+  - Simplified configuration by reducing required inputs
+- **Improved Error Handling**: Better error messages and recovery for Firebase Storage operations
+
+### Technical Details
+- FirebaseStorageManager converted to singleton pattern with `getInstance()` method
+- Fixed URL construction in DeterministicRunner: `${previewUrl}/${route}` with conditional slash
+- Enhanced Firebase initialization with named app instances to prevent conflicts
+- Removed firebase-project-id from action.yml, types.ts, and all related code
+
+## [1.0.22] - 2025-08-03
+
+### Added
 - **Shared Browser Session Support**: New `session-mode` input allows reusing browser sessions across route tests
   - `sharedAgent` (default): Authenticates once and reuses session for all routes - 38% faster
   - `independentAgent`: Original behavior with separate sessions per route

@@ -7,12 +7,14 @@ import { FirebaseConfig, FirebaseStorageConfig, Screenshot, Video } from '../../
 import { FirebaseErrorHandler } from '../firebase/FirebaseErrorHandler';
 
 export class FirebaseStorageManager {
+  private static instance: FirebaseStorageManager | null = null;
   private bucket: any;
   private config: FirebaseStorageConfig;
   private firebaseConfig: FirebaseConfig;
   private prNumber: number;
+  private app: any; // Store app reference for cleanup
 
-  constructor(
+  private constructor(
     firebaseConfig: FirebaseConfig,
     storageConfig: FirebaseStorageConfig,
     serviceAccountBase64: string
@@ -28,6 +30,42 @@ export class FirebaseStorageManager {
     };
     
     this.initializeFirebase(serviceAccountBase64);
+  }
+
+  /**
+   * Get singleton instance of FirebaseStorageManager
+   */
+  static getInstance(
+    firebaseConfig: FirebaseConfig,
+    storageConfig: FirebaseStorageConfig,
+    serviceAccountBase64: string
+  ): FirebaseStorageManager {
+    // Check if instance exists and has same configuration
+    if (FirebaseStorageManager.instance) {
+      const currentConfig = FirebaseStorageManager.instance.config;
+      const currentFirebaseConfig = FirebaseStorageManager.instance.firebaseConfig;
+      
+      // If configuration has changed, cleanup old instance and create new one
+      if (currentConfig.bucket !== storageConfig.bucket || 
+          currentFirebaseConfig.projectId !== firebaseConfig.projectId) {
+        core.info('Firebase configuration changed, creating new instance...');
+        FirebaseStorageManager.instance.cleanup();
+        FirebaseStorageManager.instance = null;
+      } else {
+        // Update PR number if it changed
+        FirebaseStorageManager.instance.prNumber = FirebaseStorageManager.instance.extractPRNumber(firebaseConfig.previewUrl);
+        return FirebaseStorageManager.instance;
+      }
+    }
+    
+    // Create new instance
+    FirebaseStorageManager.instance = new FirebaseStorageManager(
+      firebaseConfig,
+      storageConfig,
+      serviceAccountBase64
+    );
+    
+    return FirebaseStorageManager.instance;
   }
 
   /**
@@ -49,16 +87,17 @@ export class FirebaseStorageManager {
       const serviceAccount = JSON.parse(serviceAccountJson);
       
       // Check if Firebase app is already initialized
+      const appName = `yofix-storage-${Date.now()}`;
       const existingApps = getApps();
-      if (existingApps.length === 0) {
-        initializeApp({
-          credential: cert(serviceAccount),
-          storageBucket: this.config.bucket
-        });
-      }
+      
+      // Create a new app instance for this storage manager
+      this.app = initializeApp({
+        credential: cert(serviceAccount),
+        storageBucket: this.config.bucket
+      }, appName);
 
-      // Get storage instance
-      const storage = getStorage();
+      // Get storage instance from the specific app
+      const storage = getStorage(this.app);
       this.bucket = storage.bucket();
       
       core.info(`Firebase Storage initialized for bucket: ${this.config.bucket}`);
@@ -392,5 +431,29 @@ export class FirebaseStorageManager {
     });
 
     return Promise.all(uploadPromises);
+  }
+
+  /**
+   * Cleanup Firebase app instance
+   */
+  async cleanup(): Promise<void> {
+    if (this.app) {
+      await this.app.delete();
+      this.app = null;
+    }
+    // Reset singleton instance
+    if (FirebaseStorageManager.instance === this) {
+      FirebaseStorageManager.instance = null;
+    }
+  }
+
+  /**
+   * Force reset singleton (useful for testing)
+   */
+  static reset(): void {
+    if (FirebaseStorageManager.instance) {
+      FirebaseStorageManager.instance.cleanup();
+      FirebaseStorageManager.instance = null;
+    }
   }
 }

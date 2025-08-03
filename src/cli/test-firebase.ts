@@ -78,7 +78,7 @@ async function testFirebaseUpload() {
     // Initialize storage manager
     console.log('\n📦 Initializing Firebase Storage Manager...');
     const credentialsBase64 = Buffer.from(credentialsContent).toString('base64');
-    const storageManager = new FirebaseStorageManager(firebaseConfig, storageConfig, credentialsBase64);
+    const storageManager = FirebaseStorageManager.getInstance(firebaseConfig, storageConfig, credentialsBase64);
     
     // Create test screenshots
     console.log('\n🖼️  Creating test screenshots...');

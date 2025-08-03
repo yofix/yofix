@@ -298,7 +298,7 @@ async function runVisualTesting(): Promise<void> {
         
         const { FirebaseStorageManager } = await import('./providers/storage/FirebaseStorageManager');
         
-        const storageManager = new FirebaseStorageManager(
+        const storageManager = FirebaseStorageManager.getInstance(
           firebaseConfig,
           {
             bucket: inputs.storageBucket,

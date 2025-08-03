@@ -53,7 +53,10 @@ export class DeterministicRunner {
       throw new Error('DeterministicRunner not initialized');
     }
     
-    const url = `${this.firebaseConfig.previewUrl}${route}`;
+    // Ensure proper URL construction with slash
+    const url = route.startsWith('/') 
+      ? `${this.firebaseConfig.previewUrl}${route}`
+      : `${this.firebaseConfig.previewUrl}/${route}`;
     core.info(`🎯 Testing route deterministically: ${url}`);
     
     try {
@@ -193,7 +196,10 @@ export class DeterministicRunner {
       throw new Error('DeterministicRunner not initialized');
     }
     
-    const url = `${this.firebaseConfig.previewUrl}${route}`;
+    // Ensure proper URL construction with slash
+    const url = route.startsWith('/') 
+      ? `${this.firebaseConfig.previewUrl}${route}`
+      : `${this.firebaseConfig.previewUrl}/${route}`;
     await this.page.goto(url, { waitUntil: 'networkidle' });
     
     const issues: string[] = [];

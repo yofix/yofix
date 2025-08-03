@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.21] - 2025-08-03
+
+### Fixed
+- **Critical Route Detection Bug**: Fixed issue where YoFix was testing file-path-based routes instead of actual application routes
+  - Component changes now correctly map to their actual routes (e.g., `/debugger` instead of `/members/Testing/Test`)
+  - Route extraction logic now prioritizes `componentRouteMapping` from RouteImpactAnalyzer
+  - Eliminates 404 errors from testing non-existent routes
+  - Improves test accuracy and performance
+
+### Changed
+- Enhanced route extraction logging to show which routes are selected and why
+- Component mappings are now checked FIRST before any other route sources
+
+### Technical Details
+- Updated `src/index.ts` (lines 138-172) to fix route extraction logic
+- Routes are now extracted from `impactTree.componentRouteMapping` as the primary source
+- File-path-based route generation has been removed from the default behavior
+
 ## [1.0.20] - 2025-08-02
 
 ### Changed

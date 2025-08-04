@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Release script for development/pre-release versions with commit hash
-# Usage: ./scripts/release-dev.sh [version-base]
+# Usage: ./scripts/release-dev.sh [version-base] [--auto-commit]
 # Example: ./scripts/release-dev.sh 1.0.21
+# Example: ./scripts/release-dev.sh --auto-commit
 
 set -e
 
@@ -47,12 +48,48 @@ if ! git diff-index --quiet HEAD --; then
         echo -e "\n${BLUE}📦 Staging all changes...${NC}"
         git add -A
         
-        # Get commit message
-        echo -e "\n${YELLOW}Enter commit message:${NC}"
-        read -r commit_message
+        # Generate automatic commit message based on changes
+        echo -e "\n${BLUE}📝 Generating commit message...${NC}"
         
-        if [ -z "$commit_message" ]; then
-            commit_message="chore: prepare dev release"
+        # Get list of modified files
+        MODIFIED_FILES=$(git diff --cached --name-only | head -5)
+        FILE_COUNT=$(git diff --cached --name-only | wc -l)
+        
+        # Check if it's a feature, fix, or chore based on file paths
+        if git diff --cached --name-only | grep -q "^src/"; then
+            if git diff --cached --name-only | grep -q "test"; then
+                COMMIT_TYPE="test"
+            elif git diff --cached --name-only | grep -q "^src/.*\.md$"; then
+                COMMIT_TYPE="docs"
+            else
+                COMMIT_TYPE="feat"
+            fi
+        elif git diff --cached --name-only | grep -q "^docs/"; then
+            COMMIT_TYPE="docs"
+        elif git diff --cached --name-only | grep -q "package.json\|yarn.lock"; then
+            COMMIT_TYPE="chore"
+        else
+            COMMIT_TYPE="chore"
+        fi
+        
+        # Generate message based on type
+        if [ "$COMMIT_TYPE" = "feat" ]; then
+            commit_message="feat: update implementation (${FILE_COUNT} files)"
+        elif [ "$COMMIT_TYPE" = "test" ]; then
+            commit_message="test: update tests (${FILE_COUNT} files)"
+        elif [ "$COMMIT_TYPE" = "docs" ]; then
+            commit_message="docs: update documentation (${FILE_COUNT} files)"
+        else
+            commit_message="chore: prepare dev release (${FILE_COUNT} files)"
+        fi
+        
+        # Show generated message and ask for confirmation
+        echo -e "${GREEN}Generated commit message:${NC} $commit_message"
+        echo -e "${YELLOW}Press Enter to use this message, or type a custom message:${NC}"
+        read -r custom_message
+        
+        if [ -n "$custom_message" ]; then
+            commit_message="$custom_message"
         fi
         
         # Commit

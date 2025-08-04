@@ -128,7 +128,7 @@ async function runVisualTesting(): Promise<void> {
     prNumber = parseInt(process.env.PR_NUMBER || GitHubServiceFactory.getService().getContext().prNumber?.toString() || '0');
     
     // Analyze route impact and get affected routes
-    let affectedRoutes: string[] = ['/'];
+    let affectedRoutes: string[] = [];
     let impactTree: any = null;
     
     if (prNumber > 0) {
@@ -180,23 +180,27 @@ async function runVisualTesting(): Promise<void> {
           affectedRoutes = Array.from(componentRoutes);
           core.info(`📍 Found ${affectedRoutes.length} routes from component mappings`);
         }
+
+        core.info(`📍 Affected routes: ${affectedRoutes.join(', ')}`);
         
         // [Temporarily disabled] Then add any directly affected routes (route file changes)
-        // if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
-        //   const directRoutes = impactTree.affectedRoutes
-        //     .filter((impact: any) => impact.route && !affectedRoutes.includes(impact.route))
-        //     .map((impact: any) => impact.route);
+        if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+          const directRoutes = impactTree.affectedRoutes
+            .filter((impact: any) => impact.route && !affectedRoutes.includes(impact.route))
+            .map((impact: any) => impact.route); // Add unique routes
           
-        //   if (directRoutes.length > 0) {
-        //     affectedRoutes = [...affectedRoutes, ...directRoutes];
-        //     core.info(`🎯 Found ${directRoutes.length} additional routes from direct changes`);
-        //   }
-        // }
+          if (directRoutes.length > 0) {
+            affectedRoutes = [...affectedRoutes, ...directRoutes]; 
+            core.info(`🎯 Found ${directRoutes.length} additional routes from direct changes`);
+          }
+        }
         
         core.info(`📍 Total unique routes to test: ${affectedRoutes.length}`);
+        core.info(`📍 Affected routes: ${affectedRoutes.join(', ')}`);
         
         if (affectedRoutes.length === 0) {
           core.info('ℹ️ No routes affected by PR changes, testing homepage');
+          affectedRoutes = ['/'];
         }
         
         // Post route impact tree as a comment with timeout
@@ -230,7 +234,14 @@ async function runVisualTesting(): Promise<void> {
           metadata: { prNumber }
         });
         core.warning('Falling back to testing homepage only');
+        affectedRoutes = ['/'];
       }
+    }
+    
+    // If no PR number or no routes found, default to homepage
+    if (affectedRoutes.length === 0) {
+      core.info('ℹ️ No specific routes identified, defaulting to homepage');
+      affectedRoutes = ['/'];
     }
     
     // Use the affected routes for testing

@@ -21,7 +21,7 @@ export class RobustPRReporter {
     
     this.owner = this.context.owner;
     this.repo = this.context.repo;
-    this.prNumber = this.context.prNumber || 0;
+    this.prNumber = this.context.prNumber;
     this.sha = this.context.sha || '';
 
     if (!this.prNumber) {

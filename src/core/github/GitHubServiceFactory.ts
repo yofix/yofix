@@ -458,7 +458,7 @@ export class MockGitHubService implements GitHubService {
   }
   
   getPRNumber(): number {
-    return this.mockData.context.prNumber || 0;
+    return this.mockData.context.prNumber;
   }
 
   // Test helper methods
@@ -585,7 +585,7 @@ export class EnhancedGitHubService implements GitHubService {
       const { data } = await this.octokit.rest.issues.createComment({
         owner: context.owner,
         repo: context.repo,
-        issue_number: context.prNumber || 0,
+        issue_number: context.prNumber,
         body
       });
       
@@ -628,7 +628,7 @@ export class EnhancedGitHubService implements GitHubService {
       const { data } = await this.octokit.rest.issues.listComments({
         owner: context.owner,
         repo: context.repo,
-        issue_number: context.prNumber || 0,
+        issue_number: context.prNumber,
         per_page: 100
       });
       return data;
@@ -807,7 +807,7 @@ export class EnhancedGitHubService implements GitHubService {
   }
   
   getPRNumber(): number {
-    return this.getContext().prNumber || 0;
+    return this.getContext().prNumber;
   }
   
   /**
@@ -867,7 +867,7 @@ export class OctokitGitHubService implements GitHubService {
       const context = this.getContext();
       finalOwner = context.owner;
       finalRepo = context.repo;
-      finalPrNumber = context.prNumber || 0;
+      finalPrNumber = context.prNumber;
       
       console.log(`[OctokitGitHubService] Listing PR files for PR #${finalPrNumber}`);
       if (!context.prNumber) {
@@ -902,7 +902,7 @@ export class OctokitGitHubService implements GitHubService {
     const { data } = await this.octokit.rest.issues.createComment({
       owner: context.owner,
       repo: context.repo,
-      issue_number: context.prNumber || 0,
+      issue_number: context.prNumber,
       body
     });
     return { id: data.id, html_url: data.html_url };
@@ -927,7 +927,7 @@ export class OctokitGitHubService implements GitHubService {
     const { data } = await this.octokit.rest.issues.listComments({
       owner: context.owner,
       repo: context.repo,
-      issue_number: context.prNumber || 0,
+      issue_number: context.prNumber,
       per_page: 100
     });
     return data;
@@ -1084,7 +1084,7 @@ export class OctokitGitHubService implements GitHubService {
   }
   
   getPRNumber(): number {
-    return this.getContext().prNumber || 0;
+    return this.getContext().prNumber;
   }
 }
 
@@ -1201,7 +1201,7 @@ export class LazyGitHubService implements GitHubService {
   
   getPRNumber(): number {
     const context = this.getContext();
-    return context.prNumber || 0;
+    return context.prNumber;
   }
 }
 

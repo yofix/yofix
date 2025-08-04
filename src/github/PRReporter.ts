@@ -16,7 +16,7 @@ export class PRReporter {
     // Use GitHubServiceFactory to get context
     const githubService = GitHubServiceFactory.getService();
     const context = githubService.getContext();
-    this.prNumber = context.prNumber || 0;
+    this.prNumber = context.prNumber;
 
     if (!this.prNumber) {
       core.warning('No PR number found, cannot post comment');

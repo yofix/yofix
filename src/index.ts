@@ -126,18 +126,38 @@ async function runVisualTesting(): Promise<void> {
     });
     
     // Get PR number from GitHub context
-    prNumber = GitHubServiceFactory.getService().getPRNumber();
+    const githubService = GitHubServiceFactory.getService();
+    const context = githubService.getContext();
+    prNumber = githubService.getPRNumber();
+    
+    // Log GitHub context for debugging
+    core.info('📋 GitHub Context:');
+    core.info(`  Event Name: ${context.eventName}`);
+    core.info(`  Repository: ${context.owner}/${context.repo}`);
+    core.info(`  SHA: ${context.sha}`);
+    core.info(`  Actor: ${context.actor}`);
+    core.info(`  PR Number: ${prNumber}`);
+    
+    // Fail if not in a PR context when it's expected
+    if (!prNumber && context.eventName === 'pull_request') {
+      throw new Error('❌ No PR number found in pull_request event. Check GitHub event payload.');
+    }
+    
+    // For pull_request events, we must have a PR number
+    if (context.eventName === 'pull_request' && !prNumber) {
+      throw new Error('❌ Pull request event detected but no PR number found. This action requires a valid pull_request event.');
+    }
     
     if (prNumber > 0) {
-      core.info(`🔢 PR Number: ${prNumber}`);
+      core.info(`✅ PR Number detected: ${prNumber}`);
       
       // Store preview URL in cache for bot to access later
-      const github = GitHubServiceFactory.getService();
-      const context = github.getContext();
       const cache = GitHubCacheManager.getInstance();
       
       await cache.setPRPreviewUrl(context.owner, context.repo, prNumber, inputs.previewUrl);
       core.info(`Cached preview URL for PR #${prNumber}: ${inputs.previewUrl}`);
+    } else {
+      core.warning('⚠️ No PR number detected. Running in non-PR mode. Route analysis will be skipped.');
     }
     
     // Analyze route impact and get affected routes

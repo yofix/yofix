@@ -556,12 +556,23 @@ export class EnhancedGitHubService implements GitHubService {
     const cacheKey = this.getCacheKey('listPullRequestFiles', context.owner, context.repo, context.prNumber);
     
     return this.withCacheAndRateLimit(cacheKey, async () => {
+      console.log(`[EnhancedGitHubService] Listing PR files for PR #${context.prNumber}`);
+      if (!context.prNumber) {
+        throw new Error('[EnhancedGitHubService] No PR number found in GitHub context. This action requires a pull_request event.');
+      }
+      
       const { data } = await this.octokit.rest.pulls.listFiles({
         owner: context.owner,
         repo: context.repo,
-        pull_number: context.prNumber || 0,
+        pull_number: context.prNumber,
         per_page: 100
       });
+      
+      console.log(`[EnhancedGitHubService] Found ${data.length} files in PR #${context.prNumber}:`);
+      data.forEach((file, index) => {
+        console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
+      });
+      
       return data;
     });
   }
@@ -768,6 +779,9 @@ export class EnhancedGitHubService implements GitHubService {
       
       console.log(`Extracted PR number: ${prNumber}`);
       console.log(`Repository: ${owner}/${repo}`);
+      console.log(`GitHub SHA: ${env.getWithDefaults('GITHUB_SHA')}`);
+      console.log(`GitHub Actor: ${env.getWithDefaults('GITHUB_ACTOR')}`);
+      console.log(`GitHub Event Name: ${eventName}`);
       
       return {
         owner,
@@ -854,6 +868,11 @@ export class OctokitGitHubService implements GitHubService {
       finalOwner = context.owner;
       finalRepo = context.repo;
       finalPrNumber = context.prNumber || 0;
+      
+      console.log(`[OctokitGitHubService] Listing PR files for PR #${finalPrNumber}`);
+      if (!context.prNumber) {
+        throw new Error('[OctokitGitHubService] No PR number found in GitHub context. This action requires a pull_request event.');
+      }
     } else {
       // Explicit parameters overload
       finalOwner = owner!;
@@ -867,6 +886,12 @@ export class OctokitGitHubService implements GitHubService {
       pull_number: finalPrNumber,
       per_page: 100
     });
+    
+    console.log(`[OctokitGitHubService] Found ${data.length} files in PR #${finalPrNumber}:`);
+    data.forEach((file, index) => {
+      console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
+    });
+    
     return data;
   }
   
@@ -1031,6 +1056,9 @@ export class OctokitGitHubService implements GitHubService {
   
       console.log(`[OctokitGitHubService] Extracted PR number: ${prNumber}`);
       console.log(`[OctokitGitHubService] Repository: ${owner}/${repo}`);
+      console.log(`[OctokitGitHubService] GitHub SHA: ${env.getWithDefaults('GITHUB_SHA')}`);
+      console.log(`[OctokitGitHubService] GitHub Actor: ${env.getWithDefaults('GITHUB_ACTOR')}`);
+      console.log(`[OctokitGitHubService] GitHub Event Name: ${eventName}`);
       
       return {
         owner,

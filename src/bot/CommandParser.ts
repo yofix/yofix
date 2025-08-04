@@ -6,7 +6,7 @@ import { BotCommand, CommandAction, CommandOptions } from './types';
 export class CommandParser {
   private readonly botPattern = /@yofix\s+(\w+)(?:\s+(.*))?/i;
   private readonly issuePattern = /#(\d+)/;
-  private readonly routePattern = /\/[\w\-\/]+/;
+  private readonly routePattern = /\/[\w\-/]+/;
   private readonly optionPattern = /--(\w+)(?:\s+(\w+))?/g;
 
   /**

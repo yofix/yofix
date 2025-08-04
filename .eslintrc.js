@@ -17,6 +17,35 @@ module.exports = {
   env: {
     node: true,
     es2022: true,
+    jest: true,
+    browser: true,
   },
+  globals: {
+    NodeJS: 'readonly',
+    BufferEncoding: 'readonly',
+  },
+  overrides: [
+    {
+      files: ['**/__tests__/**/*.ts', '**/*.test.ts'],
+      env: {
+        jest: true,
+      },
+    },
+    {
+      files: ['src/browser-agent/**/*.ts', 'src/browser-context/**/*.ts'],
+      env: {
+        browser: true,
+      },
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        Element: 'readonly',
+        Node: 'readonly',
+        XPathResult: 'readonly',
+      },
+    },
+  ],
   ignorePatterns: ['dist/', 'node_modules/', '*.js', '!.eslintrc.js'],
 };

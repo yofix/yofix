@@ -108,14 +108,25 @@ export class DynamicBaselineManager {
 
     // Check which routes don't have baselines
     for (const route of routes) {
+      let routeHasBaselines = false;
+      
       for (const viewport of viewports) {
-        const baselineKey = this.getBaselineKey(route, viewport);
-        const exists = await this.baselineExists(baselineKey);
-        
-        if (!exists) {
-          missingRoutes.push(route);
-          break; // Only need to add route once
+        try {
+          const baselineKey = this.getBaselineKey(route, viewport);
+          const exists = await this.baselineExists(baselineKey);
+          
+          if (exists) {
+            routeHasBaselines = true;
+            break; // Found at least one baseline for this route
+          }
+        } catch (error: any) {
+          core.debug(`Error checking baseline existence for ${route}: ${error.message || error}`);
+          // Continue checking other viewports
         }
+      }
+      
+      if (!routeHasBaselines) {
+        missingRoutes.push(route);
       }
     }
 
@@ -124,7 +135,7 @@ export class DynamicBaselineManager {
       return [];
     }
 
-    core.info(`📸 Creating baselines for ${missingRoutes.length} new routes`);
+    core.info(`📸 Creating baselines for ${missingRoutes.length} new routes: ${missingRoutes.join(', ')}`);
     return this.createBaselines(missingRoutes, viewports);
   }
 
@@ -214,9 +225,23 @@ export class DynamicBaselineManager {
     const key = this.getBaselineKey(route, viewport);
     
     try {
-      return await this.config.storageProvider.downloadFile(key);
-    } catch (error) {
-      core.debug(`Baseline not found: ${key}`);
+      const baseline = await this.config.storageProvider.downloadFile(key);
+      core.debug(`✅ Baseline found: ${key}`);
+      return baseline;
+    } catch (error: any) {
+      const errorMessage = error.message || String(error);
+      
+      // Handle file not found errors gracefully
+      if (error.code === 404 || 
+          errorMessage.includes('No such object') || 
+          errorMessage.includes('File not found') ||
+          errorMessage.includes('does not exist')) {
+        core.info(`ℹ️ No baseline found for ${route} at ${viewport.width}x${viewport.height}. Will create from current screenshot.`);
+        return null;
+      }
+      
+      // Log unexpected errors but don't fail
+      core.warning(`⚠️ Unexpected error fetching baseline ${key}: ${errorMessage}`);
       return null;
     }
   }
@@ -256,8 +281,16 @@ export class DynamicBaselineManager {
     
     if (!baseline) {
       // No baseline exists, save current as baseline
-      await this.updateBaseline(route, viewport, screenshot);
-      return { hasDifference: false, diffPercentage: 0 };
+      core.info(`📸 Creating new baseline for ${route} at ${viewport.width}x${viewport.height}`);
+      try {
+        await this.updateBaseline(route, viewport, screenshot);
+        core.info(`✅ New baseline created successfully for ${route}`);
+        return { hasDifference: false, diffPercentage: 0 };
+      } catch (error: any) {
+        core.error(`❌ Failed to create baseline for ${route}: ${error.message || error}`);
+        // Don't fail the test, just report no difference since we can't compare
+        return { hasDifference: false, diffPercentage: 0 };
+      }
     }
 
     // Perform pixel comparison
@@ -317,15 +350,21 @@ export class DynamicBaselineManager {
       return;
     }
 
-    // Check if we have any baselines at all
-    const hasAnyBaselines = await this.hasAnyBaselines();
-    
-    if (!hasAnyBaselines) {
-      core.info('🎯 No baselines found. Creating initial baselines from production URL...');
-      await this.createBaselines(routes, viewports);
-    } else {
-      // Create missing baselines only
-      await this.createMissingBaselines(routes, viewports);
+    try {
+      // Check if we have any baselines at all
+      const hasAnyBaselines = await this.hasAnyBaselines();
+      
+      if (!hasAnyBaselines) {
+        core.info('🎯 No baselines found. Creating initial baselines from production URL...');
+        await this.createBaselines(routes, viewports);
+      } else {
+        // Create missing baselines only
+        await this.createMissingBaselines(routes, viewports);
+      }
+    } catch (error: any) {
+      core.warning(`⚠️ Baseline initialization failed: ${error.message || error}`);
+      core.info('📝 Visual tests will continue but comparison will be skipped for missing baselines');
+      // Don't throw - let visual testing continue without baseline comparison
     }
   }
 

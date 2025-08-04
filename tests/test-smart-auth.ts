@@ -1,5 +1,9 @@
-const { chromium } = require('playwright');
-const { executeAuthStrategies } = require('./dist/modules/auth-strategies');
+import { chromium } from 'playwright';
+import { executeAuthStrategies } from '../src/modules/auth-strategies';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 async function testSmartAuth() {
   const browser = await chromium.launch({
@@ -37,16 +41,16 @@ async function testSmartAuth() {
     if (success) {
       console.log('\n✅ Authentication successful!');
       console.log(`Current URL: ${page.url()}`);
-      
+
       // Take a screenshot of the authenticated page
-      await page.screenshot({ path: 'authenticated-page.png', fullPage: true });
-      console.log('📸 Screenshot saved: authenticated-page.png');
+      await page.screenshot({ path: 'test-results/authenticated-page.png', fullPage: true });
+      console.log('📸 Screenshot saved: test-results/authenticated-page.png');
     } else {
       console.log('\n❌ All authentication strategies failed');
-      
+
       // Take debug screenshot
-      await page.screenshot({ path: 'debug-login-page.png', fullPage: true });
-      console.log('📸 Debug screenshot saved: debug-login-page.png');
+      await page.screenshot({ path: 'test-results/debug-login-page.png', fullPage: true });
+      console.log('📸 Debug screenshot saved: test-results/debug-login-page.png');
     }
 
   } catch (error) {

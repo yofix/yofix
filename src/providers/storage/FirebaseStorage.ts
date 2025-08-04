@@ -269,9 +269,18 @@ export class FirebaseStorage implements StorageProvider {
     }
     
     const file = this.bucket.file(path);
-    const [buffer] = await file.download();
     
-    return buffer;
+    try {
+      const [buffer] = await file.download();
+      return buffer;
+    } catch (error: any) {
+      // Handle file not found errors gracefully
+      if (error.code === 404 || error.message?.includes('No such object')) {
+        throw new Error(`File not found: ${path}`);
+      }
+      // Re-throw other errors
+      throw error;
+    }
   }
 
   /**

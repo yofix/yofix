@@ -1,12 +1,12 @@
 {
   "ai": {
     "claude": {
-      "defaultModel": "claude-3-5-sonnet-20241022",
+      "defaultModel": "claude-sonnet-4-5-20250929",
       "models": {
-        "analysis": "claude-3-5-sonnet-20241022",
-        "navigation": "claude-3-5-sonnet-20241022",
-        "fixing": "claude-3-5-sonnet-20241022",
-        "screenshot": "claude-3-5-sonnet-20241022"
+        "analysis": "claude-sonnet-4-5-20250929",
+        "navigation": "claude-sonnet-4-5-20250929",
+        "fixing": "claude-sonnet-4-5-20250929",
+        "screenshot": "claude-sonnet-4-5-20250929"
       },
       "maxTokens": {
         "default": 1024,

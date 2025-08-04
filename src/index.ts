@@ -127,6 +127,7 @@ async function runVisualTesting(): Promise<void> {
     
     // Get PR number from GitHub context
     const githubService = GitHubServiceFactory.getService();
+    console.log(`Using GitHub service: ${githubService.constructor.name}`);
     const context = githubService.getContext();
     prNumber = githubService.getPRNumber();
     

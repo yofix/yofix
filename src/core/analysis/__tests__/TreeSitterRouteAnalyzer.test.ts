@@ -58,11 +58,15 @@ describe('TreeSitterRouteAnalyzer', () => {
     
     // Mock storage provider
     mockStorageProvider = {
-      uploadFile: jest.fn().mockResolvedValue(undefined),
+      initialize: jest.fn().mockResolvedValue(undefined),
+      uploadFile: jest.fn().mockResolvedValue('uploaded-url'),
       downloadFile: jest.fn().mockResolvedValue(null),
+      deleteFile: jest.fn().mockResolvedValue(undefined),
       listFiles: jest.fn().mockResolvedValue([]),
       getSignedUrl: jest.fn().mockResolvedValue('https://example.com'),
-      exists: jest.fn().mockResolvedValue(false)
+      uploadBatch: jest.fn().mockResolvedValue([]),
+      generateStorageConsoleUrl: jest.fn().mockReturnValue('https://console.example.com'),
+      cleanupOldArtifacts: jest.fn().mockResolvedValue(undefined)
     };
     
     // Setup basic fs mocks

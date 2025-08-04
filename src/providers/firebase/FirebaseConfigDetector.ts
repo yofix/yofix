@@ -40,8 +40,6 @@ export class FirebaseConfigDetector {
       core.info('Fetching firebase.json from repository...');
 
       const response = await this.github.getContent(
-        owner,
-        repo,
         'firebase.json',
         ref
       );
@@ -235,8 +233,6 @@ export class FirebaseConfigDetector {
       const ref = this.context.sha;
 
       const response = await this.github.getContent(
-        owner,
-        repo,
         'package.json',
         ref
       );

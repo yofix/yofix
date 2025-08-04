@@ -227,7 +227,7 @@ export class CacheManager {
   /**
    * Get cache statistics
    */
-  getStats(): CacheStats {
+  async getStats(): Promise<CacheStats> {
     const memoryEntries = Array.from(this.memoryCache.values());
     const now = Date.now();
     

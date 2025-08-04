@@ -156,11 +156,7 @@ export class RouteImpactAnalyzer {
    * Get changed files from PR
    */
   private async getChangedFiles(prNumber: number): Promise<string[]> {
-    const files = await this.github.listPullRequestFiles(
-      this.context.owner,
-      this.context.repo,
-      prNumber
-    );
+    const files = await this.github.listPullRequestFiles();
 
     return files
       .filter(file => file.status !== 'removed')

@@ -294,6 +294,108 @@ describe('GitHubServiceFactory', () => {
         });
       });
     });
+
+    describe('Contextual API', () => {
+      beforeEach(async () => {
+        await mockService.configure({ token: 'test-token' });
+        // Set up mock context for contextual methods
+        mockService.setMockContext({
+          owner: 'context-owner',
+          repo: 'context-repo',
+          prNumber: 42,
+          sha: 'context-sha'
+        });
+      });
+
+      it('should create comment using contextual API', async () => {
+        const result = await (mockService as any).createComment('Test comment using context');
+        
+        expect(result).toMatchObject({
+          id: expect.any(Number),
+          html_url: expect.stringContaining('context-owner/context-repo/pull/42')
+        });
+      });
+
+      it('should list comments using contextual API', async () => {
+        // Create a comment first using contextual API
+        await (mockService as any).createComment('Context comment');
+        
+        const comments = await (mockService as any).listComments();
+        
+        expect(comments).toHaveLength(1);
+        expect(comments[0].body).toBe('Context comment');
+      });
+
+      it('should update comment using contextual API', async () => {
+        const comment = await (mockService as any).createComment('Original');
+        await (mockService as any).updateComment(comment.id, 'Updated via context');
+        
+        const comments = await (mockService as any).listComments();
+        expect(comments[0].body).toBe('Updated via context');
+      });
+
+      it('should add reaction using contextual API', async () => {
+        const comment = await (mockService as any).createComment('Test');
+        
+        // Should not throw
+        await expect((mockService as any).addReaction(comment.id, '+1'))
+          .resolves.not.toThrow();
+      });
+
+      it('should get file content using contextual API', async () => {
+        mockService.setMockFileContent('package.json', {
+          path: 'package.json',
+          content: Buffer.from('{"name": "test"}').toString('base64'),
+          encoding: 'base64',
+          sha: 'abc123'
+        });
+
+        const content = await (mockService as any).getFileContent('package.json');
+        
+        expect(content).toMatchObject({
+          path: 'package.json',
+          content: expect.any(String),
+          encoding: 'base64',
+          sha: 'abc123'
+        });
+      });
+
+      it('should create check run using contextual API', async () => {
+        const result = await (mockService as any).createCheckRun({
+          name: 'contextual-check',
+          status: 'completed',
+          conclusion: 'success'
+        });
+
+        expect(result).toMatchObject({
+          id: expect.any(Number)
+        });
+      });
+
+      it('should list check runs using contextual API', async () => {
+        await (mockService as any).createCheckRun({
+          name: 'contextual-check',
+          status: 'completed'
+        });
+
+        const checks = await (mockService as any).listCheckRuns();
+        expect(checks).toHaveLength(1);
+        expect(checks[0].name).toBe('contextual-check');
+      });
+
+      it('should create issue using contextual API', async () => {
+        const result = await (mockService as any).createIssue(
+          'Context Issue', 
+          'Issue created via contextual API',
+          ['enhancement']
+        );
+
+        expect(result).toMatchObject({
+          number: expect.any(Number),
+          html_url: expect.stringContaining('context-owner/context-repo/issues')
+        });
+      });
+    });
   });
 
   describe('LazyGitHubService', () => {

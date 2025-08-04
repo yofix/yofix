@@ -254,7 +254,7 @@ export interface GitHubService {
   isConfigured(): boolean;
   
   // Pull Request operations
-  listPullRequestFiles(owner: string, repo: string, prNumber: number): Promise<Array<{
+  listPullRequestFiles(): Promise<Array<{
     filename: string;
     status: string;
     additions: number;
@@ -264,9 +264,9 @@ export interface GitHubService {
   }>>;
   
   // Comment operations
-  createComment(owner: string, repo: string, issueNumber: number, body: string): Promise<{ id: number; html_url: string }>;
-  updateComment(owner: string, repo: string, commentId: number, body: string): Promise<void>;
-  listComments(owner: string, repo: string, issueNumber: number): Promise<Array<{
+  createComment(body: string): Promise<{ id: number; html_url: string }>;
+  updateComment(commentId: number, body: string): Promise<void>;
+  listComments(): Promise<Array<{
     id: number;
     body: string;
     user: { login: string };
@@ -274,21 +274,21 @@ export interface GitHubService {
   }>>;
   
   // Reaction operations
-  addReaction(owner: string, repo: string, commentId: number, reaction: '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes'): Promise<void>;
+  addReaction(commentId: number, reaction: '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes'): Promise<void>;
   
   // Repository operations
-  getFileContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null>;
+  getFileContent(path: string, ref?: string): Promise<FileContent | null>;
   
-  // Alias for getFileContent for backward compatibility
-  getContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null>;
+  // Alias for getFileContent
+  getContent(path: string, ref?: string): Promise<FileContent | null>;
   
   // Check run operations
-  listCheckRuns(owner: string, repo: string, ref: string): Promise<Array<CheckRunData & { id: number }>>;
-  createCheckRun(owner: string, repo: string, sha: string, data: CheckRunData): Promise<{ id: number }>;
-  updateCheckRun(owner: string, repo: string, checkRunId: number, data: Partial<CheckRunData>): Promise<void>;
+  listCheckRuns(ref?: string): Promise<Array<CheckRunData & { id: number }>>;
+  createCheckRun(data: CheckRunData): Promise<{ id: number }>;
+  updateCheckRun(checkRunId: number, data: Partial<CheckRunData>): Promise<void>;
   
   // Issue operations
-  createIssue(owner: string, repo: string, title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }>;
+  createIssue(title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }>;
   
   // Context operations (for GitHub Actions)
   getContext(): {
@@ -314,6 +314,9 @@ export interface GitHubService {
       };
     };
   };
+  
+  // Get PR number with guaranteed default (0 if not in PR context)
+  getPRNumber(): number;
 }
 
 /**
@@ -369,19 +372,21 @@ export class MockGitHubService implements GitHubService {
   }
   
   // Implementation of interface methods
-  async listPullRequestFiles(owner: string, repo: string, prNumber: number): Promise<any[]> {
-    return this.mockData.files.get(`${prNumber}`) || [];
+  async listPullRequestFiles(): Promise<any[]> {
+    const context = this.getContext();
+    return this.mockData.files.get(`${context.prNumber}`) || [];
   }
   
-  async createComment(owner: string, repo: string, issueNumber: number, body: string): Promise<{ id: number; html_url: string }> {
+  async createComment(body: string): Promise<{ id: number; html_url: string }> {
+    const context = this.getContext();
     const comment = { id: Date.now(), body, user: { login: 'test-bot' }, created_at: new Date().toISOString() };
-    const comments = this.mockData.comments.get(`${issueNumber}`) || [];
+    const comments = this.mockData.comments.get(`${context.prNumber}`) || [];
     comments.push(comment);
-    this.mockData.comments.set(`${issueNumber}`, comments);
-    return { id: comment.id, html_url: `https://github.com/${owner}/${repo}/pull/${issueNumber}#comment-${comment.id}` };
+    this.mockData.comments.set(`${context.prNumber}`, comments);
+    return { id: comment.id, html_url: `https://github.com/${context.owner}/${context.repo}/pull/${context.prNumber}#comment-${comment.id}` };
   }
   
-  async updateComment(owner: string, repo: string, commentId: number, body: string): Promise<void> {
+  async updateComment(commentId: number, body: string): Promise<void> {
     // Find and update the comment in all stored comments
     for (const [issueNumber, comments] of this.mockData.comments.entries()) {
       const commentIndex = comments.findIndex(c => c.id === commentId);
@@ -394,35 +399,39 @@ export class MockGitHubService implements GitHubService {
     console.log(`Mock: Updated comment ${commentId} with body: ${body}`);
   }
   
-  async listComments(owner: string, repo: string, issueNumber: number): Promise<any[]> {
-    return this.mockData.comments.get(`${issueNumber}`) || [];
+  async listComments(): Promise<any[]> {
+    const context = this.getContext();
+    return this.mockData.comments.get(`${context.prNumber}`) || [];
   }
   
-  async addReaction(owner: string, repo: string, commentId: number, reaction: string): Promise<void> {
+  async addReaction(commentId: number, reaction: '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes'): Promise<void> {
     console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
   }
   
-  async getFileContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null> {
+  async getFileContent(path: string, ref?: string): Promise<FileContent | null> {
     return this.mockData.fileContents.get(path) || null;
   }
   
-  async getContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null> {
-    return this.getFileContent(owner, repo, path, ref);
+  async getContent(path: string, ref?: string): Promise<FileContent | null> {
+    return this.getFileContent(path, ref);
   }
   
-  async listCheckRuns(owner: string, repo: string, ref: string): Promise<any[]> {
-    return this.mockData.checkRuns.get(ref) || [];
+  async listCheckRuns(ref?: string): Promise<any[]> {
+    const context = this.getContext();
+    const finalRef = ref || context.sha || 'main';
+    return this.mockData.checkRuns.get(finalRef) || [];
   }
   
-  async createCheckRun(owner: string, repo: string, sha: string, data: CheckRunData): Promise<{ id: number }> {
+  async createCheckRun(data: CheckRunData): Promise<{ id: number }> {
+    const context = this.getContext();
     const checkRun = { ...data, id: Date.now() };
-    const runs = this.mockData.checkRuns.get(sha) || [];
+    const runs = this.mockData.checkRuns.get(context.sha || 'main') || [];
     runs.push(checkRun);
-    this.mockData.checkRuns.set(sha, runs);
+    this.mockData.checkRuns.set(context.sha || 'main', runs);
     return { id: checkRun.id };
   }
   
-  async updateCheckRun(owner: string, repo: string, checkRunId: number, data: Partial<CheckRunData>): Promise<void> {
+  async updateCheckRun(checkRunId: number, data: Partial<CheckRunData>): Promise<void> {
     // Find and update the check run in all stored check runs
     for (const [ref, checkRuns] of this.mockData.checkRuns.entries()) {
       const checkRunIndex = checkRuns.findIndex(c => c.id === checkRunId);
@@ -435,16 +444,21 @@ export class MockGitHubService implements GitHubService {
     console.log(`Mock: Updated check run ${checkRunId}`);
   }
   
-  async createIssue(owner: string, repo: string, title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }> {
+  async createIssue(title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }> {
+    const context = this.getContext();
     const issueNumber = Date.now();
     return { 
       number: issueNumber, 
-      html_url: `https://github.com/${owner}/${repo}/issues/${issueNumber}` 
+      html_url: `https://github.com/${context.owner}/${context.repo}/issues/${issueNumber}` 
     };
   }
   
   getContext() {
     return this.mockData.context;
+  }
+  
+  getPRNumber(): number {
+    return this.mockData.context.prNumber || 0;
   }
 
   // Test helper methods
@@ -536,35 +550,37 @@ export class EnhancedGitHubService implements GitHubService {
     return result;
   }
   
-  async listPullRequestFiles(owner: string, repo: string, prNumber: number): Promise<any[]> {
+  async listPullRequestFiles(): Promise<any[]> {
     this.ensureConfigured();
-    const cacheKey = this.getCacheKey('listPullRequestFiles', owner, repo, prNumber);
+    const context = this.getContext();
+    const cacheKey = this.getCacheKey('listPullRequestFiles', context.owner, context.repo, context.prNumber);
     
     return this.withCacheAndRateLimit(cacheKey, async () => {
       const { data } = await this.octokit.rest.pulls.listFiles({
-        owner,
-        repo,
-        pull_number: prNumber,
+        owner: context.owner,
+        repo: context.repo,
+        pull_number: context.prNumber || 0,
         per_page: 100
       });
       return data;
     });
   }
   
-  async createComment(owner: string, repo: string, issueNumber: number, body: string): Promise<{ id: number; html_url: string }> {
+  async createComment(body: string): Promise<{ id: number; html_url: string }> {
     this.ensureConfigured();
+    const context = this.getContext();
     
     return this.withCacheAndRateLimit('', async () => {
       const { data } = await this.octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number: issueNumber,
+        owner: context.owner,
+        repo: context.repo,
+        issue_number: context.prNumber || 0,
         body
       });
       
       // Invalidate related caches
       if (this.cache) {
-        const listCommentsKey = this.getCacheKey('listComments', owner, repo, issueNumber);
+        const listCommentsKey = this.getCacheKey('listComments', context.owner, context.repo, context.prNumber);
         this.cache.delete(listCommentsKey);
       }
       
@@ -572,13 +588,14 @@ export class EnhancedGitHubService implements GitHubService {
     }, false); // Don't cache write operations
   }
   
-  async updateComment(owner: string, repo: string, commentId: number, body: string): Promise<void> {
+  async updateComment(commentId: number, body: string): Promise<void> {
     this.ensureConfigured();
+    const context = this.getContext();
     
     return this.withCacheAndRateLimit('', async () => {
       await this.octokit.rest.issues.updateComment({
-        owner,
-        repo,
+        owner: context.owner,
+        repo: context.repo,
         comment_id: commentId,
         body
       });
@@ -591,43 +608,46 @@ export class EnhancedGitHubService implements GitHubService {
     }, false);
   }
   
-  async listComments(owner: string, repo: string, issueNumber: number): Promise<any[]> {
+  async listComments(): Promise<any[]> {
     this.ensureConfigured();
-    const cacheKey = this.getCacheKey('listComments', owner, repo, issueNumber);
+    const context = this.getContext();
+    const cacheKey = this.getCacheKey('listComments', context.owner, context.repo, context.prNumber);
     
     return this.withCacheAndRateLimit(cacheKey, async () => {
       const { data } = await this.octokit.rest.issues.listComments({
-        owner,
-        repo,
-        issue_number: issueNumber,
+        owner: context.owner,
+        repo: context.repo,
+        issue_number: context.prNumber || 0,
         per_page: 100
       });
       return data;
     });
   }
   
-  async addReaction(owner: string, repo: string, commentId: number, reaction: any): Promise<void> {
+  async addReaction(commentId: number, reaction: '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes'): Promise<void> {
     this.ensureConfigured();
+    const context = this.getContext();
     
     return this.withCacheAndRateLimit('', async () => {
       await this.octokit.rest.reactions.createForIssueComment({
-        owner,
-        repo,
+        owner: context.owner,
+        repo: context.repo,
         comment_id: commentId,
         content: reaction
       });
     }, false);
   }
   
-  async getFileContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null> {
+  async getFileContent(path: string, ref?: string): Promise<FileContent | null> {
     this.ensureConfigured();
-    const cacheKey = this.getCacheKey('getFileContent', owner, repo, path, ref);
+    const context = this.getContext();
+    const cacheKey = this.getCacheKey('getFileContent', context.owner, context.repo, path, ref);
     
     return this.withCacheAndRateLimit(cacheKey, async () => {
       try {
         const { data } = await this.octokit.rest.repos.getContent({
-          owner,
-          repo,
+          owner: context.owner,
+          repo: context.repo,
           path,
           ref
         });
@@ -650,38 +670,41 @@ export class EnhancedGitHubService implements GitHubService {
     });
   }
   
-  async getContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null> {
-    return this.getFileContent(owner, repo, path, ref);
+  async getContent(path: string, ref?: string): Promise<FileContent | null> {
+    return this.getFileContent(path, ref);
   }
   
-  async listCheckRuns(owner: string, repo: string, ref: string): Promise<any[]> {
+  async listCheckRuns(ref?: string): Promise<any[]> {
     this.ensureConfigured();
-    const cacheKey = this.getCacheKey('listCheckRuns', owner, repo, ref);
+    const context = this.getContext();
+    const finalRef = ref || context.sha || 'main';
+    const cacheKey = this.getCacheKey('listCheckRuns', context.owner, context.repo, finalRef);
     
     return this.withCacheAndRateLimit(cacheKey, async () => {
       const { data } = await this.octokit.rest.checks.listForRef({
-        owner,
-        repo,
-        ref
+        owner: context.owner,
+        repo: context.repo,
+        ref: finalRef
       });
       return data.check_runs;
     });
   }
   
-  async createCheckRun(owner: string, repo: string, sha: string, data: CheckRunData): Promise<{ id: number }> {
+  async createCheckRun(data: CheckRunData): Promise<{ id: number }> {
     this.ensureConfigured();
+    const context = this.getContext();
     
     return this.withCacheAndRateLimit('', async () => {
       const { data: result } = await this.octokit.rest.checks.create({
-        owner,
-        repo,
-        head_sha: sha,
+        owner: context.owner,
+        repo: context.repo,
+        head_sha: context.sha || 'main',
         ...data
       });
       
       // Invalidate related caches
       if (this.cache) {
-        const listCheckRunsKey = this.getCacheKey('listCheckRuns', owner, repo, sha);
+        const listCheckRunsKey = this.getCacheKey('listCheckRuns', context.owner, context.repo, context.sha);
         this.cache.delete(listCheckRunsKey);
       }
       
@@ -689,26 +712,28 @@ export class EnhancedGitHubService implements GitHubService {
     }, false);
   }
   
-  async updateCheckRun(owner: string, repo: string, checkRunId: number, data: Partial<CheckRunData>): Promise<void> {
+  async updateCheckRun(checkRunId: number, data: Partial<CheckRunData>): Promise<void> {
     this.ensureConfigured();
+    const context = this.getContext();
     
     return this.withCacheAndRateLimit('', async () => {
       await this.octokit.rest.checks.update({
-        owner,
-        repo,
+        owner: context.owner,
+        repo: context.repo,
         check_run_id: checkRunId,
         ...data
       });
     }, false);
   }
   
-  async createIssue(owner: string, repo: string, title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }> {
+  async createIssue(title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }> {
     this.ensureConfigured();
+    const context = this.getContext();
     
     return this.withCacheAndRateLimit('', async () => {
       const { data } = await this.octokit.rest.issues.create({
-        owner,
-        repo,
+        owner: context.owner,
+        repo: context.repo,
         title,
         body,
         labels
@@ -723,7 +748,7 @@ export class EnhancedGitHubService implements GitHubService {
       const repository = env.getWithDefaults('GITHUB_REPOSITORY') || 'test-owner/test-repo';
       const [owner, repo] = repository.split('/');
       let payload = {};
-      let eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
+      const eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
       
       try {
         const eventPath = env.getWithDefaults('GITHUB_EVENT_PATH');
@@ -735,11 +760,14 @@ export class EnhancedGitHubService implements GitHubService {
         // Ignore parsing errors
       }
       
+      // Get PR number from payload
+      const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
+      
       return {
         owner,
         repo,
         sha: env.getWithDefaults('GITHUB_SHA'),
-        prNumber: (payload as any)?.pull_request?.number || (payload as any)?.issue?.number,
+        prNumber,
         actor: env.getWithDefaults('GITHUB_ACTOR'),
         eventName,
         payload
@@ -756,6 +784,10 @@ export class EnhancedGitHubService implements GitHubService {
       eventName: undefined,
       payload: {}
     };
+  }
+  
+  getPRNumber(): number {
+    return this.getContext().prNumber || 0;
   }
   
   /**
@@ -804,65 +836,92 @@ export class OctokitGitHubService implements GitHubService {
     }
   }
   
-  async listPullRequestFiles(owner: string, repo: string, prNumber: number): Promise<any[]> {
+  async listPullRequestFiles(owner?: string, repo?: string, prNumber?: number): Promise<any[]> {
     this.ensureConfigured();
+    let finalOwner: string;
+    let finalRepo: string;
+    let finalPrNumber: number;
+    
+    // Contextual overload
+    if (arguments.length === 0) {
+      const context = this.getContext();
+      finalOwner = context.owner;
+      finalRepo = context.repo;
+      finalPrNumber = context.prNumber || 0;
+    } else {
+      // Explicit parameters overload
+      finalOwner = owner!;
+      finalRepo = repo!;
+      finalPrNumber = prNumber!;
+    }
+    
     const { data } = await this.octokit.rest.pulls.listFiles({
-      owner,
-      repo,
-      pull_number: prNumber,
+      owner: finalOwner,
+      repo: finalRepo,
+      pull_number: finalPrNumber,
       per_page: 100
     });
     return data;
   }
   
-  async createComment(owner: string, repo: string, issueNumber: number, body: string): Promise<{ id: number; html_url: string }> {
+  async createComment(body: string): Promise<{ id: number; html_url: string }> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     const { data } = await this.octokit.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      owner: context.owner,
+      repo: context.repo,
+      issue_number: context.prNumber || 0,
       body
     });
     return { id: data.id, html_url: data.html_url };
   }
   
-  async updateComment(owner: string, repo: string, commentId: number, body: string): Promise<void> {
+  async updateComment(commentId: number, body: string): Promise<void> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     await this.octokit.rest.issues.updateComment({
-      owner,
-      repo,
+      owner: context.owner,
+      repo: context.repo,
       comment_id: commentId,
       body
     });
   }
   
-  async listComments(owner: string, repo: string, issueNumber: number): Promise<any[]> {
+  async listComments(): Promise<any[]> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     const { data } = await this.octokit.rest.issues.listComments({
-      owner,
-      repo,
-      issue_number: issueNumber,
+      owner: context.owner,
+      repo: context.repo,
+      issue_number: context.prNumber || 0,
       per_page: 100
     });
     return data;
   }
   
-  async addReaction(owner: string, repo: string, commentId: number, reaction: any): Promise<void> {
+  async addReaction(commentId: number, reaction: '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes'): Promise<void> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     await this.octokit.rest.reactions.createForIssueComment({
-      owner,
-      repo,
+      owner: context.owner,
+      repo: context.repo,
       comment_id: commentId,
       content: reaction
     });
   }
   
-  async getFileContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null> {
+  async getFileContent(path: string, ref?: string): Promise<FileContent | null> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     try {
       const { data } = await this.octokit.rest.repos.getContent({
-        owner,
-        repo,
+        owner: context.owner,
+        repo: context.repo,
         path,
         ref
       });
@@ -884,46 +943,55 @@ export class OctokitGitHubService implements GitHubService {
     }
   }
   
-  async getContent(owner: string, repo: string, path: string, ref?: string): Promise<FileContent | null> {
-    return this.getFileContent(owner, repo, path, ref);
+  async getContent(path: string, ref?: string): Promise<FileContent | null> {
+    return this.getFileContent(path, ref);
   }
   
-  async listCheckRuns(owner: string, repo: string, ref: string): Promise<any[]> {
+  async listCheckRuns(ref?: string): Promise<any[]> {
     this.ensureConfigured();
+    const context = this.getContext();
+    const finalRef = ref || context.sha || 'main';
+    
     const { data } = await this.octokit.rest.checks.listForRef({
-      owner,
-      repo,
-      ref
+      owner: context.owner,
+      repo: context.repo,
+      ref: finalRef
     });
     return data.check_runs;
   }
   
-  async createCheckRun(owner: string, repo: string, sha: string, data: CheckRunData): Promise<{ id: number }> {
+  async createCheckRun(data: CheckRunData): Promise<{ id: number }> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     const { data: result } = await this.octokit.rest.checks.create({
-      owner,
-      repo,
-      head_sha: sha,
+      owner: context.owner,
+      repo: context.repo,
+      head_sha: context.sha || 'main',
       ...data
     });
     return { id: result.id };
   }
   
-  async updateCheckRun(owner: string, repo: string, checkRunId: number, data: Partial<CheckRunData>): Promise<void> {
+  async updateCheckRun(checkRunId: number, data: Partial<CheckRunData>): Promise<void> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     await this.octokit.rest.checks.update({
-      owner,
-      repo,
+      owner: context.owner,
+      repo: context.repo,
       check_run_id: checkRunId,
       ...data
     });
   }
   
-  async createIssue(owner: string, repo: string, title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }> {
+  async createIssue(title: string, body: string, labels?: string[]): Promise<{ number: number; html_url: string }> {
     this.ensureConfigured();
+    const context = this.getContext();
+    
     const { data } = await this.octokit.rest.issues.create({
-      owner,
-      repo,
+      owner: context.owner,
+      repo: context.repo,
       title,
       body,
       labels
@@ -937,7 +1005,7 @@ export class OctokitGitHubService implements GitHubService {
       const repository = env.getWithDefaults('GITHUB_REPOSITORY') || 'test-owner/test-repo';
       const [owner, repo] = repository.split('/');
       let payload = {};
-      let eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
+      const eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
       
       try {
         const eventPath = env.getWithDefaults('GITHUB_EVENT_PATH');
@@ -949,11 +1017,15 @@ export class OctokitGitHubService implements GitHubService {
         // Ignore parsing errors
       }
       
+      // Get PR number from payload
+      const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
+  
+      
       return {
         owner,
         repo,
         sha: env.getWithDefaults('GITHUB_SHA'),
-        prNumber: (payload as any)?.pull_request?.number || (payload as any)?.issue?.number,
+        prNumber,
         actor: env.getWithDefaults('GITHUB_ACTOR'),
         eventName,
         payload
@@ -970,6 +1042,10 @@ export class OctokitGitHubService implements GitHubService {
       eventName: undefined,
       payload: {}
     };
+  }
+  
+  getPRNumber(): number {
+    return this.getContext().prNumber || 0;
   }
 }
 
@@ -1009,59 +1085,59 @@ export class LazyGitHubService implements GitHubService {
   }
   
   // Delegate all methods to the underlying service
-  async listPullRequestFiles(owner: string, repo: string, prNumber: number) {
+  async listPullRequestFiles() {
     const service = await this.ensureService();
-    return service.listPullRequestFiles(owner, repo, prNumber);
+    return service.listPullRequestFiles();
   }
   
-  async createComment(owner: string, repo: string, issueNumber: number, body: string) {
+  async createComment(body: string) {
     const service = await this.ensureService();
-    return service.createComment(owner, repo, issueNumber, body);
+    return service.createComment(body);
   }
   
-  async updateComment(owner: string, repo: string, commentId: number, body: string) {
+  async updateComment(commentId: number, body: string) {
     const service = await this.ensureService();
-    return service.updateComment(owner, repo, commentId, body);
+    return service.updateComment(commentId, body);
   }
   
-  async listComments(owner: string, repo: string, issueNumber: number) {
+  async listComments() {
     const service = await this.ensureService();
-    return service.listComments(owner, repo, issueNumber);
+    return service.listComments();
   }
   
-  async addReaction(owner: string, repo: string, commentId: number, reaction: any) {
+  async addReaction(commentId: number, reaction: '+1' | '-1' | 'laugh' | 'confused' | 'heart' | 'hooray' | 'rocket' | 'eyes') {
     const service = await this.ensureService();
-    return service.addReaction(owner, repo, commentId, reaction);
+    return service.addReaction(commentId, reaction);
   }
   
-  async getFileContent(owner: string, repo: string, path: string, ref?: string) {
+  async getFileContent(path: string, ref?: string) {
     const service = await this.ensureService();
-    return service.getFileContent(owner, repo, path, ref);
+    return service.getFileContent(path, ref);
   }
   
-  async getContent(owner: string, repo: string, path: string, ref?: string) {
+  async getContent(path: string, ref?: string) {
     const service = await this.ensureService();
-    return service.getContent(owner, repo, path, ref);
+    return service.getContent(path, ref);
   }
   
-  async listCheckRuns(owner: string, repo: string, ref: string) {
+  async listCheckRuns(ref?: string) {
     const service = await this.ensureService();
-    return service.listCheckRuns(owner, repo, ref);
+    return service.listCheckRuns(ref);
   }
   
-  async createCheckRun(owner: string, repo: string, sha: string, data: CheckRunData) {
+  async createCheckRun(data: CheckRunData) {
     const service = await this.ensureService();
-    return service.createCheckRun(owner, repo, sha, data);
+    return service.createCheckRun(data);
   }
   
-  async updateCheckRun(owner: string, repo: string, checkRunId: number, data: Partial<CheckRunData>) {
+  async updateCheckRun(checkRunId: number, data: Partial<CheckRunData>) {
     const service = await this.ensureService();
-    return service.updateCheckRun(owner, repo, checkRunId, data);
+    return service.updateCheckRun(checkRunId, data);
   }
   
-  async createIssue(owner: string, repo: string, title: string, body: string, labels?: string[]) {
+  async createIssue(title: string, body: string, labels?: string[]) {
     const service = await this.ensureService();
-    return service.createIssue(owner, repo, title, body, labels);
+    return service.createIssue(title, body, labels);
   }
   
   getContext() {
@@ -1082,6 +1158,11 @@ export class LazyGitHubService implements GitHubService {
       eventName: env.getWithDefaults('GITHUB_EVENT_NAME'),
       payload: {}
     };
+  }
+  
+  getPRNumber(): number {
+    const context = this.getContext();
+    return context.prNumber || 0;
   }
 }
 

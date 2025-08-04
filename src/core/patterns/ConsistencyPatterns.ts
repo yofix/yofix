@@ -96,11 +96,7 @@ export class GitHubOperations {
     
     try {
       // Try to find and update existing comment
-      const comments = await this.github!.listComments(
-        this.context.owner,
-        this.context.repo,
-        this.context.prNumber
-      );
+      const comments = await this.github!.listComments();
       
       const existingComment = comments.find(comment => 
         comment.body.includes(`<!-- ${signature} -->`)
@@ -108,16 +104,11 @@ export class GitHubOperations {
       
       if (existingComment) {
         await this.github!.updateComment(
-          this.context.owner,
-          this.context.repo,
           existingComment.id,
           body
         );
       } else {
         await this.github!.createComment(
-          this.context.owner,
-          this.context.repo,
-          this.context.prNumber,
           body
         );
       }
@@ -159,9 +150,6 @@ export class GitHubOperations {
     
     try {
       await this.github!.createComment(
-        this.context.owner,
-        this.context.repo,
-        this.context.prNumber,
         message
       );
     } catch (error) {
@@ -182,8 +170,6 @@ export class GitHubOperations {
       
       if (triggeringCommentId) {
         await this.github!.addReaction(
-          this.context.owner,
-          this.context.repo,
           triggeringCommentId,
           reaction
         );

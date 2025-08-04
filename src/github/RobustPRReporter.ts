@@ -73,18 +73,11 @@ export class RobustPRReporter {
     
     if (existingComment) {
       await this.github.updateComment(
-        this.owner,
-        this.repo,
         existingComment.id,
         comment
       );
     } else {
-      await this.github.createComment(
-        this.owner,
-        this.repo,
-        this.prNumber,
-        comment
-      );
+      await this.github.createComment(comment);
     }
   }
 
@@ -96,18 +89,12 @@ export class RobustPRReporter {
     const passed = result.status === 'success';
     
     // Create or update check run
-    const checkRuns = await this.github.listCheckRuns(
-      this.owner,
-      this.repo,
-      this.sha
-    );
+    const checkRuns = await this.github.listCheckRuns(this.sha);
     
     const existingRun = checkRuns.find(run => run.name === 'YoFix Visual Testing');
     
     if (existingRun) {
       await this.github.updateCheckRun(
-        this.owner,
-        this.repo,
         existingRun.id,
         {
           name: 'YoFix Visual Testing',
@@ -121,9 +108,6 @@ export class RobustPRReporter {
       );
     } else {
       await this.github.createCheckRun(
-        this.owner,
-        this.repo,
-        this.sha,
         {
           name: 'YoFix Visual Testing',
           status: 'completed',
@@ -149,12 +133,7 @@ export class RobustPRReporter {
       `Tested ${result.summary.routesTested.length} pages, ${result.failedTests} failed\n\n` +
       `[View full results in workflow logs](${this.getWorkflowUrl()})`;
 
-    await this.github.createComment(
-      this.owner,
-      this.repo,
-      this.prNumber,
-      minimalComment
-    );
+    await this.github.createComment(minimalComment);
   }
 
   /**
@@ -174,9 +153,6 @@ export class RobustPRReporter {
     
     // Post a minimal comment pointing to summary
     await this.github.createComment(
-      this.owner,
-      this.repo,
-      this.prNumber,
       `📊 Visual testing completed. [View results in workflow summary](${this.getWorkflowUrl()})`
     );
   }
@@ -186,11 +162,7 @@ export class RobustPRReporter {
    */
   private async findExistingComment(): Promise<{ id: number; body: string } | null> {
     try {
-      const comments = await this.github.listComments(
-        this.owner,
-        this.repo,
-        this.prNumber
-      );
+      const comments = await this.github.listComments();
       
       const yofixComment = comments.find(comment => 
         comment.body.includes('<!-- yofix-visual-test-results -->')

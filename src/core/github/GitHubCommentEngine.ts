@@ -130,30 +130,18 @@ export class GitHubCommentEngine {
         
         if (existingComment) {
           await this.github.updateComment(
-            this.owner,
-            this.repo,
             existingComment.id,
             body
           );
           commentId = existingComment.id;
           core.info(`Updated existing comment #${commentId}`);
         } else {
-          const result = await this.github.createComment(
-            this.owner,
-            this.repo,
-            this.prNumber,
-            body
-          );
+          const result = await this.github.createComment(body);
           commentId = result.id;
           core.info(`Created new comment #${commentId}`);
         }
       } else {
-        const result = await this.github.createComment(
-          this.owner,
-          this.repo,
-          this.prNumber,
-          body
-        );
+        const result = await this.github.createComment(body);
         commentId = result.id;
         core.info(`Created comment #${commentId}`);
       }
@@ -297,8 +285,6 @@ export class GitHubCommentEngine {
   private async addReaction(commentId: number, reaction: string): Promise<void> {
     try {
       await this.github.addReaction(
-        this.owner,
-        this.repo,
         commentId,
         reaction as any
       );
@@ -389,11 +375,7 @@ export class GitHubCommentEngine {
    */
   private async findCommentBySignature(signature: string): Promise<{ id: number; body: string } | null> {
     try {
-      const comments = await this.github.listComments(
-        this.owner,
-        this.repo,
-        this.prNumber
-      );
+      const comments = await this.github.listComments();
       
       const signaturePattern = `<!-- ${signature} -->`;
       const existingComment = comments.find(comment => 
@@ -412,11 +394,7 @@ export class GitHubCommentEngine {
    */
   async deleteAllBotComments(): Promise<void> {
     try {
-      const comments = await this.github.listComments(
-        this.owner,
-        this.repo,
-        this.prNumber
-      );
+      const comments = await this.github.listComments();
       
       const botComments = comments.filter(comment => 
         comment.user.login.includes('[bot]') ||

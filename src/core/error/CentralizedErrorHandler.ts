@@ -260,12 +260,7 @@ export class CentralizedErrorHandler {
     }
     
     try {
-      await this.github.createComment(
-        this.owner,
-        this.repo,
-        this.prNumber,
-        message
-      );
+      await this.github.createComment(message);
     } catch (postError) {
       core.warning(`Failed to post error to GitHub: ${postError}`);
     }
@@ -382,12 +377,7 @@ export class CentralizedErrorHandler {
     }
     
     try {
-      await this.github.createComment(
-        this.owner,
-        this.repo,
-        this.prNumber,
-        message
-      );
+      await this.github.createComment(message);
     } catch (error) {
       core.warning(`Failed to post error summary: ${error}`);
     }

@@ -222,6 +222,12 @@ export class TreeSitterRouteAnalyzer {
   async detectRoutes(changedFiles: string[]): Promise<Map<string, string[]>> {
     const results = new Map<string, string[]>();
     
+    // Log the changed files
+    this.logger.info(`🔍 Analyzing ${changedFiles.length} changed files:`);
+    changedFiles.forEach((file, index) => {
+      this.logger.info(`  ${index + 1}. ${file}`);
+    });
+    
     // Update graph for changed files (incremental)
     await this.updateGraphForFiles(changedFiles);
     
@@ -236,6 +242,22 @@ export class TreeSitterRouteAnalyzer {
         results.set(file, routes);
       }
     });
+    
+    // Log the impact summary
+    this.logger.info('📊 Route Impact Summary:');
+    if (results.size === 0) {
+      this.logger.info('  ❌ No routes impacted by the changes');
+    } else {
+      let totalRoutes = 0;
+      for (const [file, routes] of results) {
+        this.logger.info(`  📄 ${file}:`);
+        routes.forEach((route, index) => {
+          this.logger.info(`     ${index + 1}. ${route}`);
+        });
+        totalRoutes += routes.length;
+      }
+      this.logger.info(`  ✅ Total: ${totalRoutes} routes impacted across ${results.size} files`);
+    }
     
     return results;
   }
@@ -252,6 +274,10 @@ export class TreeSitterRouteAnalyzer {
     const results = new Map();
     
     this.logger.info(`🔍 Analyzing route info for ${changedFiles.length} changed files`);
+    this.logger.info('📋 Changed files list:');
+    changedFiles.forEach((file, index) => {
+      this.logger.info(`  ${index + 1}. ${file}`);
+    });
     
     for (const file of changedFiles) {
       this.logger.debug(`Processing changed file: ${file}`);
@@ -980,7 +1006,16 @@ export class TreeSitterRouteAnalyzer {
     const result = this.filterCompleteRoutes(Array.from(routes));
     this.routeCache.set(filePath, result);
     
-    this.logger.info(`File ${filePath} affects ${result.length} routes after traversing ${visited.size} files`);
+    // Log detailed impact for this file
+    if (result.length > 0) {
+      this.logger.info(`✅ File ${filePath} impacts ${result.length} routes:`);
+      result.forEach((route, index) => {
+        this.logger.info(`   ${index + 1}. ${route}`);
+      });
+    } else {
+      this.logger.info(`❌ File ${filePath} impacts no routes`);
+    }
+    this.logger.debug(`  (Traversed ${visited.size} files in import graph)`);
     
     return result;
   }

@@ -100,7 +100,7 @@ async function runVisualTests(): Promise<void> {
   });
 
   const results: TestResult[] = [];
-  let screenshots: string[] = [];
+  const screenshots: string[] = [];
 
   try {
     // Create context with custom user agent

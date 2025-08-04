@@ -28,6 +28,7 @@ import {
   parseTimeout
 } from './core';
 import { defaultConfig } from './config/default.config';
+import { GitHubCacheManager } from './github/GitHubCacheManager';
 async function run(): Promise<void> {
   try {
     // Initialize core services first
@@ -125,7 +126,19 @@ async function runVisualTesting(): Promise<void> {
     });
     
     // Get PR number from GitHub context
-    prNumber = parseInt(process.env.PR_NUMBER || GitHubServiceFactory.getService().getContext().prNumber?.toString() || '0');
+    prNumber = GitHubServiceFactory.getService().getPRNumber();
+    
+    if (prNumber > 0) {
+      core.info(`🔢 PR Number: ${prNumber}`);
+      
+      // Store preview URL in cache for bot to access later
+      const github = GitHubServiceFactory.getService();
+      const context = github.getContext();
+      const cache = GitHubCacheManager.getInstance();
+      
+      await cache.setPRPreviewUrl(context.owner, context.repo, prNumber, inputs.previewUrl);
+      core.info(`Cached preview URL for PR #${prNumber}: ${inputs.previewUrl}`);
+    }
     
     // Analyze route impact and get affected routes
     let affectedRoutes: string[] = [];
@@ -180,8 +193,6 @@ async function runVisualTesting(): Promise<void> {
           affectedRoutes = Array.from(componentRoutes);
           core.info(`📍 Found ${affectedRoutes.length} routes from component mappings`);
         }
-
-        core.info(`📍 Affected routes: ${affectedRoutes.join(', ')}`);
         
         // [Temporarily disabled] Then add any directly affected routes (route file changes)
         if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
@@ -206,16 +217,10 @@ async function runVisualTesting(): Promise<void> {
         // Post route impact tree as a comment with timeout
         const impactMessage = impactAnalyzer.formatImpactTree(impactTree);
         const githubService = GitHubServiceFactory.getService();
-        const context = githubService.getContext();
         
         try {
           await Promise.race([
-            githubService.createComment(
-              context.owner,
-              context.repo,
-              prNumber,
-              impactMessage
-            ),
+            githubService.createComment(impactMessage),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('GitHub comment timeout')), 15000)
             )
@@ -342,7 +347,6 @@ async function runVisualTesting(): Promise<void> {
       const deterministicAnalyzer = new DeterministicVisualAnalyzer(
         inputs.previewUrl,
         useLLMAnalysis ? inputs.claudeApiKey : undefined,
-        // inputs.githubToken // Removed - now handled by GitHubServiceFactory
       );
       
       scanResult = await deterministicAnalyzer.scan({
@@ -598,7 +602,6 @@ function parseInputs(): ActionInputs {
     previewUrl: getRequiredConfig('preview-url'),
     firebaseCredentials: config.get('firebase-credentials'),
     storageBucket: config.get('storage-bucket'),
-    // githubToken: getRequiredConfig('github-token'), // Removed - now handled by GitHubServiceFactory
     claudeApiKey: config.getSecret('claude-api-key'),
     productionUrl: config.get('production-url'),
     firebaseTarget: config.get('firebase-target'),

@@ -8,6 +8,7 @@ import { CodebaseAnalyzer } from '../context/CodebaseAnalyzer';
 import { CodebaseContext } from '../context/types';
 import { getGitHubCommentEngine, botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
 import { GitHubServiceFactory, GitHubService } from '../core/github/GitHubServiceFactory';
+import { GitHubCacheManager } from '../github/GitHubCacheManager';
 
 /**
  * YoFix Bot - Main controller for handling GitHub comments and commands
@@ -134,45 +135,25 @@ export class YoFixBot {
    * Get preview URL for a PR
    */
   private async getPreviewUrl(prNumber: number): Promise<string | undefined> {
-    const context = this.github.getContext();
-    
     try {
-      // First, check if there's a preview URL in the environment
+      // First check if there's a preview URL in the environment (for direct action runs)
       const envUrl = process.env.PREVIEW_URL || getConfiguration().getInput('preview-url');
       if (envUrl) {
         return envUrl;
       }
       
-      // Try to find preview URL from PR comments
-      const comments = await this.github.listComments(
-        this.context.owner,
-        this.context.repo,
-        prNumber
-      );
+      // Otherwise, retrieve from cache (for bot commands)
+      const context = this.github.getContext();
+      const cache = GitHubCacheManager.getInstance();
       
-      // Look for Firebase preview URL in comments
-      for (const comment of comments) {
-        const urlMatch = comment.body.match(/https:\/\/[^.]+--pr-\d+[^.]+\.web\.app/);
-        if (urlMatch) {
-          return urlMatch[0];
-        }
+      const cachedUrl = await cache.getPRPreviewUrl(context.owner, context.repo, prNumber);
+      
+      if (cachedUrl) {
+        core.info(`Retrieved cached preview URL for PR #${prNumber}: ${cachedUrl}`);
+        return cachedUrl;
       }
-      
-      // Try to construct URL based on pattern
-      const projectId = process.env.FIREBASE_PROJECT_ID || getConfiguration().getInput('firebase-project-id');
-      if (projectId) {
-        return `https://${projectId}--pr-${prNumber}.web.app`;
-      }
-      
     } catch (error) {
-      await errorHandler.handleError(error as Error, {
-        severity: ErrorSeverity.LOW,
-        category: ErrorCategory.CONFIGURATION,
-        userAction: 'Get preview URL',
-        recoverable: true,
-        skipGitHubPost: true,
-        metadata: { prNumber }
-      });
+      // Silently handle error - visual testing won't be performed without preview URL
     }
     
     return undefined;

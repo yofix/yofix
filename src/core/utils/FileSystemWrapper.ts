@@ -235,7 +235,7 @@ export class FileSystem {
     const result = await executeOperation(
       async () => {
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
-        let files: string[] = [];
+        const files: string[] = [];
 
         for (const entry of entries) {
           const fullPath = path.join(dirPath, entry.name);

@@ -202,8 +202,6 @@ export class AuthMonitor {
       const report = this.generateFeedbackReport();
 
       await this.github.createIssue(
-        'yofix',
-        'yofix',
         `Auth Handler Feedback: ${metrics.successRate}% success rate`,
         report + '\n\n*This issue was automatically generated from anonymous usage data*',
         ['feedback', 'auth-handler']

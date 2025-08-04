@@ -556,7 +556,7 @@ export class EnhancedGitHubService implements GitHubService {
     const cacheKey = this.getCacheKey('listPullRequestFiles', context.owner, context.repo, context.prNumber);
     
     return this.withCacheAndRateLimit(cacheKey, async () => {
-      console.log(`[EnhancedGitHubService] Listing PR files for PR #${context.prNumber}`);
+    
       if (!context.prNumber) {
         throw new Error('[EnhancedGitHubService] No PR number found in GitHub context. This action requires a pull_request event.');
       }
@@ -568,7 +568,7 @@ export class EnhancedGitHubService implements GitHubService {
         per_page: 100
       });
       
-      console.log(`[EnhancedGitHubService] Found ${data.length} files in PR #${context.prNumber}:`);
+      
       data.forEach((file, index) => {
         console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
       });
@@ -760,22 +760,12 @@ export class EnhancedGitHubService implements GitHubService {
       try {
         const github = require('@actions/github');
         const context = github.context;
-        
-        console.log(`[EnhancedGitHubService] Using @actions/github context`);
-        console.log(`[EnhancedGitHubService] Event name: ${context.eventName}`);
-        console.log(`[EnhancedGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[EnhancedGitHubService] SHA: ${context.sha}`);
-        console.log(`[EnhancedGitHubService] Actor: ${context.actor}`);
-        console.log(`[EnhancedGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[EnhancedGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
-        console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
-        
+     
         // Get PR number from various possible locations
         const prNumber = context.payload.pull_request?.number || 
                        context.payload.number || 
                        context.issue.number;
                        
-        console.log(`[EnhancedGitHubService] Final PR number: ${prNumber}`);
         
         return {
           owner: context.repo.owner,
@@ -788,7 +778,6 @@ export class EnhancedGitHubService implements GitHubService {
         };
       } catch (error) {
         console.error('[EnhancedGitHubService] Failed to use @actions/github context:', error);
-        console.log('[EnhancedGitHubService] Falling back to environment variables');
       }
       
       // Fallback to environment variables if @actions/github is not available

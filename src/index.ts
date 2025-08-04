@@ -30,6 +30,15 @@ import {
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
 async function run(): Promise<void> {
+  // Add global unhandled promise rejection handler
+  process.on('unhandledRejection', (reason, promise) => {
+    core.error(`Unhandled Promise Rejection at: ${promise}, reason: ${reason}`);
+    // Log additional context if available
+    if (reason instanceof Error) {
+      core.error(`Error stack: ${reason.stack}`);
+    }
+  });
+  
   try {
     // Initialize core services first
     initializeCoreServices();

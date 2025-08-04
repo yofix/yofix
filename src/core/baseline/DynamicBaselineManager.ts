@@ -252,17 +252,27 @@ export class DynamicBaselineManager {
   async updateBaseline(route: string, viewport: { width: number; height: number }, screenshot: Buffer): Promise<void> {
     const key = this.getBaselineKey(route, viewport);
     
-    await this.config.storageProvider.uploadFile(key, screenshot, {
-      contentType: 'image/png',
-      metadata: {
-        route,
-        viewport: `${viewport.width}x${viewport.height}`,
-        timestamp: Date.now().toString(),
-        source: 'update'
-      }
-    });
+    try {
+      core.debug(`📤 Uploading baseline to: ${key}`);
+      
+      await this.config.storageProvider.uploadFile(key, screenshot, {
+        contentType: 'image/png',
+        metadata: {
+          route,
+          viewport: `${viewport.width}x${viewport.height}`,
+          timestamp: Date.now().toString(),
+          source: 'update'
+        }
+      });
 
-    core.info(`✅ Updated baseline: ${key}`);
+      core.info(`✅ Updated baseline: ${key}`);
+    } catch (error: any) {
+      const errorMessage = error.message || String(error);
+      core.error(`❌ Failed to upload baseline ${key}: ${errorMessage}`);
+      
+      // Re-throw with more context
+      throw new Error(`Baseline upload failed for ${route} at ${viewport.width}x${viewport.height}: ${errorMessage}`);
+    }
   }
 
   /**
@@ -277,7 +287,15 @@ export class DynamicBaselineManager {
     diffPercentage: number;
     diffImage?: Buffer;
   }> {
-    const baseline = await this.fetchBaseline(route, viewport);
+    let baseline: Buffer | null = null;
+    
+    try {
+      core.debug(`🔍 Fetching baseline for ${route} at ${viewport.width}x${viewport.height}`);
+      baseline = await this.fetchBaseline(route, viewport);
+    } catch (error: any) {
+      core.warning(`⚠️ Error fetching baseline for ${route}: ${error.message || error}`);
+      baseline = null;
+    }
     
     if (!baseline) {
       // No baseline exists, save current as baseline
@@ -287,7 +305,14 @@ export class DynamicBaselineManager {
         core.info(`✅ New baseline created successfully for ${route}`);
         return { hasDifference: false, diffPercentage: 0 };
       } catch (error: any) {
-        core.error(`❌ Failed to create baseline for ${route}: ${error.message || error}`);
+        const errorMessage = error.message || String(error);
+        core.error(`❌ Failed to create baseline for ${route}: ${errorMessage}`);
+        
+        // Log stack trace for debugging
+        if (error.stack) {
+          core.debug(`Stack trace: ${error.stack}`);
+        }
+        
         // Don't fail the test, just report no difference since we can't compare
         return { hasDifference: false, diffPercentage: 0 };
       }

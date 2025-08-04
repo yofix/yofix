@@ -83,11 +83,12 @@ if ! git diff-index --quiet HEAD --; then
             commit_message="chore: prepare dev release (${FILE_COUNT} files)"
         fi
         
-        # Show generated message and ask for confirmation
+        # Show generated message and allow editing
         echo -e "${GREEN}Generated commit message:${NC} $commit_message"
-        echo -e "${YELLOW}Press Enter to use this message, or type a custom message:${NC}"
+        echo -e "${YELLOW}Press Enter to accept, or type a new message:${NC}"
         read -r custom_message
         
+        # If user typed something, use it. Otherwise keep generated message
         if [ -n "$custom_message" ]; then
             commit_message="$custom_message"
         fi

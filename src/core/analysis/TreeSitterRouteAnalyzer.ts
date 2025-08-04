@@ -67,6 +67,9 @@ export class TreeSitterRouteAnalyzer {
   private storageProvider: StorageProvider | null = null;
   private cacheKey: string;
   
+  // Framework detection
+  private frameworkType: 'nextjs' | 'react-router' | 'vuejs' | 'unknown' = 'unknown';
+  
   constructor(private rootPath: string = process.cwd(), storageProvider?: StorageProvider) {
     // Initialize logger
     this.logger = LoggerFactory.getLogger();
@@ -139,8 +142,43 @@ export class TreeSitterRouteAnalyzer {
   /**
    * Initialize or load persistent import graph
    */
+  /**
+   * Detect framework type from package.json
+   */
+  private async detectFrameworkType(): Promise<'nextjs' | 'react-router' | 'vuejs' | 'unknown'> {
+    try {
+      const packageJsonPath = path.join(this.rootPath, 'package.json');
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+        
+        // Check for React Router first (more specific)
+        if (deps['react-router-dom'] || deps['react-router']) {
+          return 'react-router';
+        }
+        
+        // Check for Next.js
+        if (deps['next']) {
+          return 'nextjs';
+        }
+
+        if (deps['vue-router'] || deps['vue']) {
+          return 'vuejs';
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Failed to detect framework type from package.json: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    
+    return 'unknown';
+  }
+  
   async initialize(forceRebuild: boolean = false): Promise<void> {
     const start = Date.now();
+    
+    // Detect framework type
+    this.frameworkType = await this.detectFrameworkType();
+    this.logger.info(`Detected framework type: ${this.frameworkType}`);
     
     // Initialize storage provider if not provided
     if (!this.storageProvider) {
@@ -266,6 +304,59 @@ export class TreeSitterRouteAnalyzer {
     
     // Identify entry points
     this.identifyEntryPoints();
+    
+    // Connect directory imports to their index files
+    this.connectDirectoryImports();
+  }
+  
+  /**
+   * Create proper connections between directory imports and their index files
+   */
+  private connectDirectoryImports(): void {
+    const indexVariants = ['/index.tsx', '/index.ts', '/index.jsx', '/index.js'];
+    let connectionsCreated = 0;
+    
+    // For each node in the graph
+    for (const [path, node] of this.importGraph) {
+      // Check if this looks like a directory import (no file extension)
+      const hasExtension = /\.(tsx?|jsx?|vue|svelte)$/.test(path);
+      if (!hasExtension) {
+        // This might be a directory import, check if it has a corresponding index file
+        for (const variant of indexVariants) {
+          const indexPath = path + variant;
+          const indexNode = this.importGraph.get(indexPath);
+          
+          if (indexNode) {
+            // Found the index file! Connect them bidirectionally
+            // Anyone who imports the directory is actually importing the index file
+            for (const importer of node.importedBy) {
+              indexNode.importedBy.add(importer);
+              // Also update the importer's imports to point to the index file
+              const importerNode = this.importGraph.get(importer);
+              if (importerNode && importerNode.imports.has(path)) {
+                importerNode.imports.add(indexPath);
+              }
+            }
+            
+            // The directory node should import what the index file imports
+            for (const imported of indexNode.imports) {
+              node.imports.add(imported);
+            }
+            
+            // Mark the directory node as a route file if the index is a route file
+            if (indexNode.isRouteFile) {
+              node.isRouteFile = true;
+            }
+            
+            connectionsCreated++;
+            this.logger.debug(`Connected directory import ${path} to ${indexPath}`);
+            break; // Found the index file, no need to check other variants
+          }
+        }
+      }
+    }
+    
+    this.logger.info(`Created ${connectionsCreated} directory-to-index connections in import graph`);
   }
   
   /**
@@ -471,12 +562,108 @@ export class TreeSitterRouteAnalyzer {
   }
   
   /**
+   * Extract routes using regex for common patterns
+   * This handles cases that are difficult to parse with AST
+   */
+  private extractRoutesWithRegex(content: string, filePath: string): RouteDefinition[] {
+    const routes: RouteDefinition[] = [];
+    
+    // Remove comments to avoid false positives
+    const cleanContent = content
+      .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
+      .replace(/\/\/.*$/gm, ''); // Remove line comments
+    
+    // Pattern 1: { path: 'route', element: <Component /> }
+    const objectRouteRegex = /\{\s*path:\s*['"`]([^'"`]+)['"`]\s*,\s*(?:element|component):\s*<(\w+)[^>]*\/>/g;
+    
+    let match;
+    while ((match = objectRouteRegex.exec(cleanContent)) !== null) {
+      const line = content.substring(0, match.index).split('\n').length;
+      routes.push({
+        path: match[1],
+        component: match[2],
+        file: filePath,
+        line
+      });
+    }
+    
+    // Pattern 2: Route arrays with children
+    // This helps identify parent-child relationships
+    const routeArrayRegex = /\{\s*path:\s*['"`]([^'"`]+)['"`]\s*,\s*children:\s*\[/g;
+    while ((match = routeArrayRegex.exec(cleanContent)) !== null) {
+      const parentPath = match[1];
+      const line = content.substring(0, match.index).split('\n').length;
+      
+      // Look for child routes within this parent
+      const childrenStart = match.index + match[0].length;
+      const childrenEnd = this.findBalancedBracket(cleanContent, childrenStart - 1, '[', ']');
+      
+      if (childrenEnd > childrenStart) {
+        const childrenContent = cleanContent.substring(childrenStart, childrenEnd);
+        const childRouteRegex = /\{\s*path:\s*['"`]([^'"`]+)['"`]\s*,\s*(?:element|component):\s*<(\w+)[^>]*\/>/g;
+        
+        let childMatch;
+        while ((childMatch = childRouteRegex.exec(childrenContent)) !== null) {
+          const childLine = content.substring(0, childrenStart + childMatch.index).split('\n').length;
+          const fullPath = parentPath + '/' + childMatch[1];
+          routes.push({
+            path: fullPath,
+            component: childMatch[2],
+            file: filePath,
+            line: childLine
+          });
+        }
+      }
+    }
+    
+    return routes;
+  }
+  
+  /**
+   * Find the closing bracket for a balanced bracket pair
+   */
+  private findBalancedBracket(content: string, startIndex: number, openChar: string, closeChar: string): number {
+    let depth = 0;
+    let inString = false;
+    let stringChar = '';
+    
+    for (let i = startIndex; i < content.length; i++) {
+      const char = content[i];
+      
+      // Handle string literals
+      if ((char === '"' || char === "'" || char === '`') && content[i - 1] !== '\\') {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          inString = false;
+        }
+      }
+      
+      if (!inString) {
+        if (char === openChar) depth++;
+        else if (char === closeChar) {
+          depth--;
+          if (depth === 0) return i;
+        }
+      }
+    }
+    
+    return -1;
+  }
+  
+  /**
    * Extract routes using Tree-sitter pattern matching
    */
   private extractRoutes(tree: Parser.Tree, filePath: string, content: string): RouteDefinition[] {
     const routes: RouteDefinition[] = [];
     
-    // Find JSX elements with path props (e.g., <Route path="/" />)
+    // First, try regex-based extraction for route objects
+    // This handles { path: 'route', element: <Component /> } patterns reliably
+    const regexRoutes = this.extractRoutesWithRegex(content, filePath);
+    routes.push(...regexRoutes);
+    
+    // Then use AST for JSX elements with path props (e.g., <Route path="/" />)
     const jsxElements = tree.rootNode.descendantsOfType('jsx_element');
     
     for (const element of jsxElements) {
@@ -504,14 +691,17 @@ export class TreeSitterRouteAnalyzer {
       }
     }
     
-    // Find route objects in arrays (e.g., { path: '/', element: <Home /> })
-    // This is common in React Router v6 with useRoutes
-    const objectExpressions = tree.rootNode.descendantsOfType('object');
-    
-    for (const obj of objectExpressions) {
+    // Helper function to extract nested routes recursively
+    const extractNestedRoutes = (
+      obj: Parser.SyntaxNode, 
+      parentPath: string = '',
+      isChildRoute: boolean = false
+    ): void => {
       let hasPath = false;
       let pathValue = '';
       let hasElement = false;
+      let hasChildren = false;
+      let childrenNode: Parser.SyntaxNode | null = null;
       let hasIndex = false;
       let componentValue = '';
       
@@ -550,31 +740,84 @@ export class TreeSitterRouteAnalyzer {
                 }
               }
             }
+          } else if (keyName === 'children') {
+            hasChildren = true;
+            childrenNode = valueNode;
           } else if (keyName === 'index') {
             const indexValue = content.slice(valueNode.startIndex, valueNode.endIndex);
             if (indexValue === 'true') {
               hasIndex = true;
               // Index routes don't have explicit paths
               if (!hasPath) {
-                pathValue = '(index)';
+                pathValue = '';
               }
             }
           }
         }
       }
       
-      // Consider it a route if:
-      // 1. It has a path property
-      // 2. It's an index route (index: true)
-      // 3. It has an element/component (likely a route)
-      if (hasPath || hasIndex || hasElement) {
+      // Build the full path for this route
+      const fullPath = parentPath && pathValue ? `${parentPath}/${pathValue}` : (parentPath || pathValue);
+      
+      // Only add leaf routes (routes with element but no children) or routes with element AND children
+      // This prevents adding intermediate path segments
+      const shouldAddRoute = (hasPath || hasIndex) && hasElement && (!hasChildren || hasElement);
+      
+      if (shouldAddRoute && fullPath) {
+        const routePath = hasIndex && !pathValue ? `${fullPath}/(index)` : fullPath;
         routes.push({
-          path: pathValue || '/',
+          path: routePath,
           component: componentValue || 'unknown',
           file: filePath,
           line: obj.startPosition.row + 1
         });
+        
+        // Map component to route for precise impact analysis
+        if (componentValue && componentValue !== 'unknown') {
+          if (!this.componentToRoutes.has(componentValue)) {
+            this.componentToRoutes.set(componentValue, new Set());
+          }
+          this.componentToRoutes.get(componentValue)!.add(routePath);
+          
+          // Also track the file this component comes from for lazy imports
+          const componentFileNode = this.fileCache.get(filePath);
+          if (componentFileNode) {
+            for (const imp of componentFileNode.imports) {
+              if (imp.specifiers.includes(componentValue) || 
+                  (imp.specifiers.includes('default') && imp.source.includes(componentValue))) {
+                const importedFile = this.resolveImportPath(imp.source, filePath);
+                if (importedFile) {
+                  if (!this.componentToRoutes.has(importedFile)) {
+                    this.componentToRoutes.set(importedFile, new Set());
+                  }
+                  this.componentToRoutes.get(importedFile)!.add(routePath);
+                }
+              }
+            }
+          }
+        }
       }
+      
+      // Process children routes recursively
+      if (hasChildren && childrenNode) {
+        // Children is usually an array
+        if (childrenNode.type === 'array') {
+          for (const child of childrenNode.children) {
+            if (child.type === 'object') {
+              // Pass the full path to children and mark them as child routes
+              extractNestedRoutes(child, fullPath || pathValue, true);
+            }
+          }
+        }
+      }
+    };
+    
+    // Find route objects in arrays (e.g., { path: '/', element: <Home /> })
+    // This is common in React Router v6 with useRoutes
+    const objectExpressions = tree.rootNode.descendantsOfType('object');
+    
+    for (const obj of objectExpressions) {
+      extractNestedRoutes(obj);
     }
     
     // Vue Router pattern detection
@@ -632,7 +875,8 @@ export class TreeSitterRouteAnalyzer {
     
     // Next.js Pages Router pattern detection  
     // Next.js also uses file-based routing in pages/ directory
-    if (filePath.includes('/pages/') && !filePath.includes('_app') && !filePath.includes('_document') &&
+    // Only apply Next.js file-based routing if this is actually a Next.js project
+    if (this.frameworkType === 'nextjs' && filePath.includes('/pages/') && !filePath.includes('_app') && !filePath.includes('_document') &&
         (filePath.endsWith('.tsx') || filePath.endsWith('.jsx') || filePath.endsWith('.ts') || filePath.endsWith('.js'))) {
       // Extract route from file path
       const routeMatch = filePath.match(/pages(\/.+?)\.[jt]sx?$/);
@@ -656,7 +900,7 @@ export class TreeSitterRouteAnalyzer {
   }
   
   /**
-   * Smart BFS traversal with early termination
+   * Smart BFS traversal following exact backtracking pattern from docs/import-graph-analysis.md
    */
   private async detectRoutesForFile(filePath: string): Promise<string[]> {
     // Check cache first
@@ -666,27 +910,20 @@ export class TreeSitterRouteAnalyzer {
     
     const routes = new Set<string>();
     const visited = new Set<string>();
-    const queue: Array<{ file: string; depth: number }> = [{ file: filePath, depth: 0 }];
-    const MAX_DEPTH = 20; // Reasonable max depth to prevent infinite loops
-    const MAX_ITERATIONS = 1000; // Maximum iterations to prevent runaway loops
-    let iterations = 0;
+    const importChain = new Map<string, string[]>(); // Track the import chain for each file
     
-    // Log for debugging deep component chains
-    this.logger.debug(`Detecting routes for file: ${filePath}`);
+    // BFS queue: start from the changed file
+    const queue: Array<{ file: string; depth: number; chain: string[] }> = [
+      { file: filePath, depth: 0, chain: [filePath] }
+    ];
     
-    // BFS for shortest paths - but go deep enough for nested components
-    while (queue.length > 0 && iterations < MAX_ITERATIONS) {
-      iterations++;
-      const { file, depth } = queue.shift()!;
+    this.logger.debug(`Starting BFS backtracking from ${filePath}`);
+    
+    while (queue.length > 0) {
+      const { file, depth, chain } = queue.shift()!;
       
       if (visited.has(file)) continue;
       visited.add(file);
-      
-      // Depth protection
-      if (depth > MAX_DEPTH) {
-        this.logger.debug(`Max depth ${MAX_DEPTH} reached while traversing from ${filePath}`);
-        continue;
-      }
       
       const node = this.importGraph.get(file);
       if (!node) {
@@ -694,40 +931,170 @@ export class TreeSitterRouteAnalyzer {
         continue;
       }
       
-      // Check if this file has routes
-      if (node.isRouteFile) {
-        const fileNode = this.fileCache.get(file);
-        if (fileNode) {
-          fileNode.routes.forEach(r => {
-            routes.add(r.path);
-            this.logger.debug(`Found route ${r.path} at depth ${depth} via ${file}`);
-          });
-        }
-        
-        // Don't terminate early for deeply nested components
-        // Continue searching to find all possible routes
+      // Log the import chain for debugging
+      if (depth > 0) {
+        this.logger.debug(`Import chain: ${chain.join(' ← ')}`);
       }
       
-      // Add importers to queue (parallel branches)
+      // Check if this file defines routes
+      if (node.isRouteFile) {
+        const fileNode = this.fileCache.get(file);
+        if (fileNode && fileNode.routes.length > 0) {
+          // For route files, check if any route is connected to our changed file
+          // through the import chain
+          const routesToAdd = this.getConnectedRoutes(fileNode, filePath, chain);
+          routesToAdd.forEach(r => {
+            routes.add(r);
+            this.logger.debug(`Found connected route: ${r} via ${file}`);
+          });
+        }
+      }
+      
+      // Continue BFS - add all files that import this one (backtracking)
       for (const importer of node.importedBy) {
         if (!visited.has(importer)) {
-          queue.push({ file: importer, depth: depth + 1 });
+          queue.push({ 
+            file: importer, 
+            depth: depth + 1,
+            chain: [...chain, importer]
+          });
         }
       }
     }
     
-    if (iterations >= MAX_ITERATIONS) {
-      this.logger.warning(`Reached maximum iteration limit (${MAX_ITERATIONS}) while detecting routes for ${filePath}. Possible circular dependency.`);
+    // Always try component mapping for more precise results
+    // This handles cases where lazy imports use different aliases
+    this.logger.debug(`Trying component mapping for ${filePath}`);
+    const componentRoutes = await this.findRoutesServingComponent(filePath);
+    
+    // If component mapping finds specific routes, prefer those over broad BFS results
+    if (componentRoutes.length > 0) {
+      routes.clear(); // Clear the broad BFS results
+      componentRoutes.forEach(route => {
+        routes.add(route.routePath);
+        this.logger.debug(`Found route via component mapping: ${route.routePath}`);
+      });
     }
     
-    const result = Array.from(routes);
+    // Filter and return results
+    const result = this.filterCompleteRoutes(Array.from(routes));
     this.routeCache.set(filePath, result);
     
-    if (result.length === 0) {
-      this.logger.debug(`No routes found for ${filePath} after traversing ${visited.size} files`);
-    }
+    this.logger.info(`File ${filePath} affects ${result.length} routes after traversing ${visited.size} files`);
     
     return result;
+  }
+  
+  /**
+   * Get routes that are connected to the changed file through imports
+   */
+  private getConnectedRoutes(routeFileNode: FileNode, changedFile: string, importChain: string[]): string[] {
+    const connectedRoutes: string[] = [];
+    
+    // Build a set of all components in the import chain
+    const componentsInChain = new Set<string>();
+    
+    for (const file of importChain) {
+      // Extract component name from file path
+      const fileName = path.basename(file, path.extname(file));
+      const componentName = fileName === 'index' ? 
+        path.basename(path.dirname(file)) : fileName;
+      
+      componentsInChain.add(componentName);
+      
+      // Also add any exports from this file
+      const fileNode = this.fileCache.get(file);
+      if (fileNode) {
+        fileNode.exports.forEach(exp => componentsInChain.add(exp));
+      }
+    }
+    
+    this.logger.debug(`Components in import chain: ${Array.from(componentsInChain).join(', ')}`);
+    
+    // Check each route to see if it uses any component from our chain
+    for (const route of routeFileNode.routes) {
+      // Check if this route's component is in our chain
+      if (componentsInChain.has(route.component)) {
+        connectedRoutes.push(route.path);
+        this.logger.debug(`Route ${route.path} uses component ${route.component} from chain`);
+        continue;
+      }
+      
+      // Check imports in the route file to see if they match our chain
+      for (const imp of routeFileNode.imports) {
+        // Check if this import is from a file in our chain
+        const importIsFromChain = importChain.some(chainFile => {
+          const relativePath = path.relative(this.rootPath, chainFile);
+          return imp.source.includes(relativePath.replace(/\.[jt]sx?$/, '')) ||
+                 imp.source.includes(path.basename(chainFile, path.extname(chainFile)));
+        });
+        
+        if (importIsFromChain) {
+          // Check if the imported component is used in this route
+          const importedComponents = imp.specifiers.length > 0 ? imp.specifiers : ['default'];
+          for (const importedComponent of importedComponents) {
+            if (route.component === importedComponent) {
+              connectedRoutes.push(route.path);
+              this.logger.debug(`Route ${route.path} uses imported component ${importedComponent}`);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Also check if the route file imports any file from our chain directly
+      // This handles cases where the component name doesn't match due to aliasing
+      if (importChain.some(chainFile => {
+        return chainFile.includes(changedFile.replace(/\.[jt]sx?$/, ''));
+      })) {
+        // If the route file is in the chain and imports our changed file
+        // We need to check if any routes in this file could be affected
+        for (const imp of routeFileNode.imports) {
+          if (imp.source.includes(changedFile.replace(/\.[jt]sx?$/, ''))) {
+            // This import is our changed file, add the route
+            connectedRoutes.push(route.path);
+            this.logger.debug(`Route ${route.path} is affected because route file imports ${changedFile}`);
+            break;
+          }
+        }
+      }
+    }
+    
+    return connectedRoutes;
+  }
+  
+  
+  /**
+   * Filter out partial routes and keep only complete route paths
+   * For example, if we have ['parent/child', 'child'], only keep 'parent/child'
+   */
+  private filterCompleteRoutes(routes: string[]): string[] {
+    // Create a set for faster lookups
+    const routeSet = new Set(routes);
+    const completeRoutes: string[] = [];
+    
+    for (const route of routes) {
+      let isComplete = true;
+      
+      // Check if this route is a suffix of any other route
+      for (const otherRoute of routes) {
+        if (otherRoute === route) continue;
+        
+        // Check if current route is a suffix of another route
+        if (otherRoute.endsWith('/' + route) || 
+            (otherRoute.includes('/' + route + '/') && otherRoute !== route)) {
+          isComplete = false;
+          break;
+        }
+      }
+      
+      if (isComplete) {
+        completeRoutes.push(route);
+      }
+    }
+    
+    // Return sorted complete routes
+    return completeRoutes.sort();
   }
   
   /**
@@ -775,8 +1142,11 @@ export class TreeSitterRouteAnalyzer {
     for (const imp of fileNode.imports) {
       node.imports.add(imp.source);
       
-      // Create imported file node if needed
+      // Create imported file node if needed - but only for files we've actually processed
+      // This prevents creating nodes for non-existent paths
       if (!this.importGraph.has(imp.source)) {
+        // Only create a placeholder node if we haven't processed this file yet
+        // The node will be properly populated when we process the actual file
         this.importGraph.set(imp.source, {
           file: imp.source,
           importedBy: new Set(),
@@ -933,6 +1303,9 @@ export class TreeSitterRouteAnalyzer {
           }
         }
       }
+      
+      // Connect directory imports to their index files
+      this.connectDirectoryImports();
       
       return true;
     } catch (error) {

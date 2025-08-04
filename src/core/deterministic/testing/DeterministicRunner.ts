@@ -5,6 +5,7 @@ import pixelmatch from 'pixelmatch';
 import { Viewport, FirebaseConfig } from '../../../types';
 import { StorageProvider } from '../../../providers/storage/types';
 import { DynamicBaselineManager } from '../../../core/baseline/DynamicBaselineManager';
+import { buildFullUrl } from '../../../utils/urlBuilder';
 
 export interface DeterministicTestResult {
   route: string;
@@ -74,10 +75,8 @@ export class DeterministicRunner {
       throw new Error('DeterministicRunner not initialized');
     }
     
-    // Ensure proper URL construction with slash
-    const url = route.startsWith('/') 
-      ? `${this.firebaseConfig.previewUrl}${route}`
-      : `${this.firebaseConfig.previewUrl}/${route}`;
+    // Build URL with consistent slash handling
+    const url = buildFullUrl(this.firebaseConfig.previewUrl, route);
     core.info(`🎯 Testing route deterministically: ${url}`);
     
     try {
@@ -216,10 +215,8 @@ export class DeterministicRunner {
       throw new Error('DeterministicRunner not initialized');
     }
     
-    // Ensure proper URL construction with slash
-    const url = route.startsWith('/') 
-      ? `${this.firebaseConfig.previewUrl}${route}`
-      : `${this.firebaseConfig.previewUrl}/${route}`;
+    // Build URL with consistent slash handling
+    const url = buildFullUrl(this.firebaseConfig.previewUrl, route);
     await this.page.goto(url, { waitUntil: 'networkidle' });
     
     const issues: string[] = [];

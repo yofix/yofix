@@ -5,6 +5,7 @@ import { Agent } from '../../browser-agent/core/Agent';
 import { RouteAnalysisResult, Viewport, FirebaseConfig } from '../../types';
 import { DeterministicRunner, DeterministicTestResult } from '../deterministic/testing/DeterministicRunner';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
+import { buildFullUrl } from '../../utils/urlBuilder';
 
 export interface TestResult {
   route: string;
@@ -220,7 +221,7 @@ export class TestGenerator {
    */
   private async testRouteWithSharedAgent(route: string, analysis: RouteAnalysisResult): Promise<TestResult> {
     const startTime = Date.now();
-    const url = `${this.firebaseConfig.previewUrl}${route}`;
+    const url = buildFullUrl(this.firebaseConfig.previewUrl, route);
     
     core.info(`Testing route: ${route}`);
     core.info(`Full URL: ${url}`);
@@ -275,7 +276,7 @@ export class TestGenerator {
 
   private async testRoute(route: string, analysis: RouteAnalysisResult): Promise<TestResult> {
     const startTime = Date.now();
-    const url = `${this.firebaseConfig.previewUrl}${route}`;
+    const url = buildFullUrl(this.firebaseConfig.previewUrl, route);
     
     core.info(`Testing route: ${route}`);
     
@@ -463,10 +464,11 @@ Provide detailed analysis and practical fixes for any issues found.`;
     const startTime = Date.now();
     
     try {
+      const authUrl = buildFullUrl(this.firebaseConfig.previewUrl, loginUrl);
       const authTask = `
         Test the authentication flow:
         
-        1. Navigate to ${this.firebaseConfig.previewUrl}${loginUrl}
+        1. Navigate to ${authUrl}
         2. Use smart_login with email="${credentials.email}" password="${credentials.password}"
         3. Verify successful login by checking for user profile or dashboard elements
         4. Test logout functionality

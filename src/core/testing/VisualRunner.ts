@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { Agent } from '../../browser-agent/core/Agent';
 import { TestTemplate, TestResult, Screenshot, Video, ConsoleMessage, FirebaseConfig, Viewport } from '../../types';
 import { SmartAuthHandler } from '../../github/SmartAuthHandler';
+import { buildFullUrl } from '../../utils/urlBuilder';
 
 /**
  * Visual Runner - Powered by Browser Agent
@@ -131,7 +132,8 @@ export class VisualRunner {
       switch (action.type) {
         case 'goto':
         case 'navigate':
-          tasks.push(`${step}. Navigate to ${this.firebaseConfig.previewUrl}${action.value || action.selector}`);
+          const targetUrl = buildFullUrl(this.firebaseConfig.previewUrl, action.value || action.selector || '/');
+          tasks.push(`${step}. Navigate to ${targetUrl}`);
           break;
           
         case 'click':

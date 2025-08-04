@@ -157,6 +157,8 @@ export class RouteImpactAnalyzer {
    */
   private async getChangedFiles(prNumber: number): Promise<string[]> {
     console.log(`[RouteImpactAnalyzer] Getting changed files for PR #${prNumber}`);
+    console.log(`[RouteImpactAnalyzer] Working directory: ${process.cwd()}`);
+    console.log(`[RouteImpactAnalyzer] GITHUB_WORKSPACE: ${process.env.GITHUB_WORKSPACE || 'undefined'}`);
     const files = await this.github.listPullRequestFiles();
     console.log(`[RouteImpactAnalyzer] Found ${files.length} files in PR`);
 

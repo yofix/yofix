@@ -72,6 +72,25 @@ export interface Screenshot {
   timestamp: number;
   route?: string;
   actualUrl?: string; // The actual URL where screenshot was taken (after redirects)
+  
+  // Baseline comparison data (if available)
+  baseline?: {
+    url?: string;
+    timestamp?: number;
+    updatedDate?: string;
+  };
+  comparison?: {
+    hasDifference: boolean;
+    diffPercentage: number;
+    diffImageUrl?: string;
+    status: 'new' | 'unchanged' | 'changed' | 'error';
+    issues?: Array<{
+      type: string;
+      severity: 'critical' | 'warning' | 'info';
+      description: string;
+      fix?: string;
+    }>;
+  };
 }
 
 export interface Video {

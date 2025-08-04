@@ -141,7 +141,13 @@ ${message}
       const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
       core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
       
-      comment += this.generateEmbeddedScreenshots(screenshots);
+      // Use enhanced comparison layout if baseline data is available
+      const hasBaselineData = screenshots.some(s => s.comparison || s.baseline);
+      if (hasBaselineData) {
+        comment += this.generateVisualComparisonTable(screenshots);
+      } else {
+        comment += this.generateEmbeddedScreenshots(screenshots);
+      }
     }
     
     // Embed videos directly
@@ -258,7 +264,176 @@ ${message}
   }
 
   /**
-   * Generate embedded screenshots for PR comment
+   * Generate visual comparison table with baseline vs current screenshots
+   */
+  private generateVisualComparisonTable(screenshots: any[]): string {
+    if (screenshots.length === 0) {
+      return '';
+    }
+
+    // Group screenshots by route
+    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
+      const route = screenshot.route || this.extractRouteFromScreenshotName(screenshot.name);
+      if (!acc[route]) {
+        acc[route] = [];
+      }
+      acc[route].push(screenshot);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    // Generate summary statistics
+    const totalRoutes = Object.keys(groupedByRoute).length;
+    const routesWithIssues = Object.values(groupedByRoute).filter((screenshots: any[]) => 
+      screenshots.some(s => s.comparison?.hasDifference || s.comparison?.issues?.length > 0)
+    ).length;
+    const newRoutes = Object.values(groupedByRoute).filter((screenshots: any[]) =>
+      screenshots.some(s => s.comparison?.status === 'new')
+    ).length;
+
+    let content = `## 📸 Visual Testing Results\n\n`;
+    content += `### 🎯 Summary: ${totalRoutes} route${totalRoutes !== 1 ? 's' : ''} tested`;
+    if (routesWithIssues > 0) {
+      content += ` • ⚠️ ${routesWithIssues} with issues`;
+    }
+    if (newRoutes > 0) {
+      content += ` • 🆕 ${newRoutes} new`;
+    }
+    content += `\n\n`;
+
+    // Generate collapsible sections for each route
+    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
+      const routeHasIssues = (routeScreenshots as any[]).some(s => 
+        s.comparison?.hasDifference || s.comparison?.issues?.length > 0
+      );
+      const isNewRoute = (routeScreenshots as any[]).some(s => s.comparison?.status === 'new');
+      
+      const statusIcon = isNewRoute ? '🆕' : routeHasIssues ? '⚠️' : '✅';
+      const statusText = isNewRoute ? 'New Route' : routeHasIssues ? 'Issues Detected' : 'No Issues';
+      
+      content += `<details>\n`;
+      content += `<summary><strong>📍 ${route}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
+      
+      // Create comparison table for this route
+      content += `| Baseline (Last Updated) | Current Screenshot | Comparison |\n`;
+      content += `|------------------------|-------------------|------------|\n`;
+      
+      // Sort by viewport size (desktop first)
+      const sortedScreenshots = (routeScreenshots as any[]).sort((a, b) => b.viewport.width - a.viewport.width);
+      
+      for (const screenshot of sortedScreenshots) {
+        content += this.generateComparisonTableRow(screenshot);
+      }
+      
+      // Add issues section if any
+      const allIssues = (routeScreenshots as any[]).flatMap(s => s.comparison?.issues || []);
+      if (allIssues.length > 0) {
+        content += `\n**Issues Found:**\n`;
+        for (const issue of allIssues) {
+          const severityIcon = issue.severity === 'critical' ? '🚨' : 
+                              issue.severity === 'warning' ? '⚠️' : 'ℹ️';
+          content += `- ${severityIcon} **${issue.type}**: ${issue.description}\n`;
+          if (issue.fix) {
+            content += `  - 🔧 **Fix**: ${issue.fix}\n`;
+          }
+        }
+      }
+      
+      content += `\n</details>\n\n`;
+    }
+
+    return content;
+  }
+
+  /**
+   * Generate a single row for the comparison table
+   */
+  private generateComparisonTableRow(screenshot: any): string {
+    const viewport = `**${screenshot.viewport.width}×${screenshot.viewport.height}**`;
+    
+    // Baseline column (includes viewport info)
+    let baselineCell = `${viewport}<br/>`;
+    if (screenshot.baseline?.url) {
+      const updatedDate = screenshot.baseline.updatedDate || 'Unknown';
+      baselineCell += `![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
+    } else if (screenshot.comparison?.status === 'new') {
+      baselineCell += '🆕 *New baseline created*';
+    } else {
+      baselineCell += '❌ *No baseline*';
+    }
+    
+    // Current screenshot column (includes viewport info)
+    let currentCell = `${viewport}<br/>`;
+    if (screenshot.firebaseUrl) {
+      const captureDate = new Date(screenshot.timestamp).toLocaleDateString();
+      currentCell += `![Current](${screenshot.firebaseUrl})<br/>*Captured: ${captureDate}*`;
+    } else {
+      currentCell += '❌ *Screenshot not available*';
+    }
+    
+    // Comparison column
+    let comparisonCell = '';
+    if (screenshot.comparison) {
+      const comp = screenshot.comparison;
+      switch (comp.status) {
+        case 'new':
+          comparisonCell = `🆕 **New Route**<br/>Baseline created from current`;
+          break;
+        case 'unchanged':
+          comparisonCell = `✅ **${comp.diffPercentage.toFixed(2)}% diff**<br/>No issues detected`;
+          break;
+        case 'changed':
+          const diffIcon = comp.diffPercentage > 5 ? '🚨' : comp.diffPercentage > 1 ? '⚠️' : 'ℹ️';
+          comparisonCell = `${diffIcon} **${comp.diffPercentage.toFixed(2)}% diff**<br/>`;
+          if (comp.diffImageUrl) {
+            comparisonCell += `[View Diff](${comp.diffImageUrl})`;
+          } else {
+            comparisonCell += 'Visual changes detected';
+          }
+          break;
+        case 'error':
+          comparisonCell = `❌ **Comparison Failed**<br/>Unable to compare images`;
+          break;
+        default:
+          comparisonCell = `❓ **Unknown Status**`;
+      }
+      
+      // Add issue summary if any
+      if (comp.issues && comp.issues.length > 0) {
+        const criticalIssues = comp.issues.filter(i => i.severity === 'critical').length;
+        const warningIssues = comp.issues.filter(i => i.severity === 'warning').length;
+        if (criticalIssues > 0) {
+          comparisonCell += `<br/>🚨 ${criticalIssues} critical issue${criticalIssues !== 1 ? 's' : ''}`;
+        }
+        if (warningIssues > 0) {
+          comparisonCell += `<br/>⚠️ ${warningIssues} warning${warningIssues !== 1 ? 's' : ''}`;
+        }
+      }
+    } else {
+      comparisonCell = 'ℹ️ **No comparison data**';
+    }
+    
+    return `| ${baselineCell} | ${currentCell} | ${comparisonCell} |\n`;
+  }
+
+  /**
+   * Extract route name from screenshot filename
+   */
+  private extractRouteFromScreenshotName(screenshotName: string): string {
+    // Remove viewport size pattern and file extension
+    let route = screenshotName.replace(/-\d+x\d+.*$/, '').replace(/\.(png|jpg|jpeg)$/, '');
+    // Convert back to route format
+    route = route.replace(/_/g, '/');
+    if (!route.startsWith('/')) {
+      route = '/' + route;
+    }
+    if (route === '/root' || route === '/') {
+      return '/';
+    }
+    return route;
+  }
+
+  /**
+   * Generate embedded screenshots for PR comment (legacy method)
    */
   private generateEmbeddedScreenshots(screenshots: any[]): string {
     if (screenshots.length === 0) {

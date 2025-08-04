@@ -429,13 +429,56 @@ async function runVisualTesting(): Promise<void> {
         // Save screenshot to disk
         await fs.writeFile(screenshotPath, screenshotBuffer);
         
+        // Get baseline comparison data if available
+        const viewport = viewports[screenshotIndex % viewports.length];
+        let baselineData = undefined;
+        let comparisonData = undefined;
+        
+        // Check if we have pixel diff data for this viewport
+        if (result.pixelDiffs) {
+          const pixelDiff = result.pixelDiffs.find(pd => 
+            pd.viewport.width === viewport.width && pd.viewport.height === viewport.height
+          );
+          
+          if (pixelDiff) {
+            comparisonData = {
+              hasDifference: pixelDiff.diffPercentage > 0.1, // 0.1% threshold
+              diffPercentage: pixelDiff.diffPercentage,
+              status: pixelDiff.diffPercentage === 0 ? 'new' : 
+                     pixelDiff.diffPercentage > 0.1 ? 'changed' : 'unchanged',
+              issues: result.issues?.filter(issue => issue.type === 'visual-regression') || []
+            };
+            
+            // Save diff image to disk if available
+            if (pixelDiff.diffImage) {
+              const diffFilename = `${sanitizedPath}${redirectSuffix}_diff-${screenshotIndex}.png`;
+              const diffPath = path.join(outputDir!, diffFilename);
+              await fs.writeFile(diffPath, pixelDiff.diffImage);
+              
+              // Store diff image path for later upload
+              (comparisonData as any).diffImagePath = diffPath;
+              (comparisonData as any).diffImageName = diffFilename;
+            }
+          }
+        } else if (result.issues?.some(i => i.type === 'visual-regression')) {
+          // If we have visual regression issues but no pixel diff data, it's likely a new baseline
+          comparisonData = {
+            hasDifference: false,
+            diffPercentage: 0,
+            status: 'new',
+            issues: result.issues?.filter(issue => issue.type !== 'visual-regression') || []
+          };
+        }
+
         allScreenshots.push({
           name: filename,
           path: screenshotPath,
-          viewport: viewports[screenshotIndex % viewports.length],
+          viewport,
           timestamp: Date.now(),
           route: result.route,
-          actualUrl: result.screenshotUrls?.[screenshotIndex] || result.actualUrl
+          actualUrl: result.screenshotUrls?.[screenshotIndex] || result.actualUrl,
+          baseline: baselineData,
+          comparison: comparisonData
         });
       }
     }
@@ -475,6 +518,46 @@ async function runVisualTesting(): Promise<void> {
         );
         
         uploadedScreenshots = await storageManager.uploadScreenshots(allScreenshots);
+        
+        // Upload diff images separately using batchUpload
+        const diffFilesToUpload: Array<{ localPath: string, remotePath: string, contentType: string }> = [];
+        const diffScreenshotMap = new Map<string, any>();
+        
+        for (const screenshot of uploadedScreenshots) {
+          if (screenshot.comparison && (screenshot.comparison as any).diffImagePath) {
+            const diffImagePath = (screenshot.comparison as any).diffImagePath;
+            const diffImageName = (screenshot.comparison as any).diffImageName;
+            
+            diffFilesToUpload.push({
+              localPath: diffImagePath,
+              remotePath: diffImageName,
+              contentType: 'image/png'
+            });
+            
+            diffScreenshotMap.set(diffImageName, screenshot);
+          }
+        }
+        
+        if (diffFilesToUpload.length > 0) {
+          try {
+            core.info(`📊 Uploading ${diffFilesToUpload.length} diff images...`);
+            const diffUrls = await storageManager.batchUpload(diffFilesToUpload);
+            
+            // Update comparison data with diff URLs
+            diffUrls.forEach((url, index) => {
+              if (url) {
+                const diffFile = diffFilesToUpload[index];
+                const screenshot = diffScreenshotMap.get(diffFile.remotePath);
+                if (screenshot?.comparison) {
+                  screenshot.comparison.diffImageUrl = url;
+                  core.info(`  📊 Diff uploaded: ${diffFile.remotePath}`);
+                }
+              }
+            });
+          } catch (error) {
+            core.warning(`Failed to upload diff images: ${error}`);
+          }
+        }
         
         // Log uploaded URLs
         core.info('✅ Screenshots uploaded successfully:');

@@ -142,13 +142,18 @@ export class DeterministicRunner {
         
         // Compare with baseline if available
         if (this.baselineManager) {
-          const comparison = await this.baselineManager.compareWithBaseline(route, viewport, screenshot);
-          if (comparison.hasDifference) {
-            pixelDiffs.push({
-              viewport,
-              diffPercentage: comparison.diffPercentage,
-              diffImage: comparison.diffImage
-            });
+          try {
+            const comparison = await this.baselineManager.compareWithBaseline(route, viewport, screenshot);
+            if (comparison.hasDifference) {
+              pixelDiffs.push({
+                viewport,
+                diffPercentage: comparison.diffPercentage,
+                diffImage: comparison.diffImage
+              });
+            }
+          } catch (error: any) {
+            core.warning(`⚠️ Baseline comparison failed for ${route} at ${viewport.width}x${viewport.height}: ${error.message || error}`);
+            // Continue without baseline comparison for this viewport
           }
         }
       }
@@ -196,10 +201,21 @@ export class DeterministicRunner {
    * Initialize baselines before testing
    */
   async initializeBaselines(routes: string[], viewports: Viewport[]): Promise<void> {
-    if (!this.baselineManager) return;
+    if (!this.baselineManager) {
+      core.info('ℹ️ No baseline manager configured. Skipping baseline initialization.');
+      return;
+    }
     
-    // Ensure baselines exist for all routes
-    await this.baselineManager.ensureBaselines(routes, viewports);
+    try {
+      // Ensure baselines exist for all routes
+      core.info(`🎯 Initializing baselines for ${routes.length} routes...`);
+      await this.baselineManager.ensureBaselines(routes, viewports);
+      core.info('✅ Baseline initialization completed');
+    } catch (error: any) {
+      core.warning(`⚠️ Baseline initialization failed: ${error.message || error}`);
+      core.info('📝 Visual testing will continue without baseline comparison');
+      // Don't throw - let testing continue
+    }
   }
   
   /**

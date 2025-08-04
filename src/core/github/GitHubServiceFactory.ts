@@ -771,7 +771,7 @@ export class EnhancedGitHubService implements GitHubService {
         console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
         
         // Get PR number from various possible locations
-        let prNumber = context.payload.pull_request?.number || 
+        const prNumber = context.payload.pull_request?.number || 
                        context.payload.number || 
                        context.issue.number;
                        
@@ -1075,7 +1075,7 @@ export class OctokitGitHubService implements GitHubService {
         console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
         
         // Get PR number from various possible locations
-        let prNumber = context.payload.pull_request?.number || 
+        const prNumber = context.payload.pull_request?.number || 
                        context.payload.number || 
                        context.issue.number;
                        
@@ -1246,18 +1246,14 @@ export class LazyGitHubService implements GitHubService {
         const github = require('@actions/github');
         const context = github.context;
         
-        console.log(`[LazyGitHubService] Using @actions/github context`);
-        console.log(`[LazyGitHubService] Event name: ${context.eventName}`);
-        console.log(`[LazyGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[LazyGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[LazyGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+       
         
         // Get PR number from various possible locations
-        let prNumber = context.payload.pull_request?.number || 
+        const prNumber = context.payload.pull_request?.number || 
                        context.payload.number || 
                        context.issue.number;
                        
-        console.log(`[LazyGitHubService] Final PR number: ${prNumber}`);
+ 
         
         return {
           owner: context.repo.owner,
@@ -1270,7 +1266,7 @@ export class LazyGitHubService implements GitHubService {
         };
       } catch (error) {
         console.error('[LazyGitHubService] Failed to use @actions/github context:', error);
-        console.log('[LazyGitHubService] Falling back to environment variables');
+       
       }
     }
     
@@ -1285,7 +1281,7 @@ export class LazyGitHubService implements GitHubService {
       if (eventPath) {
         const fs = require('fs');
         payload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
-        console.log(`[LazyGitHubService] Parsed event payload from ${eventPath}`);
+       
       }
     } catch (error) {
       console.error('[LazyGitHubService] Failed to parse GitHub event payload:', error);
@@ -1294,7 +1290,7 @@ export class LazyGitHubService implements GitHubService {
     // Get PR number from payload
     const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
     
-    console.log(`[LazyGitHubService] Fallback context - PR number: ${prNumber}, event: ${eventName}`);
+    
     
     return {
       owner: this.pendingConfig?.owner || owner || '',

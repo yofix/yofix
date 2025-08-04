@@ -954,7 +954,21 @@ export class TreeSitterRouteAnalyzer {
       const node = this.importGraph.get(file);
       if (!node) {
         this.logger.debug(`No import graph node found for: ${file}`);
-        continue;
+        this.logger.debug(`Available import graph keys (first 10): ${Array.from(this.importGraph.keys()).slice(0, 10).join(', ')}`);
+        
+        // Try normalizing the path and looking again
+        const normalizedFile = path.resolve(this.rootPath, file);
+        const relativeFile = path.relative(this.rootPath, file);
+        const alternativeNode = this.importGraph.get(normalizedFile) || this.importGraph.get(relativeFile);
+        
+        if (alternativeNode) {
+          this.logger.debug(`Found node with alternative path: ${normalizedFile || relativeFile}`);
+          // Use the alternative node but update our tracking
+          this.importGraph.set(file, alternativeNode);
+        } else {
+          this.logger.debug(`No alternative paths found for: ${file}`);
+          continue;
+        }
       }
       
       // Log the import chain for debugging

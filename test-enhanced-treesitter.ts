@@ -16,13 +16,14 @@ async function testEnhancedTreeSitter() {
   console.log('');
 
   try {
-    console.log('Initializing analyzer...');
+    console.log('Initializing analyzer with force rebuild...');
     const start = Date.now();
     const analyzer = new TreeSitterRouteAnalyzer(codebasePath);
-    await analyzer.initialize();
+    // Force rebuild to ensure fresh analysis every time
+    await analyzer.initialize(true);
     const initTime = Date.now() - start;
     
-    console.log(`✓ Initialized in ${initTime}ms`);
+    console.log(`✓ Initialized (with fresh rebuild) in ${initTime}ms`);
     console.log('');
 
     // Test each file

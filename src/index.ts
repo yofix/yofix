@@ -34,6 +34,12 @@ async function run(): Promise<void> {
     // Initialize core services first
     initializeCoreServices();
     
+    // Configure GitHub service with token
+    const githubToken = config.get('github-token');
+    if (githubToken) {
+      await GitHubServiceFactory.getService().configure({ token: githubToken });
+    }
+    
     // Check if this is a bot command
     const eventName = GitHubServiceFactory.getService().getContext().eventName;
     

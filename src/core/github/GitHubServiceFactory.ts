@@ -756,51 +756,59 @@ export class EnhancedGitHubService implements GitHubService {
   getContext() {
     // Context doesn't require API calls, so no caching/rate limiting needed
     if (env.getWithDefaults('GITHUB_ACTIONS') === 'true') {
+      // Use @actions/github context if available
+      try {
+        const github = require('@actions/github');
+        const context = github.context;
+        
+        console.log(`[EnhancedGitHubService] Using @actions/github context`);
+        console.log(`[EnhancedGitHubService] Event name: ${context.eventName}`);
+        console.log(`[EnhancedGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+        console.log(`[EnhancedGitHubService] SHA: ${context.sha}`);
+        console.log(`[EnhancedGitHubService] Actor: ${context.actor}`);
+        console.log(`[EnhancedGitHubService] Issue number: ${context.issue.number}`);
+        console.log(`[EnhancedGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+        console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
+        
+        // Get PR number from various possible locations
+        let prNumber = context.payload.pull_request?.number || 
+                       context.payload.number || 
+                       context.issue.number;
+                       
+        console.log(`[EnhancedGitHubService] Final PR number: ${prNumber}`);
+        
+        return {
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          sha: context.sha,
+          prNumber,
+          actor: context.actor,
+          eventName: context.eventName,
+          payload: context.payload
+        };
+      } catch (error) {
+        console.error('[EnhancedGitHubService] Failed to use @actions/github context:', error);
+        console.log('[EnhancedGitHubService] Falling back to environment variables');
+      }
+      
+      // Fallback to environment variables if @actions/github is not available
       const repository = env.getWithDefaults('GITHUB_REPOSITORY') || 'test-owner/test-repo';
       const [owner, repo] = repository.split('/');
       let payload = {};
       const eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
       
-      console.log(`[EnhancedGitHubService] GITHUB_ACTIONS env: ${env.getWithDefaults('GITHUB_ACTIONS')}`);
-      console.log(`[EnhancedGitHubService] Event name from env: ${eventName}`);
-      
       try {
         const eventPath = env.getWithDefaults('GITHUB_EVENT_PATH');
-        console.log(`[EnhancedGitHubService] GITHUB_EVENT_PATH: ${eventPath}`);
-        
         if (eventPath) {
           const fs = require('fs');
-          const eventContent = fs.readFileSync(eventPath, 'utf8');
-          console.log(`[EnhancedGitHubService] Event file exists, size: ${eventContent.length} bytes`);
-          
-          payload = JSON.parse(eventContent);
-          console.log(`[EnhancedGitHubService] GitHub event payload loaded successfully`);
-          console.log(`[EnhancedGitHubService] Event name: ${eventName}`);
-          console.log(`[EnhancedGitHubService] Payload keys: ${Object.keys(payload).join(', ')}`);
-          console.log(`[EnhancedGitHubService] PR number in payload.pull_request: ${(payload as any)?.pull_request?.number}`);
-          console.log(`[EnhancedGitHubService] PR number in payload.issue: ${(payload as any)?.issue?.number}`);
-          console.log(`[EnhancedGitHubService] PR number in payload.number: ${(payload as any)?.number}`);
-          
-          // Log the pull_request object structure if it exists
-          if ((payload as any)?.pull_request) {
-            console.log(`[EnhancedGitHubService] pull_request object keys: ${Object.keys((payload as any).pull_request).slice(0, 10).join(', ')}...`);
-          }
-        } else {
-          console.log(`[EnhancedGitHubService] No GITHUB_EVENT_PATH found`);
+          payload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
         }
       } catch (error) {
         console.error('[EnhancedGitHubService] Failed to parse GitHub event payload:', error);
-        console.error('[EnhancedGitHubService] Error details:', (error as any).message);
       }
       
       // Get PR number from payload
       const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
-      
-      console.log(`Extracted PR number: ${prNumber}`);
-      console.log(`Repository: ${owner}/${repo}`);
-      console.log(`GitHub SHA: ${env.getWithDefaults('GITHUB_SHA')}`);
-      console.log(`GitHub Actor: ${env.getWithDefaults('GITHUB_ACTOR')}`);
-      console.log(`GitHub Event Name: ${eventName}`);
       
       return {
         owner,
@@ -1052,51 +1060,59 @@ export class OctokitGitHubService implements GitHubService {
   getContext() {
     // In GitHub Actions environment
     if (env.getWithDefaults('GITHUB_ACTIONS') === 'true') {
+      // Use @actions/github context if available
+      try {
+        const github = require('@actions/github');
+        const context = github.context;
+        
+        console.log(`[OctokitGitHubService] Using @actions/github context`);
+        console.log(`[OctokitGitHubService] Event name: ${context.eventName}`);
+        console.log(`[OctokitGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+        console.log(`[OctokitGitHubService] SHA: ${context.sha}`);
+        console.log(`[OctokitGitHubService] Actor: ${context.actor}`);
+        console.log(`[OctokitGitHubService] Issue number: ${context.issue.number}`);
+        console.log(`[OctokitGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+        console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
+        
+        // Get PR number from various possible locations
+        let prNumber = context.payload.pull_request?.number || 
+                       context.payload.number || 
+                       context.issue.number;
+                       
+        console.log(`[OctokitGitHubService] Final PR number: ${prNumber}`);
+        
+        return {
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          sha: context.sha,
+          prNumber,
+          actor: context.actor,
+          eventName: context.eventName,
+          payload: context.payload
+        };
+      } catch (error) {
+        console.error('[OctokitGitHubService] Failed to use @actions/github context:', error);
+        console.log('[OctokitGitHubService] Falling back to environment variables');
+      }
+      
+      // Fallback to environment variables if @actions/github is not available
       const repository = env.getWithDefaults('GITHUB_REPOSITORY') || 'test-owner/test-repo';
       const [owner, repo] = repository.split('/');
       let payload = {};
       const eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
       
-      console.log(`[OctokitGitHubService] GITHUB_ACTIONS env: ${env.getWithDefaults('GITHUB_ACTIONS')}`);
-      console.log(`[OctokitGitHubService] Event name from env: ${eventName}`);
-      
       try {
         const eventPath = env.getWithDefaults('GITHUB_EVENT_PATH');
-        console.log(`[OctokitGitHubService] GITHUB_EVENT_PATH: ${eventPath}`);
-        
         if (eventPath) {
           const fs = require('fs');
-          const eventContent = fs.readFileSync(eventPath, 'utf8');
-          console.log(`[OctokitGitHubService] Event file exists, size: ${eventContent.length} bytes`);
-          
-          payload = JSON.parse(eventContent);
-          console.log(`[OctokitGitHubService] GitHub event payload loaded successfully`);
-          console.log(`[OctokitGitHubService] Event name: ${eventName}`);
-          console.log(`[OctokitGitHubService] Payload keys: ${Object.keys(payload).join(', ')}`);
-          console.log(`[OctokitGitHubService] PR number in payload.pull_request: ${(payload as any)?.pull_request?.number}`);
-          console.log(`[OctokitGitHubService] PR number in payload.issue: ${(payload as any)?.issue?.number}`);
-          console.log(`[OctokitGitHubService] PR number in payload.number: ${(payload as any)?.number}`);
-          
-          // Log the pull_request object structure if it exists
-          if ((payload as any)?.pull_request) {
-            console.log(`[OctokitGitHubService] pull_request object keys: ${Object.keys((payload as any).pull_request).slice(0, 10).join(', ')}...`);
-          }
-        } else {
-          console.log(`[OctokitGitHubService] No GITHUB_EVENT_PATH found`);
+          payload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
         }
       } catch (error) {
         console.error('[OctokitGitHubService] Failed to parse GitHub event payload:', error);
-        console.error('[OctokitGitHubService] Error details:', (error as any).message);
       }
       
       // Get PR number from payload
       const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
-  
-      console.log(`[OctokitGitHubService] Extracted PR number: ${prNumber}`);
-      console.log(`[OctokitGitHubService] Repository: ${owner}/${repo}`);
-      console.log(`[OctokitGitHubService] GitHub SHA: ${env.getWithDefaults('GITHUB_SHA')}`);
-      console.log(`[OctokitGitHubService] GitHub Actor: ${env.getWithDefaults('GITHUB_ACTOR')}`);
-      console.log(`[OctokitGitHubService] GitHub Event Name: ${eventName}`);
       
       return {
         owner,

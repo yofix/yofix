@@ -1240,16 +1240,70 @@ export class LazyGitHubService implements GitHubService {
     }
     
     // Return context from environment even without service
+    if (env.getWithDefaults('GITHUB_ACTIONS') === 'true') {
+      // Use @actions/github context if available
+      try {
+        const github = require('@actions/github');
+        const context = github.context;
+        
+        console.log(`[LazyGitHubService] Using @actions/github context`);
+        console.log(`[LazyGitHubService] Event name: ${context.eventName}`);
+        console.log(`[LazyGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+        console.log(`[LazyGitHubService] Issue number: ${context.issue.number}`);
+        console.log(`[LazyGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+        
+        // Get PR number from various possible locations
+        let prNumber = context.payload.pull_request?.number || 
+                       context.payload.number || 
+                       context.issue.number;
+                       
+        console.log(`[LazyGitHubService] Final PR number: ${prNumber}`);
+        
+        return {
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          sha: context.sha,
+          prNumber,
+          actor: context.actor,
+          eventName: context.eventName,
+          payload: context.payload
+        };
+      } catch (error) {
+        console.error('[LazyGitHubService] Failed to use @actions/github context:', error);
+        console.log('[LazyGitHubService] Falling back to environment variables');
+      }
+    }
+    
+    // Fallback to parsing event payload manually
     const repository = env.getWithDefaults('GITHUB_REPOSITORY') || 'test-owner/test-repo';
     const [owner, repo] = repository.split('/');
+    let payload = {};
+    const eventName = env.getWithDefaults('GITHUB_EVENT_NAME');
+    
+    try {
+      const eventPath = env.getWithDefaults('GITHUB_EVENT_PATH');
+      if (eventPath) {
+        const fs = require('fs');
+        payload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+        console.log(`[LazyGitHubService] Parsed event payload from ${eventPath}`);
+      }
+    } catch (error) {
+      console.error('[LazyGitHubService] Failed to parse GitHub event payload:', error);
+    }
+    
+    // Get PR number from payload
+    const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
+    
+    console.log(`[LazyGitHubService] Fallback context - PR number: ${prNumber}, event: ${eventName}`);
+    
     return {
       owner: this.pendingConfig?.owner || owner || '',
       repo: this.pendingConfig?.repo || repo || '',
       sha: env.getWithDefaults('GITHUB_SHA'),
-      prNumber: undefined,
+      prNumber,
       actor: env.getWithDefaults('GITHUB_ACTOR'),
-      eventName: env.getWithDefaults('GITHUB_EVENT_NAME'),
-      payload: {}
+      eventName,
+      payload
     };
   }
   

@@ -395,7 +395,7 @@ Create a `.yofix.config.json` in your project root:
 {
   "ai": {
     "claude": {
-      "defaultModel": "claude-3-5-sonnet-20241022",
+      "defaultModel": "claude-sonnet-4-5-20250929",
       "temperature": 0.2
     }
   },

@@ -21,6 +21,12 @@ export interface TestResult {
   }>;
   screenshots: Buffer[];
   error?: string;
+  // Baseline comparison data
+  pixelDiffs?: Array<{
+    viewport: { width: number; height: number };
+    diffPercentage: number;
+    diffImage?: Buffer;
+  }>;
 }
 
 export class TestGenerator {
@@ -181,7 +187,8 @@ export class TestGenerator {
             duration: 0, // Can add timing if needed
             issues: this.convertPixelDiffsToIssues(deterministicResult.pixelDiffs),
             screenshots: deterministicResult.screenshots,
-            error: deterministicResult.error
+            error: deterministicResult.error,
+            pixelDiffs: deterministicResult.pixelDiffs
           };
           
           results.push(result);

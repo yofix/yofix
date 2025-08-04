@@ -10,13 +10,13 @@ The configuration is organized into logical sections:
 {
   "ai": {
     "claude": {
-      "defaultModel": "claude-3-5-sonnet-20241022",
+      "defaultModel": "claude-sonnet-4-5-20250929",
       "models": {
-        "analysis": "claude-3-5-sonnet-20241022",
-        "navigation": "claude-3-5-sonnet-20241022", 
-        "fixing": "claude-3-5-sonnet-20241022",
-        "screenshot": "claude-3-5-sonnet-20241022",
-        "contextual": "claude-3-5-sonnet-20241022"
+        "analysis": "claude-sonnet-4-5-20250929",
+        "navigation": "claude-sonnet-4-5-20250929", 
+        "fixing": "claude-sonnet-4-5-20250929",
+        "screenshot": "claude-sonnet-4-5-20250929",
+        "contextual": "claude-sonnet-4-5-20250929"
       },
       "maxTokens": {
         "default": 1024,
@@ -94,7 +94,7 @@ Then edit `.yofix.config.json` to override any default values:
 {
   "ai": {
     "claude": {
-      "defaultModel": "claude-3-5-sonnet-20241022",
+      "defaultModel": "claude-sonnet-4-5-20250929",
       "temperature": 0.3
     }
   },
@@ -218,7 +218,7 @@ config.reload();
 
 The configuration system replaces hardcoded values throughout the codebase:
 
-- Model names like `'claude-3-5-sonnet-20241022'` → `config.get('ai.claude.defaultModel')`
+- Model names like `'claude-sonnet-4-5-20250929'` → `config.get('ai.claude.defaultModel')`
 - Timeouts like `30000` → `config.get('browser.defaultTimeout')`
 - Max tokens like `1024` → `config.get('ai.claude.maxTokens.default')`
 

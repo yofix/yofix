@@ -740,7 +740,7 @@ export class Agent {
       case 'anthropic':
         return new AnthropicProvider({
           apiKey: apiKey || process.env.ANTHROPIC_API_KEY || '',
-          model: this.options.llmModel || 'claude-3-5-sonnet-20241022'
+          model: this.options.llmModel || 'claude-sonnet-4-5-20250929'
         });
       
       // Add other providers here

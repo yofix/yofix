@@ -755,13 +755,19 @@ export class EnhancedGitHubService implements GitHubService {
         if (eventPath) {
           const fs = require('fs');
           payload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+          console.log(`GitHub event payload loaded from ${eventPath}`);
+          console.log(`Event name: ${eventName}`);
+          console.log(`PR number in payload: ${(payload as any)?.pull_request?.number}`);
         }
       } catch (error) {
-        // Ignore parsing errors
+        console.error('Failed to parse GitHub event payload:', error);
       }
       
       // Get PR number from payload
       const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
+      
+      console.log(`Extracted PR number: ${prNumber}`);
+      console.log(`Repository: ${owner}/${repo}`);
       
       return {
         owner,
@@ -1012,14 +1018,19 @@ export class OctokitGitHubService implements GitHubService {
         if (eventPath) {
           const fs = require('fs');
           payload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+          console.log(`[OctokitGitHubService] GitHub event payload loaded from ${eventPath}`);
+          console.log(`[OctokitGitHubService] Event name: ${eventName}`);
+          console.log(`[OctokitGitHubService] PR number in payload: ${(payload as any)?.pull_request?.number}`);
         }
       } catch (error) {
-        // Ignore parsing errors
+        console.error('[OctokitGitHubService] Failed to parse GitHub event payload:', error);
       }
       
       // Get PR number from payload
       const prNumber = (payload as any)?.pull_request?.number || (payload as any)?.issue?.number;
   
+      console.log(`[OctokitGitHubService] Extracted PR number: ${prNumber}`);
+      console.log(`[OctokitGitHubService] Repository: ${owner}/${repo}`);
       
       return {
         owner,

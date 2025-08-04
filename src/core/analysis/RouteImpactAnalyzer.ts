@@ -156,11 +156,16 @@ export class RouteImpactAnalyzer {
    * Get changed files from PR
    */
   private async getChangedFiles(prNumber: number): Promise<string[]> {
+    console.log(`[RouteImpactAnalyzer] Getting changed files for PR #${prNumber}`);
     const files = await this.github.listPullRequestFiles();
+    console.log(`[RouteImpactAnalyzer] Found ${files.length} files in PR`);
 
-    return files
+    const changedFiles = files
       .filter(file => file.status !== 'removed')
       .map(file => file.filename);
+    
+    console.log(`[RouteImpactAnalyzer] Changed files (excluding removed):`, changedFiles);
+    return changedFiles;
   }
   
   /**

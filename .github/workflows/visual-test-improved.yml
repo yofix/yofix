@@ -1,0 +1,287 @@
+name: YoFix Visual Testing
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        default: 'false'
+      parallel-chunks:
+        description: 'Number of parallel chunks'
+        required: false
+        default: '3'
+
+jobs:
+  visual-testing:
+    name: 🧪 Visual Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Environment Setup
+      - name: 🏗️ Setup Job
+        run: |
+          echo "🚀 Starting YoFix Visual Testing"
+          echo "📍 Branch: ${{ github.head_ref || github.ref_name }}"
+          echo "🔢 Commit: ${{ github.sha }}"
+          echo "👤 Actor: ${{ github.actor }}"
+          echo "📝 PR Number: ${{ github.event.pull_request.number || 'N/A' }}"
+      
+      # 2. Code Checkout
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      
+      - name: 📋 Display Branch Info
+        run: |
+          echo "✅ Checked out branch: ${{ github.head_ref || github.ref_name }}"
+          echo "📊 Latest commit:"
+          git log -1 --pretty=format:"%h - %an, %ar : %s"
+      
+      # 3. Node.js Setup
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+      
+      # 4. Dependency Management
+      - name: 📦 Cache Dependencies
+        uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: |
+            node_modules
+            .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      
+      - name: 🔧 Install Dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "📦 Installing dependencies..."
+          yarn install --frozen-lockfile
+          echo "✅ Dependencies installed successfully"
+      
+      - name: 📌 Display YoFix Version
+        run: |
+          echo "YoFix Version:"
+          yarn yofix --version || echo "YoFix CLI not found"
+      
+      # 5. Configuration & Validation
+      - name: ⚙️ Configure YoFix
+        id: configure
+        run: |
+          echo "🔍 Looking for YoFix configuration..."
+          if [ -f ".yofix.yml" ]; then
+            echo "✅ Found .yofix.yml configuration"
+            echo "📄 Configuration:"
+            cat .yofix.yml
+          else
+            echo "⚠️ No .yofix.yml found, using defaults"
+          fi
+          
+          # Set configuration outputs
+          echo "website-url=${{ inputs.website-url || env.WEBSITE_URL || 'http://localhost:3000' }}" >> $GITHUB_OUTPUT
+          echo "storage-provider=${{ inputs.storage-provider || 'firebase' }}" >> $GITHUB_OUTPUT
+      
+      - name: 🗄️ Initialize Storage Provider
+        run: |
+          echo "🔧 Initializing ${{ steps.configure.outputs.storage-provider }} storage..."
+          
+          if [ "${{ steps.configure.outputs.storage-provider }}" = "firebase" ]; then
+            echo "🔥 Setting up Firebase storage"
+            # Verify Firebase credentials are set
+            if [ -n "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" ]; then
+              echo "✅ Firebase credentials found"
+            else
+              echo "⚠️ Firebase credentials not found, some features may be limited"
+            fi
+          else
+            echo "📦 Setting up S3 storage"
+            # Verify S3 credentials
+            if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+              echo "✅ AWS credentials found"
+            else
+              echo "⚠️ AWS credentials not found, some features may be limited"
+            fi
+          fi
+      
+      # 6. Route Discovery
+      - name: 🔍 Discover Test Routes
+        id: discover-routes
+        uses: ./
+        with:
+          mode: 'discover-routes'
+          website-url: ${{ steps.configure.outputs.website-url }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 📊 Display Discovered Routes
+        run: |
+          echo "🎯 Discovered routes:"
+          echo "${{ steps.discover-routes.outputs.routes }}" | jq -r '.[]' 2>/dev/null || echo "${{ steps.discover-routes.outputs.routes }}"
+          echo "📈 Total routes: ${{ steps.discover-routes.outputs.route-count || '0' }}"
+      
+      # 7. Baseline Initialization
+      - name: 🎯 Initialize Baselines
+        id: init-baselines
+        continue-on-error: true
+        run: |
+          echo "🔍 Checking for existing baselines..."
+          # This would be handled by YoFix action
+          echo "baseline-status=checked" >> $GITHUB_OUTPUT
+      
+      # 8. Parallel Test Execution
+      - name: 🚀 Prepare Parallel Execution
+        id: prepare-parallel
+        run: |
+          # Get routes and split into chunks
+          ROUTES='${{ steps.discover-routes.outputs.routes }}'
+          CHUNK_SIZE=${{ github.event.inputs.parallel-chunks || '3' }}
+          
+          echo "📊 Splitting routes into $CHUNK_SIZE parallel chunks..."
+          
+          # Create a script to split routes
+          cat > split-routes.js << 'EOF'
+          const routes = process.argv[2] ? JSON.parse(process.argv[2]) : [];
+          const chunkSize = parseInt(process.argv[3]) || 3;
+          
+          const chunks = [];
+          const routesPerChunk = Math.ceil(routes.length / chunkSize);
+          
+          for (let i = 0; i < chunkSize; i++) {
+            const start = i * routesPerChunk;
+            const end = start + routesPerChunk;
+            const chunk = routes.slice(start, end);
+            if (chunk.length > 0) {
+              chunks.push(chunk);
+            }
+          }
+          
+          // Output chunks as JSON
+          console.log(JSON.stringify({
+            chunks: chunks,
+            chunkCount: chunks.length
+          }));
+          EOF
+          
+          # Run the script
+          CHUNK_DATA=$(node split-routes.js "$ROUTES" "$CHUNK_SIZE")
+          echo "chunks=$CHUNK_DATA" >> $GITHUB_OUTPUT
+          
+          # Display chunk information
+          echo "$CHUNK_DATA" | jq -r '.chunks | to_entries[] | "Chunk \(.key + 1): \(.value | length) routes"'
+      
+      - name: 🧪 Execute Visual Tests (Parallel)
+        id: visual-tests
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          website-url: ${{ steps.configure.outputs.website-url }}
+          storage-provider: ${{ steps.configure.outputs.storage-provider }}
+          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          s3-bucket: ${{ secrets.S3_BUCKET }}
+          # Pass parallel execution configuration
+          parallel-execution: 'true'
+          parallel-chunks: ${{ steps.prepare-parallel.outputs.chunks }}
+          smart-analysis: 'true'
+          auto-fix: 'true'
+          auth-mode: ${{ inputs.auth-mode || 'selectors' }}
+          debug: ${{ github.event.inputs.debug || 'false' }}
+      
+      # 9. Progress Monitoring (for parallel execution)
+      - name: 📈 Monitor Test Progress
+        if: ${{ steps.visual-tests.outputs.status == 'running' }}
+        run: |
+          echo "🔄 Visual tests are running in parallel..."
+          echo "📊 Progress will be updated in the PR comment"
+      
+      # 10. Analysis & Reporting
+      - name: 📊 Analyze Test Results
+        id: analyze-results
+        if: always()
+        run: |
+          echo "📊 Analyzing test results..."
+          
+          # Check test status
+          if [ "${{ steps.visual-tests.outputs.status }}" = "success" ]; then
+            echo "✅ All visual tests passed!"
+            echo "result=success" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.visual-tests.outputs.status }}" = "failure" ]; then
+            echo "❌ Some visual tests failed"
+            echo "result=failure" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Visual tests completed with warnings"
+            echo "result=warning" >> $GITHUB_OUTPUT
+          fi
+          
+          # Display metrics
+          echo "📈 Test Metrics:"
+          echo "  - Total Routes: ${{ steps.visual-tests.outputs.total-routes || '0' }}"
+          echo "  - Passed: ${{ steps.visual-tests.outputs.passed-tests || '0' }}"
+          echo "  - Failed: ${{ steps.visual-tests.outputs.failed-tests || '0' }}"
+          echo "  - Duration: ${{ steps.visual-tests.outputs.duration || 'N/A' }}"
+      
+      # 11. Artifact Management
+      - name: 📸 Upload Test Artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: visual-test-results-${{ github.run_id }}
+          path: |
+            test-results/
+            screenshots/
+            diffs/
+          retention-days: 7
+      
+      - name: 📋 Generate Artifact Links
+        if: always()
+        run: |
+          echo "📸 Test artifacts have been uploaded"
+          echo "🔗 Download link will be available in the Actions summary"
+          echo "📊 Screenshots URL: ${{ steps.visual-tests.outputs.screenshots-url || 'Not available' }}"
+      
+      # 12. Cleanup & Completion
+      - name: 🧹 Cleanup Resources
+        if: always()
+        run: |
+          echo "🧹 Cleaning up test resources..."
+          
+          # Clean up temporary files
+          if [ -d "test-results/temp" ]; then
+            rm -rf test-results/temp
+            echo "✅ Removed temporary files"
+          fi
+          
+          # Display resource usage
+          echo "💾 Disk usage after tests:"
+          df -h | grep -E "^/dev/"
+      
+      - name: ✅ Complete Job
+        if: always()
+        run: |
+          echo "🏁 Visual testing completed!"
+          echo ""
+          echo "📊 Final Summary:"
+          echo "  - Status: ${{ steps.analyze-results.outputs.result || steps.visual-tests.outputs.status }}"
+          echo "  - Total Routes Tested: ${{ steps.visual-tests.outputs.total-routes || '0' }}"
+          echo "  - Duration: ${{ steps.visual-tests.outputs.duration || 'N/A' }}"
+          echo "  - PR Comment: ${{ steps.visual-tests.outputs.comment-url || 'Not posted' }}"
+          echo ""
+          
+          if [ "${{ steps.analyze-results.outputs.result }}" = "failure" ]; then
+            echo "❌ Visual tests failed. Please check the PR comment for details."
+            exit 1
+          elif [ "${{ steps.analyze-results.outputs.result }}" = "warning" ]; then
+            echo "⚠️ Visual tests completed with warnings."
+          else
+            echo "✅ All visual tests passed successfully!"
+          fi

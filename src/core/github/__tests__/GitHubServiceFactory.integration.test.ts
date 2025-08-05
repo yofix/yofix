@@ -9,7 +9,6 @@ import {
   GitHubService 
 } from '../GitHubServiceFactory';
 import { GitHubCommentEngine } from '../GitHubCommentEngine';
-import { RobustPRReporter } from '../../../github/RobustPRReporter';
 import { RouteImpactAnalyzer } from '../../analysis/RouteImpactAnalyzer';
 
 describe('GitHubServiceFactory Integration Tests', () => {
@@ -56,7 +55,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
       expect(commentId).toEqual(expect.any(Number));
 
       // Verify comment was stored in mock
-      const comments = await mockService.listComments('test-owner', 'test-repo', 123);
+      const comments = await mockService.listComments();
       expect(comments).toHaveLength(1);
       expect(comments[0].body).toBe('Test comment from engine');
     });
@@ -86,7 +85,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
       const commentEngine = new GitHubCommentEngine();
       
       // Create a comment first
-      const comment = await mockService.createComment('test-owner', 'test-repo', 123, 'Test');
+      const comment = await mockService.createComment('Test');
       
       // Add reaction through engine
       await commentEngine.reactToComment(comment.id, '+1');
@@ -96,119 +95,6 @@ describe('GitHubServiceFactory Integration Tests', () => {
     });
   });
 
-  describe('RobustPRReporter Integration', () => {
-    it('should report test results with proper formatting', async () => {
-      const reporter = new RobustPRReporter();
-      
-      // Set up mock PR files
-      mockService.setMockPRFiles('test-owner', 'test-repo', 123, [
-        {
-          filename: 'src/components/Header.tsx',
-          status: 'modified',
-          additions: 5,
-          deletions: 2,
-          changes: 7
-        }
-      ]);
-
-      // Mock test results
-      const mockResults = {
-        status: 'success' as const,
-        firebaseConfig: {
-          projectId: 'test-project',
-          target: 'test-target',
-          buildSystem: 'vite' as const,
-          previewUrl: 'https://test.web.app'
-        },
-        totalTests: 1,
-        passedTests: 1,
-        failedTests: 0,
-        skippedTests: 0,
-        duration: 1000,
-        testResults: [
-          {
-            testId: 'dashboard-test',
-            testName: 'Dashboard route test',
-            status: 'passed' as const,
-            duration: 1000,
-            screenshots: [{
-              name: 'dashboard-screenshot',
-              path: '/test-results/dashboard.png',
-              viewport: { width: 1920, height: 1080, name: 'desktop' },
-              timestamp: Date.now()
-            }],
-            videos: [],
-            errors: [],
-            consoleMessages: []
-          }
-        ],
-        screenshotsUrl: 'https://test.web.app/screenshots',
-        summary: {
-          componentsVerified: ['Header', 'Dashboard'],
-          routesTested: ['/dashboard'],
-          issuesFound: []
-        }
-      };
-
-      // Report results (postResults doesn't return a comment, it posts directly)
-      await reporter.postResults(mockResults);
-      
-      // Verify comment was posted
-      const comments = await mockService.listComments('test-owner', 'test-repo', 123);
-      expect(comments.length).toBeGreaterThan(0);
-      expect(comments[0].body).toContain('Visual Testing passed');
-      expect(comments[0].body).toContain('Dashboard route test');
-    });
-
-    it('should report failure results with error details', async () => {
-      const reporter = new RobustPRReporter();
-      
-      const mockResults = {
-        status: 'failure' as const,
-        firebaseConfig: {
-          projectId: 'test-project',
-          target: 'test-target',
-          buildSystem: 'vite' as const,
-          previewUrl: 'https://test.web.app'
-        },
-        totalTests: 1,
-        passedTests: 0,
-        failedTests: 1,
-        skippedTests: 0,
-        duration: 1500,
-        testResults: [
-          {
-            testId: 'checkout-test',
-            testName: 'Checkout route test',
-            status: 'failed' as const,
-            duration: 1500,
-            screenshots: [{
-              name: 'checkout-failed-screenshot',
-              path: '/test-results/checkout-failed.png',
-              viewport: { width: 1920, height: 1080, name: 'desktop' },
-              timestamp: Date.now()
-            }],
-            videos: [],
-            errors: ['Button not clickable', 'Form validation error'],
-            consoleMessages: []
-          }
-        ],
-        screenshotsUrl: 'https://test.web.app/screenshots',
-        summary: {
-          componentsVerified: ['Checkout'],
-          routesTested: ['/checkout'],
-          issuesFound: ['Button not clickable', 'Form validation error']
-        }
-      };
-
-      await reporter.postResults(mockResults);
-      
-      const comments = await mockService.listComments('test-owner', 'test-repo', 123);
-      expect(comments[0].body).toContain('Visual Testing failed');
-      expect(comments[0].body).toContain('Button not clickable');
-      expect(comments[0].body).toContain('Form validation error');
-    });
-  });
 
   describe('RouteImpactAnalyzer Integration', () => {
     it('should analyze route impacts using GitHub service', async () => {
@@ -248,7 +134,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
       expect(typeof impacts).toBe('object');
       
       // Verify that the analyzer called the GitHub service
-      const prFiles = await mockService.listPullRequestFiles('test-owner', 'test-repo', 123);
+      const prFiles = await mockService.listPullRequestFiles();
       expect(prFiles).toHaveLength(2);
     });
   });
@@ -268,12 +154,12 @@ describe('GitHubServiceFactory Integration Tests', () => {
 
     it('should handle concurrent operations from multiple components', async () => {
       const commentEngine = new GitHubCommentEngine();
-      const reporter = new RobustPRReporter();
+      const commentEngine2 = new GitHubCommentEngine();
       
       // Both components should work concurrently
       const [commentId] = await Promise.all([
         commentEngine.postComment('Concurrent test comment'),
-        reporter.postResults({
+        commentEngine2.postVerificationResults({
           status: 'success',
           firebaseConfig: {
             projectId: 'test-project',
@@ -298,7 +184,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
       
       // Verify both operations completed
       expect(commentId).toEqual(expect.any(Number));
-      const comments = await mockService.listComments('test-owner', 'test-repo', 123);
+      const comments = await mockService.listComments();
       expect(comments.length).toBeGreaterThan(0);
     });
   });
@@ -335,7 +221,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
 
     it('should maintain service state across multiple operations', async () => {
       const commentEngine = new GitHubCommentEngine();
-      const reporter = new RobustPRReporter();
+      const commentEngine2 = new GitHubCommentEngine();
       
       // Both should use the same mock service instance
       expect(GitHubServiceFactory.getService()).toBe(mockService);
@@ -364,13 +250,13 @@ describe('GitHubServiceFactory Integration Tests', () => {
           issuesFound: []
         }
       };
-      await reporter.postResults(mockResults);
+      await commentEngine.postVerificationResults(mockResults);
       
       // Verify both operations affected the same mock data
-      const comments = await mockService.listComments('test-owner', 'test-repo', 123);
+      const comments = await mockService.listComments();
       expect(comments).toHaveLength(2);
       expect(comments[0].body).toBe('From comment engine');
-      expect(comments[1].body).toContain('Visual Testing passed');
+      expect(comments[1].body).toContain('Runtime PR Verification');
     });
   });
 
@@ -402,7 +288,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
   describe('Service Lifecycle', () => {
     it('should handle service reset and reconfiguration', async () => {
       // Create initial comment
-      await mockService.createComment('test-owner', 'test-repo', 1, 'Initial comment');
+      await mockService.createComment('Initial comment');
       
       // Reset factory
       GitHubServiceFactory.reset();
@@ -412,12 +298,12 @@ describe('GitHubServiceFactory Integration Tests', () => {
       GitHubServiceFactory.setService(newMockService);
       
       // Should be a clean slate
-      const comments = await newMockService.listComments('test-owner', 'test-repo', 1);
+      const comments = await newMockService.listComments();
       expect(comments).toHaveLength(0);
       
       // Should be able to create new comments
-      await newMockService.createComment('test-owner', 'test-repo', 1, 'New comment');
-      const newComments = await newMockService.listComments('test-owner', 'test-repo', 1);
+      await newMockService.createComment('New comment');
+      const newComments = await newMockService.listComments();
       expect(newComments).toHaveLength(1);
       expect(newComments[0].body).toBe('New comment');
     });

@@ -166,6 +166,34 @@ export class CentralizedErrorHandler {
   }
 
   /**
+   * Handle error synchronously (for use in places where async is not suitable)
+   */
+  handleErrorSync(error: Error | string, options: ErrorOptions = {}): void {
+    // Apply defaults
+    options = {
+      severity: ErrorSeverity.MEDIUM,
+      category: ErrorCategory.UNKNOWN,
+      recoverable: false,
+      ...options
+    };
+    
+    // Create error entry
+    const errorEntry = {
+      error,
+      context: options,
+      timestamp: new Date()
+    };
+    
+    // Add to buffer
+    this.errorBuffer.push(errorEntry);
+    
+    // Log to console/GitHub Actions
+    this.logError(error, options);
+    
+    // Note: Skip async operations like GitHub posting
+  }
+  
+  /**
    * Log error to console/GitHub Actions
    */
   private logError(error: Error | string, options: ErrorOptions): void {

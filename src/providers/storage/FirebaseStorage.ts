@@ -1,5 +1,4 @@
 import * as admin from 'firebase-admin';
-import * as core from '@actions/core';
 import { ServiceAccount } from 'firebase-admin';
 import { StorageProvider } from '../../core/baseline/types';
 import { 
@@ -261,7 +260,16 @@ export class FirebaseStorage implements StorageProvider {
    */
   @WithCircuitBreaker({
     failureThreshold: 3,
-    timeout: 120000 // 2 minutes for large files
+    timeout: 120000, // 2 minutes for large files
+    isFailure: (error) => {
+      // Don't trip circuit breaker for file not found errors
+      const message = error.message || String(error);
+      const errorCode = (error as any).code;
+      return !(errorCode === 404 || 
+               message.includes('No such object') || 
+               message.includes('File not found') ||
+               message.includes('does not exist'));
+    }
   })
   async downloadFile(path: string): Promise<Buffer> {
     if (!this.bucket) {
@@ -294,7 +302,7 @@ export class FirebaseStorage implements StorageProvider {
     const result = await executeOperation(
       async () => {
         const [files] = await this.bucket.getFiles({ prefix });
-        return files.map(file => file.name);
+        return files.map((file: any) => file.name);
       },
       {
         name: `List files with prefix ${prefix}`,
@@ -380,7 +388,7 @@ export class FirebaseStorage implements StorageProvider {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
     
-    const result = await executeOperation(
+    await executeOperation(
       async () => {
         const [files] = await this.bucket.getFiles();
         const deletePromises: Promise<void>[] = [];

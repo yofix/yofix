@@ -13,10 +13,6 @@ export {
   type GitHubCacheEntry 
 } from './GitHubCacheManager';
 
-// PR reporting
-export { PRReporter } from './PRReporter';
-export { RobustPRReporter } from './RobustPRReporter';
-
 // Authentication
 export { SmartAuthHandler } from './SmartAuthHandler';
 

@@ -5,9 +5,7 @@ import os from 'os';
 // import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 
 import { TestGenerator } from './core/testing/TestGenerator';
-import { VisualAnalyzer } from './core/analysis/VisualAnalyzer';
 import { DeterministicVisualAnalyzer } from './core/deterministic/visual/DeterministicVisualAnalyzer';
-import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
 import { YoFixBot } from './bot/YoFixBot';
 import { RouteImpactAnalyzer } from './core/analysis/RouteImpactAnalyzer';
@@ -22,10 +20,9 @@ import {
   config,
   getRequiredConfig,
   getBooleanConfig,
-  getNumberConfig,
   Validators,
   deleteFile,
-  parseTimeout
+  getGitHubCommentEngine
 } from './core';
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
@@ -36,7 +33,17 @@ async function run(): Promise<void> {
     // Log additional context if available
     if (reason instanceof Error) {
       core.error(`Error stack: ${reason.stack}`);
+      
+      // Check if it's a known file not found error we can safely ignore
+      const message = reason.message || '';
+      if (message.includes('File not found:') && message.includes('baselines/')) {
+        core.info('ℹ️ Baseline file not found - this is expected for new routes or first-time runs');
+        return; // Don't exit the process for missing baseline files
+      }
     }
+    
+    // For other unhandled rejections, set failed status
+    process.exitCode = 1;
   });
   
   try {
@@ -626,18 +633,18 @@ async function runVisualTesting(): Promise<void> {
       summary: {
         componentsVerified: analysis.components,
         routesTested: analysis.routes,
-        issuesFound: scanResult.issues?.map(i => i.description) || []
+        issuesFound: scanResult.issues?.map((i: any) => i.description) || []
       }
     };
     
     // Report to PR with timeout
     core.info('📝 Posting results to PR...');
     const reportStartTime = Date.now();
-    const reporter = new PRReporter();
+    const commentEngine = getGitHubCommentEngine();
     
     try {
       await Promise.race([
-        reporter.postResults(verificationResult, prNumber.toString()),
+        commentEngine.postVerificationResults(verificationResult, screenshotsUrl),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('PR report posting timeout')), 30000)
         )

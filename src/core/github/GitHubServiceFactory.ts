@@ -760,6 +760,7 @@ export class EnhancedGitHubService implements GitHubService {
       try {
         const github = require('@actions/github');
         const context = github.context;
+        
      
         // Get PR number from various possible locations
         const prNumber = context.payload.pull_request?.number || 
@@ -1054,21 +1055,11 @@ export class OctokitGitHubService implements GitHubService {
         const github = require('@actions/github');
         const context = github.context;
         
-        console.log(`[OctokitGitHubService] Using @actions/github context`);
-        console.log(`[OctokitGitHubService] Event name: ${context.eventName}`);
-        console.log(`[OctokitGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[OctokitGitHubService] SHA: ${context.sha}`);
-        console.log(`[OctokitGitHubService] Actor: ${context.actor}`);
-        console.log(`[OctokitGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[OctokitGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
-        console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
         
         // Get PR number from various possible locations
         const prNumber = context.payload.pull_request?.number || 
                        context.payload.number || 
                        context.issue.number;
-                       
-        console.log(`[OctokitGitHubService] Final PR number: ${prNumber}`);
         
         return {
           owner: context.repo.owner,

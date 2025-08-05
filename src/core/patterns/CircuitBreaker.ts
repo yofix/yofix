@@ -168,8 +168,8 @@ export class CircuitBreaker {
       throw error;
     }
     
-    // Log the failure
-    errorHandler.handleError(error, {
+    // Log the failure synchronously to avoid unhandled promise rejections
+    errorHandler.handleErrorSync(error, {
       severity: ErrorSeverity.MEDIUM,
       category: ErrorCategory.NETWORK,
       userAction: `${this.config.serviceName} operation`,
@@ -178,7 +178,8 @@ export class CircuitBreaker {
         failures: this.failures,
         totalFailures: this.totalFailures
       },
-      skipGitHubPost: true
+      skipGitHubPost: true,
+      recoverable: true
     });
     
     if (this.state === CircuitState.HALF_OPEN) {
@@ -208,6 +209,7 @@ export class CircuitBreaker {
     
     // Post to GitHub if critical service
     if (this.failures >= this.failureThreshold * 2) {
+      // Fire and forget - we don't want to block on this
       errorHandler.handleError(
         new Error(`Circuit breaker opened for ${this.config.serviceName}`),
         {
@@ -216,7 +218,10 @@ export class CircuitBreaker {
           userAction: 'Circuit breaker activation',
           metadata: this.getStats()
         }
-      );
+      ).catch(err => {
+        // Log but don't throw - this is a non-critical operation
+        this.logger.warn(`Failed to post circuit breaker status to GitHub: ${err}`);
+      });
     }
   }
   

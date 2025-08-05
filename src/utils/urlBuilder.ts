@@ -24,8 +24,24 @@ export function buildFullUrl(baseUrl: string, route: string): string {
     return cleanBase;
   }
   
+  // Normalize route - handle multiple slashes and edge cases
+  let normalizedRoute = route;
+  
+  // Replace multiple consecutive slashes with a single slash
+  normalizedRoute = normalizedRoute.replace(/\/+/g, '/');
+  
+  // Handle routes that are just multiple slashes (e.g., '//', '///')
+  if (normalizedRoute === '/') {
+    return cleanBase;
+  }
+  
+  // Special handling for routes like '//*' - preserve the asterisk
+  if (normalizedRoute === '/*') {
+    return `${cleanBase}/*`;
+  }
+  
   // Ensure route starts with slash
-  const cleanRoute = route.startsWith('/') ? route : `/${route}`;
+  const cleanRoute = normalizedRoute.startsWith('/') ? normalizedRoute : `/${normalizedRoute}`;
   
   return `${cleanBase}${cleanRoute}`;
 }
@@ -58,4 +74,38 @@ export function normalizeRoute(route: string): string {
  */
 export function ensureLeadingSlash(route: string): string {
   return route.startsWith('/') ? route : `/${route}`;
+}
+
+/**
+ * Build a normalized route path from parent and child paths
+ * Properly handles route concatenation without double slashes
+ * 
+ * @param parentPath - The parent route path (e.g., "/", "/admin", "/users")
+ * @param childPath - The child route path (e.g., "settings", "/profile", "")
+ * @returns The properly combined route path
+ * 
+ * @example
+ * buildRoutePath("/", "home") => "/home"
+ * buildRoutePath("/admin", "settings") => "/admin/settings"
+ * buildRoutePath("/", "/home") => "/home"
+ * buildRoutePath("", "home") => "/home"
+ * buildRoutePath("/admin", "") => "/admin"
+ */
+export function buildRoutePath(parentPath: string, childPath: string): string {
+  // Handle empty paths
+  if (!parentPath && !childPath) return '/';
+  if (!parentPath) return ensureLeadingSlash(childPath);
+  if (!childPath) return parentPath;
+  
+  // Normalize parent path - remove trailing slash except for root
+  const normalizedParent = parentPath === '/' ? '/' : parentPath.replace(/\/$/, '');
+  
+  // Special handling for root path
+  if (normalizedParent === '/') {
+    return ensureLeadingSlash(childPath);
+  }
+  
+  // For non-root parent paths, combine them
+  const normalizedChild = normalizeRoute(childPath);
+  return normalizedChild ? `${normalizedParent}/${normalizedChild}` : normalizedParent;
 }

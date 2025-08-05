@@ -10,6 +10,7 @@ import { StorageProvider } from '../baseline/types';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
 import { LoggerHook, LoggerFactory } from '../hooks/LoggerHook';
 import { ErrorCategory, ErrorSeverity, SimpleErrorHandler, ErrorHandlerFactory } from '../hooks/ErrorHook';
+import { buildRoutePath } from '../../utils/urlBuilder';
 
 interface ImportNode {
   source: string;
@@ -631,7 +632,7 @@ export class TreeSitterRouteAnalyzer {
         let childMatch;
         while ((childMatch = childRouteRegex.exec(childrenContent)) !== null) {
           const childLine = content.substring(0, childrenStart + childMatch.index).split('\n').length;
-          const fullPath = parentPath + '/' + childMatch[1];
+          const fullPath = buildRoutePath(parentPath, childMatch[1]);
           routes.push({
             path: fullPath,
             component: childMatch[2],
@@ -677,6 +678,7 @@ export class TreeSitterRouteAnalyzer {
     
     return -1;
   }
+  
   
   /**
    * Extract routes using Tree-sitter pattern matching
@@ -783,7 +785,7 @@ export class TreeSitterRouteAnalyzer {
       }
       
       // Build the full path for this route
-      const fullPath = parentPath && pathValue ? `${parentPath}/${pathValue}` : (parentPath || pathValue);
+      const fullPath = buildRoutePath(parentPath, pathValue);
       
       // Only add leaf routes (routes with element but no children) or routes with element AND children
       // This prevents adding intermediate path segments

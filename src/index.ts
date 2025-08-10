@@ -126,6 +126,12 @@ async function runVisualTesting(): Promise<void> {
       return;
     }
     
+    // Handle baseline generation mode
+    if (mode === 'baseline-generation') {
+      await handleBaselineGeneration(inputs);
+      return;
+    }
+    
     // Set environment variables for baseline creation
     if (inputs.productionUrl) {
       process.env.PRODUCTION_URL = inputs.productionUrl;
@@ -902,6 +908,110 @@ async function handleRouteDiscovery(inputs: ActionInputs): Promise<void> {
     core.info(`✅ Discovered ${routeArray.length} routes: ${routeArray.join(', ')}`);
   } catch (error) {
     core.setFailed(`Route discovery failed: ${error}`);
+  }
+}
+
+/**
+ * Handle baseline generation mode - captures screenshots from production URL
+ */
+async function handleBaselineGeneration(inputs: ActionInputs): Promise<void> {
+  const startTime = Date.now();
+  
+  try {
+    core.info('📸 Running in baseline generation mode...');
+    core.info(`🌐 Production URL: ${inputs.productionUrl || inputs.previewUrl}`);
+    
+    // Use production URL for baseline generation, fallback to preview URL
+    const baselineUrl = inputs.productionUrl || inputs.previewUrl;
+    
+    // Parse viewports
+    const viewports = inputs.viewports.split(',').map(viewport => {
+      const [width, height] = viewport.trim().split('x').map(Number);
+      return { width, height, name: `${width}x${height}` };
+    });
+    
+    // Get routes to capture
+    const testRoutesInput = config.get('test-routes', { defaultValue: '' });
+    let routes: string[] = [];
+    
+    if (testRoutesInput) {
+      // Parse comma-separated routes if provided
+      routes = testRoutesInput.split(',').map((r: string) => r.trim()).filter((r: string) => r.length > 0);
+      core.info(`📍 Using specified routes: ${routes.join(', ')}`);
+    } else {
+      // Use smart navigation to discover routes if enabled
+      const enableAINavigation = getBooleanConfig('enable-ai-navigation');
+      
+      if (enableAINavigation) {
+        core.info('🧠 Using AI navigation to discover routes...');
+        
+        // Import AIRouteDiscovery
+        const { AIRouteDiscovery } = await import('./core/analysis/AIRouteDiscovery');
+        const routeDiscovery = new AIRouteDiscovery(inputs.claudeApiKey);
+        
+        // Create a browser page for discovery
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        
+        try {
+          await page.goto(baselineUrl, { waitUntil: 'networkidle', timeout: 30000 });
+          const discoveredRoutes = await routeDiscovery.discoverRoutes(page, baselineUrl);
+          
+          if (discoveredRoutes && discoveredRoutes.length > 0) {
+            // Limit routes based on max-routes input
+            const maxRoutes = parseInt(config.get('max-routes', { defaultValue: '10' }));
+            routes = discoveredRoutes.slice(0, maxRoutes);
+            core.info(`✅ AI discovered ${discoveredRoutes.length} routes, using first ${routes.length}`);
+          }
+        } finally {
+          await browser.close();
+        }
+      }
+      
+      // Fallback to homepage if no routes discovered
+      if (routes.length === 0) {
+        core.warning('⚠️ No routes specified or discovered. Using homepage as fallback.');
+        routes = ['/'];
+      }
+    }
+    
+    core.info(`📍 Routes to capture: ${routes.join(', ')}`);
+    
+    // Create storage provider
+    const storageProvider = await StorageFactory.createFromInputs();
+    
+    // Import and use DynamicBaselineManager - existing infrastructure
+    const { DynamicBaselineManager } = await import('./core/baseline/DynamicBaselineManager');
+    
+    // Create baseline manager with production URL
+    const baselineManager = new DynamicBaselineManager({
+      productionUrl: baselineUrl,
+      storageProvider
+    });
+    
+    // Create baselines for specified routes
+    core.info(`📸 Creating baselines for ${routes.length} routes...`);
+    const results: any[] = await baselineManager.createBaselines(routes, viewports);
+    
+    // Set outputs
+    core.setOutput('baseline-count', results.length.toString());
+    core.setOutput('baseline-routes', JSON.stringify(results.map((r: any) => r.route)));
+    
+    // Generate summary
+    const duration = Date.now() - startTime;
+    core.info('');
+    core.info('═══════════════════════════════════════════');
+    core.info('📸 BASELINE GENERATION COMPLETE');
+    core.info('═══════════════════════════════════════════');
+    core.info(`✅ Generated ${results.length} baseline screenshots`);
+    core.info(`📍 Routes captured: ${results.map((r: any) => r.route).join(', ')}`);
+    core.info(`🖼️ Viewports: ${viewports.map(v => `${v.width}x${v.height}`).join(', ')}`);
+    core.info(`⏱️ Duration: ${Math.round(duration / 1000)}s`);
+    core.info('═══════════════════════════════════════════');
+    
+  } catch (error) {
+    core.setFailed(`Baseline generation failed: ${error}`);
   }
 }
 

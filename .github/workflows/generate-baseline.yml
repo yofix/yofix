@@ -1,0 +1,261 @@
+name: Generate Baseline Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      production-url:
+        description: 'Production URL to capture baselines from'
+        required: true
+        type: string
+        default: 'https://example.com'
+      
+      test-routes:
+        description: 'Comma-separated list of routes to capture (leave empty to use AI discovery)'
+        required: false
+        type: string
+        default: ''
+      
+      enable-ai-navigation:
+        description: 'Enable AI-powered route discovery when test-routes is empty'
+        required: false
+        type: boolean
+        default: false
+      
+      max-routes:
+        description: 'Maximum number of routes to capture when using AI discovery'
+        required: false
+        type: number
+        default: 10
+      
+      viewports:
+        description: 'Comma-separated viewport sizes (e.g., 1920x1080,768x1024,375x667)'
+        required: false
+        type: string
+        default: '1920x1080,768x1024,375x667'
+      
+      storage-provider:
+        description: 'Storage provider for baselines (firebase, s3, or github)'
+        required: false
+        type: choice
+        options:
+          - firebase
+          - s3
+          - github
+        default: 'firebase'
+      
+      auth-email:
+        description: 'Email for authentication (if app requires login)'
+        required: false
+        type: string
+      
+      auth-password:
+        description: 'Password for authentication (if app requires login)'
+        required: false
+        type: string
+      
+      auth-login-url:
+        description: 'Login page URL path'
+        required: false
+        type: string
+        default: '/login/password'
+      
+      auth-mode:
+        description: 'Authentication mode: llm (AI-powered), selectors, or smart'
+        required: false
+        type: string
+        default: 'llm'
+
+jobs:
+  generate-baselines:
+    runs-on: ubuntu-latest
+    name: Generate Baseline Screenshots
+    
+    steps:
+      - name: 📋 Display Configuration
+        run: |
+          echo "::group::Baseline Generation Configuration"
+          echo "🌐 Production URL: ${{ inputs.production-url }}"
+          if [ -n "${{ inputs.test-routes }}" ]; then
+            echo "📍 Routes to capture: ${{ inputs.test-routes }}"
+          elif [ "${{ inputs.enable-ai-navigation }}" = "true" ]; then
+            echo "🧠 AI Navigation: Enabled (max: ${{ inputs.max-routes }} routes)"
+          else
+            echo "📍 Routes: Will use homepage (/) as default"
+          fi
+          echo "📸 Viewports: ${{ inputs.viewports }}"
+          echo "🗂️ Storage Provider: ${{ inputs.storage-provider }}"
+          if [ -n "${{ inputs.auth-email }}" ] && [ -n "${{ inputs.auth-password }}" ]; then
+            echo "🔐 Authentication: Enabled"
+            echo "📝 Login URL: ${{ inputs.auth-login-url }}"
+            echo "🤖 Auth Mode: ${{ inputs.auth-mode }}"
+          else
+            echo "🔓 Authentication: Not configured"
+          fi
+          echo "::endgroup::"
+      
+      - name: 🛒 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: 🚀 Initialize YoFix Baseline Generator
+        id: init
+        run: |
+          echo "::group::YoFix Initialization"
+          echo "Preparing environment for baseline generation..."
+          
+          # Set mode to baseline generation
+          echo "MODE=baseline-generation" >> $GITHUB_ENV
+          
+          # Process routes input
+          ROUTES="${{ inputs.test-routes }}"
+          if [ -n "$ROUTES" ]; then
+            echo "TEST_ROUTES=$ROUTES" >> $GITHUB_ENV
+            echo "Routes to capture: $ROUTES"
+          elif [ "${{ inputs.enable-ai-navigation }}" = "true" ]; then
+            echo "AI navigation will discover routes"
+          else
+            echo "No routes specified, will use homepage"
+          fi
+          
+          echo "::endgroup::"
+      
+      - name: 🎭 Setup Playwright
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          echo "::group::Install Dependencies"
+          npm install
+          npx playwright install chromium --with-deps
+          echo "::endgroup::"
+      
+      - name: 🔧 Configure Storage Provider
+        run: |
+          echo "::group::Storage Configuration"
+          
+          case "${{ inputs.storage-provider }}" in
+            firebase)
+              if [ -n "${{ secrets.FIREBASE_CREDENTIALS }}" ]; then
+                echo "✅ Firebase credentials found"
+                echo "FIREBASE_CREDENTIALS=${{ secrets.FIREBASE_CREDENTIALS }}" >> $GITHUB_ENV
+                echo "STORAGE_BUCKET=${{ secrets.FIREBASE_BUCKET }}" >> $GITHUB_ENV
+              else
+                echo "⚠️ Firebase credentials not found, using GitHub fallback"
+                echo "STORAGE_PROVIDER=github" >> $GITHUB_ENV
+              fi
+              ;;
+            s3)
+              if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+                echo "✅ AWS credentials found"
+                echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+                echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+                echo "S3_BUCKET=${{ secrets.S3_BUCKET }}" >> $GITHUB_ENV
+              else
+                echo "⚠️ AWS credentials not found, using GitHub fallback"
+                echo "STORAGE_PROVIDER=github" >> $GITHUB_ENV
+              fi
+              ;;
+            github)
+              echo "✅ Using GitHub storage"
+              echo "STORAGE_PROVIDER=github" >> $GITHUB_ENV
+              ;;
+          esac
+          
+          echo "::endgroup::"
+      
+      - name: 📸 Generate Baseline Screenshots
+        uses: ./
+        with:
+          # Use production URL as both preview and production (baseline mode)
+          preview-url: ${{ inputs.production-url }}
+          production-url: ${{ inputs.production-url }}
+          
+          # GitHub token for artifact upload
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Claude API for route discovery
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          
+          # Storage configuration
+          storage-provider: ${{ env.STORAGE_PROVIDER || inputs.storage-provider }}
+          firebase-credentials: ${{ env.FIREBASE_CREDENTIALS }}
+          storage-bucket: ${{ env.STORAGE_BUCKET }}
+          s3-bucket: ${{ env.S3_BUCKET }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          
+          # Test configuration
+          viewports: ${{ inputs.viewports }}
+          test-routes: ${{ env.TEST_ROUTES }}
+          max-routes: ${{ inputs.max-routes }}
+          
+          # Authentication configuration (auth is enabled if credentials provided)
+          auth-email: ${{ inputs.auth-email || secrets.AUTH_EMAIL }}
+          auth-password: ${{ inputs.auth-password || secrets.AUTH_PASSWORD }}
+          auth-login-url: ${{ inputs.auth-login-url }}
+          auth-mode: ${{ inputs.auth-mode }}
+          enable-smart-auth: ${{ (inputs.auth-email || secrets.AUTH_EMAIL) && 'true' || 'false' }}
+          
+          # Baseline generation mode settings
+          mode: 'baseline-generation'
+          enable-ai-navigation: ${{ inputs.enable-ai-navigation }}
+      
+      - name: 💾 Save Baselines as Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-screenshots-${{ github.run_number }}
+          path: |
+            baselines/
+            test-results/
+          retention-days: 30
+      
+      - name: 📊 Generate Summary
+        if: always()
+        run: |
+          echo "## 📸 Baseline Generation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production URL:** ${{ inputs.production-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Routes:** ${{ inputs.test-routes }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Viewports:** ${{ inputs.viewports }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storage:** ${{ inputs.storage-provider }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ inputs.auth-email }}" ] && [ -n "${{ inputs.auth-password }}" ]; then
+            echo "- **Authentication:** Enabled (Mode: ${{ inputs.auth-mode }})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Authentication:** Not configured" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count generated baselines
+          if [ -d "baselines" ]; then
+            BASELINE_COUNT=$(find baselines -name "*.png" 2>/dev/null | wc -l || echo "0")
+            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Generated **${BASELINE_COUNT}** baseline screenshots" >> $GITHUB_STEP_SUMMARY
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Generated Baselines" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            find baselines -name "*.png" -type f | sort | while read -r file; do
+              basename "$file"
+            done >> $GITHUB_STEP_SUMMARY || echo "No baselines found"
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No baselines directory found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Baselines have been generated and stored" >> $GITHUB_STEP_SUMMARY
+          echo "2. 📦 Download artifacts if needed for manual inspection" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🚀 These baselines will be used for visual regression testing in PRs" >> $GITHUB_STEP_SUMMARY
+      
+      - name: 🏁 Completion Message
+        run: |
+          echo "::notice title=Baseline Generation Complete::Successfully generated baseline screenshots from ${{ inputs.production-url }}"

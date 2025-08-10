@@ -154,6 +154,21 @@ inputs:
     description: 'Clear route analysis cache before running'
     required: false
     default: 'false'
+  
+  # Parallel Execution
+  parallel-execution:
+    description: 'Enable parallel test execution'
+    required: false
+    default: 'false'
+  
+  parallel-chunks:
+    description: 'JSON string containing route chunks for parallel execution'
+    required: false
+  
+  mode:
+    description: 'Execution mode: test, discover-routes'
+    required: false
+    default: 'test'
 
 outputs:
   status:
@@ -407,6 +422,9 @@ runs:
         INPUT_ENABLE-AI-TEST-GENERATION: ${{ inputs.enable-ai-test-generation }}
         INPUT_TEST-ROUTES: ${{ inputs.test-routes }}
         INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
+        INPUT_PARALLEL-EXECUTION: ${{ inputs.parallel-execution }}
+        INPUT_PARALLEL-CHUNKS: ${{ inputs.parallel-chunks }}
+        INPUT_MODE: ${{ inputs.mode }}
     
     # Step 10: Generate Test Summary
     - name: 📊 Generate Test Summary

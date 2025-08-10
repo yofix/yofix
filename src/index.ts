@@ -5,9 +5,7 @@ import os from 'os';
 // import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 
 import { TestGenerator } from './core/testing/TestGenerator';
-import { VisualAnalyzer } from './core/analysis/VisualAnalyzer';
 import { DeterministicVisualAnalyzer } from './core/deterministic/visual/DeterministicVisualAnalyzer';
-import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
 import { YoFixBot } from './bot/YoFixBot';
 import { RouteImpactAnalyzer } from './core/analysis/RouteImpactAnalyzer';
@@ -22,14 +20,34 @@ import {
   config,
   getRequiredConfig,
   getBooleanConfig,
-  getNumberConfig,
   Validators,
   deleteFile,
-  parseTimeout
+  getGitHubCommentEngine
 } from './core';
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
+import { ParallelTestExecutor } from './core/parallel/ParallelTestExecutor';
+
 async function run(): Promise<void> {
+  // Add global unhandled promise rejection handler
+  process.on('unhandledRejection', (reason, promise) => {
+    core.error(`Unhandled Promise Rejection at: ${promise}, reason: ${reason}`);
+    // Log additional context if available
+    if (reason instanceof Error) {
+      core.error(`Error stack: ${reason.stack}`);
+      
+      // Check if it's a known file not found error we can safely ignore
+      const message = reason.message || '';
+      if (message.includes('File not found:') && message.includes('baselines/')) {
+        core.info('ℹ️ Baseline file not found - this is expected for new routes or first-time runs');
+        return; // Don't exit the process for missing baseline files
+      }
+    }
+    
+    // For other unhandled rejections, set failed status
+    process.exitCode = 1;
+  });
+  
   try {
     // Initialize core services first
     initializeCoreServices();
@@ -98,6 +116,21 @@ async function runVisualTesting(): Promise<void> {
     
     // Parse inputs
     inputs = parseInputs();
+    
+    // Check execution mode
+    const mode = config.get('mode', { defaultValue: 'test' });
+    
+    // Handle route discovery mode
+    if (mode === 'discover-routes') {
+      await handleRouteDiscovery(inputs);
+      return;
+    }
+    
+    // Handle baseline generation mode
+    if (mode === 'baseline-generation') {
+      await handleBaselineGeneration(inputs);
+      return;
+    }
     
     // Set environment variables for baseline creation
     if (inputs.productionUrl) {
@@ -278,6 +311,15 @@ async function runVisualTesting(): Promise<void> {
     
     // Use the affected routes for testing
     const routes = affectedRoutes
+    
+    // Check if parallel execution is enabled
+    const parallelExecution = getBooleanConfig('parallel-execution');
+    const parallelChunksStr = config.get('parallel-chunks', { defaultValue: '' });
+    
+    if (parallelExecution && parallelChunksStr) {
+      await runParallelTests(inputs, firebaseConfig, viewports, routes, parallelChunksStr);
+      return;
+    }
     
     // Extract unique components from impact tree
     let components: string[] = ['App']; // Default fallback
@@ -617,18 +659,18 @@ async function runVisualTesting(): Promise<void> {
       summary: {
         componentsVerified: analysis.components,
         routesTested: analysis.routes,
-        issuesFound: scanResult.issues?.map(i => i.description) || []
+        issuesFound: scanResult.issues?.map((i: any) => i.description) || []
       }
     };
     
     // Report to PR with timeout
     core.info('📝 Posting results to PR...');
     const reportStartTime = Date.now();
-    const reporter = new PRReporter();
+    const commentEngine = getGitHubCommentEngine();
     
     try {
       await Promise.race([
-        reporter.postResults(verificationResult, prNumber.toString()),
+        commentEngine.postVerificationResults(verificationResult, screenshotsUrl),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('PR report posting timeout')), 30000)
         )
@@ -807,6 +849,259 @@ function getErrorTips(errorMessage: string): string[] {
   }
   
   return tips;
+}
+
+/**
+ * Handle route discovery mode
+ */
+async function handleRouteDiscovery(inputs: ActionInputs): Promise<void> {
+  try {
+    core.info('🔍 Running in route discovery mode...');
+    
+    // Get PR number
+    const prNumber = GitHubServiceFactory.getService().getPRNumber();
+    
+    if (!prNumber) {
+      core.setFailed('Route discovery requires a pull request context');
+      return;
+    }
+    
+    // Create route analyzer
+    const impactAnalyzer = new RouteImpactAnalyzer(null, inputs.previewUrl);
+    
+    // Analyze PR impact
+    const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
+    
+    // Extract routes
+    const routes = new Set<string>();
+    
+    // Add routes from component mappings
+    if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+      for (const [, mappedRoutes] of impactTree.componentRouteMapping) {
+        for (const route of mappedRoutes) {
+          if (route.routePath) {
+            routes.add(route.routePath);
+          }
+        }
+      }
+    }
+    
+    // Add directly affected routes
+    if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+      for (const impact of impactTree.affectedRoutes) {
+        if (impact.route) {
+          routes.add(impact.route);
+        }
+      }
+    }
+    
+    // Default to homepage if no routes found
+    if (routes.size === 0) {
+      routes.add('/');
+    }
+    
+    // Output routes as JSON for the workflow
+    const routeArray = Array.from(routes);
+    core.setOutput('routes', JSON.stringify(routeArray));
+    core.setOutput('route-count', routeArray.length.toString());
+    
+    core.info(`✅ Discovered ${routeArray.length} routes: ${routeArray.join(', ')}`);
+  } catch (error) {
+    core.setFailed(`Route discovery failed: ${error}`);
+  }
+}
+
+/**
+ * Handle baseline generation mode - captures screenshots from production URL
+ */
+async function handleBaselineGeneration(inputs: ActionInputs): Promise<void> {
+  const startTime = Date.now();
+  
+  try {
+    core.info('📸 Running in baseline generation mode...');
+    core.info(`🌐 Production URL: ${inputs.productionUrl || inputs.previewUrl}`);
+    
+    // Use production URL for baseline generation, fallback to preview URL
+    const baselineUrl = inputs.productionUrl || inputs.previewUrl;
+    
+    // Parse viewports
+    const viewports = inputs.viewports.split(',').map(viewport => {
+      const [width, height] = viewport.trim().split('x').map(Number);
+      return { width, height, name: `${width}x${height}` };
+    });
+    
+    // Get routes to capture
+    const testRoutesInput = config.get('test-routes', { defaultValue: '' });
+    let routes: string[] = [];
+    
+    if (testRoutesInput) {
+      // Parse comma-separated routes if provided
+      routes = testRoutesInput.split(',').map((r: string) => r.trim()).filter((r: string) => r.length > 0);
+      core.info(`📍 Using specified routes: ${routes.join(', ')}`);
+    } else {
+      // Use smart navigation to discover routes if enabled
+      const enableAINavigation = getBooleanConfig('enable-ai-navigation');
+      
+      if (enableAINavigation) {
+        core.info('🧠 Using AI navigation to discover routes...');
+        
+        // Import AIRouteDiscovery
+        const { AIRouteDiscovery } = await import('./core/analysis/AIRouteDiscovery');
+        const routeDiscovery = new AIRouteDiscovery(inputs.claudeApiKey);
+        
+        // Create a browser page for discovery
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        
+        try {
+          await page.goto(baselineUrl, { waitUntil: 'networkidle', timeout: 30000 });
+          const discoveredRoutes = await routeDiscovery.discoverRoutes(page, baselineUrl);
+          
+          if (discoveredRoutes && discoveredRoutes.length > 0) {
+            // Limit routes based on max-routes input
+            const maxRoutes = parseInt(config.get('max-routes', { defaultValue: '10' }));
+            routes = discoveredRoutes.slice(0, maxRoutes);
+            core.info(`✅ AI discovered ${discoveredRoutes.length} routes, using first ${routes.length}`);
+          }
+        } finally {
+          await browser.close();
+        }
+      }
+      
+      // Fallback to homepage if no routes discovered
+      if (routes.length === 0) {
+        core.warning('⚠️ No routes specified or discovered. Using homepage as fallback.');
+        routes = ['/'];
+      }
+    }
+    
+    core.info(`📍 Routes to capture: ${routes.join(', ')}`);
+    
+    // Create storage provider
+    const storageProvider = await StorageFactory.createFromInputs();
+    
+    // Import and use DynamicBaselineManager - existing infrastructure
+    const { DynamicBaselineManager } = await import('./core/baseline/DynamicBaselineManager');
+    
+    // Create baseline manager with production URL
+    const baselineManager = new DynamicBaselineManager({
+      productionUrl: baselineUrl,
+      storageProvider
+    });
+    
+    // Create baselines for specified routes
+    core.info(`📸 Creating baselines for ${routes.length} routes...`);
+    const results: any[] = await baselineManager.createBaselines(routes, viewports);
+    
+    // Set outputs
+    core.setOutput('baseline-count', results.length.toString());
+    core.setOutput('baseline-routes', JSON.stringify(results.map((r: any) => r.route)));
+    
+    // Generate summary
+    const duration = Date.now() - startTime;
+    core.info('');
+    core.info('═══════════════════════════════════════════');
+    core.info('📸 BASELINE GENERATION COMPLETE');
+    core.info('═══════════════════════════════════════════');
+    core.info(`✅ Generated ${results.length} baseline screenshots`);
+    core.info(`📍 Routes captured: ${results.map((r: any) => r.route).join(', ')}`);
+    core.info(`🖼️ Viewports: ${viewports.map(v => `${v.width}x${v.height}`).join(', ')}`);
+    core.info(`⏱️ Duration: ${Math.round(duration / 1000)}s`);
+    core.info('═══════════════════════════════════════════');
+    
+  } catch (error) {
+    core.setFailed(`Baseline generation failed: ${error}`);
+  }
+}
+
+/**
+ * Run tests in parallel mode
+ */
+async function runParallelTests(
+  inputs: ActionInputs,
+  firebaseConfig: FirebaseConfig,
+  viewports: any[],
+  routes: string[],
+  parallelChunksStr: string
+): Promise<void> {
+  try {
+    core.info('🚀 Running tests in parallel mode...');
+    
+    // Parse parallel chunks
+    const chunksData = JSON.parse(parallelChunksStr);
+    const chunks = chunksData.chunks || chunksData;
+    
+    if (!Array.isArray(chunks)) {
+      throw new Error('Invalid parallel-chunks format. Expected JSON array of route arrays.');
+    }
+    
+    // Create storage provider if available
+    let storageProvider = null;
+    try {
+      const storageProviderName = config.get('storage-provider', { defaultValue: 'github' });
+      if (storageProviderName !== 'github') {
+        storageProvider = await StorageFactory.createFromInputs();
+      }
+    } catch (error) {
+      core.debug(`Storage provider initialization failed: ${error}`);
+    }
+    
+    // Create parallel executor
+    const executor = new ParallelTestExecutor({
+      chunks,
+      firebaseConfig,
+      viewports,
+      storageProvider,
+      maxConcurrency: 3,
+      progressCallback: (progress) => {
+        core.info(`Progress: ${progress.percentage}% (${progress.completedRoutes}/${progress.totalRoutes} routes)`);
+      }
+    });
+    
+    // Execute tests
+    const results = await executor.execute();
+    
+    // Get statistics
+    const stats = executor.getStatistics();
+    
+    // Create verification result
+    const verificationResult: VerificationResult = {
+      status: stats.successRate === 100 ? 'success' : 'failure',
+      firebaseConfig,
+      totalTests: results.length,
+      passedTests: results.filter(r => r.status === 'passed').length,
+      failedTests: results.filter(r => r.status === 'failed').length,
+      skippedTests: 0,
+      duration: stats.totalDuration,
+      testResults: results,
+      screenshotsUrl: inputs.previewUrl,
+      summary: {
+        componentsVerified: [],
+        routesTested: routes,
+        issuesFound: results.flatMap(r => r.errors || [])
+      }
+    };
+    
+    // Post results to PR
+    const commentEngine = getGitHubCommentEngine();
+    await commentEngine.postVerificationResults(verificationResult, inputs.previewUrl);
+    
+    // Set outputs
+    core.setOutput('status', verificationResult.status);
+    core.setOutput('total-routes', routes.length.toString());
+    core.setOutput('passed-tests', verificationResult.passedTests.toString());
+    core.setOutput('failed-tests', verificationResult.failedTests.toString());
+    core.setOutput('duration', `${Math.round(stats.totalDuration / 1000)}s`);
+    
+    if (verificationResult.status === 'failure') {
+      core.setFailed(`Visual tests failed: ${verificationResult.failedTests} test(s) failed`);
+    } else {
+      core.info(`✅ All visual tests passed (${stats.successRate.toFixed(1)}% success rate)`);
+    }
+  } catch (error) {
+    core.setFailed(`Parallel test execution failed: ${error}`);
+  }
 }
 
 // Export for external usage

@@ -1,6 +1,6 @@
 {
   "name": "yofix",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "AI-powered visual issue detection and auto-fix for web applications",
   "main": "dist/index.js",
   "bin": {

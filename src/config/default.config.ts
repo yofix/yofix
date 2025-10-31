@@ -109,6 +109,39 @@ export interface YoFixConfig {
     level: 'debug' | 'info' | 'warn' | 'error';
     includeTimestamp: boolean;
   };
+
+  // Pattern Learning Configuration (Intelligent Route Analysis)
+  patternLearning: {
+    /**
+     * Confidence threshold for route detection (0-1)
+     * Lower = more LLM usage (higher cost, higher accuracy)
+     * Higher = less LLM usage (lower cost, may miss some routes)
+     * Recommended: 0.85 for high reliability, 0.7 for cost optimization
+     */
+    confidenceThreshold: number;
+
+    /**
+     * Incremental update threshold (0-1)
+     * Triggers re-learning when fallback rate exceeds this value
+     * Example: 0.1 = re-learn if 10%+ of routes need LLM fallback
+     */
+    incrementalUpdateThreshold: number;
+
+    /**
+     * Minimum confidence to accept pattern updates from incremental learning
+     */
+    updateConfidenceThreshold: number;
+
+    /**
+     * Enable automatic pattern updates based on fallback analysis
+     */
+    enableIncrementalLearning: boolean;
+
+    /**
+     * Operating mode for reliability vs cost tradeoff
+     */
+    reliabilityMode: 'cost-optimized' | 'balanced' | 'high-reliability';
+  };
 }
 
 /**
@@ -155,13 +188,13 @@ export const environmentDefaults = {
 export const defaultConfig: YoFixConfig = {
   ai: {
     claude: {
-      defaultModel: 'claude-sonnet-4-5-20250929',
+      defaultModel: 'claude-3-5-sonnet-20241022',
       models: {
-        analysis: 'claude-sonnet-4-5-20250929',
-        navigation: 'claude-sonnet-4-5-20250929',
-        fixing: 'claude-sonnet-4-5-20250929',
-        screenshot: 'claude-sonnet-4-5-20250929',
-        contextual: 'claude-sonnet-4-5-20250929'
+        analysis: 'claude-3-5-sonnet-20241022',
+        navigation: 'claude-3-5-sonnet-20241022',
+        fixing: 'claude-3-5-sonnet-20241022',
+        screenshot: 'claude-3-5-sonnet-20241022',
+        contextual: 'claude-3-5-sonnet-20241022'
       },
       maxTokens: {
         default: 1024,
@@ -235,6 +268,13 @@ export const defaultConfig: YoFixConfig = {
   logging: {
     level: 'info',
     includeTimestamp: true
+  },
+  patternLearning: {
+    confidenceThreshold: 0.85, // High reliability mode - lower threshold means more LLM usage
+    incrementalUpdateThreshold: 0.1, // Re-learn if 10%+ routes need fallback
+    updateConfidenceThreshold: 0.5, // Accept pattern updates with 50%+ confidence
+    enableIncrementalLearning: true,
+    reliabilityMode: 'high-reliability' // Prioritize accuracy over cost
   }
 };
 

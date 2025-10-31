@@ -2336,11 +2336,11 @@ If a route is incorrectly detected, exclude it from your response.
           
           // Find how this component is imported in this file
           const componentAlias = await this.findComponentAlias(content, componentFile);
-          
+
           if (!componentAlias) {
             continue;
           }
-          
+
           // Parse the file
           const parser = filePath.endsWith('.tsx') ? this.tsxParser : this.tsParser;
           const tree = parser.parse(content);
@@ -2391,25 +2391,32 @@ If a route is incorrectly detected, exclude it from your response.
       const normalizedImportPath = importPath.replace(/\.(tsx?|jsx?)$/, '').toLowerCase();
       
       // Check if this import matches our component
+      const componentWithoutSrc = normalizedComponentFile.replace(/^src\//, '');
       if (normalizedImportPath === normalizedComponentFile ||
           normalizedImportPath.endsWith('/' + normalizedComponentFile) ||
           normalizedComponentFile.endsWith('/' + normalizedImportPath) ||
-          normalizedImportPath.endsWith(normalizedComponentFile.replace(/^src\//, ''))) {
+          // Check with '/' separator to avoid false matches like 'loopchatapp' matching 'app'
+          normalizedImportPath.endsWith('/' + componentWithoutSrc) ||
+          // Also check if the basenames match exactly (e.g., both end with 'app')
+          (path.basename(normalizedImportPath) === path.basename(normalizedComponentFile))) {
         return alias;
       }
     }
     
     // 2. Check regular default imports: import Component from '...'
     const defaultImportRegex = /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g;
-    
+
     while ((match = defaultImportRegex.exec(content)) !== null) {
       const [_, alias, importPath] = match;
-      
+
       const normalizedImportPath = importPath.replace(/\.(tsx?|jsx?)$/, '').toLowerCase();
-      
+      const componentWithoutSrc = normalizedComponentFile.replace(/^src\//, '');
+
       if (normalizedImportPath === normalizedComponentFile ||
           normalizedImportPath.endsWith('/' + normalizedComponentFile) ||
-          normalizedComponentFile.endsWith('/' + normalizedImportPath)) {
+          normalizedComponentFile.endsWith('/' + normalizedImportPath) ||
+          normalizedImportPath.endsWith('/' + componentWithoutSrc) ||
+          (path.basename(normalizedImportPath) === path.basename(normalizedComponentFile))) {
         return alias;
       }
     }
@@ -2421,11 +2428,14 @@ If a route is incorrectly detected, exclude it from your response.
       const [_, imports, importPath] = match;
 
       const normalizedImportPath = importPath.replace(/\.(tsx?|jsx?)$/, '').toLowerCase();
+      const componentWithoutSrc = normalizedComponentFile.replace(/^src\//, '');
 
       // Direct match - import directly from component file
       if (normalizedImportPath === normalizedComponentFile ||
           normalizedImportPath.endsWith('/' + normalizedComponentFile) ||
-          normalizedComponentFile.endsWith('/' + normalizedImportPath)) {
+          normalizedComponentFile.endsWith('/' + normalizedImportPath) ||
+          normalizedImportPath.endsWith('/' + componentWithoutSrc) ||
+          (path.basename(normalizedImportPath) === path.basename(normalizedComponentFile))) {
 
         // Parse the imports to find the component
         const importParts = imports.split(',').map(s => s.trim());

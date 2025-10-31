@@ -142491,7 +142491,10 @@ If a route is incorrectly detected, exclude it from your response.
     while ((match = lazyImportRegex.exec(content)) !== null) {
       const [_3, alias, importPath] = match;
       const normalizedImportPath = importPath.replace(/\.(tsx?|jsx?)$/, "").toLowerCase();
-      if (normalizedImportPath === normalizedComponentFile || normalizedImportPath.endsWith("/" + normalizedComponentFile) || normalizedComponentFile.endsWith("/" + normalizedImportPath) || normalizedImportPath.endsWith(normalizedComponentFile.replace(/^src\//, ""))) {
+      const componentWithoutSrc = normalizedComponentFile.replace(/^src\//, "");
+      if (normalizedImportPath === normalizedComponentFile || normalizedImportPath.endsWith("/" + normalizedComponentFile) || normalizedComponentFile.endsWith("/" + normalizedImportPath) || // Check with '/' separator to avoid false matches like 'loopchatapp' matching 'app'
+      normalizedImportPath.endsWith("/" + componentWithoutSrc) || // Also check if the basenames match exactly (e.g., both end with 'app')
+      path9.basename(normalizedImportPath) === path9.basename(normalizedComponentFile)) {
         return alias;
       }
     }
@@ -142499,7 +142502,8 @@ If a route is incorrectly detected, exclude it from your response.
     while ((match = defaultImportRegex.exec(content)) !== null) {
       const [_3, alias, importPath] = match;
       const normalizedImportPath = importPath.replace(/\.(tsx?|jsx?)$/, "").toLowerCase();
-      if (normalizedImportPath === normalizedComponentFile || normalizedImportPath.endsWith("/" + normalizedComponentFile) || normalizedComponentFile.endsWith("/" + normalizedImportPath)) {
+      const componentWithoutSrc = normalizedComponentFile.replace(/^src\//, "");
+      if (normalizedImportPath === normalizedComponentFile || normalizedImportPath.endsWith("/" + normalizedComponentFile) || normalizedComponentFile.endsWith("/" + normalizedImportPath) || normalizedImportPath.endsWith("/" + componentWithoutSrc) || path9.basename(normalizedImportPath) === path9.basename(normalizedComponentFile)) {
         return alias;
       }
     }
@@ -142507,7 +142511,8 @@ If a route is incorrectly detected, exclude it from your response.
     while ((match = namedImportRegex.exec(content)) !== null) {
       const [_3, imports, importPath] = match;
       const normalizedImportPath = importPath.replace(/\.(tsx?|jsx?)$/, "").toLowerCase();
-      if (normalizedImportPath === normalizedComponentFile || normalizedImportPath.endsWith("/" + normalizedComponentFile) || normalizedComponentFile.endsWith("/" + normalizedImportPath)) {
+      const componentWithoutSrc = normalizedComponentFile.replace(/^src\//, "");
+      if (normalizedImportPath === normalizedComponentFile || normalizedImportPath.endsWith("/" + normalizedComponentFile) || normalizedComponentFile.endsWith("/" + normalizedImportPath) || normalizedImportPath.endsWith("/" + componentWithoutSrc) || path9.basename(normalizedImportPath) === path9.basename(normalizedComponentFile)) {
         const importParts = imports.split(",").map((s4) => s4.trim());
         for (const importPart of importParts) {
           const asMatch = importPart.match(/(\w+)\s+as\s+(\w+)/);
@@ -143231,6 +143236,33 @@ var RouteImpactAnalyzer = class {
 `;
       }
       output += "\n";
+    }
+    if (tree.affectedRoutes.length > 0) {
+      const mappedRoutes = /* @__PURE__ */ new Set();
+      if (tree.componentRouteMapping) {
+        for (const routes of tree.componentRouteMapping.values()) {
+          routes.forEach((r4) => {
+            if (r4.routePath) {
+              mappedRoutes.add(r4.routePath);
+            }
+          });
+        }
+      }
+      const otherRoutes = tree.affectedRoutes.filter((impact) => impact.route && !mappedRoutes.has(impact.route)).map((impact) => impact.route);
+      if (otherRoutes.length > 0) {
+        output += "\u{1F4CD} **Other Affected Routes** (detected via dependency analysis):\n";
+        for (const route of otherRoutes) {
+          if (this.previewUrl) {
+            const routeUrl = this.buildRouteUrl(route);
+            output += `- [\`${route}\`](${routeUrl})
+`;
+          } else {
+            output += `- \`${route}\`
+`;
+          }
+        }
+        output += "\n";
+      }
     }
     return output;
   }

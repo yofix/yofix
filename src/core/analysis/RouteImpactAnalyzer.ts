@@ -661,10 +661,41 @@ export class RouteImpactAnalyzer {
       }
       output += '\n';
     }
-    
-    // Note: Route Tree section has been removed to keep comments concise
-    // The component usage section above already shows which routes are affected
-    
+
+    // Add other affected routes (routes found via graph traversal that aren't in component mappings)
+    if (tree.affectedRoutes.length > 0) {
+      // Get routes already shown in component mappings
+      const mappedRoutes = new Set<string>();
+      if (tree.componentRouteMapping) {
+        for (const routes of tree.componentRouteMapping.values()) {
+          routes.forEach(r => {
+            if (r.routePath) {
+              mappedRoutes.add(r.routePath);
+            }
+          });
+        }
+      }
+
+      // Find routes that aren't in component mappings
+      const otherRoutes = tree.affectedRoutes
+        .filter(impact => impact.route && !mappedRoutes.has(impact.route))
+        .map(impact => impact.route);
+
+      if (otherRoutes.length > 0) {
+        output += '📍 **Other Affected Routes** (detected via dependency analysis):\n';
+        for (const route of otherRoutes) {
+          // Create hyperlink if preview URL is available
+          if (this.previewUrl) {
+            const routeUrl = this.buildRouteUrl(route);
+            output += `- [\`${route}\`](${routeUrl})\n`;
+          } else {
+            output += `- \`${route}\`\n`;
+          }
+        }
+        output += '\n';
+      }
+    }
+
     return output;
   }
 }

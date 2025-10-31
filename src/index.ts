@@ -10,7 +10,7 @@ import { DeterministicVisualAnalyzer } from './core/deterministic/visual/Determi
 import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
 import { YoFixBot } from './bot/YoFixBot';
-import { RouteImpactAnalyzer } from './core/analysis/RouteImpactAnalyzer';
+import { RouteImpactAnalyzer, RouteImpactTree } from './core/analysis/RouteImpactAnalyzer';
 import { StorageFactory } from './providers/storage/StorageFactory';
 import { GitHubServiceFactory } from './core/github/GitHubServiceFactory';
 import { 
@@ -29,6 +29,7 @@ import {
 } from './core';
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
+import { analyzeRoutesWithExternalTool } from './core/analysis/ThirdPartyRouteImpactAnalyzer';
 async function run(): Promise<void> {
   try {
     // Initialize core services first
@@ -169,104 +170,82 @@ async function runVisualTesting(): Promise<void> {
     
     // Analyze route impact and get affected routes
     let affectedRoutes: string[] = [];
-    let impactTree: any = null;
+    let impactTree: RouteImpactTree | null = null;
+    let impactCommentBody: string | null = null;
     
     if (prNumber > 0) {
       try {
-        // Create storage provider for route analyzer
-        let storageProvider = null;
-        try {
-          const storageProviderName = config.get('storage-provider', { defaultValue: 'github' });
-          if (storageProviderName !== 'github') {
-            storageProvider = await StorageFactory.createFromInputs();
-          }
-        } catch (error) {
-          core.debug(`Storage provider initialization failed: ${error}`);
-        }
-        
-        const impactAnalyzer = new RouteImpactAnalyzer(storageProvider, inputs.previewUrl);
-        
-        // Add timeout to route analysis to prevent hanging
-        core.info('⏱️ Starting route analysis with 60s timeout...');
-        const routeAnalysisStartTime = Date.now();
-        
-        impactTree = await Promise.race([
-          impactAnalyzer.analyzePRImpact(prNumber),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Route analysis timeout')), 60000)
-          )
-        ]);
-        
-        core.info(`✅ Route analysis completed in ${Date.now() - routeAnalysisStartTime}ms`);
-        
-        // FIXED: Extract routes from component mappings FIRST
-        // This is the primary source of truth for component changes
-        if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
-          const componentRoutes = new Set<string>();
-          
-          // Log component mappings for debugging
-          core.info(`🎯 Component mappings found:`);
-          for (const [component, routes] of impactTree.componentRouteMapping) {
-            core.info(`  ${component} affects ${routes.length} routes:`);
-            for (const route of routes) {
-              // Use the actual route path from the mapping
-              if (route.routePath) {
-                core.info(`    - ${route.routePath} (in ${route.routeFile || 'unknown'})`);
-                componentRoutes.add(route.routePath);
-              }
-            }
-          }
-          
-          affectedRoutes = Array.from(componentRoutes);
-          core.info(`📍 Found ${affectedRoutes.length} routes from component mappings`);
-        }
-        
-        // [Temporarily disabled] Then add any directly affected routes (route file changes)
-        if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
-          const directRoutes = impactTree.affectedRoutes
-            .filter((impact: any) => impact.route && !affectedRoutes.includes(impact.route))
-            .map((impact: any) => impact.route); // Add unique routes
-          
-          if (directRoutes.length > 0) {
-            affectedRoutes = [...affectedRoutes, ...directRoutes]; 
-            core.info(`🎯 Found ${directRoutes.length} additional routes from direct changes`);
-          }
-        }
-        
-        core.info(`📍 Total unique routes to test: ${affectedRoutes.length}`);
-        core.info(`📍 Affected routes: ${affectedRoutes.join(', ')}`);
-        
-        if (affectedRoutes.length === 0) {
-          core.info('ℹ️ No routes affected by PR changes, testing homepage');
-          affectedRoutes = ['/'];
-        }
-        
-        // Post route impact tree as a comment with timeout
-        const impactMessage = impactAnalyzer.formatImpactTree(impactTree);
-        const githubService = GitHubServiceFactory.getService();
-        
-        try {
-          await Promise.race([
-            githubService.createComment(impactMessage),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('GitHub comment timeout')), 15000)
-            )
-          ]);
-          core.info('✅ Posted route impact tree to PR');
-        } catch (error) {
-          core.warning(`Failed to post impact tree to PR: ${error}`);
-          // Continue execution
-        }
-      } catch (error) {
-        await errorHandler.handleError(error as Error, {
+        core.info('🛰️ Using route-impact-analyzer to discover affected routes...');
+        const externalAnalysis = await analyzeRoutesWithExternalTool(prNumber, inputs.previewUrl);
+        impactTree = externalAnalysis.impactTree;
+        impactCommentBody = externalAnalysis.commentBody;
+      } catch (externalError) {
+        await errorHandler.handleError(externalError as Error, {
           severity: ErrorSeverity.MEDIUM,
           category: ErrorCategory.ANALYSIS,
-          userAction: 'Route impact analysis',
+          userAction: 'Third-party route impact analysis',
           recoverable: true,
           metadata: { prNumber }
         });
-        core.warning('Falling back to testing homepage only');
-        affectedRoutes = ['/'];
+        core.warning('Falling back to internal Tree-sitter route analysis');
+        
+        try {
+          // Create storage provider for route analyzer
+          let storageProvider = null;
+          try {
+            const storageProviderName = config.get('storage-provider', { defaultValue: 'github' });
+            if (storageProviderName !== 'github') {
+              storageProvider = await StorageFactory.createFromInputs();
+            }
+          } catch (error) {
+            core.debug(`Storage provider initialization failed: ${error}`);
+          }
+          
+          const impactAnalyzer = new RouteImpactAnalyzer(storageProvider, inputs.previewUrl);
+          
+          // Add timeout to route analysis to prevent hanging
+          core.info('⏱️ Starting internal route analysis with 60s timeout...');
+          const routeAnalysisStartTime = Date.now();
+          
+          impactTree = await withTimeout<RouteImpactTree>(
+            impactAnalyzer.analyzePRImpact(prNumber),
+            60000,
+            'Route analysis timeout'
+          );
+          
+          core.info(`✅ Internal route analysis completed in ${Date.now() - routeAnalysisStartTime}ms`);
+          impactCommentBody = impactAnalyzer.formatImpactTree(impactTree);
+        } catch (fallbackError) {
+          await errorHandler.handleError(fallbackError as Error, {
+            severity: ErrorSeverity.MEDIUM,
+            category: ErrorCategory.ANALYSIS,
+            userAction: 'Route impact analysis fallback',
+            recoverable: true,
+            metadata: { prNumber }
+          });
+          core.warning('Falling back to testing homepage only');
+          affectedRoutes = ['/'];
+        }
+      }
+    }
+    
+    if (impactTree) {
+      affectedRoutes = extractRoutesFromImpactTree(impactTree);
+      logImpactTreeSummary(impactTree);
+    }
+    
+    if (prNumber > 0 && impactCommentBody) {
+      const githubServiceWithContext = GitHubServiceFactory.getService();
+      try {
+        await Promise.race([
+          githubServiceWithContext.createComment(impactCommentBody),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('GitHub comment timeout')), 15000)
+          )
+        ]);
+        core.info('✅ Posted route impact summary to PR');
+      } catch (commentError) {
+        core.warning(`Failed to post impact summary to PR: ${commentError}`);
       }
     }
     
@@ -702,6 +681,90 @@ async function runVisualTesting(): Promise<void> {
       }
     }
   }
+}
+
+function extractRoutesFromImpactTree(impactTree: RouteImpactTree): string[] {
+  const routes = new Set<string>();
+  
+  if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+    for (const componentRoutes of impactTree.componentRouteMapping.values()) {
+      for (const routeInfo of componentRoutes) {
+        if (routeInfo.routePath) {
+          routes.add(routeInfo.routePath);
+        }
+      }
+    }
+  }
+  
+  if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+    for (const impact of impactTree.affectedRoutes) {
+      if (impact.route) {
+        routes.add(impact.route);
+      }
+    }
+  }
+  
+  return Array.from(routes);
+}
+
+function logImpactTreeSummary(impactTree: RouteImpactTree): void {
+  if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+    core.info('🎯 Component mappings found:');
+    for (const [component, routes] of impactTree.componentRouteMapping) {
+      core.info(`  ${component} affects ${routes.length} routes:`);
+      for (const route of routes) {
+        if (route.routePath) {
+          core.info(`    - ${route.routePath} (in ${route.routeFile || 'unknown'})`);
+        }
+      }
+    }
+  }
+  
+  if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+    const mappedRoutes = new Set<string>();
+    if (impactTree.componentRouteMapping) {
+      for (const routes of impactTree.componentRouteMapping.values()) {
+        routes.forEach(route => {
+          if (route.routePath) {
+            mappedRoutes.add(route.routePath);
+          }
+        });
+      }
+    }
+    
+    const additionalRoutes = impactTree.affectedRoutes
+      .filter(impact => impact.route && !mappedRoutes.has(impact.route))
+      .map(impact => impact.route);
+    
+    if (additionalRoutes.length > 0) {
+      core.info(`🎯 Found ${additionalRoutes.length} additional routes from direct changes`);
+    }
+  }
+  
+  const allRoutes = extractRoutesFromImpactTree(impactTree);
+  core.info(`📍 Total unique routes to test: ${allRoutes.length}`);
+  if (allRoutes.length > 0) {
+    core.info(`📍 Affected routes: ${allRoutes.join(', ')}`);
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+    
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
 }
 
 /**

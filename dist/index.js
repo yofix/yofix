@@ -245842,7 +245842,6 @@ init_default_config();
 var core38 = __toESM(require_core());
 var import_route_impact_analyzer = __toESM(require_dist6());
 init_ConfigurationHook();
-init_GitHubServiceFactory();
 function createEmptyImpactTree(totalFilesChanged) {
   return {
     affectedRoutes: [],
@@ -245852,17 +245851,15 @@ function createEmptyImpactTree(totalFilesChanged) {
     componentRouteMapping: /* @__PURE__ */ new Map()
   };
 }
-async function analyzeRoutesWithExternalTool(prNumber, previewUrl) {
+async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   var _a3, _b, _c;
   const configuration = getConfiguration();
   const claudeApiKey = configuration.getInput("claude-api-key");
   if (!claudeApiKey) {
     throw new Error("Claude API key is required for route-impact-analyzer integration.");
   }
-  const github3 = GitHubServiceFactory.getService();
-  const prFiles = await github3.listPullRequestFiles();
   const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
-  core38.info(`\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files for PR #${prNumber}`);
+  core38.info(`\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`);
   if (changedFiles.length === 0) {
     core38.info("No changed files detected, skipping external route impact analysis.");
     return {
@@ -246081,7 +246078,10 @@ async function runVisualTesting() {
     if (prNumber > 0) {
       try {
         core41.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
-        const externalAnalysis = await analyzeRoutesWithExternalTool(prNumber, inputs.previewUrl);
+        const github3 = GitHubServiceFactory.getService();
+        const prFiles = await github3.listPullRequestFiles();
+        console.log("[TESTING]", prFiles.join("\n"));
+        const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, inputs.previewUrl);
         console.log("[TESTING]", externalAnalysis);
         impactTree = externalAnalysis.impactTree;
         impactCommentBody = externalAnalysis.commentBody;

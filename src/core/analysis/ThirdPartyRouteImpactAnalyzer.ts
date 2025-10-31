@@ -3,15 +3,37 @@ import { analyzeRouteImpact } from 'route-impact-analyzer';
 
 import { getConfiguration } from '../hooks/ConfigurationHook';
 import { GitHubServiceFactory } from '../github/GitHubServiceFactory';
-import { RouteImpact, RouteImpactTree } from './RouteImpactAnalyzer';
+
+export interface ExternalRouteImpact {
+  route: string;
+  directChanges: string[];
+  componentChanges: string[];
+  styleChanges: string[];
+  sharedComponents: string[];
+  servingRoutes?: Array<{
+    routePath: string;
+    routeFile: string;
+  }>;
+}
+
+export interface ExternalRouteImpactTree {
+  affectedRoutes: ExternalRouteImpact[];
+  sharedComponents: Map<string, string[]>;
+  totalFilesChanged: number;
+  totalRoutesAffected: number;
+  componentRouteMapping: Map<string, Array<{
+    routePath: string;
+    routeFile: string;
+  }>>;
+}
 
 interface ExternalImpactResult {
   routes: string[];
-  impactTree: RouteImpactTree;
+  impactTree: ExternalRouteImpactTree;
   commentBody: string;
 }
 
-function createEmptyImpactTree(totalFilesChanged: number): RouteImpactTree {
+function createEmptyImpactTree(totalFilesChanged: number): ExternalRouteImpactTree {
   return {
     affectedRoutes: [],
     sharedComponents: new Map<string, string[]>(),
@@ -83,7 +105,7 @@ export async function analyzeRoutesWithExternalTool(
 
   const uniqueRoutes = new Set<string>();
   const componentRouteMapping = new Map<string, Array<{ routePath: string; routeFile: string }>>();
-  const routeImpactMap = new Map<string, RouteImpact>();
+  const routeImpactMap = new Map<string, ExternalRouteImpact>();
 
   result.impacts.forEach(impact => {
     const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
@@ -130,7 +152,7 @@ export async function analyzeRoutesWithExternalTool(
     }
   });
 
-  const impactTree: RouteImpactTree = {
+  const impactTree: ExternalRouteImpactTree = {
     affectedRoutes: Array.from(routeImpactMap.values()),
     sharedComponents,
     totalFilesChanged: changedFiles.length,

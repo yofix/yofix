@@ -5,13 +5,10 @@ import os from 'os';
 // import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 
 import { TestGenerator } from './core/testing/TestGenerator';
-import { VisualAnalyzer } from './core/analysis/VisualAnalyzer';
 import { DeterministicVisualAnalyzer } from './core/deterministic/visual/DeterministicVisualAnalyzer';
 import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
 import { YoFixBot } from './bot/YoFixBot';
-import { RouteImpactAnalyzer, RouteImpactTree } from './core/analysis/RouteImpactAnalyzer';
-import { StorageFactory } from './providers/storage/StorageFactory';
 import { GitHubServiceFactory } from './core/github/GitHubServiceFactory';
 import { 
   initializeCoreServices, 
@@ -22,14 +19,12 @@ import {
   config,
   getRequiredConfig,
   getBooleanConfig,
-  getNumberConfig,
   Validators,
   deleteFile,
-  parseTimeout
 } from './core';
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
-import { analyzeRoutesWithExternalTool } from './core/analysis/ThirdPartyRouteImpactAnalyzer';
+import { analyzeRoutesWithExternalTool, ExternalRouteImpactTree } from './core/analysis/ThirdPartyRouteImpactAnalyzer';
 async function run(): Promise<void> {
   try {
     // Initialize core services first
@@ -170,13 +165,14 @@ async function runVisualTesting(): Promise<void> {
     
     // Analyze route impact and get affected routes
     let affectedRoutes: string[] = [];
-    let impactTree: RouteImpactTree | null = null;
+    let impactTree: ExternalRouteImpactTree | null = null;
     let impactCommentBody: string | null = null;
     
     if (prNumber > 0) {
       try {
         core.info('🛰️ Using route-impact-analyzer to discover affected routes...');
         const externalAnalysis = await analyzeRoutesWithExternalTool(prNumber, inputs.previewUrl);
+        console.log("[TESTING]", externalAnalysis); 
         impactTree = externalAnalysis.impactTree;
         impactCommentBody = externalAnalysis.commentBody;
       } catch (externalError) {
@@ -187,45 +183,8 @@ async function runVisualTesting(): Promise<void> {
           recoverable: true,
           metadata: { prNumber }
         });
-        core.warning('Falling back to internal Tree-sitter route analysis');
-        
-        try {
-          // Create storage provider for route analyzer
-          let storageProvider = null;
-          try {
-            const storageProviderName = config.get('storage-provider', { defaultValue: 'github' });
-            if (storageProviderName !== 'github') {
-              storageProvider = await StorageFactory.createFromInputs();
-            }
-          } catch (error) {
-            core.debug(`Storage provider initialization failed: ${error}`);
-          }
-          
-          const impactAnalyzer = new RouteImpactAnalyzer(storageProvider, inputs.previewUrl);
-          
-          // Add timeout to route analysis to prevent hanging
-          core.info('⏱️ Starting internal route analysis with 60s timeout...');
-          const routeAnalysisStartTime = Date.now();
-          
-          impactTree = await withTimeout<RouteImpactTree>(
-            impactAnalyzer.analyzePRImpact(prNumber),
-            60000,
-            'Route analysis timeout'
-          );
-          
-          core.info(`✅ Internal route analysis completed in ${Date.now() - routeAnalysisStartTime}ms`);
-          impactCommentBody = impactAnalyzer.formatImpactTree(impactTree);
-        } catch (fallbackError) {
-          await errorHandler.handleError(fallbackError as Error, {
-            severity: ErrorSeverity.MEDIUM,
-            category: ErrorCategory.ANALYSIS,
-            userAction: 'Route impact analysis fallback',
-            recoverable: true,
-            metadata: { prNumber }
-          });
-          core.warning('Falling back to testing homepage only');
-          affectedRoutes = ['/'];
-        }
+        core.warning('Third-party route analyzer failed. Falling back to testing homepage only.');
+        affectedRoutes = ['/'];
       }
     }
     
@@ -683,7 +642,7 @@ async function runVisualTesting(): Promise<void> {
   }
 }
 
-function extractRoutesFromImpactTree(impactTree: RouteImpactTree): string[] {
+function extractRoutesFromImpactTree(impactTree: ExternalRouteImpactTree): string[] {
   const routes = new Set<string>();
   
   if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
@@ -707,7 +666,7 @@ function extractRoutesFromImpactTree(impactTree: RouteImpactTree): string[] {
   return Array.from(routes);
 }
 
-function logImpactTreeSummary(impactTree: RouteImpactTree): void {
+function logImpactTreeSummary(impactTree: ExternalRouteImpactTree): void {
   if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
     core.info('🎯 Component mappings found:');
     for (const [component, routes] of impactTree.componentRouteMapping) {
@@ -746,25 +705,6 @@ function logImpactTreeSummary(impactTree: RouteImpactTree): void {
   if (allRoutes.length > 0) {
     core.info(`📍 Affected routes: ${allRoutes.join(', ')}`);
   }
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(timeoutMessage));
-    }, timeoutMs);
-    
-    promise.then(
-      value => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      error => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
 }
 
 /**

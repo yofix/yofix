@@ -44,7 +44,7 @@ function createEmptyImpactTree(totalFilesChanged: number): ExternalRouteImpactTr
 }
 
 export async function analyzeRoutesWithExternalTool(
-  prNumber: number,
+  prFiles: any[],
   previewUrl: string
 ): Promise<ExternalImpactResult> {
   const configuration = getConfiguration();
@@ -54,14 +54,13 @@ export async function analyzeRoutesWithExternalTool(
     throw new Error('Claude API key is required for route-impact-analyzer integration.');
   }
 
-  const github = GitHubServiceFactory.getService();
-  const prFiles = await github.listPullRequestFiles();
+ 
 
   const changedFiles = prFiles
     .filter(file => file.status !== 'removed')
     .map(file => file.filename);
 
-  core.info(`🧭 route-impact-analyzer inspecting ${changedFiles.length} changed files for PR #${prNumber}`);
+  core.info(`🧭 route-impact-analyzer inspecting ${changedFiles.length} changed files`);
 
   if (changedFiles.length === 0) {
     core.info('No changed files detected, skipping external route impact analysis.');

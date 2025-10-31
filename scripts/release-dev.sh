@@ -114,6 +114,11 @@ DEV_VERSION="v${BASE_VERSION}-dev.${COMMIT_HASH}"
 
 echo -e "\n${BLUE}🏷️  Creating dev version: ${GREEN}${DEV_VERSION}${NC}"
 
+# Build the project before tagging
+echo -e "\n${BLUE}⚙️  Building project (yarn build)...${NC}"
+yarn build
+echo -e "${GREEN}✅ Build completed${NC}"
+
 # Check if tag already exists
 if git rev-parse "$DEV_VERSION" >/dev/null 2>&1; then
     echo -e "${YELLOW}⚠️  Tag ${DEV_VERSION} already exists. Deleting old tag...${NC}"

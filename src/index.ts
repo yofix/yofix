@@ -171,7 +171,11 @@ async function runVisualTesting(): Promise<void> {
     if (prNumber > 0) {
       try {
         core.info('🛰️ Using route-impact-analyzer to discover affected routes...');
-        const externalAnalysis = await analyzeRoutesWithExternalTool(prNumber, inputs.previewUrl);
+        
+        const github = GitHubServiceFactory.getService();
+        const prFiles = await github.listPullRequestFiles();
+        console.log("[TESTING]", prFiles.join('\n')); 
+        const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, inputs.previewUrl);
         console.log("[TESTING]", externalAnalysis); 
         impactTree = externalAnalysis.impactTree;
         impactCommentBody = externalAnalysis.commentBody;

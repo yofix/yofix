@@ -163,4 +163,4 @@ All notable changes to this project will be documented in this file.
 
 [1.0.17]: https://github.com/yofix/yofix/releases/tag/v1.0.17
 [1.0.16]: https://github.com/yofix/yofix/releases/tag/v1.0.16
-[1.0.15]: https://github.com/yofix/yofix/releases/tag/v1.0.15
+[1.0.15]: https://github.com/yofix/yofix/releases/tag/v1.0.15# Fixed baseline auth and reduced verbose logging

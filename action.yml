@@ -18,7 +18,11 @@ inputs:
   claude-api-key:
     description: 'Claude API key for intelligent route analysis'
     required: true
-  
+
+  claude-model:
+    description: 'Claude model to use (e.g., claude-sonnet-4-5-20250929, claude-sonnet-4-20250514)'
+    required: true
+
   # Baseline Configuration
   production-url:
     description: 'Production or staging URL for creating visual baselines (e.g., https://myapp.com)'
@@ -380,6 +384,7 @@ runs:
         INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
         INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE-MODEL: ${{ inputs.claude-model }}
         INPUT_PRODUCTION-URL: ${{ inputs.production-url }}
         INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
         INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}

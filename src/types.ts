@@ -130,6 +130,7 @@ export interface ActionInputs {
   storageBucket: string;
   // githubToken: string; // Removed - now handled by GitHubServiceFactory
   claudeApiKey: string;
+  claudeModel: string;
   productionUrl?: string;
   firebaseTarget?: string;
   buildSystem?: 'vite' | 'react';

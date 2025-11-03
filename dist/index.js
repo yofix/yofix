@@ -33146,13 +33146,13 @@ var init_default_config = __esm({
     defaultConfig = {
       ai: {
         claude: {
-          defaultModel: "claude-3-5-sonnet-20241022",
+          defaultModel: "claude-sonnet-4-5-20250929",
           models: {
-            analysis: "claude-3-5-sonnet-20241022",
-            navigation: "claude-3-5-sonnet-20241022",
-            fixing: "claude-3-5-sonnet-20241022",
-            screenshot: "claude-3-5-sonnet-20241022",
-            contextual: "claude-3-5-sonnet-20241022"
+            analysis: "claude-sonnet-4-5-20250929",
+            navigation: "claude-sonnet-4-5-20250929",
+            fixing: "claude-sonnet-4-5-20250929",
+            screenshot: "claude-sonnet-4-5-20250929",
+            contextual: "claude-sonnet-4-5-20250929"
           },
           maxTokens: {
             default: 1024,
@@ -86496,19 +86496,10 @@ ${action.name}: ${action.description}`);
   }
   buildInstructions() {
     return `<instructions>
-Analyze the task and current state to determine the next action.
-
-Response format:
-{
-  "thinking": "Brief explanation of your reasoning",
-  "action": "action_name",
-  "parameters": {
-    "param1": "value1"
-  }
-}
+Analyze the task and current state to determine which tool to use next.
 
 Guidelines:
-- Prefer 'smart_type' and 'smart_click' actions for better element detection
+- Prefer 'smart_type' and 'smart_click' tools for better element detection
 - Use element indices (e.g., index=5) as fallback when smart actions don't work
 - IMPORTANT: For forms, fill ALL fields before submitting
 - Take screenshots when important information is displayed
@@ -86525,20 +86516,21 @@ Form Filling Rules:
   - smart_click target="submit"
   - smart_click target="login"
   - smart_click target="sign in"
-- Each field requires a separate action
+- Each field requires a separate tool use
 - After filling all fields, then click the submit button
 
 Common patterns:
-- For login: 
-  1. smart_type field="email" text="user@example.com"
-  2. smart_type field="password" text="password123"
-  3. smart_click target="login"
-- For navigation: click on links or use go_to with URLs
-- For data extraction: get_text or screenshot, then save_to_file
+- For login:
+  1. Use smart_type tool with field="email"
+  2. Use smart_type tool with field="password"
+  3. Use smart_click tool with target="login"
+- For navigation: Use go_to tool with URLs
+- For data extraction: Use screenshot or get_text tools
 
-Smart Actions (Recommended):
+Smart Tools (Recommended):
 - smart_type: Finds form fields using semantic understanding (email, password, username)
 - smart_click: Finds buttons using context and position (submit, login, continue)
+- smart_login: Automated login flow (combines multiple steps)
 
 CRITICAL: Never submit a form with empty required fields!
 </instructions>`;
@@ -86670,185 +86662,9 @@ var LLMProvider = class {
   constructor(config3) {
     this.config = config3;
   }
-  /**
-   * Parse LLM response to extract action and parameters
-   */
-  parseResponse(response) {
-    try {
-      const parsed = this.parseJSON(response);
-      if ("completed" in parsed) {
-        return this.createCompletionResponse(parsed);
-      }
-      const actionData = this.extractActionData(parsed);
-      return this.normalizeResponse(actionData);
-    } catch (error16) {
-      return this.parseRawText(response);
-    }
-  }
-  /**
-   * Safely parse JSON with error handling
-   * Handles JSON wrapped in markdown code blocks
-   */
-  parseJSON(response) {
-    try {
-      return JSON.parse(response);
-    } catch (e4) {
-      const codeBlockMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-      if (codeBlockMatch) {
-        try {
-          return JSON.parse(codeBlockMatch[1]);
-        } catch (e22) {
-        }
-      }
-      const jsonMatch = response.match(/\{[\s\S]*"action"[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          return JSON.parse(jsonMatch[0]);
-        } catch (e32) {
-        }
-      }
-      throw new Error("Invalid JSON response");
-    }
-  }
-  /**
-   * Create completion check response
-   */
-  createCompletionResponse(parsed) {
-    return {
-      action: "",
-      parameters: {},
-      thinking: parsed.thinking || parsed.reasoning || "",
-      completed: parsed.completed,
-      reason: parsed.reason,
-      next_action: parsed.next_action
-    };
-  }
-  /**
-   * Extract action data from various possible structures
-   */
-  extractActionData(parsed) {
-    if (parsed.action) {
-      return parsed;
-    }
-    if (parsed.thinking && typeof parsed.thinking === "object" && parsed.thinking.action) {
-      return {
-        ...parsed.thinking,
-        thinking: parsed.thinking.thinking || parsed.thinking.reasoning || ""
-      };
-    }
-    if (parsed.command) {
-      return { ...parsed, action: parsed.command };
-    }
-    if (typeof parsed.thinking === "string") {
-      const extracted = this.extractFromThinkingString(parsed.thinking);
-      if (extracted) {
-        return { ...parsed, ...extracted };
-      }
-    }
-    return parsed;
-  }
-  /**
-   * Extract action from thinking string that might contain JSON
-   */
-  extractFromThinkingString(thinking) {
-    try {
-      const jsonMatch = thinking.match(/{[\s\S]*}/);
-      if (jsonMatch) {
-        const extracted = JSON.parse(jsonMatch[0]);
-        if (extracted.action) {
-          return extracted;
-        }
-      }
-    } catch (e4) {
-    }
-    return null;
-  }
-  /**
-   * Normalize and validate the response
-   */
-  normalizeResponse(data) {
-    const action = data.action || data.command || "";
-    if (action && !actionValidator.isValidAction(action)) {
-      console.warn(`Invalid action "${action}" detected. Valid actions: ${actionValidator.getValidActions().join(", ")}`);
-    }
-    return {
-      action,
-      parameters: data.parameters || data.params || {},
-      thinking: data.thinking || data.reasoning || "",
-      confidence: data.confidence
-    };
-  }
-  /**
-   * Parse raw text response as fallback
-   * More robust parsing that avoids picking up random words
-   */
-  parseRawText(response) {
-    console.warn("\u26A0\uFE0F  LLM Response Parsing: Falling back to raw text parsing (JSON parse failed)");
-    console.warn(`Raw response preview: ${response.substring(0, 200)}...`);
-    const actionMatch = response.match(/["']?action["']?\s*:\s*["']?(\w+)["']?/i);
-    const paramsMatch = response.match(/["']?parameters?["']?\s*:\s*(\{[\s\S]*?\})/i);
-    const action = actionMatch ? actionMatch[1] : "";
-    const parameters = paramsMatch ? this.tryParseJSON(paramsMatch[1], {}) : {};
-    if (action && !actionValidator.isValidAction(action)) {
-      console.error(`\u274C Extracted invalid action: "${action}"`);
-      console.error(`   Valid actions: ${actionValidator.getValidActions().join(", ")}`);
-      console.error(`   Returning empty action to trigger retry`);
-      return {
-        action: "",
-        // Return empty to signal failure
-        parameters: {},
-        thinking: response,
-        error: `Invalid action "${action}" extracted from text response`
-      };
-    }
-    if (!action) {
-      console.error("\u274C No action found in LLM response");
-      console.error(`   Full response: ${response}`);
-    } else {
-      console.log(`\u2705 Extracted action from raw text: ${action}`);
-    }
-    return {
-      action,
-      parameters,
-      thinking: response
-    };
-  }
-  /**
-   * Safely try to parse JSON with fallback
-   */
-  tryParseJSON(str, fallback) {
-    try {
-      return JSON.parse(str);
-    } catch (e4) {
-      return fallback;
-    }
-  }
-  /**
-   * Build system prompt for browser automation
-   */
-  getSystemPrompt() {
-    return `You are a browser automation agent. Your role is to complete tasks by interacting with web pages through specific actions.
-
-You must respond with valid JSON in this format:
-{
-  "thinking": "Your reasoning for the next action",
-  "action": "action_name",
-  "parameters": {
-    "param1": "value1"
-  }
-}
-
-Key principles:
-1. Analyze the current page state before acting
-2. Use element indices when available (e.g., click index=5)
-3. Fill forms completely before submitting
-4. Take screenshots of important information
-5. Save extracted data to files
-6. Verify actions completed successfully
-7. Recover gracefully from errors
-
-Always think step-by-step and explain your reasoning.`;
-  }
+  // NOTE: The old parseResponse, parseJSON, parseRawText methods have been removed.
+  // They are obsolete now that we use Claude's tool use API for structured responses.
+  // AnthropicProvider.parseToolUseResponse() handles all response parsing.
 };
 
 // src/browser-agent/llm/providers/AnthropicProvider.ts
@@ -86982,10 +86798,27 @@ var AnthropicProvider = class extends LLMProvider {
     if (!toolUse) {
       core4.warning("\u26A0\uFE0F  No tool use in Claude response (might need clarification)");
       core4.debug(`Response content: ${JSON.stringify(content)}`);
+      const thinkingText = thinking.trim();
+      const jsonMatch = thinkingText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[1]);
+          core4.debug(`\u2705 Parsed JSON from thinking block`);
+          return {
+            action: "text_response",
+            // Special action for non-tool responses
+            parameters: parsed,
+            thinking: parsed.thinking || thinkingText,
+            rawText: thinkingText
+          };
+        } catch (error16) {
+          core4.warning(`Failed to parse JSON from thinking: ${error16}`);
+        }
+      }
       return {
         action: "",
         parameters: {},
-        thinking: thinking.trim(),
+        thinking: thinkingText,
         error: "No tool use found in response"
       };
     }
@@ -86996,18 +86829,6 @@ var AnthropicProvider = class extends LLMProvider {
       tool_use_id: toolUse.id
       // For future tool result reporting
     };
-  }
-  getSystemPrompt() {
-    return `You are Claude, a browser automation agent powered by Anthropic. ${super.getSystemPrompt()}
-    
-Additional capabilities:
-- You can see and analyze screenshots when provided
-- You understand complex web layouts and can identify UI patterns
-- You can handle multi-step workflows intelligently
-- You learn from previous actions to improve success rates
-
-When you see indexed elements like [0], [1], [2], use the index parameter to interact with them.
-For example: click index=0 to click the first interactive element.`;
   }
 };
 
@@ -93940,6 +93761,19 @@ Response format:
           issues: response.parameters.verification.issues || []
         };
       }
+      if (response.action === "text_response" && response.parameters) {
+        const params = response.parameters;
+        if (params.success !== void 0 || params.verification) {
+          const verif = params.verification || params;
+          return {
+            stepId,
+            success: verif.success ?? true,
+            criteriaResults: verif.criteriaResults || [],
+            confidence: verif.confidence ?? 0.8,
+            issues: verif.issues || []
+          };
+        }
+      }
       if (response.success !== void 0 || response.criteriaResults || response.confidence !== void 0) {
         return {
           stepId,
@@ -94387,10 +94221,17 @@ Respond in JSON format:
     `.trim();
   }
   parseFeedbackResponse(response) {
+    var _a3;
     try {
       let analysisData = response;
+      if (response.action === "text_response" && response.parameters) {
+        analysisData = response.parameters;
+      }
       if (response.analysis) {
         analysisData = response.analysis;
+      }
+      if ((_a3 = response.parameters) == null ? void 0 : _a3.analysis) {
+        analysisData = response.parameters.analysis;
       }
       if (typeof response === "string") {
         analysisData = JSON.parse(response);
@@ -94996,9 +94837,14 @@ Please provide the specific next action to take.`;
   createLLMProvider(apiKey) {
     switch (this.options.llmProvider) {
       case "anthropic":
+        if (!this.options.llmModel) {
+          throw new Error(
+            "Claude model is required. Please specify llmModel in agent options (e.g., claude-sonnet-4-5-20250929)."
+          );
+        }
         return new AnthropicProvider({
           apiKey: apiKey || process.env.ANTHROPIC_API_KEY || "",
-          model: this.options.llmModel || "claude-sonnet-4-5-20250929"
+          model: this.options.llmModel
         });
       // Add other providers here
       default:
@@ -95555,8 +95401,6 @@ var BaselineManager = class {
 // src/utils/urlBuilder.ts
 function buildFullUrl(baseUrl, route) {
   if (route.startsWith("http://") || route.startsWith("https://")) {
-    console.warn(`\u26A0\uFE0F  Route is already a full URL: ${route}`);
-    console.warn(`   Returning route as-is instead of concatenating with baseUrl`);
     return route;
   }
   const cleanBase = baseUrl.replace(/\/$/, "");
@@ -96569,13 +96413,14 @@ var StorageFactory = class {
 
 // src/core/testing/TestGenerator.ts
 var TestGenerator = class {
-  constructor(firebaseConfig, viewports, claudeApiKey) {
+  constructor(firebaseConfig, viewports, claudeApiKey, claudeModel) {
     // private githubToken: string; // Removed - now handled by GitHubServiceFactory
     this.sharedAgent = null;
     this.sharedBrowserContext = null;
     this.firebaseConfig = firebaseConfig;
     this.viewports = viewports;
     this.claudeApiKey = claudeApiKey;
+    this.claudeModel = claudeModel;
   }
   /**
    * Get the shared browser context (if using shared session mode)
@@ -96657,6 +96502,7 @@ var TestGenerator = class {
         headless: true,
         maxSteps: 10,
         llmProvider: "anthropic",
+        llmModel: this.claudeModel,
         viewport: this.viewports[0] || { width: 1920, height: 1080 },
         apiKey: this.claudeApiKey
       });
@@ -96773,6 +96619,7 @@ var TestGenerator = class {
         maxSteps: 50,
         // Increased from 25 to allow for authentication and navigation retries
         llmProvider: "anthropic",
+        llmModel: this.claudeModel,
         viewport: this.viewports[0] || { width: 1920, height: 1080 },
         apiKey: this.claudeApiKey
       });
@@ -96928,6 +96775,7 @@ Provide detailed analysis and practical fixes for any issues found.`;
         headless: true,
         maxSteps: 15,
         llmProvider: "anthropic",
+        llmModel: this.claudeModel,
         apiKey: this.claudeApiKey
       });
       await agent.initialize();
@@ -96990,6 +96838,7 @@ Provide detailed analysis and practical fixes for any issues found.`;
       headless: true,
       maxSteps: 50,
       llmProvider: "anthropic",
+      llmModel: this.claudeModel,
       apiKey: this.claudeApiKey
     });
     try {
@@ -100701,7 +100550,12 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
       commentBody: ""
     };
   }
-  const modelFromConfig = configuration.getInput("claude-model") || "claude-sonnet-4-5-20250929";
+  const modelFromConfig = configuration.getInput("claude-model");
+  if (!modelFromConfig) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
+    );
+  }
   const forceRefreshInput = configuration.getInput(
     "route-impact-force-refresh"
   );
@@ -101080,7 +100934,7 @@ async function runVisualTesting() {
       riskLevel: (((_c = treeToUse == null ? void 0 : treeToUse.sharedComponents) == null ? void 0 : _c.size) || 0) > 0 ? "high" : "medium"
     };
     core36.info(`\u{1F50D} Found ${analysis.routes.length} routes to test`);
-    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);
+    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey, inputs.claudeModel);
     core36.info("\u{1F916} Running tests with Browser Agent...");
     const testResults = await testRunner.runTests(analysis);
     const sharedBrowserContext = testRunner.getSharedBrowserContext();
@@ -101425,6 +101279,7 @@ function parseInputs() {
     firebaseCredentials: config.get("firebase-credentials"),
     storageBucket: config.get("storage-bucket"),
     claudeApiKey: config.getSecret("claude-api-key"),
+    claudeModel: getRequiredConfig("claude-model"),
     productionUrl: config.get("production-url"),
     firebaseTarget: config.get("firebase-target"),
     buildSystem: config.get("build-system", { defaultValue: "vite" }),

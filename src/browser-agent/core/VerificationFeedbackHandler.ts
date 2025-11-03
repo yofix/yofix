@@ -149,11 +149,21 @@ Respond in JSON format:
     try {
       // Handle different response formats
       let analysisData = response;
-      
+
+      // Handle text_response action (JSON parsed from thinking block)
+      if (response.action === 'text_response' && response.parameters) {
+        analysisData = response.parameters;
+      }
+
       if (response.analysis) {
         analysisData = response.analysis;
       }
-      
+
+      // Handle parameters.analysis for backward compatibility
+      if (response.parameters?.analysis) {
+        analysisData = response.parameters.analysis;
+      }
+
       if (typeof response === 'string') {
         analysisData = JSON.parse(response);
       }

@@ -180,19 +180,10 @@ Files Saved: ${state.fileSystem.size}
   
   private buildInstructions(): string {
     return `<instructions>
-Analyze the task and current state to determine the next action.
-
-Response format:
-{
-  "thinking": "Brief explanation of your reasoning",
-  "action": "action_name",
-  "parameters": {
-    "param1": "value1"
-  }
-}
+Analyze the task and current state to determine which tool to use next.
 
 Guidelines:
-- Prefer 'smart_type' and 'smart_click' actions for better element detection
+- Prefer 'smart_type' and 'smart_click' tools for better element detection
 - Use element indices (e.g., index=5) as fallback when smart actions don't work
 - IMPORTANT: For forms, fill ALL fields before submitting
 - Take screenshots when important information is displayed
@@ -209,20 +200,21 @@ Form Filling Rules:
   - smart_click target="submit"
   - smart_click target="login"
   - smart_click target="sign in"
-- Each field requires a separate action
+- Each field requires a separate tool use
 - After filling all fields, then click the submit button
 
 Common patterns:
-- For login: 
-  1. smart_type field="email" text="user@example.com"
-  2. smart_type field="password" text="password123"
-  3. smart_click target="login"
-- For navigation: click on links or use go_to with URLs
-- For data extraction: get_text or screenshot, then save_to_file
+- For login:
+  1. Use smart_type tool with field="email"
+  2. Use smart_type tool with field="password"
+  3. Use smart_click tool with target="login"
+- For navigation: Use go_to tool with URLs
+- For data extraction: Use screenshot or get_text tools
 
-Smart Actions (Recommended):
+Smart Tools (Recommended):
 - smart_type: Finds form fields using semantic understanding (email, password, username)
 - smart_click: Finds buttons using context and position (submit, login, continue)
+- smart_login: Automated login flow (combines multiple steps)
 
 CRITICAL: Never submit a form with empty required fields!
 </instructions>`;

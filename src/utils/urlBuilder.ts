@@ -16,15 +16,13 @@
  * buildFullUrl("https://example.com", "base/leaderboard") => "https://example.com/base/leaderboard"
  */
 export function buildFullUrl(baseUrl: string, route: string): string {
-  // CRITICAL FIX: If route is already a full URL, return it as-is
-  // This prevents the double URL bug: base + "http://base/path" = "http://base/http://base/path"
+  // If route is already a full URL (e.g., from route-impact-analyzer), return it as-is
+  // route-impact-analyzer returns full URLs when baseUrl is provided during analysis
   if (route.startsWith('http://') || route.startsWith('https://')) {
-    console.warn(`⚠️  Route is already a full URL: ${route}`);
-    console.warn(`   Returning route as-is instead of concatenating with baseUrl`);
     return route;
   }
 
-  // Remove trailing slash from base URL
+  // Otherwise, build full URL from baseUrl + relative route (e.g., from config or manual input)
   const cleanBase = baseUrl.replace(/\/$/, '');
 
   // Handle empty route (homepage)

@@ -746,11 +746,16 @@ export class Agent {
   private createLLMProvider(apiKey: string): LLMProvider {
     switch (this.options.llmProvider) {
       case 'anthropic':
+        if (!this.options.llmModel) {
+          throw new Error(
+            'Claude model is required. Please specify llmModel in agent options (e.g., claude-sonnet-4-5-20250929).'
+          );
+        }
         return new AnthropicProvider({
           apiKey: apiKey || process.env.ANTHROPIC_API_KEY || '',
-          model: this.options.llmModel || 'claude-sonnet-4-5-20250929'
+          model: this.options.llmModel
         });
-      
+
       // Add other providers here
       default:
         throw new Error(`Unknown LLM provider: ${this.options.llmProvider}`);

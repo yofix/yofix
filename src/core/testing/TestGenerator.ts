@@ -33,14 +33,16 @@ export class TestGenerator {
   private firebaseConfig: FirebaseConfig;
   private viewports: Viewport[];
   private claudeApiKey: string;
+  private claudeModel: string;
   // private githubToken: string; // Removed - now handled by GitHubServiceFactory
   private sharedAgent: Agent | null = null;
   private sharedBrowserContext: BrowserContext | null = null;
 
-  constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string) {
+  constructor(firebaseConfig: FirebaseConfig, viewports: Viewport[], claudeApiKey: string, claudeModel: string) {
     this.firebaseConfig = firebaseConfig;
     this.viewports = viewports;
     this.claudeApiKey = claudeApiKey;
+    this.claudeModel = claudeModel;
     // this.githubToken = githubToken; // Removed - now handled by GitHubServiceFactory
   }
   
@@ -140,6 +142,7 @@ export class TestGenerator {
         headless: true,
         maxSteps: 10,
         llmProvider: 'anthropic',
+        llmModel: this.claudeModel,
         viewport: this.viewports[0] || { width: 1920, height: 1080 },
         apiKey: this.claudeApiKey
       });
@@ -295,6 +298,7 @@ export class TestGenerator {
         headless: true,
         maxSteps: 50, // Increased from 25 to allow for authentication and navigation retries
         llmProvider: 'anthropic',
+        llmModel: this.claudeModel,
         viewport: this.viewports[0] || { width: 1920, height: 1080 },
         apiKey: this.claudeApiKey
       });
@@ -490,7 +494,8 @@ Provide detailed analysis and practical fixes for any issues found.`;
         headless: true,
         maxSteps: 15,
         llmProvider: 'anthropic',
-      apiKey: this.claudeApiKey
+        llmModel: this.claudeModel,
+        apiKey: this.claudeApiKey
       });
       
       await agent.initialize();
@@ -561,7 +566,8 @@ Provide detailed analysis and practical fixes for any issues found.`;
       headless: true,
       maxSteps: 50,
       llmProvider: 'anthropic',
-    apiKey: this.claudeApiKey
+      llmModel: this.claudeModel,
+      apiKey: this.claudeApiKey
     });
     
     try {

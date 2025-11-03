@@ -287,7 +287,7 @@ async function runVisualTesting(): Promise<void> {
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);
     
     // Initialize test runner (uses hybrid approach: LLM auth + deterministic testing)
-    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);
+    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey, inputs.claudeModel);
     
     // Run tests using browser-agent
     core.info('🤖 Running tests with Browser Agent...');
@@ -725,6 +725,7 @@ function parseInputs(): ActionInputs {
     firebaseCredentials: config.get('firebase-credentials'),
     storageBucket: config.get('storage-bucket'),
     claudeApiKey: config.getSecret('claude-api-key'),
+    claudeModel: getRequiredConfig('claude-model'),
     productionUrl: config.get('production-url'),
     firebaseTarget: config.get('firebase-target'),
     buildSystem: config.get('build-system', { defaultValue: 'vite' }) as 'vite' | 'react',

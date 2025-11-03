@@ -85,14 +85,37 @@ export class AnthropicProvider extends LLMProvider {
     }
 
     if (!toolUse) {
-      // No tool use found - Claude might be asking for clarification
+      // No tool use found - Claude might be responding with JSON in thinking field
+      // This happens for verification/feedback prompts that aren't registered as tools
       core.warning('⚠️  No tool use in Claude response (might need clarification)');
       core.debug(`Response content: ${JSON.stringify(content)}`);
 
+      // Try to parse JSON from thinking field (for verification/feedback responses)
+      const thinkingText = thinking.trim();
+      const jsonMatch = thinkingText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[1]);
+          core.debug(`✅ Parsed JSON from thinking block`);
+
+          // Return the parsed JSON as parameters (verification/feedback data)
+          return {
+            action: 'text_response', // Special action for non-tool responses
+            parameters: parsed,
+            thinking: parsed.thinking || thinkingText,
+            rawText: thinkingText
+          };
+        } catch (error) {
+          core.warning(`Failed to parse JSON from thinking: ${error}`);
+        }
+      }
+
+      // Fallback: return empty response
       return {
         action: '',
         parameters: {},
-        thinking: thinking.trim(),
+        thinking: thinkingText,
         error: 'No tool use found in response'
       } as any;
     }
@@ -104,18 +127,5 @@ export class AnthropicProvider extends LLMProvider {
       thinking: thinking.trim(),
       tool_use_id: toolUse.id // For future tool result reporting
     };
-  }
-  
-  protected getSystemPrompt(): string {
-    return `You are Claude, a browser automation agent powered by Anthropic. ${super.getSystemPrompt()}
-    
-Additional capabilities:
-- You can see and analyze screenshots when provided
-- You understand complex web layouts and can identify UI patterns
-- You can handle multi-step workflows intelligently
-- You learn from previous actions to improve success rates
-
-When you see indexed elements like [0], [1], [2], use the index parameter to interact with them.
-For example: click index=0 to click the first interactive element.`;
   }
 }

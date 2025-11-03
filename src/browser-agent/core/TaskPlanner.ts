@@ -245,7 +245,7 @@ Response format:
     try {
       // Log the raw response for debugging verification parsing issues
       core.debug(`Verification response for step ${stepId}: ${JSON.stringify(response)}`);
-      
+
       // Strategy 1: Direct verification object
       if (response.verification) {
         return {
@@ -256,8 +256,8 @@ Response format:
           issues: response.verification.issues || []
         };
       }
-      
-      // Strategy 2: Parameters verification
+
+      // Strategy 2: Parameters contain parsed JSON (from text responses)
       if (response.parameters?.verification) {
         return {
           stepId,
@@ -267,7 +267,22 @@ Response format:
           issues: response.parameters.verification.issues || []
         };
       }
-      
+
+      // Strategy 2b: Parameters ARE the verification (from text_response action)
+      if (response.action === 'text_response' && response.parameters) {
+        const params = response.parameters;
+        if (params.success !== undefined || params.verification) {
+          const verif = params.verification || params;
+          return {
+            stepId,
+            success: verif.success ?? true,
+            criteriaResults: verif.criteriaResults || [],
+            confidence: verif.confidence ?? 0.8,
+            issues: verif.issues || []
+          };
+        }
+      }
+
       // Strategy 3: Top-level fields (flexible parsing)
       if (response.success !== undefined || response.criteriaResults || response.confidence !== undefined) {
         return {

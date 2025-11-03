@@ -79,8 +79,12 @@ export async function analyzeRoutesWithExternalTool(
     };
   }
 
-  const modelFromConfig =
-    configuration.getInput("claude-model") || "claude-sonnet-4-5-20250929";
+  const modelFromConfig = configuration.getInput("claude-model");
+  if (!modelFromConfig) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
+    );
+  }
   const forceRefreshInput = configuration.getInput(
     "route-impact-force-refresh",
   );

@@ -19,12 +19,13 @@ export class FirebaseStorage implements StorageProvider {
   private app: admin.app.App | null = null;
   private bucket: any = null; // Firebase bucket type
   private bucketName: string;
-  
+  private initPromise: Promise<void> | null = null; // Store init promise to prevent unhandled rejections
+
   private logger = createModuleLogger({
     module: 'FirebaseStorage',
     defaultCategory: ErrorCategory.STORAGE
   });
-  
+
   private circuitBreaker = CircuitBreakerFactory.getBreaker({
     serviceName: 'FirebaseStorage',
     failureThreshold: 3,
@@ -42,18 +43,18 @@ export class FirebaseStorage implements StorageProvider {
 
   constructor(config?: any) {
     let serviceAccount = null;
-    
+
     if (config?.credentials) {
       // Parse base64 encoded credentials
       try {
         const credentialsString = Buffer.from(config.credentials, 'base64').toString('utf-8');
         serviceAccount = JSON.parse(credentialsString);
-        
+
         // Validate required fields
         if (!serviceAccount.project_id) {
           throw new Error('Service account object must contain a string "project_id" property.');
         }
-        
+
         // Set bucket name from config if provided
         if (config.bucket) {
           this.bucketName = config.bucket;
@@ -69,26 +70,32 @@ export class FirebaseStorage implements StorageProvider {
     } else {
       serviceAccount = config || this.getServiceAccountFromEnv();
     }
-    
+
     if (serviceAccount) {
-      executeOperation(
-        () => this.initializeApp(serviceAccount),
-        {
-          name: 'Initialize Firebase app',
-          category: ErrorCategory.CONFIGURATION,
-          severity: ErrorSeverity.HIGH
+      // Store the init promise to prevent unhandled rejections
+      // The promise is properly handled when the storage is actually used
+      this.initPromise = (async () => {
+        try {
+          const result = await executeOperation(
+            () => this.initializeApp(serviceAccount),
+            {
+              name: 'Initialize Firebase app',
+              category: ErrorCategory.CONFIGURATION,
+              severity: ErrorSeverity.HIGH
+            }
+          );
+          if (!result.success) {
+            this.logger.warn('Failed to initialize Firebase app');
+          }
+        } catch (error) {
+          this.logger.error(error, {
+            severity: ErrorSeverity.HIGH,
+            category: ErrorCategory.CONFIGURATION,
+            userAction: 'Initialize Firebase app'
+          });
+          // Don't re-throw to avoid unhandled rejection
         }
-      ).then(result => {
-        if (!result.success) {
-          this.logger.warn('Failed to initialize Firebase app');
-        }
-      }).catch(error => {
-        this.logger.error(error, {
-          severity: ErrorSeverity.HIGH,
-          category: ErrorCategory.CONFIGURATION,
-          userAction: 'Initialize Firebase app'
-        });
-      });
+      })();
     }
   }
   

@@ -95656,6 +95656,8 @@ var FirebaseStorage = class {
   constructor(config3) {
     this.app = null;
     this.bucket = null;
+    this.initPromise = null;
+    // Store init promise to prevent unhandled rejections
     this.logger = createModuleLogger({
       module: "FirebaseStorage",
       defaultCategory: "storage" /* STORAGE */
@@ -95696,24 +95698,27 @@ var FirebaseStorage = class {
       serviceAccount = config3 || this.getServiceAccountFromEnv();
     }
     if (serviceAccount) {
-      executeOperation(
-        () => this.initializeApp(serviceAccount),
-        {
-          name: "Initialize Firebase app",
-          category: "configuration" /* CONFIGURATION */,
-          severity: "high" /* HIGH */
+      this.initPromise = (async () => {
+        try {
+          const result = await executeOperation(
+            () => this.initializeApp(serviceAccount),
+            {
+              name: "Initialize Firebase app",
+              category: "configuration" /* CONFIGURATION */,
+              severity: "high" /* HIGH */
+            }
+          );
+          if (!result.success) {
+            this.logger.warn("Failed to initialize Firebase app");
+          }
+        } catch (error17) {
+          this.logger.error(error17, {
+            severity: "high" /* HIGH */,
+            category: "configuration" /* CONFIGURATION */,
+            userAction: "Initialize Firebase app"
+          });
         }
-      ).then((result) => {
-        if (!result.success) {
-          this.logger.warn("Failed to initialize Firebase app");
-        }
-      }).catch((error17) => {
-        this.logger.error(error17, {
-          severity: "high" /* HIGH */,
-          category: "configuration" /* CONFIGURATION */,
-          userAction: "Initialize Firebase app"
-        });
-      });
+      })();
     }
   }
   async initializeApp(serviceAccount) {

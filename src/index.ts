@@ -24,6 +24,16 @@ import {
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
 import { analyzeRoutesWithExternalTool, ExternalRouteImpactTree } from './core/analysis/ThirdPartyRouteImpactAnalyzer';
+
+// Global unhandled rejection handler to catch async errors
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  const errorMsg = reason?.message || String(reason);
+  core.warning(`⚠️ Unhandled promise rejection: ${errorMsg}`);
+  core.debug(`Promise: ${promise}`);
+  // Don't fail the workflow for non-critical unhandled rejections
+  // These are often from fire-and-forget promises in decorators/circuit breakers
+});
+
 async function run(): Promise<void> {
   try {
     // Initialize core services first

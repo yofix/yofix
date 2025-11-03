@@ -111297,6 +111297,11 @@ No impacted routes detected.`;
 }
 
 // src/index.ts
+process.on("unhandledRejection", (reason, promise) => {
+  const errorMsg = (reason == null ? void 0 : reason.message) || String(reason);
+  core40.warning(`\u26A0\uFE0F Unhandled promise rejection: ${errorMsg}`);
+  core40.debug(`Promise: ${promise}`);
+});
 async function run() {
   try {
     initializeCoreServices();

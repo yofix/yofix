@@ -106584,7 +106584,9 @@ var LoginBaselineManager = class {
       }
       core22.info(`\u{1F4DD} No cached baseline found - generating new one`);
     } catch (error17) {
-      core22.debug(`Cache miss: ${error17.message}`);
+      const errorMsg = (error17 == null ? void 0 : error17.message) || String(error17);
+      core22.debug(`Cache miss: ${errorMsg}`);
+      core22.info(`\u{1F4DD} No cached baseline found - first time setup`);
     }
     core22.info(`\u{1F3AF} Generating login baseline...`);
     core22.info(`   This may take 30s+ but ensures reliability`);

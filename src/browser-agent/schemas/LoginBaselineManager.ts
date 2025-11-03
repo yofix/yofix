@@ -47,8 +47,10 @@ export class LoginBaselineManager {
       }
 
       core.info(`📝 No cached baseline found - generating new one`);
-    } catch (error) {
-      core.debug(`Cache miss: ${error.message}`);
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      core.debug(`Cache miss: ${errorMsg}`);
+      core.info(`📝 No cached baseline found - first time setup`);
     }
 
     // Step 2: Generate new baseline

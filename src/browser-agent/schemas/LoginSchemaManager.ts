@@ -58,8 +58,9 @@ export class LoginSchemaManager {
         } else {
           core.info(`📝 No cached schema found - first run`);
         }
-      } catch (error) {
-        core.debug(`Cache miss: ${error.message}`);
+      } catch (error: any) {
+        const errorMsg = error?.message || String(error);
+        core.debug(`Cache miss: ${errorMsg}`);
       }
     } else {
       core.info(`🔄 Force regenerate requested`);

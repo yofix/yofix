@@ -1,4 +1,4 @@
-import { LLMResponse } from '../../types';
+import { LLMResponse, ActionDefinition } from '../../types';
 import { actionValidator } from '../../core/ActionValidator';
 
 export interface LLMConfig {
@@ -10,15 +10,21 @@ export interface LLMConfig {
 
 export abstract class LLMProvider {
   protected config: LLMConfig;
-  
+
   constructor(config: LLMConfig) {
     this.config = config;
   }
-  
+
   /**
    * Send a prompt to the LLM and get structured response
    */
   abstract complete(prompt: string, systemPrompt?: string): Promise<LLMResponse>;
+
+  /**
+   * Set available actions for tool use (optional - only some providers support this)
+   * Providers that support tool use (like Anthropic) should override this
+   */
+  setAvailableActions?(actions: ActionDefinition[]): void;
   
   /**
    * Parse LLM response to extract action and parameters
@@ -46,11 +52,33 @@ export abstract class LLMProvider {
   
   /**
    * Safely parse JSON with error handling
+   * Handles JSON wrapped in markdown code blocks
    */
   private parseJSON(response: string): any {
+    // Try direct parse first
     try {
       return JSON.parse(response);
     } catch (e) {
+      // Try extracting from markdown code blocks
+      const codeBlockMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+      if (codeBlockMatch) {
+        try {
+          return JSON.parse(codeBlockMatch[1]);
+        } catch (e2) {
+          // Fall through
+        }
+      }
+
+      // Try finding JSON object in the text
+      const jsonMatch = response.match(/\{[\s\S]*"action"[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (e3) {
+          // Fall through
+        }
+      }
+
       throw new Error('Invalid JSON response');
     }
   }
@@ -142,14 +170,44 @@ export abstract class LLMProvider {
   
   /**
    * Parse raw text response as fallback
+   * More robust parsing that avoids picking up random words
    */
   private parseRawText(response: string): LLMResponse {
-    const actionMatch = response.match(/action[:\s]+(\w+)/i);
-    const paramsMatch = response.match(/parameters[:\s]+({[^}]+})/i);
-    
+    console.warn('⚠️  LLM Response Parsing: Falling back to raw text parsing (JSON parse failed)');
+    console.warn(`Raw response preview: ${response.substring(0, 200)}...`);
+
+    // Look for action on its own line or with clear delimiters
+    // Matches: "action": "smart_login" or action: smart_login or ACTION: smart_login
+    const actionMatch = response.match(/["']?action["']?\s*:\s*["']?(\w+)["']?/i);
+    const paramsMatch = response.match(/["']?parameters?["']?\s*:\s*(\{[\s\S]*?\})/i);
+
+    const action = actionMatch ? actionMatch[1] : '';
+    const parameters = paramsMatch ? this.tryParseJSON(paramsMatch[1], {}) : {};
+
+    // Validate extracted action
+    if (action && !actionValidator.isValidAction(action)) {
+      console.error(`❌ Extracted invalid action: "${action}"`);
+      console.error(`   Valid actions: ${actionValidator.getValidActions().join(', ')}`);
+      console.error(`   Returning empty action to trigger retry`);
+
+      return {
+        action: '',  // Return empty to signal failure
+        parameters: {},
+        thinking: response,
+        error: `Invalid action "${action}" extracted from text response`
+      } as any;
+    }
+
+    if (!action) {
+      console.error('❌ No action found in LLM response');
+      console.error(`   Full response: ${response}`);
+    } else {
+      console.log(`✅ Extracted action from raw text: ${action}`);
+    }
+
     return {
-      action: actionMatch ? actionMatch[1] : '',
-      parameters: paramsMatch ? this.tryParseJSON(paramsMatch[1], {}) : {},
+      action,
+      parameters,
       thinking: response
     };
   }

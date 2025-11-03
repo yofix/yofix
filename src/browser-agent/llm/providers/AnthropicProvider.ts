@@ -1,15 +1,17 @@
 import { LLMProvider, LLMConfig } from './LLMProvider';
-import { LLMResponse } from '../../types';
+import { LLMResponse, ActionDefinition } from '../../types';
 import * as core from '@actions/core';
 import config from '../../../config';
+import { ToolSchemaBuilder } from '../ToolSchemaBuilder';
 
 export class AnthropicProvider extends LLMProvider {
   private claude: any;
-  
+  private toolSchemas: any[] = [];
+
   constructor(config: LLMConfig) {
     super(config);
   }
-  
+
   private async initializeClient() {
     if (!this.claude) {
       const { Anthropic } = await import('@anthropic-ai/sdk');
@@ -18,16 +20,26 @@ export class AnthropicProvider extends LLMProvider {
       });
     }
   }
-  
+
+  /**
+   * Set available actions as tools (called when actions are registered)
+   */
+  setAvailableActions(actions: ActionDefinition[]): void {
+    this.toolSchemas = ToolSchemaBuilder.buildToolSchemas(actions);
+    core.debug(`✅ Registered ${this.toolSchemas.length} tools for Claude`);
+  }
+
   async complete(prompt: string, systemPrompt?: string): Promise<LLMResponse> {
     await this.initializeClient();
-    
+
     try {
+      // Use tools API for structured responses
       const response = await this.claude.messages.create({
-        model: this.config.model || config.get('ai.claude.defaultModel'),
-        max_tokens: this.config.maxTokens || 1024,
+        model: this.config.model || 'claude-sonnet-4-5-20250929',
+        max_tokens: this.config.maxTokens || 2048,
         temperature: this.config.temperature || 0.3,
-        system: systemPrompt || this.getSystemPrompt(),
+        system: systemPrompt || ToolSchemaBuilder.buildSystemPrompt(),
+        tools: this.toolSchemas,
         messages: [
           {
             role: 'user',
@@ -35,25 +47,63 @@ export class AnthropicProvider extends LLMProvider {
           }
         ]
       });
-      
-      // Extract text from response
-      const content = response.content[0];
-      const text = content.type === 'text' ? content.text : '';
-      
-      // Enhanced debugging for LLM response
-      console.log(`LLM ACTION RESPONSE:`);
-      console.log(`  THINKING: ${text.substring(0, 500)}${text.length > 500 ? '...' : ''}`);
-      
-      const parsed = this.parseResponse(text);
-      
-      console.log(`  ACTION: ${parsed.action}`);
-      console.log(`  PARAMS: ${JSON.stringify(parsed.parameters)}`);
-      
+
+      // Parse tool use response
+      const parsed = this.parseToolUseResponse(response);
+
+      // Log for debugging
+      if (parsed.thinking) {
+        core.debug(`🤔 Claude thinking: ${parsed.thinking.substring(0, 200)}...`);
+      }
+      core.info(`✅ Claude selected tool: ${parsed.action}`);
+      core.debug(`   Parameters: ${JSON.stringify(parsed.parameters)}`);
+
       return parsed;
     } catch (error) {
       core.error(`Anthropic API error: ${error}`);
       throw error;
     }
+  }
+
+  /**
+   * Parse Claude's tool use response
+   * This is guaranteed to be structured, eliminating text parsing issues!
+   */
+  private parseToolUseResponse(response: any): LLMResponse {
+    const content = response.content;
+
+    let thinking = '';
+    let toolUse: any = null;
+
+    // Extract thinking (text blocks) and tool use
+    for (const block of content) {
+      if (block.type === 'text') {
+        thinking += block.text + ' ';
+      } else if (block.type === 'tool_use') {
+        toolUse = block;
+      }
+    }
+
+    if (!toolUse) {
+      // No tool use found - Claude might be asking for clarification
+      core.warning('⚠️  No tool use in Claude response (might need clarification)');
+      core.debug(`Response content: ${JSON.stringify(content)}`);
+
+      return {
+        action: '',
+        parameters: {},
+        thinking: thinking.trim(),
+        error: 'No tool use found in response'
+      } as any;
+    }
+
+    // Extract structured data from tool use
+    return {
+      action: toolUse.name,
+      parameters: toolUse.input || {},
+      thinking: thinking.trim(),
+      tool_use_id: toolUse.id // For future tool result reporting
+    };
   }
   
   protected getSystemPrompt(): string {

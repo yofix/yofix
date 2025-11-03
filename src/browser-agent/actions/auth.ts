@@ -96,28 +96,28 @@ export function getAuthActions(llmProvider?: any): Array<{ definition: ActionDef
         
         // Wait for navigation with fallback strategy
         try {
-          // First try domcontentloaded (faster, more reliable)
-          await page.waitForNavigation({ 
-            waitUntil: 'domcontentloaded', 
-            timeout: 5000 
+          // First try domcontentloaded - increased timeout for slower sites
+          await page.waitForNavigation({
+            waitUntil: 'domcontentloaded',
+            timeout: 30000 // Increased from 5s to 30s
           });
-          
-          // Then wait a bit for any client-side rendering
-          await page.waitForTimeout(500);
+
+          // Then wait for client-side rendering
+          await page.waitForTimeout(1000); // Increased from 500ms
         } catch (error) {
           // Navigation might have already happened or be client-side only
           // Check if we're no longer on the login page
           const currentUrl = page.url();
           const authMode = getConfiguration().getInput('auth-mode') || 'llm';
-          
+
           if (currentUrl === loginUrl || currentUrl.includes('/login')) {
             // Still on login page, might be client-side routing
-            // Wait for URL change or max 2 seconds
+            // Wait for URL change with longer timeout
             try {
               await page.waitForFunction(
                 (originalUrl) => window.location.href !== originalUrl,
                 loginUrl,
-                { timeout: 2000 }
+                { timeout: 10000 } // Increased from 2s to 10s
               );
             } catch {
               // URL didn't change, but login might still have worked
@@ -126,12 +126,12 @@ export function getAuthActions(llmProvider?: any): Array<{ definition: ActionDef
                 const isLoggedIn = await detectLoggedInStateWithLLM(page, llmProvider);
                 if (!isLoggedIn) {
                   // Still appears to be on login page
-                  await page.waitForTimeout(1000);
+                  await page.waitForTimeout(2000); // Increased from 1s
                 }
               } else {
                 // Use deterministic check - assume still on login page if URL didn't change
                 core.debug('Using deterministic login detection (auth-mode not llm)');
-                await page.waitForTimeout(1000);
+                await page.waitForTimeout(2000); // Increased from 1s
               }
             }
           }
@@ -518,49 +518,116 @@ async function handle2FA(page: Page, totpSecret: string): Promise<void> {
 }
 
 /**
- * Verify login was successful
+ * Verify login was successful - STRICT MODE
+ * Requires positive indicators of authentication, not just absence of failures
  */
 async function verifyLoginSuccess(page: Page, username?: string): Promise<boolean> {
   const url = page.url();
   const content = await page.textContent('body');
-  
-  // Look for success indicators first - some apps stay on login URL after auth
-  const successIndicators = [
-    'dashboard', 'home', 'profile', 'account', 'welcome',
-    'logout', 'sign out', 'settings', 'my account'
-  ];
-  
-  const hasSuccessIndicator = successIndicators.some(indicator => 
-    content.toLowerCase().includes(indicator)
-  );
-  
-  // Check for username/email in page (strong indicator of successful login)
-  if (username && content.includes(username)) {
-    return true;
-  }
-  
-  // Check for user menu elements
-  const userElements = await page.$$('[class*="user"], [class*="avatar"], [class*="profile"], [aria-label*="user menu"], [aria-label*="account"]');
-  
-  // If we found success indicators or user elements, consider it a success
-  if (hasSuccessIndicator || userElements.length > 0) {
-    return true;
-  }
-  
-  // Check for authentication failure indicators
+
+  core.info('🔍 Verifying login success...');
+  core.debug(`Current URL: ${url}`);
+
+  // Check for explicit failure indicators first
   const failureIndicators = [
     'invalid password', 'incorrect password', 'wrong password',
     'invalid credentials', 'authentication failed', 'login failed',
-    'please try again', 'error'
+    'please try again', 'error signing in', 'error logging in',
+    'username or password is incorrect', 'authentication error'
   ];
-  
-  const hasFailureIndicator = failureIndicators.some(indicator => 
+
+  const hasFailureIndicator = failureIndicators.some(indicator =>
     content.toLowerCase().includes(indicator)
   );
-  
-  // Only consider it a failure if we have explicit failure indicators
-  // Otherwise, assume success (some apps don't redirect from login page)
-  return !hasFailureIndicator;
+
+  if (hasFailureIndicator) {
+    core.warning('❌ Login verification: Found failure indicator in page content');
+    return false;
+  }
+
+  // Check if still on login page - strong indicator of failure
+  const loginPageIndicators = [
+    '/login', '/signin', '/sign-in', '/auth', '/authentication'
+  ];
+
+  const urlLower = url.toLowerCase();
+  const isStillOnLoginPage = loginPageIndicators.some(indicator => urlLower.includes(indicator));
+
+  // Check for login form still visible (password fields)
+  const passwordFields = await page.$$('input[type="password"]');
+  const hasVisiblePasswordField = passwordFields.length > 0;
+
+  if (isStillOnLoginPage && hasVisiblePasswordField) {
+    core.warning('❌ Login verification: Still on login page with password field visible');
+    return false;
+  }
+
+  // Now check for POSITIVE indicators of successful login
+  let successScore = 0;
+  const indicators: string[] = [];
+
+  // 1. Check for username/email in page (strong indicator)
+  if (username && content.includes(username)) {
+    successScore += 30;
+    indicators.push(`Username found in content (${username})`);
+  }
+
+  // 2. Check for user menu/profile elements (strong indicator)
+  const userElements = await page.$$('[class*="user"], [class*="avatar"], [class*="profile"], [aria-label*="user menu"], [aria-label*="account"], [data-testid*="user"]');
+  if (userElements.length > 0) {
+    successScore += 25;
+    indicators.push(`User menu/avatar elements found (${userElements.length})`);
+  }
+
+  // 3. Check for logout/sign out buttons (very strong indicator)
+  const logoutButtons = await page.$$('button:has-text("Logout"), button:has-text("Sign Out"), button:has-text("Log Out"), a:has-text("Logout"), a:has-text("Sign Out")');
+  if (logoutButtons.length > 0) {
+    successScore += 40;
+    indicators.push(`Logout button found`);
+  }
+
+  // 4. Check for authenticated content keywords
+  const successIndicators = [
+    'dashboard', 'welcome back', 'my account', 'settings', 'profile'
+  ];
+
+  const foundIndicators = successIndicators.filter(indicator =>
+    content.toLowerCase().includes(indicator)
+  );
+
+  if (foundIndicators.length > 0) {
+    successScore += foundIndicators.length * 10; // 10 points per indicator
+    indicators.push(`Content indicators: ${foundIndicators.join(', ')}`);
+  }
+
+  // 5. URL changed away from login page (moderate indicator)
+  if (!isStillOnLoginPage) {
+    successScore += 15;
+    indicators.push('URL changed away from login page');
+  }
+
+  // 6. No password field visible (moderate indicator when combined with others)
+  if (!hasVisiblePasswordField && successScore > 0) {
+    successScore += 10;
+    indicators.push('No password field visible');
+  }
+
+  // Require score >= 50 for success (multiple positive indicators needed)
+  const isSuccess = successScore >= 50;
+
+  if (isSuccess) {
+    core.info(`✅ Login verification PASSED (score: ${successScore}/100)`);
+    indicators.forEach(ind => core.info(`   - ${ind}`));
+  } else {
+    core.warning(`❌ Login verification FAILED (score: ${successScore}/100, need >= 50)`);
+    if (indicators.length > 0) {
+      core.warning(`   Found indicators: ${indicators.join(', ')}`);
+    } else {
+      core.warning('   No positive login indicators found');
+    }
+  }
+
+  return isSuccess;
 }
 
 /**

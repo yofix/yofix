@@ -341,16 +341,22 @@ Response format:
       // Ignore parsing errors in final strategy
     }
     
-    // Final fallback - be optimistic to prevent infinite loops
-    core.debug(`Warning: Could not parse verification response for step ${stepId}, defaulting to success`);
-    core.debug(`Raw verification response: ${JSON.stringify(response).substring(0, 200)}...`);
-    
+    // Final fallback - be STRICT to catch real failures
+    // Reverted from true to false to prevent masking login failures
+    core.warning(`⚠️  Could not parse verification response for step ${stepId}`);
+    core.warning(`Raw verification response: ${JSON.stringify(response).substring(0, 200)}...`);
+    core.warning(`Defaulting to FAILURE (strict mode) - fix the LLM response format or verification logic`);
+
     return {
       stepId,
-      success: true, // Changed from false to true to prevent blocking
+      success: false, // STRICT MODE: default to failure if we can't verify
       criteriaResults: [],
-      confidence: 0.5, // Low confidence but still passing
-      issues: ['Verification response format not recognized, assumed success to continue testing']
+      confidence: 0.0, // Zero confidence - verification failed
+      issues: [
+        'Verification response format not recognized',
+        'Defaulting to failure in strict mode',
+        'This prevents unverified actions from proceeding'
+      ]
     };
   }
 

@@ -66,10 +66,18 @@ export class Agent {
     this.taskPlanner = new TaskPlanner(this.llmProvider);
     this.reliabilityScorer = new ReliabilityScorer();
     this.feedbackHandler = new VerificationFeedbackHandler(this.llmProvider);
-    
+
     // Register built-in actions with LLM provider for intelligent element selection
     registerBuiltInActions(this.actionRegistry, this.llmProvider);
-    
+
+    // CRITICAL: Set available actions as Claude tools for structured responses
+    // This enables tool use instead of text parsing
+    if (this.llmProvider && typeof this.llmProvider.setAvailableActions === 'function') {
+      const actions = this.actionRegistry.getActionDefinitions();
+      this.llmProvider.setAvailableActions(actions);
+      core.info(`🔧 Configured Claude with ${actions.length} tools (structured output enabled)`);
+    }
+
     // Setup middleware
     this.setupMiddleware();
   }

@@ -149284,20 +149284,28 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   const configuration = getConfiguration();
   const claudeApiKey = configuration.getInput("claude-api-key");
   if (!claudeApiKey) {
-    throw new Error("Claude API key is required for route-impact-analyzer integration.");
+    throw new Error(
+      "Claude API key is required for route-impact-analyzer integration."
+    );
   }
   const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
-  core38.info(`\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`);
+  core38.info(
+    `\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`
+  );
   if (changedFiles.length === 0) {
-    core38.info("No changed files detected, skipping external route impact analysis.");
+    core38.info(
+      "No changed files detected, skipping external route impact analysis."
+    );
     return {
       routes: [],
       impactTree: createEmptyImpactTree(0),
       commentBody: ""
     };
   }
-  const modelFromConfig = configuration.getInput("claude-model") || "claude-3-5-sonnet-latest";
-  const forceRefreshInput = configuration.getInput("route-impact-force-refresh");
+  const modelFromConfig = configuration.getInput("claude-model") || "claude-sonnet-4-5-20250929";
+  const forceRefreshInput = configuration.getInput(
+    "route-impact-force-refresh"
+  );
   const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
   core38.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
   core38.info(`  - Codebase path: ${process.cwd()}`);
@@ -149369,7 +149377,9 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   const sharedComponents = /* @__PURE__ */ new Map();
   componentRouteMapping.forEach((routes, componentFile) => {
     const uniqueRoutePaths = Array.from(
-      new Set(routes.map((route) => route.routePath).filter((routePath) => !!routePath))
+      new Set(
+        routes.map((route) => route.routePath).filter((routePath) => !!routePath)
+      )
     );
     if (uniqueRoutePaths.length > 1) {
       sharedComponents.set(componentFile, uniqueRoutePaths);

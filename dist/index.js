@@ -91838,8 +91838,8 @@ var ConfigurationManager = class _ConfigurationManager {
       message: "Must be one of: firebase, s3, github"
     });
     this.addValidator("auth-mode", {
-      test: (value) => ["selectors", "ai", "llm", "smart", "none"].includes(value),
-      message: "Must be one of: selectors, ai, llm, smart, none"
+      test: (value) => ["selectors", "ai", "llm", "smart", "none", "baseline"].includes(value),
+      message: "Must be one of: selectors, ai, llm, smart, none, baseline"
     });
   }
 };

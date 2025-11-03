@@ -106659,7 +106659,7 @@ var LoginBaselineManager = class {
     const baselineKey = this.generateBaselineKey(loginUrl);
     const storagePath = `login-baselines/${baselineKey}.json`;
     try {
-      const exists3 = await this.storage.fileExists(storagePath);
+      const exists3 = await this.storage.exists(storagePath);
       return { exists: exists3, key: baselineKey, storagePath };
     } catch {
       return { exists: false, key: baselineKey, storagePath };

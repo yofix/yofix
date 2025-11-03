@@ -148,7 +148,7 @@ export class LoginBaselineManager {
     const storagePath = `login-baselines/${baselineKey}.json`;
 
     try {
-      const exists = await this.storage.fileExists(storagePath);
+      const exists = await this.storage.exists(storagePath);
       return { exists, key: baselineKey, storagePath };
     } catch {
       return { exists: false, key: baselineKey, storagePath };

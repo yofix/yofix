@@ -44,7 +44,7 @@ function createEmptyImpactTree(totalFilesChanged: number): ExternalRouteImpactTr
 }
 
 export async function analyzeRoutesWithExternalTool(
-  prFiles: any[],
+  prFiles: Array<{ filename: string; status: string }>,
   previewUrl: string
 ): Promise<ExternalImpactResult> {
   const configuration = getConfiguration();

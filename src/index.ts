@@ -174,9 +174,9 @@ async function runVisualTesting(): Promise<void> {
         
         const github = GitHubServiceFactory.getService();
         const prFiles = await github.listPullRequestFiles();
-        console.log("[TESTING]", prFiles.join('\n')); 
+        core.info(`📝 Analyzing ${prFiles.length} changed files: ${prFiles.map(f => f.filename).join(', ')}`);
         const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, inputs.previewUrl);
-        console.log("[TESTING]", externalAnalysis); 
+        core.info(`🎯 Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected`);
         impactTree = externalAnalysis.impactTree;
         impactCommentBody = externalAnalysis.commentBody;
       } catch (externalError) {

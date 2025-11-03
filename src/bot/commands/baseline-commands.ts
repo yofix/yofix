@@ -48,23 +48,21 @@ async function createBaselines(args: string[], context: BotContext): Promise<str
     
     let result: string;
     
+    // Use default routes if none specified
+    const routesToCreate = routes.length > 0 ? routes : ['/'];
+
     if (source === 'main') {
       // Try to create from main branch
-      const success = await baselineManager.createBaselinesFromMainBranch();
+      const success = await baselineManager.createBaselinesFromMainBranch(routesToCreate);
       if (success) {
-        result = '✅ Successfully created baselines from main branch';
+        result = `✅ Successfully created baselines for ${routesToCreate.length} route(s) from main branch`;
       } else {
         result = '❌ Failed to create baselines from main branch. No deployments found.';
       }
     } else if (source === 'production' && process.env.PRODUCTION_URL) {
       // Create from production
-      if (routes.length > 0) {
-        await baselineManager.createBaselines(routes, viewports);
-        result = `✅ Created baselines for ${routes.length} routes from production`;
-      } else {
-        await baselineManager.createAllBaselines(viewports);
-        result = '✅ Created baselines for all routes from production';
-      }
+      await baselineManager.createBaselines(routesToCreate, viewports);
+      result = `✅ Created baselines for ${routesToCreate.length} route(s) from production`;
     } else {
       result = '❌ No production URL configured. Set PRODUCTION_URL environment variable.';
     }

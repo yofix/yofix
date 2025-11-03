@@ -9,9 +9,6 @@ import { handleBaselineCommand } from './commands/baseline-commands';
 import { CodebaseContext } from '../context/types';
 import { VisualIssueTestGenerator } from '../core/testing/VisualIssueTestGenerator';
 import { Agent } from '../browser-agent/core/Agent';
-import { RouteImpactAnalyzer } from '../core/analysis/RouteImpactAnalyzer';
-import { TreeSitterRouteAnalyzer } from '../core/analysis/TreeSitterRouteAnalyzer';
-import { StorageFactory } from '../providers/storage/StorageFactory';
 import { botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
 
 /**
@@ -93,13 +90,7 @@ export class CommandHandler {
       
       case 'browser':
         return await this.handleBrowser(command, context);
-      
-      case 'impact':
-        return await this.handleImpact(command, context);
-      
-      case 'cache':
-        return await this.handleCache(command, context);
-      
+
       case 'help':
       default:
         response = {
@@ -524,152 +515,6 @@ npx yofix generate-tests --pr ${context.prNumber}
   }
 
   /**
-   * Handle impact command - show route impact tree
-   */
-  private async handleImpact(command: BotCommand, context: BotContext): Promise<BotResponse> {
-    try {
-      await botActivity.addStep('Fetching changed files', 'running');
-      
-      const prNumber = context.prNumber;
-      
-      core.info(`Analyzing route impact for PR #${prNumber}...`);
-      
-      // Create storage provider for route analyzer
-      let storageProvider = null;
-      try {
-        const storageProviderName = getConfiguration().getInput('storage-provider') || 'github';
-        if (storageProviderName !== 'github') {
-          storageProvider = await StorageFactory.createFromInputs();
-        }
-      } catch (error) {
-        core.debug(`Storage provider initialization failed: ${error}`);
-      }
-      
-      const impactAnalyzer = new RouteImpactAnalyzer(storageProvider, context.previewUrl);
-      
-      await botActivity.updateStep('Fetching changed files', 'completed');
-      await botActivity.addStep('Building import graph with Tree-sitter', 'running');
-      
-      const impactTree = await impactAnalyzer.analyzePRImpact(prNumber);
-      
-      await botActivity.updateStep('Building import graph with Tree-sitter', 'completed');
-      await botActivity.addStep('Mapping affected routes', 'running');
-      
-      const message = impactAnalyzer.formatImpactTree(impactTree);
-      
-      await botActivity.updateStep('Mapping affected routes', 'completed',
-        `Found ${impactTree.affectedRoutes.length} affected routes`);
-      
-      return {
-        success: true,
-        message
-      };
-    } catch (error) {
-      await errorHandler.handleError(error as Error, {
-        severity: ErrorSeverity.MEDIUM,
-        category: ErrorCategory.ANALYSIS,
-        userAction: 'Impact analysis command',
-        metadata: { command, context },
-        skipGitHubPost: true
-      });
-      
-      return {
-        success: false,
-        message: `❌ Impact analysis failed: ${error.message}`
-      };
-    }
-  }
-
-  /**
-   * Handle cache command
-   */
-  private async handleCache(command: BotCommand, context: BotContext): Promise<BotResponse> {
-    try {
-      if (command.args.includes('clear')) {
-        await botActivity.addStep('Removing route analysis cache', 'running');
-        
-        // Create storage provider if available
-        let storageProvider = null;
-        try {
-          const storageProviderName = getConfiguration().getInput('storage-provider') || 'github';
-          if (storageProviderName !== 'github') {
-            storageProvider = await StorageFactory.createFromInputs();
-          }
-        } catch (error) {
-          core.debug(`Storage provider initialization failed: ${error}`);
-        }
-        
-        // Clear the route analysis cache
-        const analyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
-        await analyzer.clearCache();
-        
-        await botActivity.updateStep('Removing route analysis cache', 'completed',
-          'Cache cleared successfully');
-        
-        return {
-          success: true,
-          message: `🗝️ **Cache Cleared Successfully!**
-
-The route analysis cache has been cleared. The next analysis will rebuild the import graph from scratch.
-
-💡 This is useful when:
-- File moves/renames aren't detected correctly
-- Import relationships seem outdated
-- You want to force a fresh analysis`
-        };
-      } else if (command.args.includes('status')) {
-        await botActivity.addStep('Analyzing cache metrics', 'running');
-        
-        // Check cache status
-        let storageProvider = null;
-        try {
-          const storageProviderName = getConfiguration().getInput('storage-provider') || 'github';
-          if (storageProviderName !== 'github') {
-            storageProvider = await StorageFactory.createFromInputs();
-          }
-        } catch (error) {
-          core.debug(`Storage provider initialization failed: ${error}`);
-        }
-        
-        const analyzer = new TreeSitterRouteAnalyzer(process.cwd(), storageProvider);
-        const metrics = analyzer.getMetrics();
-        
-        await botActivity.updateStep('Analyzing cache metrics', 'completed');
-        
-        return {
-          success: true,
-          message: `📦 **Cache Status**
-
-- **Total Files**: ${metrics.totalFiles}
-- **Route Files**: ${metrics.routeFiles}
-- **Entry Points**: ${metrics.entryPoints}
-- **Cached ASTs**: ${metrics.cacheSize}
-- **Import Edges**: ${metrics.importEdges}
-- **Storage**: ${storageProvider ? 'Cloud Storage' : 'Local Cache'}`
-        };
-      }
-      
-      return {
-        success: false,
-        message: '⚠️ Use `@yofix cache clear` or `@yofix cache status`'
-      };
-    } catch (error) {
-      await errorHandler.handleError(error as Error, {
-        severity: ErrorSeverity.LOW,
-        category: ErrorCategory.UNKNOWN,
-        userAction: 'Cache management command',
-        metadata: { command, context },
-        skipGitHubPost: true
-      });
-      
-      return {
-        success: false,
-        message: `❌ Cache operation failed: ${error.message}`
-      };
-    }
-  }
-  
-  /**
    * Get help message
    */
   private getHelpMessage(): string {
@@ -697,13 +542,6 @@ The route analysis cache has been cleared. The next analysis will rebuild the im
   - Example: \`@yofix browser "click the login button"\`
   - Example: \`@yofix browser "fill email with test@example.com"\`
   - Example: \`@yofix browser "navigate to /dashboard and take a screenshot"\`
-
-### Analysis
-- \`@yofix impact\` - Show route impact tree
-
-### Cache Management
-- \`@yofix cache clear\` - Clear route analysis cache
-- \`@yofix cache status\` - Check cache status
 
 ### Baseline Management
 - \`@yofix baseline create [main|production]\` - Create baselines from main/production

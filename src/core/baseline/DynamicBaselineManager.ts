@@ -2,7 +2,6 @@ import * as core from '@actions/core';
 import { Page, Browser, chromium } from 'playwright';
 import { PNG } from 'pngjs';
 import { StorageProvider } from './types';
-import { RouteImpactAnalyzer } from '../analysis/RouteImpactAnalyzer';
 import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
 import * as github from '@actions/github';
 import pixelmatch from 'pixelmatch';
@@ -24,10 +23,8 @@ export interface BaselineResult {
  */
 export class DynamicBaselineManager {
   private browser: Browser | null = null;
-  private impactAnalyzer: RouteImpactAnalyzer;
 
   constructor(private config: DynamicBaselineConfig) {
-    this.impactAnalyzer = new RouteImpactAnalyzer(config.storageProvider);
   }
 
   /**
@@ -84,21 +81,6 @@ export class DynamicBaselineManager {
     return results;
   }
 
-  /**
-   * Create baselines for all discovered routes
-   */
-  async createAllBaselines(viewports: Array<{ width: number; height: number }>): Promise<BaselineResult[]> {
-    // Get route manifest
-    const manifest = await this.impactAnalyzer.getRouteManifest();
-    
-    if (!manifest || manifest.routes.length === 0) {
-      core.warning('No route manifest found. Run route analysis first.');
-      return [];
-    }
-
-    core.info(`📍 Found ${manifest.routes.length} routes in manifest`);
-    return this.createBaselines(manifest.routes, viewports);
-  }
 
   /**
    * Create baselines for newly discovered routes only
@@ -382,41 +364,34 @@ export class DynamicBaselineManager {
 
   /**
    * Create baselines from main branch deployments (if available)
+   * @param routes - Array of routes to create baselines for
    */
-  async createBaselinesFromMainBranch(): Promise<boolean> {
+  async createBaselinesFromMainBranch(routes: string[]): Promise<boolean> {
     core.info('🔍 Attempting to create baselines from main branch deployments...');
-    
+
+    if (!routes || routes.length === 0) {
+      core.warning('No routes provided for baseline creation');
+      return false;
+    }
+
     // This method would typically:
     // 1. Check for existing deployments from main branch
     // 2. Find the latest successful deployment URL
     // 3. Use that URL to create baselines
-    
+
     // For now, we'll try to use the production URL if available
     if (this.config.productionUrl) {
-      const routes = await this.getDiscoveredRoutes();
       const viewports = [
         { width: 1920, height: 1080 },
         { width: 768, height: 1024 },
         { width: 375, height: 667 }
       ];
-      
+
       const results = await this.createBaselines(routes, viewports);
       return results.length > 0;
     }
-    
+
     core.warning('No production URL configured for main branch baseline creation');
     return false;
-  }
-
-  /**
-   * Get discovered routes from route manifest
-   */
-  private async getDiscoveredRoutes(): Promise<string[]> {
-    try {
-      const manifest = await this.impactAnalyzer.getRouteManifest();
-      return manifest?.routes || ['/'];
-    } catch {
-      return ['/'];
-    }
   }
 }

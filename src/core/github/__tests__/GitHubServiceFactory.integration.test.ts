@@ -10,7 +10,6 @@ import {
 } from '../GitHubServiceFactory';
 import { GitHubCommentEngine } from '../GitHubCommentEngine';
 import { RobustPRReporter } from '../../../github/RobustPRReporter';
-import { RouteImpactAnalyzer } from '../../analysis/RouteImpactAnalyzer';
 
 describe('GitHubServiceFactory Integration Tests', () => {
   let mockService: MockGitHubService;
@@ -210,48 +209,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
     });
   });
 
-  describe('RouteImpactAnalyzer Integration', () => {
-    it('should analyze route impacts using GitHub service', async () => {
-      // Set up mock PR files
-      mockService.setMockPRFiles('test-owner', 'test-repo', 123, [
-        {
-          filename: 'src/components/LeaderboardTable.tsx',
-          status: 'modified',
-          additions: 10,
-          deletions: 5,
-          changes: 15,
-          patch: '@@ -1,5 +1,10 @@\n // Component changes here'
-        },
-        {
-          filename: 'src/pages/dashboard.tsx',
-          status: 'modified',
-          additions: 3,
-          deletions: 1,
-          changes: 4
-        }
-      ]);
-
-      // Set up mock file content for analysis
-      mockService.setMockFileContent('src/components/LeaderboardTable.tsx', {
-        path: 'src/components/LeaderboardTable.tsx',
-        content: Buffer.from('export const LeaderboardTable = () => { return <div>Leaderboard</div>; }').toString('base64'),
-        encoding: 'base64',
-        sha: 'abc123'
-      });
-
-      const analyzer = new RouteImpactAnalyzer();
-      
-      // Analyze impacts
-      const impacts = await analyzer.analyzePRImpact(123);
-      
-      expect(impacts).toBeDefined();
-      expect(typeof impacts).toBe('object');
-      
-      // Verify that the analyzer called the GitHub service
-      const prFiles = await mockService.listPullRequestFiles('test-owner', 'test-repo', 123);
-      expect(prFiles).toHaveLength(2);
-    });
-  });
+  // Removed: RouteImpactAnalyzer Integration test - now using route-impact-analyzer package
 
   describe('Service Factory Integration', () => {
     it('should provide consistent GitHub service across components', async () => {

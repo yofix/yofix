@@ -408,6 +408,8 @@ runs:
         INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
         INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
+        INPUT_AUTH-MODE: ${{ inputs.auth-mode }}
+        INPUT_SESSION-MODE: ${{ inputs.session-mode }}
         INPUT_ENABLE-SMART-AUTH: ${{ inputs.enable-smart-auth }}
         YOFIX_SMART_AUTH: ${{ inputs.enable-smart-auth }}
         INPUT_MCP-PROVIDER: ${{ inputs.mcp-provider }}

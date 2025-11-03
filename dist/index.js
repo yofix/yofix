@@ -95834,6 +95834,10 @@ var FirebaseStorage = class {
     );
     return result.data ?? false;
   }
+  /**
+   * Download file from storage
+   * Note: Circuit breaker removed to prevent unhandled promise rejections
+   */
   async downloadFile(path11) {
     var _a4;
     if (!this.bucket) {
@@ -95985,13 +95989,6 @@ __decorateClass([
     resetTimeout: 3e4
   })
 ], FirebaseStorage.prototype, "getSignedUrl", 1);
-__decorateClass([
-  WithCircuitBreaker({
-    failureThreshold: 3,
-    timeout: 12e4
-    // 2 minutes for large files
-  })
-], FirebaseStorage.prototype, "downloadFile", 1);
 
 // src/providers/storage/S3Storage.ts
 var import_crypto5 = __toESM(require("crypto"));

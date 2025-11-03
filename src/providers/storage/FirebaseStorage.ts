@@ -265,18 +265,15 @@ export class FirebaseStorage implements StorageProvider {
 
   /**
    * Download file from storage
+   * Note: Circuit breaker removed to prevent unhandled promise rejections
    */
-  @WithCircuitBreaker({
-    failureThreshold: 3,
-    timeout: 120000 // 2 minutes for large files
-  })
   async downloadFile(path: string): Promise<Buffer> {
     if (!this.bucket) {
       throw new Error('Storage not initialized');
     }
-    
+
     const file = this.bucket.file(path);
-    
+
     try {
       const [buffer] = await file.download();
       return buffer;

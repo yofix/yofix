@@ -180,12 +180,21 @@ async function runVisualTesting(): Promise<void> {
         impactTree = externalAnalysis.impactTree;
         impactCommentBody = externalAnalysis.commentBody;
       } catch (externalError) {
-        await errorHandler.handleError(externalError as Error, {
+        const error = externalError as Error;
+        core.error(`❌ Route impact analyzer error: ${error.message}`);
+        if (error.stack) {
+          core.debug(`Stack trace: ${error.stack}`);
+        }
+        await errorHandler.handleError(error, {
           severity: ErrorSeverity.MEDIUM,
           category: ErrorCategory.ANALYSIS,
           userAction: 'Third-party route impact analysis',
           recoverable: true,
-          metadata: { prNumber }
+          metadata: {
+            prNumber,
+            errorMessage: error.message,
+            errorName: error.name
+          }
         });
         core.warning('Third-party route analyzer failed. Falling back to testing homepage only.');
         affectedRoutes = ['/'];

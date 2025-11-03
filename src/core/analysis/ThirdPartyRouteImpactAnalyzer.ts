@@ -72,7 +72,15 @@ export async function analyzeRoutesWithExternalTool(
   }
 
   const modelFromConfig = configuration.getInput('claude-model') || 'claude-3-5-sonnet-latest';
-  const forceRefresh = configuration.getBooleanInput('route-impact-force-refresh');
+  const forceRefreshInput = configuration.getInput('route-impact-force-refresh');
+  const forceRefresh = forceRefreshInput === 'true' || forceRefreshInput === 'True' || forceRefreshInput === 'TRUE';
+
+  core.info(`📊 Calling route-impact-analyzer with:`);
+  core.info(`  - Codebase path: ${process.cwd()}`);
+  core.info(`  - Changed files count: ${changedFiles.length}`);
+  core.info(`  - Base URL: ${previewUrl}`);
+  core.info(`  - Model: ${modelFromConfig}`);
+  core.info(`  - Force refresh: ${forceRefresh}`);
 
   const result = await analyzeRouteImpact({
     codebase: { path: process.cwd() },
@@ -97,9 +105,13 @@ export async function analyzeRoutesWithExternalTool(
     }
   });
 
+  core.info(`📊 Route analysis result: success=${result.success}`);
+
   if (!result.success) {
     const messages = result.errors?.map(err => `${err.code}: ${err.message}`) || [];
-    throw new Error(messages.length > 0 ? messages.join('\n') : 'route-impact-analyzer failed with unknown error');
+    const errorMessage = messages.length > 0 ? messages.join('\n') : 'route-impact-analyzer failed with unknown error';
+    core.error(`❌ Route impact analysis failed: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 
   const uniqueRoutes = new Set<string>();

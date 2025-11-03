@@ -9,7 +9,6 @@ import {
   GitHubService 
 } from '../GitHubServiceFactory';
 import { GitHubCommentEngine } from '../GitHubCommentEngine';
-import { RobustPRReporter } from '../../../github/RobustPRReporter';
 
 describe('GitHubServiceFactory Integration Tests', () => {
   let mockService: MockGitHubService;
@@ -95,9 +94,11 @@ describe('GitHubServiceFactory Integration Tests', () => {
     });
   });
 
-  describe('RobustPRReporter Integration', () => {
-    it('should report test results with proper formatting', async () => {
-      const reporter = new RobustPRReporter();
+  // RobustPRReporter was removed - it was test-only code
+  // Tests commented out to preserve test structure
+  describe.skip('RobustPRReporter Integration (REMOVED)', () => {
+    it.skip('should report test results with proper formatting', async () => {
+      // const reporter = new RobustPRReporter();
       
       // Set up mock PR files
       mockService.setMockPRFiles('test-owner', 'test-repo', 123, [
@@ -159,8 +160,8 @@ describe('GitHubServiceFactory Integration Tests', () => {
       expect(comments[0].body).toContain('Dashboard route test');
     });
 
-    it('should report failure results with error details', async () => {
-      const reporter = new RobustPRReporter();
+    it.skip('should report failure results with error details', async () => {
+      // const reporter = new RobustPRReporter();
       
       const mockResults = {
         status: 'failure' as const,
@@ -226,9 +227,12 @@ describe('GitHubServiceFactory Integration Tests', () => {
 
     it('should handle concurrent operations from multiple components', async () => {
       const commentEngine = new GitHubCommentEngine();
-      const reporter = new RobustPRReporter();
+      // const reporter = new RobustPRReporter();
       
       // Both components should work concurrently
+      const commentId = await commentEngine.postComment('Concurrent test comment');
+
+      /* Removed: reporter.postResults call
       const [commentId] = await Promise.all([
         commentEngine.postComment('Concurrent test comment'),
         reporter.postResults({
@@ -253,11 +257,12 @@ describe('GitHubServiceFactory Integration Tests', () => {
           }
         })
       ]);
+      */
       
-      // Verify both operations completed
+      // Verify operation completed
       expect(commentId).toEqual(expect.any(Number));
       const comments = await mockService.listComments('test-owner', 'test-repo', 123);
-      expect(comments.length).toBeGreaterThan(0);
+      expect(comments.length).toBe(1);
     });
   });
 
@@ -293,7 +298,7 @@ describe('GitHubServiceFactory Integration Tests', () => {
 
     it('should maintain service state across multiple operations', async () => {
       const commentEngine = new GitHubCommentEngine();
-      const reporter = new RobustPRReporter();
+      // const reporter = new RobustPRReporter();
       
       // Both should use the same mock service instance
       expect(GitHubServiceFactory.getService()).toBe(mockService);
@@ -322,13 +327,13 @@ describe('GitHubServiceFactory Integration Tests', () => {
           issuesFound: []
         }
       };
-      await reporter.postResults(mockResults);
-      
+      // await reporter.postResults(mockResults);
+
       // Verify both operations affected the same mock data
       const comments = await mockService.listComments('test-owner', 'test-repo', 123);
-      expect(comments).toHaveLength(2);
+      expect(comments).toHaveLength(1); // Only comment engine comment now
       expect(comments[0].body).toBe('From comment engine');
-      expect(comments[1].body).toContain('Visual Testing passed');
+      // expect(comments[1].body).toContain('Visual Testing passed');
     });
   });
 

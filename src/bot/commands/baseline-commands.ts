@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import { BotContext } from '../types';
-import { DynamicBaselineManager } from '../../core/baseline/DynamicBaselineManager';
+import { BaselineManager } from '../../core/baseline/BaselineManager';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
 
 /**
@@ -34,7 +34,7 @@ async function createBaselines(args: string[], context: BotContext): Promise<str
     const storageProvider = await StorageFactory.createFromInputs();
     
     // Create baseline manager
-    const baselineManager = new DynamicBaselineManager({
+    const baselineManager = new BaselineManager({
       storageProvider,
       productionUrl: process.env.PRODUCTION_URL
     });
@@ -89,7 +89,7 @@ async function updateBaselines(args: string[], context: BotContext): Promise<str
     const storageProvider = await StorageFactory.createFromInputs();
     
     // Create baseline manager
-    const baselineManager = new DynamicBaselineManager({
+    const baselineManager = new BaselineManager({
       storageProvider
     });
     

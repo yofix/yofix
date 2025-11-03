@@ -4,14 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-YoFix is an AI-powered visual testing and auto-fix tool for web applications. It integrates with GitHub Actions to automatically test websites, detect visual changes, and generate fixes using Claude AI.
+YoFix is an AI-powered visual testing tool for web applications. It integrates with GitHub Actions to automatically test websites, detect visual changes, and generate fixes using Claude AI.
 
-Key capabilities:
+**Core Capabilities:**
 - Visual regression testing with smart baseline management
-- AI-powered auto-fix generation for visual issues
-- Natural language bot interface via PR comments
-- Smart authentication handling (selector-based and AI-based)
-- Enhanced context understanding for better code generation
+- Route impact analysis using external `route-impact-analyzer` package
+- AI-powered auto-fix generation for visual issues (experimental)
+- Natural language bot interface via PR comments (experimental)
+- Smart authentication handling with browser automation
+
+**Production-Ready Features:**
+- ✅ Visual testing workflow (main use case)
+- ✅ Route impact analysis
+- ✅ Baseline management with Firebase/S3 storage
+- ✅ Screenshot comparison and diff generation
+- ✅ GitHub PR integration and reporting
+
+**Experimental Features:**
+- ⚠️ Bot commands (`@yofix scan`, `@yofix fix`)
+- ⚠️ AI-powered fix generation
+- ⚠️ Browser agent automation
 
 ## Essential Commands
 
@@ -20,17 +32,15 @@ Key capabilities:
 # Install dependencies
 yarn install
 
-# Build the project (TypeScript + ncc bundling)
+# Build the project (esbuild bundling)
 yarn build
+yarn build:cli
 
 # Type checking
 yarn typecheck
 
 # Run tests
 yarn test
-
-# Run specific test file
-yarn test src/core/analysis/__tests__/claude-analyzer.test.ts
 
 # Linting
 yarn lint
@@ -54,35 +64,95 @@ yarn release:major  # 1.0.0 -> 2.0.0
 ## Architecture & Key Components
 
 ### Entry Points
-- **GitHub Action**: `src/index.ts` - Main workflow orchestrator
-- **CLI Tool**: `src/cli/yofix-cli.ts` - Command-line interface
-- **Bot Handler**: `src/bot/handler.ts` - Processes PR comments
+
+1. **GitHub Action** - `src/index.ts` (Main workflow orchestrator)
+   - Handles PR visual testing workflow
+   - Integrates route analysis, screenshot capture, baseline comparison
+   - Posts results to GitHub PR
+
+2. **CLI Tool** - `src/cli/yofix-cli.ts`
+   - Commands: `scan`, `fix`, `setup`, `test`
+   - Note: Route analysis delegated to external `route-impact-analyzer` package
+
+3. **Bot Handler** - `src/bot/handler.ts` (Experimental)
+   - Processes `@yofix` mentions in PR comments
+   - Natural language command parsing
 
 ### Core Modules
-- `src/core/` - Business logic (analysis, fixes, testing, baseline management)
-- `src/automation/` - Browser automation and MCP adapters
-- `src/providers/` - Storage (Firebase/S3) and AI (Claude) providers
-- `src/context/` - Enhanced context provider for codebase understanding
-- `src/github/` - GitHub integration and authentication
 
-### Key Patterns
-1. **Provider Pattern**: Swappable storage and AI providers
-2. **Context-Aware AI**: All AI features share codebase understanding via EnhancedContextProvider
-3. **Modular Design**: Clear separation between core logic, providers, and integrations
+```
+src/
+├── index.ts                    # Main GitHub Action entry point
+├── cli/                        # CLI interface
+│   └── yofix-cli.ts
+├── core/                       # Business logic hub
+│   ├── analysis/              # Visual & route analysis
+│   │   ├── VisualAnalyzer.ts
+│   │   └── ThirdPartyRouteImpactAnalyzer.ts  # Uses route-impact-analyzer package
+│   ├── baseline/              # Baseline management
+│   │   ├── BaselineManager.ts
+│   │   ├── DynamicBaselineManager.ts
+│   │   └── VisualDiffer.ts
+│   ├── testing/               # Test generation & execution
+│   │   ├── TestGenerator.ts
+│   │   └── VisualRunner.ts
+│   ├── deterministic/         # Deterministic visual testing
+│   │   └── DeterministicRunner.ts
+│   ├── fixes/                 # AI fix generation (experimental)
+│   │   ├── FixGenerator.ts
+│   │   └── SmartFixGenerator.ts
+│   ├── github/                # GitHub integration
+│   │   ├── GitHubServiceFactory.ts
+│   │   └── GitHubCommentEngine.ts
+│   ├── config/                # Configuration management
+│   │   └── ConfigurationManager.ts
+│   └── hooks/                 # Hook system
+├── bot/                       # PR bot (experimental)
+│   ├── YoFixBot.ts
+│   ├── CommandHandler.ts
+│   └── CommandParser.ts
+├── browser-agent/             # AI browser automation
+│   ├── core/
+│   │   ├── Agent.ts
+│   │   ├── DOMIndexer.ts
+│   │   └── ActionRegistry.ts
+│   └── actions/               # Browser actions
+├── providers/                 # External integrations
+│   ├── storage/               # Firebase, S3
+│   │   ├── FirebaseStorage.ts
+│   │   ├── S3Storage.ts
+│   │   └── StorageFactory.ts
+│   └── firebase/              # Firebase utilities
+├── github/                    # GitHub integration (legacy)
+│   ├── PRReporter.ts         # Use GitHubCommentEngine in new code
+│   └── GitHubCacheManager.ts
+└── modules/                   # Legacy authentication
+    ├── auth-strategies.ts
+    └── llm-browser-agent.ts
+```
+
+### Key Design Patterns
+
+1. **Provider Pattern**: Swappable storage (Firebase/S3) and LLM providers
+2. **Factory Pattern**: GitHubServiceFactory, StorageFactory
+3. **External Package Integration**: Route analysis via `route-impact-analyzer`
+4. **Centralized Services**: ConfigurationManager, GitHubCommentEngine, ErrorHandler
 
 ## Configuration
 
 ### Action Configuration (`action.yml`)
+
 Key inputs:
 - `github-token`: Required for PR interactions
 - `website-url`: Target website to test
+- `claude-api-key`: Required for route-impact-analyzer
 - `auth-mode`: 'selectors' or 'ai' (default: 'selectors')
 - `storage-provider`: 'firebase' or 's3'
-- `smart-analysis`: Enable AI analysis
-- `auto-fix`: Enable fix generation
 - `pages`: Routes to test (supports glob patterns)
+- `route-impact-force-refresh`: Force cache refresh for route analysis
 
 ### YoFix Config (`.yofix.yml`)
+
 ```yaml
 website-url: https://example.com
 auth:
@@ -96,17 +166,38 @@ pages:
   - /settings/*
 ```
 
-## Bot Commands
+### Environment Variables
+
+**Firebase:**
+```bash
+export FIREBASE_PROJECT_ID=your-project
+export FIREBASE_CLIENT_EMAIL=service@account.email
+export FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
+export FIREBASE_STORAGE_BUCKET=your-bucket
+```
+
+**AWS S3:**
+```bash
+export AWS_ACCESS_KEY_ID=your-key
+export AWS_SECRET_ACCESS_KEY=your-secret
+export AWS_REGION=us-east-1
+export S3_BUCKET=your-bucket
+```
+
+## Bot Commands (Experimental)
 
 The bot responds to `@yofix` mentions in PR comments:
 
 ```
-@yofix run tests
-@yofix test /dashboard
-@yofix fix the homepage layout issue
-@yofix analyze authentication flow
-@yofix generate test for checkout process
+@yofix scan              # Run visual tests
+@yofix scan /dashboard   # Test specific route
+@yofix fix               # Generate AI fixes (experimental)
+@yofix test              # Generate Playwright tests
+@yofix baseline create   # Create baselines
+@yofix help              # Show available commands
 ```
+
+**Note:** Bot commands are experimental and may have limitations.
 
 ## Testing
 
@@ -121,42 +212,47 @@ The bot responds to `@yofix` mentions in PR comments:
 3. Test specific providers with environment flags
 
 ### Test Output Guidelines
-- **Screenshots and test results should be saved in `/test-results` directory**
-- Do not create new directories for each test run
+- Screenshots and test results saved in `/test-results` directory
 - Use descriptive filenames with timestamps if needed
 - Example: `/test-results/route-home-2024-08-03.png`
 
-## AI Integration
+## Key Workflows
 
-### Claude API Usage
-- Main analyzer: `src/core/analysis/claude-analyzer.ts`
-- Fix generator: `src/core/fixes/fix-generator.ts`
-- Context provider: `src/context/enhanced-context-provider.ts`
+### Main Visual Testing Flow
 
-### AI Features
-1. **Route Analysis**: Discovers application routes
-2. **Visual Analysis**: Detects UI issues
-3. **Fix Generation**: Creates code patches
-4. **Smart Authentication**: AI-based auth flow navigation
-5. **Test Generation**: Context-aware test creation
+1. **GitHub Action Triggered** (PR event)
+2. **Route Analysis** - Uses external `route-impact-analyzer` package
+   - Analyzes changed files in PR
+   - Determines affected routes
+   - Smart filtering (layout impacts: test 1 route, direct impacts: test all)
+3. **Test Generation** - Creates test scenarios for affected routes
+4. **Screenshot Capture** - Browser automation captures screenshots
+5. **Baseline Comparison** - Compares with stored baselines (Firebase/S3)
+6. **Diff Generation** - Creates visual diffs for changes
+7. **PR Reporting** - Posts results to GitHub PR via GitHubCommentEngine
 
-## Storage Configuration
+### Bot Command Flow (Experimental)
 
-### Firebase
-```bash
-export FIREBASE_PROJECT_ID=your-project
-export FIREBASE_CLIENT_EMAIL=service@account.email
-export FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----..."
-export FIREBASE_STORAGE_BUCKET=your-bucket
-```
+1. PR comment mentions `@yofix <command>`
+2. CommandParser extracts command intent
+3. CommandHandler executes with browser-agent
+4. Results posted via GitHubCommentEngine
 
-### AWS S3
-```bash
-export AWS_ACCESS_KEY_ID=your-key
-export AWS_SECRET_ACCESS_KEY=your-secret
-export AWS_REGION=us-east-1
-export S3_BUCKET=your-bucket
-```
+## External Dependencies
+
+### Production Dependencies
+- **route-impact-analyzer** (^0.1.1) - Route impact analysis using Claude AI
+- **@anthropic-ai/sdk** - Claude AI integration
+- **playwright** - Browser automation
+- **firebase-admin** - Firebase storage
+- **@aws-sdk/client-s3** - S3 storage
+- **sharp** - Image processing
+
+### Key Design Decision
+Route detection is delegated to the external `route-impact-analyzer` package rather than maintaining internal analysis logic. This provides:
+- Better route detection via Claude AI
+- Active maintenance as separate project
+- Reduced complexity in YoFix codebase
 
 ## Development Notes
 
@@ -167,7 +263,7 @@ export S3_BUCKET=your-bucket
 - Use type annotations where helpful
 
 ### Error Handling
-- Always use proper error types from `src/utils/error-handler.ts`
+- Use centralized error handling from `src/core`
 - Log errors with context using the monitoring service
 - Graceful degradation for non-critical features
 
@@ -176,22 +272,31 @@ export S3_BUCKET=your-bucket
 - Include context in error logs
 - Avoid logging sensitive information
 
-## Documentation
+### Code Organization
+- Use two-dot file naming: `auth.store.ts`, `common.util.ts`
+- Save markdown documentation in `/docs` folder
+- Don't create documentation unless asked
+- Prefer console output over markdown files
 
-Follow the naming convention in `/docs`:
-- `guide_*` - How-to guides
-- `reference_*` - Technical specs
-- `config_*` - Configuration docs
-- `planning_*` - Architecture docs
-- `changelog_*` - Release notes
+## Recent Changes (Post-Cleanup)
 
-## Recent Features (v1.0.11)
+### Removed (2024-11)
+- Old route analyzers (TreeSitterRouteAnalyzer, RouteImpactAnalyzer, ComponentRouteMapper)
+- CodebaseAnalyzer and context directory (Babel-based codebase parsing)
+- Unused browser-agent features (OptimizedAgent, ParallelOrchestrator, VisionMode, WorkflowExecutor)
+- Legacy visual-tester modules
+- Security sandbox (unused)
+- RobustPRReporter (test-only code)
+- Root-level test scripts
+- Browser-agent examples and test directories
 
-1. **EnhancedContextProvider**: Provides Claude Code-like understanding of codebases
-2. **Smart Authentication**: AI can now navigate complex auth flows
-3. **Context-Aware Test Generation**: Tests match existing patterns
-4. **Improved Natural Language Processing**: Better understanding of user commands
-5. **AI Navigation**: Discovers routes and interactions automatically
+### Dependencies Removed
+- tree-sitter packages (3 packages)
+- @babel packages (4 packages)
+
+### Bundle Size Improvements
+- Main bundle: 5.8mb → 4.2mb (-27.6%)
+- Removed ~3,000+ lines of unused code
 
 ## Common Development Tasks
 
@@ -201,12 +306,35 @@ Follow the naming convention in `/docs`:
 3. Update factory in `src/providers/factory.ts`
 4. Add configuration handling
 
-### Adding Bot Commands
-1. Update command parser in `src/bot/command-parser.ts`
-2. Add handler in `src/bot/handlers/`
-3. Update bot documentation
-
 ### Debugging
-- Use `DEBUG=yofix:*` environment variable
 - Check GitHub Action logs for detailed output
+- Use `DEBUG=yofix:*` environment variable (if implemented)
 - Local testing with mock providers available
+
+### Working with Route Analysis
+- Route detection uses external `route-impact-analyzer` package
+- Configuration in `ThirdPartyRouteImpactAnalyzer.ts`
+- Supports caching and force refresh
+- Returns filtered routes (smart filtering for layout changes)
+
+## Current Limitations
+
+1. **Bot Commands**: Experimental, may have reliability issues
+2. **Fix Generation**: AI-powered but not production-tested
+3. **Browser Agent**: Advanced features are built but not fully integrated
+4. **Test Coverage**: Limited unit test coverage
+
+## Contribution Guidelines
+
+When adding new features:
+1. Follow existing patterns (Factory, Provider, centralized services)
+2. Add tests for new functionality
+3. Update this documentation
+4. Consider bundle size impact
+5. Use external packages when appropriate (like route-impact-analyzer)
+
+## Support
+
+- **Issues**: https://github.com/yofix/yofix/issues
+- **Documentation**: `/docs` folder
+- **CLI Help**: `yofix --help`

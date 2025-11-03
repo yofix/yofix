@@ -1,24 +1,23 @@
-# Dynamic Baseline Creation Guide
+# Baseline Creation Guide
 
-YoFix now supports dynamic baseline creation from production or main branch deployments. This allows you to create visual regression baselines without requiring existing baseline files.
+YoFix supports baseline creation from production or main branch deployments. This allows you to create visual regression baselines without requiring existing baseline files.
 
 ## Overview
 
 The baseline creation feature allows you to:
 - Create baselines from production URL
 - Create baselines from main branch deployments
-- Automatically discover and save all application routes
 - Create baselines only for missing routes
 - Compare screenshots with dynamically fetched baselines
 
 ## How It Works
 
-### 1. Route Discovery and Manifest
+### 1. Route Discovery
 
 When YoFix analyzes your PR, it:
-- Discovers all routes in your application using Tree-sitter AST parsing
-- Saves a route manifest to storage (Firebase/S3)
-- Uses this manifest for baseline creation
+- Uses the external `route-impact-analyzer` package to discover routes
+- Analyzes changed files in the PR to determine affected routes
+- Identifies which routes need baseline comparisons
 
 ### 2. Baseline Creation Strategies
 
@@ -71,6 +70,7 @@ env:
   uses: yofix/yofix@v1
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
+    claude-api-key: ${{ secrets.CLAUDE_API_KEY }}  # Required for route analysis
     firebase-credentials: ${{ secrets.FIREBASE_CREDENTIALS }}
     storage-bucket: my-project-screenshots
     production-url: https://myapp.com
@@ -105,25 +105,6 @@ Shows which routes have baselines and which viewports are covered.
 
 ## Implementation Details
 
-### Route Manifest Structure
-```json
-{
-  "version": "1.0",
-  "timestamp": 1704067200000,
-  "repository": "my-app",
-  "totalRoutes": 15,
-  "routes": ["/", "/about", "/contact", ...],
-  "routeDetails": [
-    {
-      "path": "/",
-      "file": "src/routes/index.tsx",
-      "component": "HomePage"
-    },
-    ...
-  ]
-}
-```
-
 ### Baseline Storage Structure
 ```
 baselines/
@@ -133,6 +114,26 @@ baselines/
 ├── about_1920x1080.png
 ├── about_768x1024.png
 └── ...
+```
+
+### BaselineManager API
+
+```typescript
+import { BaselineManager } from '../core/baseline/BaselineManager';
+
+const baselineManager = new BaselineManager({
+  storageProvider,
+  productionUrl: process.env.PRODUCTION_URL
+});
+
+// Create baselines from main branch
+await baselineManager.createBaselinesFromMainBranch(routes);
+
+// Create baselines from production
+await baselineManager.createBaselines(routes, viewports);
+
+// Create only missing baselines
+await baselineManager.createMissingBaselines(routes, viewports);
 ```
 
 ## Best Practices
@@ -158,6 +159,12 @@ If automatic main branch detection fails:
 
 ### Route Discovery Issues
 If routes aren't being discovered:
-1. Run `@yofix cache clear` to rebuild the route analysis
-2. Check that your route definitions follow common patterns (React Router, Next.js, etc.)
-3. Review the route manifest in storage to verify discovered routes
+1. Ensure Claude API key is configured for route-impact-analyzer
+2. Check that changed files are being analyzed correctly
+3. Review the route analysis output in PR comments
+
+## Related Documentation
+
+- [Storage Setup](config_storage-setup.md) - Configure Firebase or S3 storage
+- [Production URL Setup](config_production-url-setup.md) - Configure production URL
+- [Code Structure](reference_code-structure.md) - Understanding BaselineManager

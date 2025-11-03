@@ -1,11 +1,8 @@
 import * as core from '@actions/core';
 import { getConfiguration } from '../core/hooks/ConfigurationHook';
-// import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 import { CommandParser } from './CommandParser';
 import { CommandHandler } from './CommandHandler';
 import { BotResponse } from './types';
-import { CodebaseAnalyzer } from '../context/CodebaseAnalyzer';
-import { CodebaseContext } from '../context/types';
 import { getGitHubCommentEngine, botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
 import { GitHubServiceFactory, GitHubService } from '../core/github/GitHubServiceFactory';
 import { GitHubCacheManager } from '../github/GitHubCacheManager';
@@ -19,7 +16,6 @@ export class YoFixBot {
   private commandParser: CommandParser;
   private commandHandler: CommandHandler;
   private botUsername = 'yofix';
-  private codebaseContext: CodebaseContext | null = null;
   private commentEngine = getGitHubCommentEngine();
 
   constructor(claudeApiKey: string) {
@@ -27,36 +23,8 @@ export class YoFixBot {
     this.context = this.github.getContext();
     this.commandParser = new CommandParser();
     this.commandHandler = new CommandHandler(claudeApiKey);
-    
-    // Initialize codebase analysis in the background
-    this.initializeCodebaseContext();
   }
   
-  /**
-   * Initialize codebase context asynchronously
-   */
-  private async initializeCodebaseContext(): Promise<void> {
-    try {
-      const analyzer = new CodebaseAnalyzer();
-      this.codebaseContext = await analyzer.analyzeRepository();
-      
-      // Recreate command handler with context
-      const { config } = await import('../core');
-      const claudeApiKey = config.getSecret('claude-api-key');
-      this.commandHandler = new CommandHandler(claudeApiKey, this.codebaseContext);
-      
-      core.info('✅ Codebase context initialized successfully');
-    } catch (error) {
-      await errorHandler.handleError(error as Error, {
-        severity: ErrorSeverity.LOW,
-        category: ErrorCategory.CONFIGURATION,
-        userAction: 'Initialize codebase context',
-        recoverable: true,
-        skipGitHubPost: true
-      });
-    }
-  }
-
   /**
    * Listen for mentions in PR comments
    */

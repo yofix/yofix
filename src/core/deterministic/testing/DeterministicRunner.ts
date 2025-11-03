@@ -4,7 +4,7 @@ import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import { Viewport, FirebaseConfig } from '../../../types';
 import { StorageProvider } from '../../../providers/storage/types';
-import { DynamicBaselineManager } from '../../../core/baseline/DynamicBaselineManager';
+import { BaselineManager } from '../../../core/baseline/BaselineManager';
 import { buildFullUrl } from '../../../utils/urlBuilder';
 
 export interface DeterministicTestResult {
@@ -26,14 +26,14 @@ export class DeterministicRunner {
   private context: BrowserContext | null = null;
   private page: Page | null = null;
   private storageProvider?: StorageProvider;
-  private baselineManager?: DynamicBaselineManager;
+  private baselineManager?: BaselineManager;
   
   constructor(private firebaseConfig: FirebaseConfig, storageProvider?: StorageProvider) {
     this.storageProvider = storageProvider;
     
     // Initialize baseline manager if storage is available
     if (storageProvider) {
-      this.baselineManager = new DynamicBaselineManager({
+      this.baselineManager = new BaselineManager({
         storageProvider,
         productionUrl: process.env.PRODUCTION_URL
       });

@@ -32,7 +32,7 @@ export class IncrementalLearner {
   ) {
     this.anthropic = new Anthropic({ apiKey: claudeApiKey });
     this.patternStore = patternStore;
-    this.updateThreshold = updateThreshold ?? config.get('patternLearning.incrementalUpdateThreshold', 0.1);
+    this.updateThreshold = updateThreshold ?? 0.1; // Default threshold 10%
   }
 
   /**

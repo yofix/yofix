@@ -4,9 +4,7 @@ import { BotCommand, BotContext, BotResponse, ScanResult, VisualIssue } from './
 import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
 import { FixGenerator } from '../core/fixes/FixGenerator';
 import { ReportFormatter } from './ReportFormatter';
-import { BaselineManager } from '../core/baseline/BaselineManager';
 import { handleBaselineCommand } from './commands/baseline-commands';
-import { CodebaseContext } from '../context/types';
 import { VisualIssueTestGenerator } from '../core/testing/VisualIssueTestGenerator';
 import { Agent } from '../browser-agent/core/Agent';
 import { botActivity, errorHandler, ErrorCategory, ErrorSeverity } from '../core';
@@ -18,7 +16,6 @@ export class CommandHandler {
   private visualAnalyzer: VisualAnalyzer;
   private fixGenerator: FixGenerator;
   private reportFormatter: ReportFormatter;
-  private baselineManager: BaselineManager;
   private browserAgent: Agent | null = null;
   private claudeApiKey: string;
   
@@ -26,12 +23,11 @@ export class CommandHandler {
   private currentScanResult: ScanResult | null = null;
   private progressCallback: ((message: string) => Promise<void>) | null = null;
 
-  constructor(claudeApiKey: string, codebaseContext?: CodebaseContext) {
+  constructor(claudeApiKey: string) {
     this.claudeApiKey = claudeApiKey;
     this.visualAnalyzer = new VisualAnalyzer(claudeApiKey);
-    this.fixGenerator = new FixGenerator(claudeApiKey, codebaseContext);
+    this.fixGenerator = new FixGenerator(claudeApiKey);
     this.reportFormatter = new ReportFormatter();
-    this.baselineManager = new BaselineManager();
     // Browser agent is created on demand
   }
 

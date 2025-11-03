@@ -2,7 +2,6 @@ import * as core from '@actions/core';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-// import * as github from '@actions/github'; // Removed - now using GitHubServiceFactory
 
 import { TestGenerator } from './core/testing/TestGenerator';
 import { DeterministicVisualAnalyzer } from './core/deterministic/visual/DeterministicVisualAnalyzer';

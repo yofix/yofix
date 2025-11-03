@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import { Agent } from '../../browser-agent/core/Agent';
 import { TestTemplate, TestResult, Screenshot, Video, ConsoleMessage, FirebaseConfig, Viewport } from '../../types';
-import { SmartAuthHandler } from '../../github/SmartAuthHandler';
+import { AuthHandler } from '../../github/AuthHandler';
 import { buildFullUrl } from '../../utils/urlBuilder';
 
 /**
@@ -14,7 +14,7 @@ export class VisualRunner {
   private firebaseConfig: FirebaseConfig;
   private outputDir: string;
   private testTimeout: number;
-  private authHandler: SmartAuthHandler | null = null;
+  private authHandler: AuthHandler | null = null;
   private claudeApiKey: string;
 
   constructor(firebaseConfig: FirebaseConfig, outputDir: string, testTimeoutMs: number = 300000, claudeApiKey: string = '') {
@@ -27,7 +27,7 @@ export class VisualRunner {
   /**
    * Set authentication handler
    */
-  setAuthHandler(authHandler: SmartAuthHandler): void {
+  setAuthHandler(authHandler: AuthHandler): void {
     this.authHandler = authHandler;
   }
 

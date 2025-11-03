@@ -8,9 +8,9 @@
   },
   "scripts": {
     "postinstall": "playwright install chromium",
-    "build:ncc": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external tree-sitter --external tree-sitter-typescript --external tree-sitter-javascript --external firebase-admin --external @google-cloud/firestore --external route-impact-analyzer && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
-    "build": "rimraf dist && esbuild src/index.ts --bundle --platform=node --target=node16 --outfile=dist/index.js --external:sharp --external:tree-sitter --external:tree-sitter-typescript --external:tree-sitter-javascript --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:route-impact-analyzer --format=cjs --sourcemap",
-    "build:cli": "mkdir -p dist/cli && esbuild src/cli/yofix-cli.ts --bundle --platform=node --target=node16 --outfile=dist/cli/yofix-cli.js --external:sharp --external:tree-sitter --external:tree-sitter-typescript --external:tree-sitter-javascript --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:route-impact-analyzer --format=cjs && chmod +x dist/cli/yofix-cli.js",
+    "build:ncc": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external firebase-admin --external @google-cloud/firestore --external route-impact-analyzer && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
+    "build": "rimraf dist && esbuild src/index.ts --bundle --platform=node --target=node16 --outfile=dist/index.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:route-impact-analyzer --format=cjs --sourcemap",
+    "build:cli": "mkdir -p dist/cli && esbuild src/cli/yofix-cli.ts --bundle --platform=node --target=node16 --outfile=dist/cli/yofix-cli.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:route-impact-analyzer --format=cjs && chmod +x dist/cli/yofix-cli.js",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "test:local": "ts-node test/local-runner.ts",
@@ -68,9 +68,6 @@
     "@anthropic-ai/sdk": "^0.20.0",
     "@aws-sdk/client-s3": "^3.478.0",
     "@aws-sdk/s3-request-presigner": "^3.478.0",
-    "@babel/parser": "^7.23.0",
-    "@babel/traverse": "^7.23.0",
-    "@babel/types": "^7.23.0",
     "@playwright/test": "^1.41.2",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
@@ -79,13 +76,9 @@
     "ioredis": "^5.3.2",
     "playwright": "^1.41.2",
     "route-impact-analyzer": "^0.1.1",
-    "sharp": "^0.33.0",
-    "tree-sitter": "^0.21.1",
-    "tree-sitter-javascript": "^0.23.1",
-    "tree-sitter-typescript": "^0.23.2"
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
-    "@types/babel__traverse": "^7.20.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^18.19.39",
     "@typescript-eslint/eslint-plugin": "^8.38.0",

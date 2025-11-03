@@ -11,12 +11,11 @@ export interface AuthConfig {
 }
 
 /**
- * Smart Authentication Handler - Powered by Browser Agent
- * 
- * This replaces the complex 342-line SmartAuthHandler with a simple
- * browser-agent implementation that's more reliable and maintainable.
+ * Authentication Handler - Powered by Browser Agent
+ *
+ * Browser-agent implementation for reliable authentication.
  */
-export class SmartAuthHandler {
+export class AuthHandler {
   private authConfig: AuthConfig;
   private claudeApiKey: string;
 
@@ -225,5 +224,5 @@ export function createAuthHandler(
   authConfig: AuthConfig, 
   claudeApiKey: string
 ) {
-  return new SmartAuthHandler(authConfig, claudeApiKey);
+  return new AuthHandler(authConfig, claudeApiKey);
 }

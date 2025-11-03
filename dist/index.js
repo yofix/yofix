@@ -87068,6 +87068,12 @@ var LogFormatter = class {
     console.log(``);
   }
   static formatVerification(success, confidence, issues) {
+    if (!this.verbose) {
+      if (!success) {
+        console.log(`\u274C Verification failed (${confidence}% confidence)`);
+      }
+      return;
+    }
     console.log(``);
     console.log(`VERIFICATION:`);
     console.log(`  SUCCESS: ${success}`);
@@ -87082,6 +87088,10 @@ var LogFormatter = class {
     console.log(`DOM: ${totalElements} elements, ${interactiveElements} interactive (${indexTime}ms)`);
   }
   static formatTaskPlan(steps, complexity, criteria) {
+    if (!this.verbose) {
+      console.log(`\u{1F4CB} Task plan: ${steps} steps (${complexity})`);
+      return;
+    }
     console.log(`
 `);
     console.log(`TASK PLAN: ${steps} steps, ${complexity} complexity`);
@@ -87147,6 +87157,7 @@ var LogFormatter = class {
     console.log(``);
   }
   static formatPageIndexing(totalElements, interactiveElements, url) {
+    if (!this.verbose) return;
     console.log(``);
     console.log(`PAGE INDEXING:`);
     console.log(`  URL: ${url}`);
@@ -87195,6 +87206,7 @@ var LogFormatter = class {
 };
 LogFormatter.indent = 0;
 LogFormatter.currentStep = 0;
+LogFormatter.verbose = process.env.YOFIX_VERBOSE === "true" || process.env.DEBUG === "true";
 
 // src/browser-agent/core/ContextAwareElementFinder.ts
 var core6 = __toESM(require_core());
@@ -111861,8 +111873,8 @@ function validateInputs(inputs) {
       return `Invalid viewport format: "${viewport}". Expected format: "widthxheight" (e.g., "1920x1080")`;
     }
   }
-  if (inputs.authMode && !["llm", "selectors", "smart"].includes(inputs.authMode)) {
-    return `Invalid auth-mode: "${inputs.authMode}". Must be one of: llm, selectors, smart`;
+  if (inputs.authMode && !["llm", "selectors", "smart", "baseline"].includes(inputs.authMode)) {
+    return `Invalid auth-mode: "${inputs.authMode}". Must be one of: llm, selectors, smart, baseline`;
   }
   const timeoutResult = Validators.isTimeout(inputs.testTimeout);
   if (!timeoutResult.valid) {

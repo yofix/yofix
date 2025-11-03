@@ -3,6 +3,7 @@ import * as core from '@actions/core';
 export class LogFormatter {
   private static indent = 0;
   private static currentStep = 0;
+  private static verbose = process.env.YOFIX_VERBOSE === 'true' || process.env.DEBUG === 'true';
   
   static formatStepStart(stepNumber: number, description: string) {
     this.currentStep = stepNumber;
@@ -33,6 +34,13 @@ export class LogFormatter {
   }
   
   static formatVerification(success: boolean, confidence: number, issues?: string[]) {
+    if (!this.verbose) {
+      // Only show verification failures in non-verbose mode
+      if (!success) {
+        console.log(`❌ Verification failed (${confidence}% confidence)`);
+      }
+      return;
+    }
     console.log(``);
     console.log(`VERIFICATION:`);
     console.log(`  SUCCESS: ${success}`);
@@ -49,6 +57,10 @@ export class LogFormatter {
   }
   
   static formatTaskPlan(steps: number, complexity: string, criteria: string[]) {
+    if (!this.verbose) {
+      console.log(`📋 Task plan: ${steps} steps (${complexity})`);
+      return;
+    }
     console.log(`\n`);
     console.log(`TASK PLAN: ${steps} steps, ${complexity} complexity`);
     console.log(`SUCCESS CRITERIA:`);
@@ -119,6 +131,7 @@ export class LogFormatter {
   }
   
   static formatPageIndexing(totalElements: number, interactiveElements: number, url: string) {
+    if (!this.verbose) return; // Skip in non-verbose mode
     console.log(``);
     console.log(`PAGE INDEXING:`);
     console.log(`  URL: ${url}`);

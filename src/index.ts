@@ -772,8 +772,8 @@ function validateInputs(inputs: ActionInputs): string | null {
   }
   
   // Validate auth mode
-  if (inputs.authMode && !['llm', 'selectors', 'smart'].includes(inputs.authMode)) {
-    return `Invalid auth-mode: "${inputs.authMode}". Must be one of: llm, selectors, smart`;
+  if (inputs.authMode && !['llm', 'selectors', 'smart', 'baseline'].includes(inputs.authMode)) {
+    return `Invalid auth-mode: "${inputs.authMode}". Must be one of: llm, selectors, smart, baseline`;
   }
   
   // Validate timeout format using centralized validator

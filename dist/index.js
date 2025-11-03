@@ -149296,9 +149296,11 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     core38.info(
       "No changed files detected, skipping external route impact analysis."
     );
+    const emptyTree = createEmptyImpactTree(0);
     return {
       routes: [],
-      impactTree: createEmptyImpactTree(0),
+      impactTree: emptyTree,
+      routesToTest: emptyTree,
       commentBody: ""
     };
   }
@@ -149345,6 +149347,7 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   const uniqueRoutes = /* @__PURE__ */ new Set();
   const componentRouteMapping = /* @__PURE__ */ new Map();
   const routeImpactMap = /* @__PURE__ */ new Map();
+  const impactReasons = /* @__PURE__ */ new Map();
   result.impacts.forEach((impact) => {
     const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
     if (impactedRoutes.length === 0) {
@@ -149362,15 +149365,20 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
       if (!routeImpactMap.has(route)) {
         routeImpactMap.set(route, {
           route,
-          directChanges: [],
-          componentChanges: [],
-          styleChanges: [],
-          sharedComponents: []
+          changedFiles: [],
+          reason: impact.reason,
+          confidence: impact.confidence
         });
       }
       const impactEntry = routeImpactMap.get(route);
-      if (!impactEntry.componentChanges.includes(impact.changedFile)) {
-        impactEntry.componentChanges.push(impact.changedFile);
+      if (!impactEntry.changedFiles.includes(impact.changedFile)) {
+        impactEntry.changedFiles.push(impact.changedFile);
+      }
+      if (!impactReasons.has(route) || impact.reason === "direct") {
+        impactReasons.set(route, {
+          reason: impact.reason,
+          confidence: impact.confidence
+        });
       }
     });
   });
@@ -149392,25 +149400,79 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     totalRoutesAffected: uniqueRoutes.size,
     componentRouteMapping
   };
+  const routesToTestMap = /* @__PURE__ */ new Map();
+  const routesToTestComponentMapping = /* @__PURE__ */ new Map();
+  result.impacts.forEach((impact) => {
+    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
+    if (impactedRoutes.length === 0) {
+      return;
+    }
+    const routesToInclude = impact.reason === "layout" ? impactedRoutes.slice(0, 1) : impactedRoutes;
+    if (routesToInclude.length > 0) {
+      const newRoutes = [];
+      routesToInclude.forEach((route) => {
+        if (!routesToTestMap.has(route)) {
+          routesToTestMap.set(route, {
+            route,
+            changedFiles: [impact.changedFile],
+            reason: impact.reason,
+            confidence: impact.confidence
+          });
+          newRoutes.push({
+            routePath: route,
+            routeFile: impact.changedFile
+          });
+        } else {
+          const existing = routesToTestMap.get(route);
+          if (!existing.changedFiles.includes(impact.changedFile)) {
+            existing.changedFiles.push(impact.changedFile);
+          }
+        }
+      });
+      if (newRoutes.length > 0) {
+        routesToTestComponentMapping.set(impact.changedFile, newRoutes);
+      }
+    }
+    if (impact.reason === "layout" && impactedRoutes.length > 1) {
+      core38.info(
+        `\u{1F4CA} Layout impact for ${impact.changedFile}: Testing 1 of ${impactedRoutes.length} routes (${routesToInclude[0]})`
+      );
+    }
+  });
+  const routesToTest = {
+    affectedRoutes: Array.from(routesToTestMap.values()),
+    sharedComponents,
+    totalFilesChanged: changedFiles.length,
+    totalRoutesAffected: routesToTestMap.size,
+    componentRouteMapping: routesToTestComponentMapping
+  };
+  core38.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
   const header = "## \u{1F310} Route Impact (route-impact-analyzer)\n";
   const summaryLines = [
     `- Files analyzed: **${((_b = result.metadata) == null ? void 0 : _b.totalFiles) ?? changedFiles.length}**`,
     `- Routes impacted: **${uniqueRoutes.size}**`,
+    `- Routes to test: **${routesToTestMap.size}**`,
     `- Framework: **${((_c = result.metadata) == null ? void 0 : _c.framework) ?? "unknown"}**`,
     ""
   ];
   const routeLines = [];
   let lineCount = 0;
   componentRouteMapping.forEach((routes, file) => {
-    routeLines.push(`- \`${file}\``);
-    routes.forEach((routeInfo) => {
-      if (lineCount < 20) {
+    var _a4;
+    const fileImpact = result.impacts.find((i4) => i4.changedFile === file);
+    const reason = (fileImpact == null ? void 0 : fileImpact.reason) || "unknown";
+    const routeCount = routes.length;
+    const testCount = ((_a4 = routesToTestComponentMapping.get(file)) == null ? void 0 : _a4.length) || 0;
+    routeLines.push(`- \`${file}\` (${reason}: ${testCount} to test / ${routeCount} affected)`);
+    const routesToShow = routesToTestComponentMapping.get(file) || routes.slice(0, 5);
+    routesToShow.forEach((routeInfo, idx) => {
+      if (lineCount < 20 && idx < 5) {
         routeLines.push(`  - \`${routeInfo.routePath}\``);
         lineCount++;
       }
     });
-    if (routes.length > 20) {
-      routeLines.push(`  - \u2026and ${routes.length - 20} more`);
+    if (routes.length > 5) {
+      routeLines.push(`  - \u2026and ${routes.length - 5} more routes`);
     }
   });
   const commentBody = uniqueRoutes.size > 0 ? [header, ...summaryLines, ...routeLines].join("\n") : `${header}
@@ -149418,6 +149480,7 @@ No impacted routes detected.`;
   return {
     routes: Array.from(uniqueRoutes),
     impactTree,
+    routesToTest,
     commentBody
   };
 }
@@ -149522,6 +149585,7 @@ async function runVisualTesting() {
     }
     let affectedRoutes = [];
     let impactTree = null;
+    let routesToTest = null;
     let impactCommentBody = null;
     if (prNumber > 0) {
       try {
@@ -149530,8 +149594,9 @@ async function runVisualTesting() {
         const prFiles = await github3.listPullRequestFiles();
         core41.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f4) => f4.filename).join(", ")}`);
         const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, inputs.previewUrl);
-        core41.info(`\u{1F3AF} Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected`);
+        core41.info(`\u{1F3AF} Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected, ${externalAnalysis.routesToTest.totalRoutesAffected} routes to test`);
         impactTree = externalAnalysis.impactTree;
+        routesToTest = externalAnalysis.routesToTest;
         impactCommentBody = externalAnalysis.commentBody;
       } catch (externalError) {
         const error18 = externalError;
@@ -149554,7 +149619,10 @@ async function runVisualTesting() {
         affectedRoutes = ["/"];
       }
     }
-    if (impactTree) {
+    if (routesToTest) {
+      affectedRoutes = extractRoutesFromImpactTree(routesToTest);
+      logImpactTreeSummary(routesToTest);
+    } else if (impactTree) {
       affectedRoutes = extractRoutesFromImpactTree(impactTree);
       logImpactTreeSummary(impactTree);
     }
@@ -149578,20 +149646,13 @@ async function runVisualTesting() {
     }
     const routes = affectedRoutes;
     let components = ["App"];
-    if (impactTree) {
+    const treeToUse = routesToTest || impactTree;
+    if (treeToUse) {
       const allComponents = /* @__PURE__ */ new Set();
-      if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
-        for (const route of impactTree.affectedRoutes) {
-          if (route.directChanges) {
-            route.directChanges.forEach((file) => {
-              const componentName = import_path3.default.basename(file, import_path3.default.extname(file));
-              if (componentName && componentName !== "index") {
-                allComponents.add(componentName);
-              }
-            });
-          }
-          if (route.componentChanges) {
-            route.componentChanges.forEach((file) => {
+      if (treeToUse.affectedRoutes && treeToUse.affectedRoutes.length > 0) {
+        for (const route of treeToUse.affectedRoutes) {
+          if (route.changedFiles) {
+            route.changedFiles.forEach((file) => {
               const componentName = import_path3.default.basename(file, import_path3.default.extname(file));
               if (componentName && componentName !== "index") {
                 allComponents.add(componentName);
@@ -149600,8 +149661,8 @@ async function runVisualTesting() {
           }
         }
       }
-      if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
-        for (const [componentFile] of impactTree.componentRouteMapping) {
+      if (treeToUse.componentRouteMapping && treeToUse.componentRouteMapping.size > 0) {
+        for (const [componentFile] of treeToUse.componentRouteMapping) {
           const componentName = import_path3.default.basename(componentFile, import_path3.default.extname(componentFile));
           if (componentName && componentName !== "index") {
             allComponents.add(componentName);
@@ -149614,12 +149675,12 @@ async function runVisualTesting() {
     }
     core41.info(`\u{1F4E6} Found ${components.length} components: ${components.join(", ")}`);
     const analysis = {
-      hasUIChanges: (((_a3 = impactTree == null ? void 0 : impactTree.affectedRoutes) == null ? void 0 : _a3.length) || 0) > 0 || (((_b = impactTree == null ? void 0 : impactTree.componentRouteMapping) == null ? void 0 : _b.size) || 0) > 0,
+      hasUIChanges: (((_a3 = treeToUse == null ? void 0 : treeToUse.affectedRoutes) == null ? void 0 : _a3.length) || 0) > 0 || (((_b = treeToUse == null ? void 0 : treeToUse.componentRouteMapping) == null ? void 0 : _b.size) || 0) > 0,
       changedPaths: routes,
       components,
       routes,
       testSuggestions: routes.map((r4) => `Test route ${r4} for visual regressions`),
-      riskLevel: (((_c = impactTree == null ? void 0 : impactTree.sharedComponents) == null ? void 0 : _c.size) || 0) > 0 ? "high" : "medium"
+      riskLevel: (((_c = treeToUse == null ? void 0 : treeToUse.sharedComponents) == null ? void 0 : _c.size) || 0) > 0 ? "high" : "medium"
     };
     core41.info(`\u{1F50D} Found ${analysis.routes.length} routes to test`);
     const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey);

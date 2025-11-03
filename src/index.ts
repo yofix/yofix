@@ -166,18 +166,20 @@ async function runVisualTesting(): Promise<void> {
     // Analyze route impact and get affected routes
     let affectedRoutes: string[] = [];
     let impactTree: ExternalRouteImpactTree | null = null;
+    let routesToTest: ExternalRouteImpactTree | null = null;
     let impactCommentBody: string | null = null;
-    
+
     if (prNumber > 0) {
       try {
         core.info('🛰️ Using route-impact-analyzer to discover affected routes...');
-        
+
         const github = GitHubServiceFactory.getService();
         const prFiles = await github.listPullRequestFiles();
         core.info(`📝 Analyzing ${prFiles.length} changed files: ${prFiles.map(f => f.filename).join(', ')}`);
         const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, inputs.previewUrl);
-        core.info(`🎯 Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected`);
+        core.info(`🎯 Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected, ${externalAnalysis.routesToTest.totalRoutesAffected} routes to test`);
         impactTree = externalAnalysis.impactTree;
+        routesToTest = externalAnalysis.routesToTest;
         impactCommentBody = externalAnalysis.commentBody;
       } catch (externalError) {
         const error = externalError as Error;
@@ -201,7 +203,11 @@ async function runVisualTesting(): Promise<void> {
       }
     }
     
-    if (impactTree) {
+    if (routesToTest) {
+      affectedRoutes = extractRoutesFromImpactTree(routesToTest);
+      logImpactTreeSummary(routesToTest);
+    } else if (impactTree) {
+      // Fallback to full impact tree if routesToTest is not available
       affectedRoutes = extractRoutesFromImpactTree(impactTree);
       logImpactTreeSummary(impactTree);
     }
@@ -230,28 +236,19 @@ async function runVisualTesting(): Promise<void> {
     // Use the affected routes for testing
     const routes = affectedRoutes
     
-    // Extract unique components from impact tree
+    // Extract unique components from routes to test
     let components: string[] = ['App']; // Default fallback
-    
-    if (impactTree) {
+
+    const treeToUse = routesToTest || impactTree;
+    if (treeToUse) {
       const allComponents = new Set<string>();
-      
+
       // Get components from affected routes
-      if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
-        for (const route of impactTree.affectedRoutes) {
-          // Add direct changes (files that define routes)
-          if (route.directChanges) {
-            route.directChanges.forEach((file: string) => {
-              const componentName = path.basename(file, path.extname(file));
-              if (componentName && componentName !== 'index') {
-                allComponents.add(componentName);
-              }
-            });
-          }
-          
-          // Add component changes (files that affect routes)
-          if (route.componentChanges) {
-            route.componentChanges.forEach((file: string) => {
+      if (treeToUse.affectedRoutes && treeToUse.affectedRoutes.length > 0) {
+        for (const route of treeToUse.affectedRoutes) {
+          // Add changed files that affect this route
+          if (route.changedFiles) {
+            route.changedFiles.forEach((file: string) => {
               const componentName = path.basename(file, path.extname(file));
               if (componentName && componentName !== 'index') {
                 allComponents.add(componentName);
@@ -260,17 +257,17 @@ async function runVisualTesting(): Promise<void> {
           }
         }
       }
-      
+
       // Get components from component route mapping
-      if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
-        for (const [componentFile] of impactTree.componentRouteMapping) {
+      if (treeToUse.componentRouteMapping && treeToUse.componentRouteMapping.size > 0) {
+        for (const [componentFile] of treeToUse.componentRouteMapping) {
           const componentName = path.basename(componentFile, path.extname(componentFile));
           if (componentName && componentName !== 'index') {
             allComponents.add(componentName);
           }
         }
       }
-      
+
       if (allComponents.size > 0) {
         components = Array.from(allComponents).slice(0, 10); // Limit to avoid spam
       }
@@ -280,12 +277,12 @@ async function runVisualTesting(): Promise<void> {
     
     // Create route analysis result that matches expected interface
     const analysis: RouteAnalysisResult = {
-      hasUIChanges: (impactTree?.affectedRoutes?.length || 0) > 0 || (impactTree?.componentRouteMapping?.size || 0) > 0,
+      hasUIChanges: (treeToUse?.affectedRoutes?.length || 0) > 0 || (treeToUse?.componentRouteMapping?.size || 0) > 0,
       changedPaths: routes,
       components: components,
       routes: routes,
       testSuggestions: routes.map(r => `Test route ${r} for visual regressions`),
-      riskLevel: (impactTree?.sharedComponents?.size || 0) > 0 ? 'high' : 'medium'
+      riskLevel: (treeToUse?.sharedComponents?.size || 0) > 0 ? 'high' : 'medium'
     };
     
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);

@@ -1,19 +1,12 @@
 import * as core from "@actions/core";
 import { analyzeRouteImpact } from "route-impact-analyzer";
-
 import { getConfiguration } from "../hooks/ConfigurationHook";
-import { GitHubServiceFactory } from "../github/GitHubServiceFactory";
 
 export interface ExternalRouteImpact {
   route: string;
-  directChanges: string[];
-  componentChanges: string[];
-  styleChanges: string[];
-  sharedComponents: string[];
-  servingRoutes?: Array<{
-    routePath: string;
-    routeFile: string;
-  }>;
+  changedFiles: string[];
+  reason?: 'layout' | 'direct' | 'shared-component';
+  confidence?: 'high' | 'medium' | 'low';
 }
 
 export interface ExternalRouteImpactTree {
@@ -33,6 +26,7 @@ export interface ExternalRouteImpactTree {
 interface ExternalImpactResult {
   routes: string[];
   impactTree: ExternalRouteImpactTree;
+  routesToTest: ExternalRouteImpactTree;
   commentBody: string;
 }
 
@@ -76,9 +70,11 @@ export async function analyzeRoutesWithExternalTool(
     core.info(
       "No changed files detected, skipping external route impact analysis.",
     );
+    const emptyTree = createEmptyImpactTree(0);
     return {
       routes: [],
-      impactTree: createEmptyImpactTree(0),
+      impactTree: emptyTree,
+      routesToTest: emptyTree,
       commentBody: "",
     };
   }
@@ -143,6 +139,9 @@ export async function analyzeRoutesWithExternalTool(
   >();
   const routeImpactMap = new Map<string, ExternalRouteImpact>();
 
+  // Track impact reasons for filtering later
+  const impactReasons = new Map<string, { reason: string; confidence: string }>();
+
   result.impacts.forEach((impact) => {
     const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
 
@@ -164,16 +163,23 @@ export async function analyzeRoutesWithExternalTool(
       if (!routeImpactMap.has(route)) {
         routeImpactMap.set(route, {
           route,
-          directChanges: [],
-          componentChanges: [],
-          styleChanges: [],
-          sharedComponents: [],
+          changedFiles: [],
+          reason: impact.reason as 'layout' | 'direct' | 'shared-component',
+          confidence: impact.confidence as 'high' | 'medium' | 'low',
         });
       }
 
       const impactEntry = routeImpactMap.get(route)!;
-      if (!impactEntry.componentChanges.includes(impact.changedFile)) {
-        impactEntry.componentChanges.push(impact.changedFile);
+      if (!impactEntry.changedFiles.includes(impact.changedFile)) {
+        impactEntry.changedFiles.push(impact.changedFile);
+      }
+
+      // Store the reason for this route (use highest priority reason if multiple)
+      if (!impactReasons.has(route) || impact.reason === 'direct') {
+        impactReasons.set(route, {
+          reason: impact.reason,
+          confidence: impact.confidence
+        });
       }
     });
   });
@@ -200,10 +206,82 @@ export async function analyzeRoutesWithExternalTool(
     componentRouteMapping,
   };
 
+  // Create filtered routesToTest tree
+  // For layout impacts: only take first route
+  // For direct/shared-component: take all routes
+  const routesToTestMap = new Map<string, ExternalRouteImpact>();
+  const routesToTestComponentMapping = new Map<
+    string,
+    Array<{ routePath: string; routeFile: string }>
+  >();
+
+  result.impacts.forEach((impact) => {
+    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
+
+    if (impactedRoutes.length === 0) {
+      return;
+    }
+
+    // For layout impacts, only take the first route
+    const routesToInclude = impact.reason === 'layout'
+      ? impactedRoutes.slice(0, 1)
+      : impactedRoutes;
+
+    if (routesToInclude.length > 0) {
+      const newRoutes: Array<{ routePath: string; routeFile: string }> = [];
+
+      routesToInclude.forEach((route) => {
+        if (!routesToTestMap.has(route)) {
+          // This is a new unique route - add it to the map and track it for this file
+          routesToTestMap.set(route, {
+            route,
+            changedFiles: [impact.changedFile],
+            reason: impact.reason as 'layout' | 'direct' | 'shared-component',
+            confidence: impact.confidence as 'high' | 'medium' | 'low',
+          });
+          newRoutes.push({
+            routePath: route,
+            routeFile: impact.changedFile,
+          });
+        } else {
+          // Route already exists - merge the changed files
+          const existing = routesToTestMap.get(route)!;
+          if (!existing.changedFiles.includes(impact.changedFile)) {
+            existing.changedFiles.push(impact.changedFile);
+          }
+          // Don't add to newRoutes - this route is already tracked by another file
+        }
+      });
+
+      // Only add routes that are new/unique for this file
+      if (newRoutes.length > 0) {
+        routesToTestComponentMapping.set(impact.changedFile, newRoutes);
+      }
+    }
+
+    // Log the filtering decision
+    if (impact.reason === 'layout' && impactedRoutes.length > 1) {
+      core.info(
+        `📊 Layout impact for ${impact.changedFile}: Testing 1 of ${impactedRoutes.length} routes (${routesToInclude[0]})`
+      );
+    }
+  });
+
+  const routesToTest: ExternalRouteImpactTree = {
+    affectedRoutes: Array.from(routesToTestMap.values()),
+    sharedComponents,
+    totalFilesChanged: changedFiles.length,
+    totalRoutesAffected: routesToTestMap.size,
+    componentRouteMapping: routesToTestComponentMapping,
+  };
+
+  core.info(`📊 Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
+
   const header = "## 🌐 Route Impact (route-impact-analyzer)\n";
   const summaryLines = [
     `- Files analyzed: **${result.metadata?.totalFiles ?? changedFiles.length}**`,
     `- Routes impacted: **${uniqueRoutes.size}**`,
+    `- Routes to test: **${routesToTestMap.size}**`,
     `- Framework: **${result.metadata?.framework ?? "unknown"}**`,
     "",
   ];
@@ -212,15 +290,23 @@ export async function analyzeRoutesWithExternalTool(
   let lineCount = 0;
 
   componentRouteMapping.forEach((routes, file) => {
-    routeLines.push(`- \`${file}\``);
-    routes.forEach((routeInfo) => {
-      if (lineCount < 20) {
+    const fileImpact = result.impacts.find(i => i.changedFile === file);
+    const reason = fileImpact?.reason || 'unknown';
+    const routeCount = routes.length;
+    const testCount = routesToTestComponentMapping.get(file)?.length || 0;
+
+    routeLines.push(`- \`${file}\` (${reason}: ${testCount} to test / ${routeCount} affected)`);
+
+    const routesToShow = routesToTestComponentMapping.get(file) || routes.slice(0, 5);
+    routesToShow.forEach((routeInfo, idx) => {
+      if (lineCount < 20 && idx < 5) {
         routeLines.push(`  - \`${routeInfo.routePath}\``);
         lineCount++;
       }
     });
-    if (routes.length > 20) {
-      routeLines.push(`  - …and ${routes.length - 20} more`);
+
+    if (routes.length > 5) {
+      routeLines.push(`  - …and ${routes.length - 5} more routes`);
     }
   });
 
@@ -232,6 +318,7 @@ export async function analyzeRoutesWithExternalTool(
   return {
     routes: Array.from(uniqueRoutes),
     impactTree,
+    routesToTest,
     commentBody,
   };
 }

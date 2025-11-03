@@ -111298,9 +111298,8 @@ No impacted routes detected.`;
 
 // src/index.ts
 process.on("unhandledRejection", (reason, promise) => {
-  const errorMsg = (reason == null ? void 0 : reason.message) || String(reason);
-  core40.warning(`\u26A0\uFE0F Unhandled promise rejection: ${errorMsg}`);
-  core40.debug(`Promise: ${promise}`);
+  console.warn(`\u26A0\uFE0F Unhandled promise rejection: ${(reason == null ? void 0 : reason.message) || String(reason)}`);
+  console.warn(`This error was caught by global handler and will not crash the workflow`);
 });
 async function run() {
   try {

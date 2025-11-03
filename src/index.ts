@@ -1,3 +1,12 @@
+// CRITICAL: Register unhandled rejection handler FIRST, before any imports or async operations
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  // Can't use core.warning yet as @actions/core isn't imported
+  console.warn(`⚠️ Unhandled promise rejection: ${reason?.message || String(reason)}`);
+  console.warn(`This error was caught by global handler and will not crash the workflow`);
+  // Don't fail the workflow for non-critical unhandled rejections
+  // These are often from fire-and-forget promises in decorators/circuit breakers
+});
+
 import * as core from '@actions/core';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -9,11 +18,11 @@ import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
 import { YoFixBot } from './bot/YoFixBot';
 import { GitHubServiceFactory } from './core/github/GitHubServiceFactory';
-import { 
-  initializeCoreServices, 
-  finalizeCoreServices, 
-  errorHandler, 
-  ErrorCategory, 
+import {
+  initializeCoreServices,
+  finalizeCoreServices,
+  errorHandler,
+  ErrorCategory,
   ErrorSeverity,
   config,
   getRequiredConfig,
@@ -24,15 +33,6 @@ import {
 import { defaultConfig } from './config/default.config';
 import { GitHubCacheManager } from './github/GitHubCacheManager';
 import { analyzeRoutesWithExternalTool, ExternalRouteImpactTree } from './core/analysis/ThirdPartyRouteImpactAnalyzer';
-
-// Global unhandled rejection handler to catch async errors
-process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-  const errorMsg = reason?.message || String(reason);
-  core.warning(`⚠️ Unhandled promise rejection: ${errorMsg}`);
-  core.debug(`Promise: ${promise}`);
-  // Don't fail the workflow for non-critical unhandled rejections
-  // These are often from fire-and-forget promises in decorators/circuit breakers
-});
 
 async function run(): Promise<void> {
   try {

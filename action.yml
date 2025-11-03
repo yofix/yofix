@@ -125,10 +125,14 @@ inputs:
     default: '/login/password'
   
   auth-mode:
-    description: 'Authentication mode: llm (AI-powered), selectors, or smart'
+    description: 'Authentication mode: llm (AI-powered), selectors, smart, or baseline'
     required: false
     default: 'llm'
-  
+
+  repository-root:
+    description: 'Root directory of the repository for baseline generation (defaults to workspace root)'
+    required: false
+
   enable-smart-auth:
     description: 'Enable AI-powered smart authentication'
     required: false

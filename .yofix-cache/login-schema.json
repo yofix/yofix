@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "generatedAt": "2025-11-03T14:08:59.286Z",
+    "sourceFiles": [
+      "LoginWithPassword.tsx",
+      "LoginForm.tsx",
+      "CustomInput.tsx"
+    ],
+    "version": "1.0.0",
+    "detectedLibrary": "MUI",
+    "wrapperPattern": "wrapper-div"
+  },
+  "fields": {
+    "email": [
+      {
+        "type": "css",
+        "value": "[data-testid='login-email'] input",
+        "priority": 1,
+        "description": "Primary: MUI - dataTestId=\"login-email\" on CustomInput, TextField renders wrapper <div data-testid>, input is nested inside"
+      },
+      {
+        "type": "css",
+        "value": "input[name='email']",
+        "priority": 2,
+        "description": "Fallback: name attribute (works with Formik, some react-hook-form setups)"
+      },
+      {
+        "type": "css",
+        "value": "input[type=\"text\"]:first-of-type",
+        "priority": 3,
+        "description": "Fallback: text input type"
+      }
+    ],
+    "password": [
+      {
+        "type": "css",
+        "value": "[data-testid='login-password'] input",
+        "priority": 1,
+        "description": "Primary: MUI - dataTestId=\"login-password\" on CustomInput, TextField renders wrapper <div data-testid>, input is nested inside"
+      },
+      {
+        "type": "css",
+        "value": "input[name='password']",
+        "priority": 2,
+        "description": "Fallback: name attribute (works with Formik, some react-hook-form setups)"
+      },
+      {
+        "type": "css",
+        "value": "input[type=\"password\"]",
+        "priority": 3,
+        "description": "Fallback: password input type"
+      }
+    ]
+  },
+  "submit": [
+    {
+      "type": "css",
+      "value": "[data-testid='login-button']",
+      "priority": 1,
+      "description": "Primary: Button with data-testid=\"login-button\""
+    },
+    {
+      "type": "css",
+      "value": "button:has-text(\"LOGIN\")",
+      "priority": 2,
+      "description": "Fallback: Button with text \"LOGIN\""
+    }
+  ],
+  "validation": {
+    "emailRequired": true,
+    "passwordRequired": true
+  },
+  "successIndicators": {
+    "urlNotContains": "/login"
+  }
+}

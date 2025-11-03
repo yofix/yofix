@@ -42,6 +42,12 @@ export interface ActionResult {
   duration?: number;
 }
 
+export interface Action {
+  name: string;
+  description: string;
+  execute(page: Page, parameters: any): Promise<ActionResult>;
+}
+
 export interface ActionDefinition {
   name: string;
   description: string;

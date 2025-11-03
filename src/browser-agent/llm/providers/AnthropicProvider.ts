@@ -92,22 +92,38 @@ export class AnthropicProvider extends LLMProvider {
 
       // Try to parse JSON from thinking field (for verification/feedback responses)
       const thinkingText = thinking.trim();
-      const jsonMatch = thinkingText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
 
+      // Strategy 1: Try parsing thinking text directly as JSON
+      try {
+        const parsed = JSON.parse(thinkingText);
+        core.debug(`✅ Parsed JSON directly from thinking text`);
+
+        // Return the parsed JSON as parameters (verification/feedback data)
+        return {
+          action: 'text_response',
+          parameters: parsed,
+          thinking: parsed.thinking || thinkingText,
+          rawText: thinkingText
+        };
+      } catch (directParseError) {
+        // Not valid JSON, try extracting from code block
+      }
+
+      // Strategy 2: Try to extract JSON from markdown code block
+      const jsonMatch = thinkingText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (jsonMatch) {
         try {
           const parsed = JSON.parse(jsonMatch[1]);
-          core.debug(`✅ Parsed JSON from thinking block`);
+          core.debug(`✅ Parsed JSON from markdown code block`);
 
-          // Return the parsed JSON as parameters (verification/feedback data)
           return {
-            action: 'text_response', // Special action for non-tool responses
+            action: 'text_response',
             parameters: parsed,
             thinking: parsed.thinking || thinkingText,
             rawText: thinkingText
           };
         } catch (error) {
-          core.warning(`Failed to parse JSON from thinking: ${error}`);
+          core.warning(`Failed to parse JSON from code block: ${error}`);
         }
       }
 

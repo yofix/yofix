@@ -1,0 +1,42 @@
+{
+  "loginUrl": "https://app.tryloop.ai/login/password",
+  "generatedAt": "2025-11-03T14:34:18.608Z",
+  "sourceFiles": [
+    "/Users/hari/2025/lp/loop-frontend/src/pages/public/Login/LoginWithPassword.tsx",
+    "/Users/hari/2025/lp/loop-frontend/src/pages/public/Login/LoginForm.tsx",
+    "/Users/hari/2025/lp/loop-frontend/src/forms/CustomInput.tsx"
+  ],
+  "detectedLibrary": "MUI",
+  "actions": [
+    {
+      "type": "fill",
+      "selector": "[data-testid='login-email'] input",
+      "value": "{email}",
+      "description": "Fill email field with user email address"
+    },
+    {
+      "type": "fill",
+      "selector": "[data-testid='login-password'] input",
+      "value": "{password}",
+      "description": "Fill password field with user password"
+    },
+    {
+      "type": "click",
+      "selector": "[data-testid='login-button']",
+      "description": "Click the LOGIN button to submit credentials"
+    },
+    {
+      "type": "waitForURL",
+      "condition": "URL changes from login page, indicating successful authentication",
+      "timeout": 10000,
+      "description": "Wait for navigation away from login page after successful authentication"
+    }
+  ],
+  "validated": true,
+  "validationDetails": {
+    "emailFilled": true,
+    "passwordFilled": true,
+    "buttonClicked": true,
+    "loginSucceeded": true
+  }
+}

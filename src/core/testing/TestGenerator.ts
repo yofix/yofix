@@ -1,11 +1,14 @@
 import * as core from '@actions/core';
 import { getConfiguration } from '../hooks/ConfigurationHook';
-import { BrowserContext } from 'playwright';
+import { BrowserContext, chromium } from 'playwright';
 import { Agent } from '../../browser-agent/core/Agent';
 import { RouteAnalysisResult, Viewport, FirebaseConfig } from '../../types';
 import { DeterministicRunner, DeterministicTestResult } from '../deterministic/testing/DeterministicRunner';
 import { StorageFactory } from '../../providers/storage/StorageFactory';
 import { buildFullUrl } from '../../utils/urlBuilder';
+import { LoginBaselineManager } from '../../browser-agent/schemas/LoginBaselineManager';
+import { LoginBaselineOrchestrator } from '../../browser-agent/schemas/LoginBaselineOrchestrator';
+import { BaselineLoginAction } from '../../browser-agent/actions/BaselineLoginAction';
 
 export interface TestResult {
   route: string;
@@ -116,53 +119,66 @@ export class TestGenerator {
   private async runTestsWithSharedSession(analysis: RouteAnalysisResult): Promise<TestResult[]> {
     const results: TestResult[] = [];
     let deterministicRunner: DeterministicRunner | null = null;
-    
+
     try {
-      // Step 1: Use browser-agent ONLY for authentication
+      // Step 1: Authenticate using the best available method
       const authEmail = getConfiguration().getInput('auth-email');
       const authPassword = getConfiguration().getInput('auth-password');
       const authMode = getConfiguration().getInput('auth-mode') || 'llm';
-      
-      let initialTask = '';
-      if (authEmail && authPassword) {
+
+      core.info(`🔐 Authentication mode: ${authMode}`);
+
+      let browserContext: BrowserContext | null = null;
+
+      // NEW: Use baseline mode for fastest, most reliable auth
+      if (authMode === 'baseline') {
+        core.info('🎯 Using baseline authentication (fast, validated)...');
+        browserContext = await this.authenticateWithBaseline(authEmail, authPassword);
+      } else if (authEmail && authPassword) {
+        // Fallback to legacy authentication methods
+        let initialTask = '';
         const loginUrl = getConfiguration().getInput('auth-login-url') || '/login';
         if (authMode === 'llm') {
           initialTask = `Authenticate using llm_login with email="${authEmail}" password="${authPassword}" loginUrl="${loginUrl}".`;
         } else {
           initialTask = `Authenticate using smart_login with email="${authEmail}" password="${authPassword}" url="${loginUrl}".`;
         }
+
+        core.info('🤖 Using legacy browser-agent authentication...');
+
+        // Create shared agent for auth only
+        this.sharedAgent = new Agent(initialTask, {
+          headless: true,
+          maxSteps: 10,
+          llmProvider: 'anthropic',
+          llmModel: this.claudeModel,
+          viewport: this.viewports[0] || { width: 1920, height: 1080 },
+          apiKey: this.claudeApiKey
+        });
+
+        await this.sharedAgent.initialize();
+        const authResult = await this.sharedAgent.run();
+
+        if (!authResult.success) {
+          core.error('Failed to authenticate in shared session');
+          throw new Error('Authentication failed');
+        }
+
+        core.info('✅ Shared session authenticated successfully');
+
+        // Get the browser context from agent
+        browserContext = this.sharedAgent.getBrowserContext();
+        if (!browserContext) {
+          throw new Error('Failed to get browser context from agent');
+        }
       } else {
-        initialTask = `Navigate to ${this.firebaseConfig.previewUrl} and wait for page to load.`;
+        core.info('ℹ️ No authentication credentials provided, skipping login');
+        // Initialize without auth
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({ headless: true });
+        browserContext = await browser.newContext();
       }
-      
-      core.info('🔐 Initializing shared browser session with authentication...');
-      
-      // Create shared agent for auth only
-      this.sharedAgent = new Agent(initialTask, {
-        headless: true,
-        maxSteps: 10,
-        llmProvider: 'anthropic',
-        llmModel: this.claudeModel,
-        viewport: this.viewports[0] || { width: 1920, height: 1080 },
-        apiKey: this.claudeApiKey
-      });
-      
-      await this.sharedAgent.initialize();
-      const authResult = await this.sharedAgent.run();
-      
-      if (!authResult.success) {
-        core.error('Failed to authenticate in shared session');
-        throw new Error('Authentication failed');
-      }
-      
-      core.info('✅ Shared session authenticated successfully');
-      
-      // Step 2: Get the browser context from agent to preserve session
-      const browserContext = this.sharedAgent.getBrowserContext();
-      if (!browserContext) {
-        throw new Error('Failed to get browser context from agent');
-      }
-      
+
       // Store for later use by visual analyzer
       this.sharedBrowserContext = browserContext;
       
@@ -520,6 +536,83 @@ Provide detailed analysis and practical fixes for any issues found.`;
         screenshots: [],
         error: error instanceof Error ? error.message : String(error)
       };
+    }
+  }
+
+  /**
+   * Authenticate using the new baseline approach
+   * - Generates/retrieves cached baseline
+   * - Executes validated Playwright actions
+   * - Returns authenticated browser context
+   */
+  private async authenticateWithBaseline(
+    email: string,
+    password: string
+  ): Promise<BrowserContext> {
+    const startTime = Date.now();
+
+    try {
+      // Get configuration
+      const loginUrl = getConfiguration().getInput('auth-login-url');
+      if (!loginUrl) {
+        throw new Error('auth-login-url is required for baseline authentication');
+      }
+
+      // Get repository root - check if configured, otherwise use cwd
+      const repositoryRoot = getConfiguration().getInput('repository-root') || process.cwd();
+
+      core.info(`   Login URL: ${loginUrl}`);
+      core.info(`   Repository: ${repositoryRoot}`);
+
+      // Initialize storage and orchestrator
+      const storage = await StorageFactory.createFromInputs();
+      const orchestrator = new LoginBaselineOrchestrator(storage, this.claudeApiKey);
+
+      // Generate or retrieve cached baseline
+      const baseline = await orchestrator.generateFromUrl({
+        loginUrl,
+        repositoryRoot,
+        testCredentials: { email, password },
+        model: this.claudeModel,
+        forceRegenerate: false // Use cache for speed
+      });
+
+      core.info(`✅ Baseline ready (${baseline.validated ? 'validated' : 'not validated'})`);
+      core.info(`   Actions: ${baseline.actions.length}`);
+      core.info(`   Generated: ${baseline.generatedAt}`);
+
+      // Launch browser and create context
+      const browser = await chromium.launch({ headless: true });
+      const context = await browser.newContext({
+        viewport: this.viewports[0] || { width: 1920, height: 1080 }
+      });
+      const page = await context.newPage();
+
+      // Navigate to login page
+      core.info(`\n🌐 Navigating to ${loginUrl}...`);
+      await page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
+
+      // Execute baseline login
+      const loginAction = new BaselineLoginAction(baseline);
+      const result = await loginAction.execute(page, {
+        email,
+        password,
+        loginUrl
+      });
+
+      if (!result.success) {
+        throw new Error(`Baseline login failed: ${result.error}`);
+      }
+
+      const duration = Date.now() - startTime;
+      core.info(`\n✅ Baseline authentication successful in ${(duration / 1000).toFixed(2)}s`);
+      core.info(`📍 Final URL: ${page.url()}`);
+
+      return context;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      core.error(`❌ Baseline authentication failed after ${(duration / 1000).toFixed(2)}s`);
+      throw error;
     }
   }
 

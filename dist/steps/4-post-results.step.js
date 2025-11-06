@@ -27297,16 +27297,11 @@ ${message}
       core6.info(`Embedding ${screenshots.length} screenshots in PR comment`);
       const screenshotsWithUrls = screenshots.filter((s) => s.firebaseUrl);
       core6.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
-      const routeDurationMap = /* @__PURE__ */ new Map();
-      result.testResults.forEach((test) => {
-        const routePath = test.testId.replace("test-", "");
-        routeDurationMap.set(routePath, test.duration);
-      });
       const hasBaselineData = screenshots.some((s) => s.comparison || s.baseline);
       if (hasBaselineData) {
         comment += this.generateVisualComparisonTable(screenshots, result);
       } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result, routeDurationMap);
+        comment += this.generateEmbeddedScreenshots(screenshots, result);
       }
     }
     if (videos.length > 0) {
@@ -27561,7 +27556,7 @@ ${message}
   /**
    * Generate embedded screenshots for PR comment (legacy method)
    */
-  generateEmbeddedScreenshots(screenshots, result, routeDurationMap) {
+  generateEmbeddedScreenshots(screenshots, result) {
     if (screenshots.length === 0) {
       return "";
     }
@@ -27580,16 +27575,27 @@ ${message}
         continue;
       }
       const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
-      const duration = routeDurationMap == null ? void 0 : routeDurationMap.get(route);
-      const durationText = duration ? ` \u2022 ${this.formatDuration(duration)}` : "";
+      const testResult = result.testResults.find((test) => {
+        let testRoute = test.testId.replace("test-", "");
+        if (testRoute.startsWith("http://") || testRoute.startsWith("https://")) {
+          try {
+            const url = new URL(testRoute);
+            testRoute = url.pathname;
+          } catch (error5) {
+          }
+        }
+        return testRoute === route;
+      });
+      const totalTimeText = (testResult == null ? void 0 : testResult.duration) ? ` \u2022 ${this.formatDuration(testResult.duration)}` : "";
       gallery += `<details>
 `;
-      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>
+      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>
 
 `;
       gallery += "<table>\n<tr>\n";
       const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
       for (const screenshot of sorted) {
+        const durationText = screenshot.duration ? ` \u2022 ${this.formatDuration(screenshot.duration)}` : "";
         gallery += `<td align="center">
 `;
         gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}${durationText}</strong><br>
@@ -27936,6 +27942,7 @@ async function postResults(stepData) {
       skippedTests: 0,
       duration: totalDuration,
       testResults: screenshotResult.screenshots.map((r) => {
+        var _a2;
         let routePath = r.route;
         if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
           try {
@@ -27950,7 +27957,7 @@ async function postResults(stepData) {
           testId: `test-${r.route}`,
           testName: `Route Test: ${r.route}`,
           status: r.success !== false ? "passed" : "failed",
-          duration: screenshotResult.totalDuration,
+          duration: ((_a2 = r.timing) == null ? void 0 : _a2.totalTime) || 0,
           screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(sanitizedRoute)).map((f) => {
             const metadata2 = screenshotMetadataMap[f.localPath];
             const viewport = (metadata2 == null ? void 0 : metadata2.viewport) || { width: 0, height: 0, name: "" };
@@ -27960,7 +27967,8 @@ async function postResults(stepData) {
               viewport,
               timestamp: Date.now(),
               firebaseUrl: f.url || "",
-              route: routePath
+              route: routePath,
+              duration: metadata2 == null ? void 0 : metadata2.duration
             };
           }),
           videos: [],

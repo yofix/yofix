@@ -27438,6 +27438,7 @@ async function uploadToStorage(stepData) {
     const screenshotMetadataMap = /* @__PURE__ */ new Map();
     const filesForUpload = internal.screenshotResult.screenshots.flatMap(
       (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
+        var _a2;
         screenshotMetadataMap.set(screenshot.path, {
           route: routeScreenshot.route,
           viewport: {
@@ -27445,7 +27446,8 @@ async function uploadToStorage(stepData) {
             height: screenshot.height,
             name: screenshot.viewport
           },
-          metadata: screenshot.metadata
+          metadata: screenshot.metadata,
+          duration: screenshot.duration || ((_a2 = screenshot.metadata) == null ? void 0 : _a2.duration)
         });
         return {
           path: screenshot.path,

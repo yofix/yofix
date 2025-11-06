@@ -68,7 +68,8 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
             height: screenshot.height,
             name: screenshot.viewport
           },
-          metadata: screenshot.metadata
+          metadata: screenshot.metadata,
+          duration: screenshot.duration || screenshot.metadata?.duration
         });
 
         return {

@@ -138,19 +138,12 @@ ${message}
       const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
       core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
 
-      // Create route->duration map from test results
-      const routeDurationMap = new Map<string, number>();
-      result.testResults.forEach(test => {
-        const routePath = test.testId.replace('test-', '');
-        routeDurationMap.set(routePath, test.duration);
-      });
-
       // Use enhanced comparison layout if baseline data is available
       const hasBaselineData = screenshots.some(s => s.comparison || s.baseline);
       if (hasBaselineData) {
         comment += this.generateVisualComparisonTable(screenshots, result);
       } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result, routeDurationMap);
+        comment += this.generateEmbeddedScreenshots(screenshots, result);
       }
     }
     
@@ -414,7 +407,7 @@ ${message}
   /**
    * Generate embedded screenshots for PR comment (legacy method)
    */
-  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult, routeDurationMap?: Map<string, number>): string {
+  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult): string {
     if (screenshots.length === 0) {
       return '';
     }
@@ -445,13 +438,26 @@ ${message}
       // Get the full URL from the first screenshot
       const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
 
-      // Get the duration for this route
-      const duration = routeDurationMap?.get(route);
-      const durationText = duration ? ` • ${this.formatDuration(duration)}` : '';
+      // Get route-level total time from test results
+      const testResult = result.testResults.find(test => {
+        let testRoute = test.testId.replace('test-', '');
+        // Extract pathname from full URL if needed
+        if (testRoute.startsWith('http://') || testRoute.startsWith('https://')) {
+          try {
+            const url = new URL(testRoute);
+            testRoute = url.pathname;
+          } catch (error) {
+            // Keep as-is if parsing fails
+          }
+        }
+        return testRoute === route;
+      });
+
+      const totalTimeText = testResult?.duration ? ` • ${this.formatDuration(testResult.duration)}` : '';
 
       // Create collapsible section for each route
       gallery += `<details>\n`;
-      gallery += `<summary><strong>📍 Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>\n\n`;
+      gallery += `<summary><strong>📍 Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>\n\n`;
 
       // Create a table for viewports
       gallery += '<table>\n<tr>\n';
@@ -460,6 +466,9 @@ ${message}
       const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
 
       for (const screenshot of sorted) {
+        // Get individual screenshot duration (viewport resize + reflow + capture)
+        const durationText = screenshot.duration ? ` • ${this.formatDuration(screenshot.duration)}` : '';
+
         gallery += `<td align="center">\n`;
         gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}×${screenshot.viewport.height}`}${durationText}</strong><br>\n`;
         gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />\n`;

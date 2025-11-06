@@ -100,7 +100,7 @@ export async function postResults(stepData: StepData): Promise<StepData> {
           testId: `test-${r.route}`,
           testName: `Route Test: ${r.route}`,
           status: r.success !== false ? 'passed' : 'failed',
-          duration: screenshotResult.totalDuration,
+          duration: r.timing?.totalTime || 0,
           screenshots: uploadedFiles
             .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute))
             .map((f: any) => {
@@ -114,7 +114,8 @@ export async function postResults(stepData: StepData): Promise<StepData> {
                 viewport: viewport,
                 timestamp: Date.now(),
                 firebaseUrl: f.url || '',
-                route: routePath
+                route: routePath,
+                duration: metadata?.duration
               };
             }),
           videos: [],

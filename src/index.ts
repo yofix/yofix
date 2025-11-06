@@ -389,24 +389,50 @@ async function runVisualTesting(): Promise<void> {
       failedTests: screenshotResult.screenshots.filter(r => r.success === false).length,
       skippedTests: 0,
       duration: Date.now() - startTime,
-      testResults: screenshotResult.screenshots.map(r => ({
-        testId: `test-${r.route}`,
-        testName: `Route Test: ${r.route}`,
-        status: r.success !== false ? 'passed' : 'failed',
-        duration: screenshotResult.totalDuration,
-        screenshots: uploadedFiles
-          .filter(f => f.remotePath && f.remotePath.includes(r.route.replace(/^\//, '').replace(/\//g, '-')))
-          .map(f => ({
-            name: path.basename(f.remotePath),
-            path: f.localPath,
-            viewport: { width: 0, height: 0, name: '' }, // TODO: Extract from metadata
-            timestamp: Date.now(),
-            firebaseUrl: f.url
-          })),
-        videos: [],
-        errors: r.error ? [r.error] : [],
-        consoleMessages: []
-      })),
+      testResults: screenshotResult.screenshots.map(r => {
+        // Extract pathname from full URL for matching with uploaded files
+        let routePath = r.route;
+        if (routePath.startsWith('http://') || routePath.startsWith('https://')) {
+          try {
+            const url = new URL(routePath);
+            routePath = url.pathname;
+          } catch (error) {
+            core.debug(`Failed to parse route URL: ${routePath}`);
+          }
+        }
+
+        // Convert route path to sanitized filename format (e.g., /guard/trends -> guard-trends)
+        const sanitizedRoute = routePath
+          .replace(/^\//, '')           // Remove leading slash
+          .replace(/\//g, '-')          // Replace slashes with dashes
+          .toLowerCase();
+
+        core.debug(`Matching route "${r.route}" (sanitized: "${sanitizedRoute}") with uploaded files`);
+
+        return {
+          testId: `test-${r.route}`,
+          testName: `Route Test: ${r.route}`,
+          status: r.success !== false ? 'passed' : 'failed',
+          duration: screenshotResult.totalDuration,
+          screenshots: uploadedFiles
+            .filter(f => {
+              if (!f.remotePath) return false;
+              const match = f.remotePath.includes(sanitizedRoute);
+              core.debug(`  Checking "${f.remotePath}" contains "${sanitizedRoute}": ${match}`);
+              return match;
+            })
+            .map(f => ({
+              name: path.basename(f.remotePath),
+              path: f.localPath,
+              viewport: { width: 0, height: 0, name: '' }, // TODO: Extract from metadata
+              timestamp: Date.now(),
+              firebaseUrl: f.url
+            })),
+          videos: [],
+          errors: r.error ? [r.error] : [],
+          consoleMessages: []
+        };
+      }),
       screenshotsUrl,
       summary: {
         componentsVerified: analysis.components,

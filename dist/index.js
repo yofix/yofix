@@ -35127,63 +35127,9 @@ ${body}`;
       return null;
     }
   }
-  /**
-   * Post an error comment with enhanced context
-   */
-  async postError(error5, context) {
-    const errorMessage = error5 instanceof Error ? error5.message : error5;
-    const errorStack = error5 instanceof Error && (context == null ? void 0 : context.includeStackTrace) ? error5.stack : void 0;
-    this.errorSummary.push({
-      timestamp: /* @__PURE__ */ new Date(),
-      error: errorMessage,
-      location: context == null ? void 0 : context.location
-    });
-    let message = `### \u{1F6A8} Error Occurred
-
-`;
-    message += `**Error**: ${errorMessage}
-
-`;
-    if (context == null ? void 0 : context.location) {
-      message += `**Location**: \`${context.location}\`
-
-`;
-    }
-    if (context == null ? void 0 : context.userAction) {
-      message += `**During**: ${context.userAction}
-
-`;
-    }
-    if ((context == null ? void 0 : context.metadata) && Object.keys(context.metadata).length > 0) {
-      message += `**Context**:
-`;
-      for (const [key, value] of Object.entries(context.metadata)) {
-        message += `- ${key}: ${JSON.stringify(value)}
-`;
-      }
-      message += "\n";
-    }
-    if ((context == null ? void 0 : context.tips) && context.tips.length > 0) {
-      message += `**\u{1F4A1} Troubleshooting Tips**:
-`;
-      for (const tip of context.tips) {
-        message += `- ${tip}
-`;
-      }
-      message += "\n";
-    }
-    if (errorStack) {
-      message += `<details>
-<summary>Stack Trace</summary>
-
-\`\`\`
-${errorStack}
-\`\`\`
-</details>
-`;
-    }
-    await this.postComment(message, { isError: true, signature: "yofix-error" });
-  }
+  // postError() method removed - duplicate logic with CentralizedErrorHandler
+  // Use CentralizedErrorHandler.handleError() for error handling instead
+  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
   /**
    * Post a progress update
    */
@@ -35473,9 +35419,6 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     };
     this.errorBuffer.push(errorEntry);
     this.logError(error5, options);
-    if (!options.skipGitHubPost && !this.isTestMode && this.github && this.prNumber > 0) {
-      await this.postErrorToGitHub(error5, options);
-    }
     if (!options.recoverable) {
       if (error5 instanceof Error) {
         throw error5;
@@ -35526,65 +35469,8 @@ ${error5.stack}`);
     parts.push(errorMessage);
     return parts.join(" ");
   }
-  /**
-   * Post error to GitHub PR
-   */
-  async postErrorToGitHub(error5, context) {
-    if (!this.github || this.prNumber === 0) {
-      return;
-    }
-    const errorMessage = error5 instanceof Error ? error5.message : error5;
-    const errorStack = error5 instanceof Error && context.includeStackTrace ? error5.stack : void 0;
-    let message = `### \u{1F6A8} Error Occurred
-
-`;
-    message += `**Error**: ${errorMessage}
-
-`;
-    if (context.location) {
-      message += `**Location**: \`${context.location}\`
-
-`;
-    }
-    if (context.userAction) {
-      message += `**During**: ${context.userAction}
-
-`;
-    }
-    if (context.metadata && Object.keys(context.metadata).length > 0) {
-      message += `**Context**:
-`;
-      for (const [key, value] of Object.entries(context.metadata)) {
-        message += `- ${key}: ${JSON.stringify(value)}
-`;
-      }
-      message += "\n";
-    }
-    if (context.tips && context.tips.length > 0) {
-      message += `**\u{1F4A1} Troubleshooting Tips**:
-`;
-      for (const tip of context.tips) {
-        message += `- ${tip}
-`;
-      }
-      message += "\n";
-    }
-    if (errorStack) {
-      message += `<details>
-<summary>Stack Trace</summary>
-
-\`\`\`
-${errorStack}
-\`\`\`
-</details>
-`;
-    }
-    try {
-      await this.github.createComment(message);
-    } catch (postError) {
-      core3.warning(`Failed to post error to GitHub: ${postError}`);
-    }
-  }
+  // Individual error posting removed - only post summary at end
+  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
   /**
    * Update error statistics
    */
@@ -38727,23 +38613,41 @@ async function runVisualTesting() {
       failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
       skippedTests: 0,
       duration: Date.now() - startTime,
-      testResults: screenshotResult.screenshots.map((r) => ({
-        testId: `test-${r.route}`,
-        testName: `Route Test: ${r.route}`,
-        status: r.success !== false ? "passed" : "failed",
-        duration: screenshotResult.totalDuration,
-        screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(r.route.replace(/^\//, "").replace(/\//g, "-"))).map((f) => ({
-          name: import_path.default.basename(f.remotePath),
-          path: f.localPath,
-          viewport: { width: 0, height: 0, name: "" },
-          // TODO: Extract from metadata
-          timestamp: Date.now(),
-          firebaseUrl: f.url
-        })),
-        videos: [],
-        errors: r.error ? [r.error] : [],
-        consoleMessages: []
-      })),
+      testResults: screenshotResult.screenshots.map((r) => {
+        let routePath = r.route;
+        if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
+          try {
+            const url = new URL(routePath);
+            routePath = url.pathname;
+          } catch (error5) {
+            core11.debug(`Failed to parse route URL: ${routePath}`);
+          }
+        }
+        const sanitizedRoute = routePath.replace(/^\//, "").replace(/\//g, "-").toLowerCase();
+        core11.debug(`Matching route "${r.route}" (sanitized: "${sanitizedRoute}") with uploaded files`);
+        return {
+          testId: `test-${r.route}`,
+          testName: `Route Test: ${r.route}`,
+          status: r.success !== false ? "passed" : "failed",
+          duration: screenshotResult.totalDuration,
+          screenshots: uploadedFiles.filter((f) => {
+            if (!f.remotePath) return false;
+            const match = f.remotePath.includes(sanitizedRoute);
+            core11.debug(`  Checking "${f.remotePath}" contains "${sanitizedRoute}": ${match}`);
+            return match;
+          }).map((f) => ({
+            name: import_path.default.basename(f.remotePath),
+            path: f.localPath,
+            viewport: { width: 0, height: 0, name: "" },
+            // TODO: Extract from metadata
+            timestamp: Date.now(),
+            firebaseUrl: f.url
+          })),
+          videos: [],
+          errors: r.error ? [r.error] : [],
+          consoleMessages: []
+        };
+      }),
       screenshotsUrl,
       summary: {
         componentsVerified: analysis.components,

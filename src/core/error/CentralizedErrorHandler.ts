@@ -136,25 +136,23 @@ export class CentralizedErrorHandler {
   async handleError(error: Error | string, options: ErrorOptions = {}): Promise<void> {
     // Update statistics
     this.updateErrorStats(options);
-    
+
     // Create error entry
     const errorEntry = {
       error,
       context: options,
       timestamp: new Date()
     };
-    
+
     // Add to buffer
     this.errorBuffer.push(errorEntry);
-    
+
     // Log to console/GitHub Actions
     this.logError(error, options);
-    
-    // Post to GitHub if enabled
-    if (!options.skipGitHubPost && !this.isTestMode && this.github && this.prNumber > 0) {
-      await this.postErrorToGitHub(error, options);
-    }
-    
+
+    // Individual error posting disabled - only post summary at end
+    // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
+
     // Throw if not recoverable
     if (!options.recoverable) {
       if (error instanceof Error) {
@@ -217,54 +215,8 @@ export class CentralizedErrorHandler {
     return parts.join(' ');
   }
 
-  /**
-   * Post error to GitHub PR
-   */
-  private async postErrorToGitHub(error: Error | string, context: ErrorOptions): Promise<void> {
-    if (!this.github || this.prNumber === 0) {
-      return;
-    }
-
-    const errorMessage = error instanceof Error ? error.message : error;
-    const errorStack = error instanceof Error && context.includeStackTrace ? error.stack : undefined;
-    
-    let message = `### 🚨 Error Occurred\n\n`;
-    message += `**Error**: ${errorMessage}\n\n`;
-    
-    if (context.location) {
-      message += `**Location**: \`${context.location}\`\n\n`;
-    }
-    
-    if (context.userAction) {
-      message += `**During**: ${context.userAction}\n\n`;
-    }
-    
-    if (context.metadata && Object.keys(context.metadata).length > 0) {
-      message += `**Context**:\n`;
-      for (const [key, value] of Object.entries(context.metadata)) {
-        message += `- ${key}: ${JSON.stringify(value)}\n`;
-      }
-      message += '\n';
-    }
-    
-    if (context.tips && context.tips.length > 0) {
-      message += `**💡 Troubleshooting Tips**:\n`;
-      for (const tip of context.tips) {
-        message += `- ${tip}\n`;
-      }
-      message += '\n';
-    }
-    
-    if (errorStack) {
-      message += `<details>\n<summary>Stack Trace</summary>\n\n\`\`\`\n${errorStack}\n\`\`\`\n</details>\n`;
-    }
-    
-    try {
-      await this.github.createComment(message);
-    } catch (postError) {
-      core.warning(`Failed to post error to GitHub: ${postError}`);
-    }
-  }
+  // Individual error posting removed - only post summary at end
+  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
 
   /**
    * Update error statistics

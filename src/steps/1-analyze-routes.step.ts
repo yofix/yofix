@@ -50,8 +50,14 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
     try {
       core.info('🛰️ Using route-impact-analyzer to discover affected routes...');
 
-      // Get changed files from PR
+      // Configure GitHub service with token (each step is a separate process)
+      const githubToken = config.get('github-token');
       const github = GitHubServiceFactory.getService();
+      if (githubToken) {
+        await github.configure({ token: githubToken });
+      }
+
+      // Get changed files from PR
       const prFiles = await github.listPullRequestFiles();
       core.info(`📝 Analyzing ${prFiles.length} changed files: ${prFiles.map(f => f.filename).join(', ')}`);
 

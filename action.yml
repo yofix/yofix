@@ -255,6 +255,8 @@ runs:
         node ${{ github.action_path }}/dist/steps/2-browse-routes.step.js
       env:
         INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE-MODEL: ${{ inputs.claude-model }}
         INPUT_VIEWPORTS: ${{ inputs.viewports }}
         INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
         INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}

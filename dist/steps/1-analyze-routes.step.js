@@ -24358,8 +24358,8 @@ var MockGitHubService = class {
       }
     };
   }
-  async configure(config2) {
-    this.config = config2;
+  async configure(config3) {
+    this.config = config3;
     this.configured = true;
   }
   isConfigured() {
@@ -24462,23 +24462,23 @@ var EnhancedGitHubService = class {
   constructor() {
     this.config = {};
   }
-  async configure(config2) {
+  async configure(config3) {
     var _a, _b, _c, _d, _e;
-    this.config = { ...config2 };
-    if (((_a = config2.cache) == null ? void 0 : _a.enabled) !== false) {
-      this.cache = new LRUCache(((_b = config2.cache) == null ? void 0 : _b.maxSize) || 100);
+    this.config = { ...config3 };
+    if (((_a = config3.cache) == null ? void 0 : _a.enabled) !== false) {
+      this.cache = new LRUCache(((_b = config3.cache) == null ? void 0 : _b.maxSize) || 100);
     }
-    if (((_c = config2.rateLimit) == null ? void 0 : _c.enabled) !== false) {
-      const requestsPerHour = ((_d = config2.rateLimit) == null ? void 0 : _d.requestsPerHour) || 5e3;
+    if (((_c = config3.rateLimit) == null ? void 0 : _c.enabled) !== false) {
+      const requestsPerHour = ((_d = config3.rateLimit) == null ? void 0 : _d.requestsPerHour) || 5e3;
       const requestsPerSecond = requestsPerHour / 3600;
       this.rateLimiter = new RateLimiter(
-        ((_e = config2.rateLimit) == null ? void 0 : _e.burstLimit) || 10,
+        ((_e = config3.rateLimit) == null ? void 0 : _e.burstLimit) || 10,
         requestsPerSecond
       );
     }
-    if (config2.token) {
+    if (config3.token) {
       const github = await Promise.resolve().then(() => __toESM(require_github()));
-      this.octokit = github.getOctokit(config2.token);
+      this.octokit = github.getOctokit(config3.token);
     }
   }
   isConfigured() {
@@ -24771,11 +24771,11 @@ var OctokitGitHubService = class {
   constructor() {
     this.config = {};
   }
-  async configure(config2) {
-    this.config = config2;
-    if (config2.token) {
+  async configure(config3) {
+    this.config = config3;
+    if (config3.token) {
       const github = await Promise.resolve().then(() => __toESM(require_github()));
-      this.octokit = github.getOctokit(config2.token);
+      this.octokit = github.getOctokit(config3.token);
     }
   }
   isConfigured() {
@@ -25000,8 +25000,8 @@ var OctokitGitHubService = class {
   }
 };
 var LazyGitHubService = class {
-  async configure(config2) {
-    this.pendingConfig = { ...this.pendingConfig, ...config2 };
+  async configure(config3) {
+    this.pendingConfig = { ...this.pendingConfig, ...config3 };
   }
   isConfigured() {
     var _a;
@@ -25143,33 +25143,33 @@ var GitHubServiceFactory = class {
    * Create a new instance without singleton pattern
    */
   static createService(options = {}) {
-    const { mock = false, enhanced = true, config: config2 } = options;
+    const { mock = false, enhanced = true, config: config3 } = options;
     if (mock || env.getWithDefaults("NODE_ENV") === "test" && mock !== false) {
       const service2 = new MockGitHubService();
-      if (config2) {
-        service2.configure(config2);
+      if (config3) {
+        service2.configure(config3);
       }
       return service2;
     }
     if (enhanced) {
       const service2 = new EnhancedGitHubService();
-      if (config2) {
-        service2.configure(config2);
+      if (config3) {
+        service2.configure(config3);
       }
       return service2;
     }
     const service = new OctokitGitHubService();
-    if (config2) {
-      service.configure(config2);
+    if (config3) {
+      service.configure(config3);
     }
     return service;
   }
   /**
    * Create enhanced service with custom configuration
    */
-  static createEnhancedService(config2) {
+  static createEnhancedService(config3) {
     const service = new EnhancedGitHubService();
-    service.configure(config2);
+    service.configure(config3);
     return service;
   }
 };
@@ -25276,8 +25276,8 @@ var ConfigurationFactory = class {
   /**
    * Set configuration instance (for testing)
    */
-  static setConfiguration(config2) {
-    this.instance = config2;
+  static setConfiguration(config3) {
+    this.instance = config3;
   }
   /**
    * Reset configuration instance
@@ -26779,8 +26779,8 @@ async function retryOperation(operation, options = {}) {
 
 // src/core/patterns/CircuitBreaker.ts
 var CircuitBreaker = class {
-  constructor(config2) {
-    this.config = config2;
+  constructor(config3) {
+    this.config = config3;
     this.state = "CLOSED" /* CLOSED */;
     this.failures = 0;
     this.successes = 0;
@@ -26792,11 +26792,11 @@ var CircuitBreaker = class {
       module: `CircuitBreaker.${this.config.serviceName}`,
       defaultCategory: ErrorCategory.NETWORK
     });
-    this.failureThreshold = config2.failureThreshold ?? 5;
-    this.resetTimeout = config2.resetTimeout ?? 6e4;
-    this.timeout = config2.timeout ?? 3e4;
-    this.successThreshold = config2.successThreshold ?? 0.5;
-    this.volumeThreshold = config2.volumeThreshold ?? 5;
+    this.failureThreshold = config3.failureThreshold ?? 5;
+    this.resetTimeout = config3.resetTimeout ?? 6e4;
+    this.timeout = config3.timeout ?? 3e4;
+    this.successThreshold = config3.successThreshold ?? 0.5;
+    this.volumeThreshold = config3.volumeThreshold ?? 5;
   }
   /**
    * Execute a function with circuit breaker protection
@@ -26983,13 +26983,13 @@ var CircuitBreakerFactory = class {
   /**
    * Get or create a circuit breaker
    */
-  static getBreaker(config2) {
-    const existing = this.breakers.get(config2.serviceName);
+  static getBreaker(config3) {
+    const existing = this.breakers.get(config3.serviceName);
     if (existing) {
       return existing;
     }
-    const breaker = new CircuitBreaker(config2);
-    this.breakers.set(config2.serviceName, breaker);
+    const breaker = new CircuitBreaker(config3);
+    this.breakers.set(config3.serviceName, breaker);
     return breaker;
   }
   /**
@@ -27251,7 +27251,7 @@ var ConfigurationManager = class _ConfigurationManager {
     });
   }
 };
-var config = ConfigurationManager.getInstance();
+var config2 = ConfigurationManager.getInstance();
 
 // src/core/utils/JSONParser.ts
 var logger = createModuleLogger({
@@ -27626,7 +27626,11 @@ async function analyzeRoutes(stepData) {
     let components = ["App"];
     try {
       core8.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
+      const githubToken = config.get("github-token");
       const github = GitHubServiceFactory.getService();
+      if (githubToken) {
+        await github.configure({ token: githubToken });
+      }
       const prFiles = await github.listPullRequestFiles();
       core8.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f) => f.filename).join(", ")}`);
       const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, previewUrl);

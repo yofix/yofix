@@ -14,7 +14,8 @@ import path from 'path';
 import { PRReporter } from '../github/PRReporter';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
 import { VerificationResult, RouteAnalysisResult } from '../types';
-import { ErrorSeverity, ErrorCategory, errorHandler } from '../core';
+import { ErrorSeverity, ErrorCategory, errorHandler, config } from '../core';
+import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
 
 /**
  * Main step execution
@@ -26,6 +27,13 @@ export async function postResults(stepData: StepData): Promise<StepData> {
 
     if (!routes || !screenshots) {
       throw new Error('Missing routes or screenshots data. Run previous steps first.');
+    }
+
+    // Configure GitHub service with token (each step is a separate process)
+    const githubToken = config.get('github-token');
+    const github = GitHubServiceFactory.getService();
+    if (githubToken) {
+      await github.configure({ token: githubToken });
     }
 
     core.info(`📝 Preparing results for PR #${prNumber}`);

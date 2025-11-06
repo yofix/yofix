@@ -27903,6 +27903,11 @@ async function postResults(stepData) {
     if (!routes || !screenshots) {
       throw new Error("Missing routes or screenshots data. Run previous steps first.");
     }
+    const githubToken = config.get("github-token");
+    const github = GitHubServiceFactory.getService();
+    if (githubToken) {
+      await github.configure({ token: githubToken });
+    }
     core8.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
     const analysis = {
       hasUIChanges: routes.affectedRoutes.length > 0,

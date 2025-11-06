@@ -4287,10 +4287,10 @@
     typescript "^5.7.2"
     zod "^3.24.1"
 
-"@yofix/browser@^1.0.5":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@yofix/browser/-/browser-1.0.5.tgz#5cd7f9ea92f462248f164cf77bceca83a4dd8d5e"
-  integrity sha512-MwEOtcRKR052mVYrKvis6YuYJHivl3OPhev/bKmEaGp8UMFD7aMdjfretUKUL8VYHHLkVjMVAN9gp1E7yW0RCA==
+"@yofix/browser@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@yofix/browser/-/browser-1.0.6.tgz#1e985c15ca1a9036005ff09de89d5e6a6e907cc0"
+  integrity sha512-lAMugJO/tINWj0vEYJs4I/wD1IXsFi9PkmlLMFHEC6oHbROvkTj1/FjWgW9QPfAasYDmDeYB7l6BkMXBh8o4+A==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"

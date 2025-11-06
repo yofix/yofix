@@ -52,7 +52,8 @@ export async function postResults(stepData: StepData): Promise<StepData> {
     const screenshotResult = internal?.screenshotResult;
     const uploadedFiles = internal?.uploadedFiles || [];
     const storageUrl = internal?.storageUrl || '';
-    const screenshotMetadataMap = internal?.screenshotMetadataMap || new Map();
+    // Handle screenshotMetadataMap as object (JSON deserialized)
+    const screenshotMetadataMap = internal?.screenshotMetadataMap || {};
 
     if (!screenshotResult) {
       throw new Error('Screenshot result not found in step data');
@@ -64,7 +65,13 @@ export async function postResults(stepData: StepData): Promise<StepData> {
     // Create verification result
     const verificationResult: VerificationResult = {
       status: screenshotResult.success ? 'success' : 'failure',
-      firebaseConfig,
+      firebaseConfig: {
+        projectId: firebaseConfig.projectId,
+        target: firebaseConfig.target,
+        buildSystem: firebaseConfig.buildSystem as 'vite' | 'react',
+        previewUrl,
+        region: firebaseConfig.region
+      },
       totalTests: screenshotResult.screenshots.length,
       passedTests: screenshotResult.screenshots.filter((r: any) => r.success !== false).length,
       failedTests: screenshotResult.screenshots.filter((r: any) => r.success === false).length,
@@ -96,8 +103,8 @@ export async function postResults(stepData: StepData): Promise<StepData> {
           screenshots: uploadedFiles
             .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute))
             .map((f: any) => {
-              // Retrieve original metadata
-              const metadata = screenshotMetadataMap.get(f.localPath);
+              // Retrieve original metadata (screenshotMetadataMap is an object, not a Map)
+              const metadata = screenshotMetadataMap[f.localPath];
               const viewport = metadata?.viewport || { width: 0, height: 0, name: '' };
 
               return {
@@ -185,6 +192,9 @@ export async function postResults(stepData: StepData): Promise<StepData> {
  * Entry point for standalone execution
  */
 export async function main(): Promise<void> {
+  let hadError = false;
+  let mainError: any = null;
+
   try {
     const manager = getStepDataManager();
     const stepData = await manager.load();
@@ -192,8 +202,29 @@ export async function main(): Promise<void> {
 
     core.info('✅ Step 4: Post Results completed successfully');
   } catch (error) {
-    core.setFailed(`Step 4 failed: ${error}`);
-    throw error;
+    hadError = true;
+    mainError = error;
+    core.error(`❌ Step 4 failed: ${error}`);
+
+    // Add to error handler
+    await errorHandler.handleError(error as Error, {
+      severity: ErrorSeverity.CRITICAL,
+      category: ErrorCategory.ORCHESTRATION,
+      location: 'post-results',
+      recoverable: false
+    }).catch(() => {}); // Ignore if handleError throws
+  } finally {
+    // ALWAYS post error summary, regardless of success or failure
+    core.info('📊 Posting error summary...');
+    await errorHandler.postErrorSummary().catch((summaryError) => {
+      core.warning(`Failed to post error summary: ${summaryError}`);
+    });
+  }
+
+  // Fail the step if there was an error
+  if (hadError) {
+    core.setFailed(`Step 4 failed: ${mainError}`);
+    throw mainError;
   }
 }
 

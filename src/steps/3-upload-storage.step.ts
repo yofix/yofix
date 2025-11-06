@@ -104,7 +104,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
             credentials: credentialsBase64,
             basePath: `pr-${prNumber}/screenshots`
           }
-        },
+        } as any, // Type assertion for external package
         files: filesForUpload,
         verbose: true,
         onProgress: (progress) => {
@@ -146,20 +146,23 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
 
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.MEDIUM,
-        category: ErrorCategory.STORAGE,
-        location: 'storage-upload',
+        category: ErrorCategory.PACKAGE,
+        location: '@yofix/storage',
         recoverable: true
       });
     }
 
     // Update step data with upload results
+    // Convert Map to object for JSON serialization
+    const metadataObject = Object.fromEntries(screenshotMetadataMap.entries());
+
     return {
       ...stepData,
       _internal: {
         ...internal,
         uploadedFiles,
         storageUrl,
-        screenshotMetadataMap
+        screenshotMetadataMap: metadataObject
       }
     } as any;
   });

@@ -25603,15 +25603,42 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     if (this.isTestMode) {
       return;
     }
-    process.on("uncaughtException", (error5) => {
+    process.on("uncaughtException", async (error5) => {
       core2.error(`Uncaught Exception: ${error5.message}`);
       if (error5.stack) {
         core2.debug(error5.stack);
       }
+      const errorEntry = {
+        error: error5,
+        context: {
+          severity: "critical" /* CRITICAL */,
+          category: "unknown" /* UNKNOWN */,
+          location: "uncaught-exception"
+        },
+        timestamp: /* @__PURE__ */ new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+      await this.postErrorSummary().catch(() => {
+      });
       process.exit(1);
     });
-    process.on("unhandledRejection", (reason, promise) => {
-      core2.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+    process.on("unhandledRejection", async (reason, promise) => {
+      const errorMessage = reason instanceof Error ? reason.message : String(reason);
+      core2.error(`Unhandled Rejection: ${errorMessage}`);
+      const errorEntry = {
+        error: new Error(errorMessage),
+        context: {
+          severity: "critical" /* CRITICAL */,
+          category: "unknown" /* UNKNOWN */,
+          location: "unhandled-rejection"
+        },
+        timestamp: /* @__PURE__ */ new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+      await this.postErrorSummary().catch(() => {
+      });
       process.exit(1);
     });
   }
@@ -25638,7 +25665,12 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
    */
   async postErrorSummary() {
     var _a, _b;
-    if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
+    if (!this.github || this.prNumber === 0) {
+      core2.debug("Skipping error summary: No GitHub service or PR number");
+      return;
+    }
+    if (this.errorBuffer.length === 0) {
+      core2.info("\u2705 No errors to report");
       return;
     }
     const byLocation = {};
@@ -27920,14 +27952,20 @@ async function postResults(stepData) {
     const screenshotResult = internal == null ? void 0 : internal.screenshotResult;
     const uploadedFiles = (internal == null ? void 0 : internal.uploadedFiles) || [];
     const storageUrl = (internal == null ? void 0 : internal.storageUrl) || "";
-    const screenshotMetadataMap = (internal == null ? void 0 : internal.screenshotMetadataMap) || /* @__PURE__ */ new Map();
+    const screenshotMetadataMap = (internal == null ? void 0 : internal.screenshotMetadataMap) || {};
     if (!screenshotResult) {
       throw new Error("Screenshot result not found in step data");
     }
     const totalDuration = Date.now() - metadata.startTime;
     const verificationResult = {
       status: screenshotResult.success ? "success" : "failure",
-      firebaseConfig,
+      firebaseConfig: {
+        projectId: firebaseConfig.projectId,
+        target: firebaseConfig.target,
+        buildSystem: firebaseConfig.buildSystem,
+        previewUrl,
+        region: firebaseConfig.region
+      },
       totalTests: screenshotResult.screenshots.length,
       passedTests: screenshotResult.screenshots.filter((r) => r.success !== false).length,
       failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
@@ -27950,7 +27988,7 @@ async function postResults(stepData) {
           status: r.success !== false ? "passed" : "failed",
           duration: screenshotResult.totalDuration,
           screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(sanitizedRoute)).map((f) => {
-            const metadata2 = screenshotMetadataMap.get(f.localPath);
+            const metadata2 = screenshotMetadataMap[f.localPath];
             const viewport = (metadata2 == null ? void 0 : metadata2.viewport) || { width: 0, height: 0, name: "" };
             return {
               name: `${routePath}-${viewport.width}x${viewport.height}.png`,
@@ -28021,14 +28059,33 @@ ${timingSummary}`);
   });
 }
 async function main() {
+  let hadError = false;
+  let mainError = null;
   try {
     const manager = getStepDataManager();
     const stepData = await manager.load();
     await postResults(stepData);
     core8.info("\u2705 Step 4: Post Results completed successfully");
   } catch (error5) {
-    core8.setFailed(`Step 4 failed: ${error5}`);
-    throw error5;
+    hadError = true;
+    mainError = error5;
+    core8.error(`\u274C Step 4 failed: ${error5}`);
+    await errorHandler.handleError(error5, {
+      severity: "critical" /* CRITICAL */,
+      category: "orchestration" /* ORCHESTRATION */,
+      location: "post-results",
+      recoverable: false
+    }).catch(() => {
+    });
+  } finally {
+    core8.info("\u{1F4CA} Posting error summary...");
+    await errorHandler.postErrorSummary().catch((summaryError) => {
+      core8.warning(`Failed to post error summary: ${summaryError}`);
+    });
+  }
+  if (hadError) {
+    core8.setFailed(`Step 4 failed: ${mainError}`);
+    throw mainError;
   }
 }
 if (require.main === module) {

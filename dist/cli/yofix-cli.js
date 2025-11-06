@@ -42783,15 +42783,42 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     if (this.isTestMode) {
       return;
     }
-    process.on("uncaughtException", (error3) => {
+    process.on("uncaughtException", async (error3) => {
       core2.error(`Uncaught Exception: ${error3.message}`);
       if (error3.stack) {
         core2.debug(error3.stack);
       }
+      const errorEntry = {
+        error: error3,
+        context: {
+          severity: "critical" /* CRITICAL */,
+          category: "unknown" /* UNKNOWN */,
+          location: "uncaught-exception"
+        },
+        timestamp: /* @__PURE__ */ new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+      await this.postErrorSummary().catch(() => {
+      });
       process.exit(1);
     });
-    process.on("unhandledRejection", (reason, promise) => {
-      core2.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+    process.on("unhandledRejection", async (reason, promise) => {
+      const errorMessage = reason instanceof Error ? reason.message : String(reason);
+      core2.error(`Unhandled Rejection: ${errorMessage}`);
+      const errorEntry = {
+        error: new Error(errorMessage),
+        context: {
+          severity: "critical" /* CRITICAL */,
+          category: "unknown" /* UNKNOWN */,
+          location: "unhandled-rejection"
+        },
+        timestamp: /* @__PURE__ */ new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+      await this.postErrorSummary().catch(() => {
+      });
       process.exit(1);
     });
   }
@@ -42818,7 +42845,12 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
    */
   async postErrorSummary() {
     var _a2, _b;
-    if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
+    if (!this.github || this.prNumber === 0) {
+      core2.debug("Skipping error summary: No GitHub service or PR number");
+      return;
+    }
+    if (this.errorBuffer.length === 0) {
+      core2.info("\u2705 No errors to report");
       return;
     }
     const byLocation = {};

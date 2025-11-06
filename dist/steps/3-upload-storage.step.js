@@ -25823,15 +25823,42 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     if (this.isTestMode) {
       return;
     }
-    process.on("uncaughtException", (error4) => {
+    process.on("uncaughtException", async (error4) => {
       core3.error(`Uncaught Exception: ${error4.message}`);
       if (error4.stack) {
         core3.debug(error4.stack);
       }
+      const errorEntry = {
+        error: error4,
+        context: {
+          severity: "critical" /* CRITICAL */,
+          category: "unknown" /* UNKNOWN */,
+          location: "uncaught-exception"
+        },
+        timestamp: /* @__PURE__ */ new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+      await this.postErrorSummary().catch(() => {
+      });
       process.exit(1);
     });
-    process.on("unhandledRejection", (reason, promise) => {
-      core3.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+    process.on("unhandledRejection", async (reason, promise) => {
+      const errorMessage = reason instanceof Error ? reason.message : String(reason);
+      core3.error(`Unhandled Rejection: ${errorMessage}`);
+      const errorEntry = {
+        error: new Error(errorMessage),
+        context: {
+          severity: "critical" /* CRITICAL */,
+          category: "unknown" /* UNKNOWN */,
+          location: "unhandled-rejection"
+        },
+        timestamp: /* @__PURE__ */ new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+      await this.postErrorSummary().catch(() => {
+      });
       process.exit(1);
     });
   }
@@ -25858,7 +25885,12 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
    */
   async postErrorSummary() {
     var _a, _b;
-    if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
+    if (!this.github || this.prNumber === 0) {
+      core3.debug("Skipping error summary: No GitHub service or PR number");
+      return;
+    }
+    if (this.errorBuffer.length === 0) {
+      core3.info("\u2705 No errors to report");
       return;
     }
     const byLocation = {};
@@ -27443,6 +27475,7 @@ async function uploadToStorage(stepData) {
             basePath: `pr-${prNumber}/screenshots`
           }
         },
+        // Type assertion for external package
         files: filesForUpload,
         verbose: true,
         onProgress: (progress) => {
@@ -27477,18 +27510,19 @@ async function uploadToStorage(stepData) {
       core7.warning("Screenshots are saved locally but not uploaded to cloud storage");
       await errorHandler.handleError(error4, {
         severity: "medium" /* MEDIUM */,
-        category: ErrorCategory.STORAGE,
-        location: "storage-upload",
+        category: "package" /* PACKAGE */,
+        location: "@yofix/storage",
         recoverable: true
       });
     }
+    const metadataObject = Object.fromEntries(screenshotMetadataMap.entries());
     return {
       ...stepData,
       _internal: {
         ...internal,
         uploadedFiles,
         storageUrl,
-        screenshotMetadataMap
+        screenshotMetadataMap: metadataObject
       }
     };
   });

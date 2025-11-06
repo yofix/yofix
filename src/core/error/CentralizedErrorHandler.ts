@@ -200,19 +200,54 @@ export class CentralizedErrorHandler {
     if (this.isTestMode) {
       return;
     }
-    
+
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', async (error) => {
       core.error(`Uncaught Exception: ${error.message}`);
       if (error.stack) {
         core.debug(error.stack);
       }
+
+      // Add to error buffer without throwing
+      const errorEntry = {
+        error,
+        context: {
+          severity: ErrorSeverity.CRITICAL,
+          category: ErrorCategory.UNKNOWN,
+          location: 'uncaught-exception'
+        },
+        timestamp: new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+
+      // Try to post error summary before exiting
+      await this.postErrorSummary().catch(() => {});
+
       process.exit(1);
     });
-    
+
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
-      core.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+    process.on('unhandledRejection', async (reason, promise) => {
+      const errorMessage = reason instanceof Error ? reason.message : String(reason);
+      core.error(`Unhandled Rejection: ${errorMessage}`);
+
+      // Add to error buffer without throwing
+      const errorEntry = {
+        error: new Error(errorMessage),
+        context: {
+          severity: ErrorSeverity.CRITICAL,
+          category: ErrorCategory.UNKNOWN,
+          location: 'unhandled-rejection'
+        },
+        timestamp: new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+
+      // Try to post error summary before exiting
+      await this.postErrorSummary().catch(() => {});
+
       process.exit(1);
     });
   }
@@ -242,7 +277,13 @@ export class CentralizedErrorHandler {
    * Post a summary of all errors
    */
   async postErrorSummary(): Promise<void> {
-    if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
+    if (!this.github || this.prNumber === 0) {
+      core.debug('Skipping error summary: No GitHub service or PR number');
+      return;
+    }
+
+    if (this.errorBuffer.length === 0) {
+      core.info('✅ No errors to report');
       return;
     }
 

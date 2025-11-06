@@ -129,12 +129,11 @@ export async function initialize(): Promise<StepData> {
       throw new Error('Pull request event detected but no PR number found. This action requires a valid pull_request event.');
     }
 
-    // Create Firebase config
-    const firebaseConfig: FirebaseConfig = {
+    // Create Firebase config (matches StepData structure)
+    const firebaseConfig = {
       projectId: 'auto-detect',
       target: inputs.firebaseTarget || 'default-target',
       buildSystem: inputs.buildSystem || 'vite',
-      previewUrl: inputs.previewUrl,
       region: 'us-central1'
     };
 

@@ -17,7 +17,7 @@ import path from 'path';
 import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
 import { analyzeRoutesWithExternalTool, ExternalRouteImpactTree } from '../core/analysis/ThirdPartyRouteImpactAnalyzer';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
-import { ErrorSeverity, ErrorCategory, errorHandler } from '../core';
+import { ErrorSeverity, ErrorCategory, errorHandler, config } from '../core';
 
 /**
  * Main step execution

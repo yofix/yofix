@@ -65,22 +65,11 @@ inputs:
   redis-url:
     description: 'Redis URL for caching (format: redis://user:pass@host:port)'
     required: false
-  
+
   cache-ttl:
     description: 'Cache TTL in seconds'
     required: false
     default: '3600'
-  
-  # MCP Configuration
-  mcp-provider:
-    description: 'MCP provider: built-in or playwright-official'
-    required: false
-    default: 'built-in'
-  
-  mcp-options:
-    description: 'JSON string of MCP options'
-    required: false
-    default: '{}'
   
   firebase-target:
     description: 'Firebase hosting target (auto-detected from preview URL if not provided)'
@@ -120,44 +109,15 @@ inputs:
     required: false
   
   auth-login-url:
-    description: 'Login page URL path'
+    description: 'Login page URL path (e.g., /login)'
     required: false
-    default: '/login/password'
-  
-  auth-mode:
-    description: 'Authentication mode: llm (AI-powered), selectors, smart, or baseline'
-    required: false
-    default: 'llm'
-
-  repository-root:
-    description: 'Root directory of the repository for baseline generation (defaults to workspace root)'
-    required: false
-
-  enable-smart-auth:
-    description: 'Enable AI-powered smart authentication'
-    required: false
-    default: 'false'
-  
-  enable-ai-navigation:
-    description: 'Enable AI-powered navigation and route discovery'
-    required: false
-    default: 'false'
-  
-  enable-ai-test-generation:
-    description: 'Enable AI to generate context-aware tests dynamically'
-    required: false
-    default: 'false'
+    default: '/login'
   
   test-routes:
     description: 'Comma-separated list of specific routes to test'
     required: false
     default: ''
-  
-  session-mode:
-    description: 'Browser session mode: sharedAgent (reuse session) or independentAgent (new session per route)'
-    required: false
-    default: 'sharedAgent'
-  
+
   clear-cache:
     description: 'Clear route analysis cache before running'
     required: false
@@ -344,11 +304,6 @@ runs:
       run: |
         echo "::group::Test Environment Preparation"
         echo "Setting up environment variables..."
-        echo "Auth Mode: ${{ inputs.auth-mode }}"
-        echo "Smart Auth Enabled: ${{ inputs.enable-smart-auth }}"
-        echo "AI Navigation Enabled: ${{ inputs.enable-ai-navigation }}"
-        echo "AI Test Generation Enabled: ${{ inputs.enable-ai-test-generation }}"
-        
         if [ -n "${{ inputs.auth-email }}" ] && [ -n "${{ inputs.auth-password }}" ]; then
           echo "✅ Authentication credentials configured"
         else
@@ -408,14 +363,6 @@ runs:
         INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
         INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
-        INPUT_AUTH-MODE: ${{ inputs.auth-mode }}
-        INPUT_SESSION-MODE: ${{ inputs.session-mode }}
-        INPUT_ENABLE-SMART-AUTH: ${{ inputs.enable-smart-auth }}
-        YOFIX_SMART_AUTH: ${{ inputs.enable-smart-auth }}
-        INPUT_MCP-PROVIDER: ${{ inputs.mcp-provider }}
-        INPUT_MCP-OPTIONS: ${{ inputs.mcp-options }}
-        INPUT_ENABLE-AI-NAVIGATION: ${{ inputs.enable-ai-navigation }}
-        INPUT_ENABLE-AI-TEST-GENERATION: ${{ inputs.enable-ai-test-generation }}
         INPUT_TEST-ROUTES: ${{ inputs.test-routes }}
         INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
     
@@ -446,11 +393,5 @@ runs:
         else
           echo "- **Authentication:** Disabled" >> $GITHUB_STEP_SUMMARY
         fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### AI Features" >> $GITHUB_STEP_SUMMARY
-        echo "- **Smart Auth:** ${{ inputs.enable-smart-auth }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **AI Navigation:** ${{ inputs.enable-ai-navigation }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **AI Test Generation:** ${{ inputs.enable-ai-test-generation }}" >> $GITHUB_STEP_SUMMARY
         
         echo "::endgroup::"

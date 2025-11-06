@@ -16,8 +16,7 @@ export {
 // PR reporting
 export { PRReporter } from './PRReporter';
 
-// Authentication
-export { AuthHandler } from './AuthHandler';
+// Authentication - AuthHandler removed (used browser-agent)
 
 // Types
 export * from './types';

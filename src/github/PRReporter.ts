@@ -144,9 +144,9 @@ ${message}
       // Use enhanced comparison layout if baseline data is available
       const hasBaselineData = screenshots.some(s => s.comparison || s.baseline);
       if (hasBaselineData) {
-        comment += this.generateVisualComparisonTable(screenshots);
+        comment += this.generateVisualComparisonTable(screenshots, result);
       } else {
-        comment += this.generateEmbeddedScreenshots(screenshots);
+        comment += this.generateEmbeddedScreenshots(screenshots, result);
       }
     }
     
@@ -166,13 +166,17 @@ ${message}
     // Components and routes verified
     if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
       comment += '### ✅ React App Verification\n\n';
-      
+
       if (result.summary.componentsVerified.length > 0) {
         comment += `**Components Tested**: ${result.summary.componentsVerified.join(', ')}\n\n`;
       }
-      
+
       if (result.summary.routesTested.length > 0) {
-        comment += `**Routes Verified**: ${result.summary.routesTested.join(', ')}\n\n`;
+        // Make routes clickable links with preview URL
+        const routeLinks = result.summary.routesTested.map(route =>
+          this.createRouteLink(route, result)
+        );
+        comment += `**Routes Verified**: ${routeLinks.join(', ')}\n\n`;
       }
     }
 
@@ -266,7 +270,7 @@ ${message}
   /**
    * Generate visual comparison table with baseline vs current screenshots
    */
-  private generateVisualComparisonTable(screenshots: any[]): string {
+  private generateVisualComparisonTable(screenshots: any[], result: VerificationResult): string {
     if (screenshots.length === 0) {
       return '';
     }
@@ -309,9 +313,9 @@ ${message}
       
       const statusIcon = isNewRoute ? '🆕' : routeHasIssues ? '⚠️' : '✅';
       const statusText = isNewRoute ? 'New Route' : routeHasIssues ? 'Issues Detected' : 'No Issues';
-      
+
       content += `<details>\n`;
-      content += `<summary><strong>📍 ${route}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
+      content += `<summary><strong>📍 ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
       
       // Create comparison table for this route
       content += `| Baseline (Last Updated) | Current Screenshot | Comparison |\n`;
@@ -433,15 +437,30 @@ ${message}
   }
 
   /**
+   * Get base preview URL without trailing slash
+   */
+  private getBasePreviewUrl(result: VerificationResult): string {
+    return result.firebaseConfig.previewUrl.replace(/\/$/, '');
+  }
+
+  /**
+   * Create clickable route link with preview URL
+   */
+  private createRouteLink(route: string, result: VerificationResult): string {
+    const baseUrl = this.getBasePreviewUrl(result);
+    return `[${route}](${baseUrl}${route})`;
+  }
+
+  /**
    * Generate embedded screenshots for PR comment (legacy method)
    */
-  private generateEmbeddedScreenshots(screenshots: any[]): string {
+  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult): string {
     if (screenshots.length === 0) {
       return '';
     }
 
     let gallery = '### 📸 Screenshots\n\n';
-    
+
     // Group screenshots by test/route name (remove viewport info)
     const groupedByRoute = screenshots.reduce((acc, screenshot) => {
       // Extract route from screenshot name by removing viewport dimensions
@@ -450,7 +469,7 @@ ${message}
       route = route.replace(/-\d+x\d+$/, '');
       // Clean up the route name
       route = route.replace(/^\//, '').replace(/-/g, ' ');
-      
+
       if (!acc[route]) {
         acc[route] = [];
       }
@@ -460,7 +479,11 @@ ${message}
 
     // Generate gallery for each route
     for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      gallery += `#### Route: \`${route}\`\n\n`;
+      // Make route clickable if it looks like a valid path
+      const routeDisplay = route.startsWith('/') || route === 'root'
+        ? this.createRouteLink(route === 'root' ? '/' : route, result)
+        : `\`${route}\``;
+      gallery += `#### Route: ${routeDisplay}\n\n`;
       
       // Only show images if they have Firebase URLs
       const screenshotsWithUrls = (routeScreenshots as any[]).filter((s: any) => s.firebaseUrl);

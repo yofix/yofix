@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
-import { FixGenerator } from '../core/fixes/FixGenerator';
-import { ReportFormatter } from '../bot/ReportFormatter';
+// VisualAnalyzer and FixGenerator removed - bot functionality no longer available
+// ReportFormatter removed - bot functionality no longer available
 import { RepositoryLearner } from '../core/setup/RepositoryLearner';
 import { PatternStore } from '../core/setup/PatternStore';
 import * as dotenv from 'dotenv';
@@ -50,30 +49,14 @@ program
     console.log(chalk.blue(`🔍 Scanning ${url}...`));
     
     try {
-      const analyzer = new VisualAnalyzer(claudeKey);
-      const formatter = new ReportFormatter();
-      
-      // Mock PR context for CLI usage
-      const result = await analyzer.scan({
-        prNumber: 0,
-        routes: options.routes,
-        viewports: options.viewports,
-        options: {
-          previewUrl: url,
-          maxRoutes: 10
-        }
-      });
-      
-      const report = formatter.formatScanResult(result);
-      
-      if (options.output) {
-        await write(options.output, report, { createDirectories: true });
-        console.log(chalk.green(`✅ Results saved to ${options.output}`));
-      } else {
-        console.log(report);
-      }
-      
-    } catch (error) {
+      // const analyzer = new VisualAnalyzer(claudeKey); // Removed - bot functionality unavailable
+      // const formatter = new ReportFormatter(); // Removed - bot functionality unavailable
+
+      console.log(chalk.yellow('⚠️ Visual analysis removed - only simple screenshot capture supported'));
+      console.log(chalk.blue('Use the GitHub Action for full functionality'));
+      process.exit(0);
+
+    } catch (error: any) {
       console.error(chalk.red(`Error: ${error.message}`));
       process.exit(1);
     }
@@ -103,23 +86,15 @@ program
       if (!parseResult.success) {
         throw new Error(`Invalid JSON in file: ${parseResult.error}`);
       }
-      const scanResult = parseResult.data;
-      const generator = new FixGenerator(claudeKey);
-      const formatter = new ReportFormatter();
-      
-      console.log(chalk.blue(`🔧 Generating fixes for ${scanResult.issues.length} issues...`));
-      
-      const fixResult = await generator.generateFixes(scanResult.issues);
-      const report = formatter.formatFixResult(fixResult);
-      
-      if (options.output) {
-        await write(options.output, report, { createDirectories: true });
-        console.log(chalk.green(`✅ Fixes saved to ${options.output}`));
-      } else {
-        console.log(report);
-      }
-      
-    } catch (error) {
+      // const scanResult = parseResult.data;
+      // const generator = new FixGenerator(claudeKey); // Removed - bot functionality unavailable
+      // const formatter = new ReportFormatter(); // Removed - bot functionality unavailable
+
+      console.log(chalk.yellow('⚠️ Fix generation removed - only simple screenshot capture supported'));
+      console.log(chalk.blue('Use the GitHub Action for full functionality'));
+      process.exit(0);
+
+    } catch (error: any) {
       console.error(chalk.red(`Error: ${error.message}`));
       process.exit(1);
     }

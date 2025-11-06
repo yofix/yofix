@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import { analyzeRouteImpact } from "route-impact-analyzer";
+import { analyzeRouteImpact } from "@yofix/analyzer";
 import { getConfiguration } from "../hooks/ConfigurationHook";
 
 export interface ExternalRouteImpact {
@@ -281,12 +281,16 @@ export async function analyzeRoutesWithExternalTool(
 
   core.info(`📊 Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
 
+  // Ensure preview URL doesn't have trailing slash for clean route concatenation
+  const basePreviewUrl = previewUrl.replace(/\/$/, '');
+
   const header = "## 🌐 Route Impact (route-impact-analyzer)\n";
   const summaryLines = [
     `- Files analyzed: **${result.metadata?.totalFiles ?? changedFiles.length}**`,
     `- Routes impacted: **${uniqueRoutes.size}**`,
     `- Routes to test: **${routesToTestMap.size}**`,
     `- Framework: **${result.metadata?.framework ?? "unknown"}**`,
+    `- Preview URL: **${basePreviewUrl}**`,
     "",
   ];
 
@@ -304,7 +308,9 @@ export async function analyzeRoutesWithExternalTool(
     const routesToShow = routesToTestComponentMapping.get(file) || routes.slice(0, 5);
     routesToShow.forEach((routeInfo, idx) => {
       if (lineCount < 20 && idx < 5) {
-        routeLines.push(`  - \`${routeInfo.routePath}\``);
+        // Make route a clickable link with preview URL
+        const fullUrl = `${basePreviewUrl}${routeInfo.routePath}`;
+        routeLines.push(`  - [${routeInfo.routePath}](${fullUrl})`);
         lineCount++;
       }
     });

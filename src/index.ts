@@ -12,11 +12,11 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 
-import { TestGenerator } from './core/testing/TestGenerator';
-import { DeterministicVisualAnalyzer } from './core/deterministic/visual/DeterministicVisualAnalyzer';
+// Simplified to use @yofix/browser for screenshot capture
+import { captureScreenshotsWithBrowser } from './core/screenshot/BrowserScreenshotCapture';
 import { PRReporter } from './github/PRReporter';
 import { ActionInputs, VerificationResult, FirebaseConfig, RouteAnalysisResult } from './types';
-import { YoFixBot } from './bot/YoFixBot';
+// Bot functionality removed - only simple screenshot capture
 import { GitHubServiceFactory } from './core/github/GitHubServiceFactory';
 import {
   initializeCoreServices,
@@ -46,14 +46,8 @@ async function run(): Promise<void> {
     }
     
     // Check if this is a bot command
-    const eventName = GitHubServiceFactory.getService().getContext().eventName;
-    
-    if (eventName === 'issue_comment') {
-      await handleBotCommand();
-    } else {
-      // Otherwise, run as GitHub Action
-      await runVisualTesting();
-    }
+    // Only run visual testing workflow - bot commands removed
+    await runVisualTesting();
   } catch (error) {
     await errorHandler.handleError(error as Error, {
       severity: ErrorSeverity.CRITICAL,
@@ -71,26 +65,7 @@ async function run(): Promise<void> {
 }
 
 /**
- * Handle bot commands from PR comments (enhanced with browser-agent)
- */
-async function handleBotCommand(): Promise<void> {
-  try {
-    const inputs = parseInputs();
-    const bot = new YoFixBot(inputs.claudeApiKey);
-    await bot.handleIssueComment(GitHubServiceFactory.getService().getContext());
-  } catch (error) {
-    await errorHandler.handleError(error as Error, {
-      severity: ErrorSeverity.HIGH,
-      category: ErrorCategory.UNKNOWN,
-      userAction: 'Bot command execution',
-      metadata: { eventName: GitHubServiceFactory.getService().getContext().eventName }
-    });
-    core.setFailed(`Bot error: ${error}`);
-  }
-}
-
-/**
- * Run visual testing using browser-agent
+ * Run visual testing using @yofix/browser for screenshot capture
  */
 async function runVisualTesting(): Promise<void> {
   const startTime = Date.now();
@@ -296,159 +271,50 @@ async function runVisualTesting(): Promise<void> {
     
     core.info(`🔍 Found ${analysis.routes.length} routes to test`);
     
-    // Initialize test runner (uses hybrid approach: LLM auth + deterministic testing)
-    const testRunner = new TestGenerator(firebaseConfig, viewports, inputs.claudeApiKey, inputs.claudeModel);
-    
-    // Run tests using browser-agent
-    core.info('🤖 Running tests with Browser Agent...');
-    const testResults = await testRunner.runTests(analysis);
-    
-    // Get shared browser context if available
-    const sharedBrowserContext = testRunner.getSharedBrowserContext();
-    core.info(`Shared browser context available: ${!!sharedBrowserContext}`);
-    
-    // Initialize scan result from test results (avoid duplicate scanning)
-    let scanResult: any = {
-      issues: [],
-      summary: {
-        totalIssues: 0,
-        byType: {},
-        bySeverity: { critical: 0, medium: 0, low: 0 }
-      }
-    };
-    
-    // Check if we actually have screenshots from the test results
-    const hasScreenshots = testResults.some(r => r.screenshots && r.screenshots.length > 0);
-    core.info(`Test results contain screenshots: ${hasScreenshots}`);
-    
-    // Only run separate visual analysis if we don't have screenshots from tests
-    // (i.e., when tests failed or didn't capture screenshots)
-    if (!hasScreenshots) {
-      core.info('👁️ Running separate deterministic visual analysis...');
-      const useLLMAnalysis = getBooleanConfig('enable-llm-visual-analysis');
-      
-      // Create deterministic analyzer
-      const deterministicAnalyzer = new DeterministicVisualAnalyzer(
-        inputs.previewUrl,
-        useLLMAnalysis ? inputs.claudeApiKey : undefined,
-      );
-      
-      scanResult = await deterministicAnalyzer.scan({
-        prNumber: prNumber,
-        routes: analysis.routes,
-        viewports: viewports.map(v => `${v.width}x${v.height}`),
-        useLLMAnalysis: useLLMAnalysis
-      });
-    } else {
-      core.info('✅ Visual analysis already performed during route testing');
-      // Extract issues from test results
-      for (const result of testResults) {
-        if (result.issues && result.issues.length > 0) {
-          scanResult.issues.push(...result.issues.map(issue => ({
-            ...issue,
-            route: result.route
-          })));
-        }
-      }
-      scanResult.summary.totalIssues = scanResult.issues.length;
-    }
-    
-    // Generate fixes for any issues found
-    if (scanResult.issues && scanResult.issues.length > 0) {
-      core.info(`🔧 Found ${scanResult.issues.length} issues`);
-      // Fix generation would happen here if needed
-      // Currently skipped as it requires a separate analyzer instance
-    }
-    
-    // Save screenshots to disk and prepare for upload
-    const allScreenshots = [];
-    for (const result of testResults) {
-      for (const [screenshotIndex, screenshotBuffer] of result.screenshots.entries()) {
-        // Extract the path from the actual URL where screenshot was taken
-        let urlPath = result.route;
-        if (result.screenshotUrls && result.screenshotUrls[screenshotIndex]) {
-          try {
-            const actualUrl = new URL(result.screenshotUrls[screenshotIndex]);
-            urlPath = actualUrl.pathname || result.route;
-          } catch (e) {
-            // If URL parsing fails, use the original route
-            urlPath = result.route;
-          }
-        }
-        
-        // Create filename with actual URL path
-        const sanitizedPath = urlPath.replace(/\//g, '-').replace(/^-+|-+$/g, '') || 'root';
-        const wasRedirected = result.actualUrl && !result.actualUrl.includes(result.route);
-        const redirectSuffix = wasRedirected ? '_redirected' : '';
-        const filename = `${sanitizedPath}${redirectSuffix}_viewport-${screenshotIndex}.png`;
-        const screenshotPath = path.join(outputDir!, filename);
-        
-        // Save screenshot to disk
-        await fs.writeFile(screenshotPath, screenshotBuffer);
-        
-        // Get baseline comparison data if available
-        const viewport = viewports[screenshotIndex % viewports.length];
-        let baselineData = undefined;
-        let comparisonData = undefined;
-        
-        // Check if we have pixel diff data for this viewport
-        if (result.pixelDiffs) {
-          const pixelDiff = result.pixelDiffs.find(pd => 
-            pd.viewport.width === viewport.width && pd.viewport.height === viewport.height
-          );
-          
-          if (pixelDiff) {
-            comparisonData = {
-              hasDifference: pixelDiff.diffPercentage > 0.1, // 0.1% threshold
-              diffPercentage: pixelDiff.diffPercentage,
-              status: pixelDiff.diffPercentage === 0 ? 'new' : 
-                     pixelDiff.diffPercentage > 0.1 ? 'changed' : 'unchanged',
-              issues: result.issues?.filter(issue => issue.type === 'visual-regression') || []
-            };
-            
-            // Save diff image to disk if available
-            if (pixelDiff.diffImage) {
-              const diffFilename = `${sanitizedPath}${redirectSuffix}_diff-${screenshotIndex}.png`;
-              const diffPath = path.join(outputDir!, diffFilename);
-              await fs.writeFile(diffPath, pixelDiff.diffImage);
-              
-              // Store diff image path for later upload
-              (comparisonData as any).diffImagePath = diffPath;
-              (comparisonData as any).diffImageName = diffFilename;
-            }
-          }
-        } else if (result.issues?.some(i => i.type === 'visual-regression')) {
-          // If we have visual regression issues but no pixel diff data, it's likely a new baseline
-          comparisonData = {
-            hasDifference: false,
-            diffPercentage: 0,
-            status: 'new',
-            issues: result.issues?.filter(issue => issue.type !== 'visual-regression') || []
-          };
-        }
+    // Capture screenshots using @yofix/browser
+    core.info('📸 Capturing screenshots with @yofix/browser...');
+    const screenshotResult = await captureScreenshotsWithBrowser({
+      routes: analysis.routes,
+      baseUrl: inputs.previewUrl,
+      viewports,
+      credentials: inputs.authEmail && inputs.authPassword ? {
+        email: inputs.authEmail,
+        password: inputs.authPassword
+      } : undefined,
+      loginUrl: inputs.authLoginUrl,
+      verbose: true
+    });
 
-        allScreenshots.push({
-          name: filename,
-          path: screenshotPath,
-          viewport,
-          timestamp: Date.now(),
-          route: result.route,
-          actualUrl: result.screenshotUrls?.[screenshotIndex] || result.actualUrl,
-          baseline: baselineData,
-          comparison: comparisonData
-        });
-      }
+    if (!screenshotResult.success) {
+      throw new Error(`Screenshot capture failed: ${screenshotResult.errors?.map(e => e.message).join(', ')}`);
     }
+
+    outputDir = screenshotResult.outputDirectory;
+    core.info(`✅ Captured ${screenshotResult.screenshots.length} route screenshots`);
+    core.info(`  Output directory: ${outputDir}`);
+
+    // @yofix/browser now outputs data ready for @yofix/storage - no conversion needed!
+    // Flatten RouteScreenshot[] to file list for upload
+    const filesForUpload = screenshotResult.screenshots.flatMap(routeScreenshot =>
+      routeScreenshot.screenshots.map(screenshot => ({
+        path: screenshot.path,
+        destination: screenshot.destination,
+        contentType: screenshot.contentType,
+        metadata: screenshot.metadata
+      }))
+    );
+
+    core.info(`📦 Prepared ${filesForUpload.length} files for upload`);
     
     // Upload screenshots to Firebase if configured
-    let uploadedScreenshots = allScreenshots;
+    let uploadedFiles: Array<{ localPath: string; url: string }> = [];
     let screenshotsUrl = ''; // Will be set after upload or constructed from bucket
-    
+
     if (inputs.firebaseCredentials && inputs.storageBucket) {
       try {
         core.info('📤 Uploading screenshots to Firebase Storage...');
         core.info(`  Storage Bucket: ${inputs.storageBucket}`);
-        core.info(`  Number of screenshots: ${allScreenshots.length}`);
+        core.info(`  Number of screenshots: ${filesForUpload.length}`);
         
         // Check if firebaseCredentials is a file path for testing
         let credentialsBase64 = inputs.firebaseCredentials;
@@ -462,73 +328,44 @@ async function runVisualTesting(): Promise<void> {
           }
         }
         
-        const { FirebaseStorageManager } = await import('./providers/storage/FirebaseStorageManager');
-        
-        const storageManager = FirebaseStorageManager.getInstance(
-          firebaseConfig,
-          {
-            bucket: inputs.storageBucket,
-            basePath: defaultConfig.storage.basePath,
-            signedUrlExpiry: defaultConfig.storage.providers.firebase.signedUrlExpiryHours * 60 * 60 * 1000
+        const { uploadFiles } = await import('@yofix/storage');
+
+        // Direct upload using @yofix/storage - no conversion needed!
+        const uploadResult = await uploadFiles({
+          storage: {
+            provider: 'firebase',
+            config: {
+              bucket: inputs.storageBucket,
+              credentials: credentialsBase64,
+              basePath: `pr-${prNumber}/screenshots`
+            }
           },
-          credentialsBase64
-        );
-        
-        uploadedScreenshots = await storageManager.uploadScreenshots(allScreenshots);
-        
-        // Upload diff images separately using batchUpload
-        const diffFilesToUpload: Array<{ localPath: string, remotePath: string, contentType: string }> = [];
-        const diffScreenshotMap = new Map<string, any>();
-        
-        for (const screenshot of uploadedScreenshots) {
-          if (screenshot.comparison && (screenshot.comparison as any).diffImagePath) {
-            const diffImagePath = (screenshot.comparison as any).diffImagePath;
-            const diffImageName = (screenshot.comparison as any).diffImageName;
-            
-            diffFilesToUpload.push({
-              localPath: diffImagePath,
-              remotePath: diffImageName,
-              contentType: 'image/png'
-            });
-            
-            diffScreenshotMap.set(diffImageName, screenshot);
+          files: filesForUpload,
+          verbose: true,
+          onProgress: (progress) => {
+            const percentage = ((progress.filesUploaded / progress.totalFiles) * 100).toFixed(1);
+            core.info(`  Upload progress: ${progress.filesUploaded}/${progress.totalFiles} files (${percentage}%)`);
           }
+        });
+
+        if (!uploadResult.success) {
+          throw new Error(`Upload failed: ${uploadResult.errors?.map(e => e.message).join(', ')}`);
         }
-        
-        if (diffFilesToUpload.length > 0) {
-          try {
-            core.info(`📊 Uploading ${diffFilesToUpload.length} diff images...`);
-            const diffUrls = await storageManager.batchUpload(diffFilesToUpload);
-            
-            // Update comparison data with diff URLs
-            diffUrls.forEach((url, index) => {
-              if (url) {
-                const diffFile = diffFilesToUpload[index];
-                const screenshot = diffScreenshotMap.get(diffFile.remotePath);
-                if (screenshot?.comparison) {
-                  screenshot.comparison.diffImageUrl = url;
-                  core.info(`  📊 Diff uploaded: ${diffFile.remotePath}`);
-                }
-              }
-            });
-          } catch (error) {
-            core.warning(`Failed to upload diff images: ${error}`);
-          }
-        }
-        
+
+        uploadedFiles = uploadResult.files;
+
+        // TODO: Baseline comparison and diff image upload will be added here
+
         // Log uploaded URLs
         core.info('✅ Screenshots uploaded successfully:');
-        let uploadedCount = 0;
-        for (const screenshot of uploadedScreenshots) {
-          if (screenshot.firebaseUrl) {
-            core.info(`  📸 ${screenshot.name}: ${screenshot.firebaseUrl}`);
-            uploadedCount++;
-          }
-        }
-        core.info(`  Total uploaded: ${uploadedCount}/${allScreenshots.length}`);
-        
+        uploadedFiles.forEach(file => {
+          core.info(`  📸 ${file.destination}: ${file.url}`);
+        });
+        core.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
+
         // Get storage console URL
-        screenshotsUrl = storageManager.generateStorageConsoleUrl();
+        const projectId = inputs.storageBucket.split('.')[0] || 'unknown';
+        screenshotsUrl = `https://console.firebase.google.com/project/${projectId}/storage/${inputs.storageBucket}`;
         core.info(`\n🔗 View all screenshots in Firebase Console: ${screenshotsUrl}`);
         
       } catch (error) {
@@ -542,29 +379,29 @@ async function runVisualTesting(): Promise<void> {
       core.warning(`Firebase credentials present: ${!!inputs.firebaseCredentials}`);
       core.warning(`Storage bucket configured: ${!!inputs.storageBucket}`);
     }
-    
-    // Create verification result
+
+    // Create verification result based on screenshot capture
     const verificationResult: VerificationResult = {
-      status: (testResults.every(r => r.success)) ? 'success' : 'failure',
+      status: screenshotResult.success ? 'success' : 'failure',
       firebaseConfig,
-      totalTests: testResults.length,
-      passedTests: testResults.filter(r => r.success).length,
-      failedTests: testResults.filter(r => !r.success).length,
+      totalTests: screenshotResult.screenshots.length,
+      passedTests: screenshotResult.screenshots.filter(r => r.success !== false).length,
+      failedTests: screenshotResult.screenshots.filter(r => r.success === false).length,
       skippedTests: 0,
       duration: Date.now() - startTime,
-      testResults: testResults.map(r => ({
+      testResults: screenshotResult.screenshots.map(r => ({
         testId: `test-${r.route}`,
         testName: `Route Test: ${r.route}`,
-        status: r.success ? 'passed' : 'failed',
-        duration: r.duration,
-        screenshots: uploadedScreenshots
-          .filter(s => s.route === r.route)
-          .map(s => ({
-            name: s.name,
-            path: s.path,
-            viewport: s.viewport,
-            timestamp: s.timestamp,
-            firebaseUrl: s.firebaseUrl
+        status: r.success !== false ? 'passed' : 'failed',
+        duration: screenshotResult.totalDuration,
+        screenshots: uploadedFiles
+          .filter(f => f.destination.startsWith(r.route.replace(/^\//, '').replace(/\//g, '-')))
+          .map(f => ({
+            name: path.basename(f.destination),
+            path: f.localPath,
+            viewport: { width: 0, height: 0, name: '' }, // TODO: Extract from metadata
+            timestamp: Date.now(),
+            firebaseUrl: f.url
           })),
         videos: [],
         errors: r.error ? [r.error] : [],
@@ -574,62 +411,41 @@ async function runVisualTesting(): Promise<void> {
       summary: {
         componentsVerified: analysis.components,
         routesTested: analysis.routes,
-        issuesFound: scanResult.issues?.map(i => i.description) || []
+        issuesFound: screenshotResult.errors?.map(e => e.message) || []
       }
     };
-    
+
     // Report to PR with timeout
     core.info('📝 Posting results to PR...');
     const reportStartTime = Date.now();
     const reporter = new PRReporter();
-    
+
     try {
       await Promise.race([
         reporter.postResults(verificationResult, prNumber.toString()),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error('PR report posting timeout')), 30000)
         )
       ]);
       core.info(`✅ PR report posted in ${Date.now() - reportStartTime}ms`);
     } catch (error) {
       core.warning(`Failed to post PR report: ${error}`);
-      // Continue with cleanup
+      // Continue anyway
     }
-    
-    // Clean up test runner resources after visual analysis is complete
-    core.info('🧹 Cleaning up browser resources...');
-    const cleanupStartTime = Date.now();
-    try {
-      // Add timeout to prevent hanging
-      await Promise.race([
-        testRunner.cleanup(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))
-      ]);
-      core.info(`✅ Browser cleanup completed in ${Date.now() - cleanupStartTime}ms`);
-    } catch (error) {
-      core.warning(`Browser cleanup failed or timed out: ${error}`);
-    }
-    
+
     // Set outputs
     core.setOutput('success', verificationResult.status === 'success');
-    core.setOutput('issues-found', scanResult.issues?.length || 0);
-    core.setOutput('critical-issues', scanResult.summary?.bySeverity?.critical || 0);
-    core.setOutput('warning-issues', scanResult.summary?.bySeverity?.medium || 0);
-    
+    core.setOutput('issues-found', screenshotResult.errors?.length || 0);
+    core.setOutput('critical-issues', 0); // No visual analysis anymore
+    core.setOutput('warning-issues', 0); // No visual analysis anymore
+
     if (verificationResult.status === 'success') {
-      core.info('✅ All visual tests passed!');
+      core.info('✅ All screenshots captured successfully!');
     } else {
-      const criticalCount = scanResult.summary?.bySeverity?.critical || 0;
-      const warningCount = scanResult.summary?.bySeverity?.medium || 0;
-      
-      if (criticalCount > 0) {
-        core.setFailed(`❌ Found ${criticalCount} critical visual issues`);
-      } else {
-        core.warning(`⚠️ Found ${warningCount} visual warnings`);
-      }
+      core.setFailed(`❌ Screenshot capture had errors`);
     }
-    
-    core.info(`⏱️ Total test execution time: ${Date.now() - startTime}ms`);
+
+    core.info(`⏱️ Total execution time: ${Date.now() - startTime}ms`);
     
   } catch (error) {
     // Use centralized error handler

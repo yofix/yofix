@@ -9,42 +9,22 @@ export enum ErrorSeverity {
 }
 
 export enum ErrorCategory {
-  AUTHENTICATION = 'authentication',
-  API = 'api',
-  NETWORK = 'network',
-  CONFIGURATION = 'configuration',
-  BROWSER = 'browser',
-  ANALYSIS = 'analysis',
-  STORAGE = 'storage',
-  MODULE = 'module',
-  AI = 'ai',
-  FILE_SYSTEM = 'file_system',
-  VALIDATION = 'validation',
-  PROCESSING = 'processing',
-  UNKNOWN = 'unknown'
+  PACKAGE = 'package',           // Errors from @yofix/* packages
+  GITHUB = 'github',             // GitHub API/PR integration
+  CONFIGURATION = 'configuration', // Input validation, missing config
+  ORCHESTRATION = 'orchestration', // Main workflow logic
+  UNKNOWN = 'unknown'            // Fallback
 }
 
 export interface ErrorContext {
   /**
-   * Error location in code
+   * Package or location that threw the error (e.g., '@yofix/browser', 'orchestration')
    */
   location?: string;
   /**
-   * User action that triggered the error
-   */
-  userAction?: string;
-  /**
-   * Additional context data
+   * Additional context data (keep minimal)
    */
   metadata?: Record<string, any>;
-  /**
-   * Whether to include stack trace
-   */
-  includeStackTrace?: boolean;
-  /**
-   * Custom troubleshooting tips
-   */
-  tips?: string[];
 }
 
 export interface ErrorOptions extends ErrorContext {
@@ -136,25 +116,23 @@ export class CentralizedErrorHandler {
   async handleError(error: Error | string, options: ErrorOptions = {}): Promise<void> {
     // Update statistics
     this.updateErrorStats(options);
-    
+
     // Create error entry
     const errorEntry = {
       error,
       context: options,
       timestamp: new Date()
     };
-    
+
     // Add to buffer
     this.errorBuffer.push(errorEntry);
-    
+
     // Log to console/GitHub Actions
     this.logError(error, options);
-    
-    // Post to GitHub if enabled
-    if (!options.skipGitHubPost && !this.isTestMode && this.github && this.prNumber > 0) {
-      await this.postErrorToGitHub(error, options);
-    }
-    
+
+    // Individual error posting disabled - only post summary at end
+    // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
+
     // Throw if not recoverable
     if (!options.recoverable) {
       if (error instanceof Error) {
@@ -169,14 +147,12 @@ export class CentralizedErrorHandler {
    * Log error to console/GitHub Actions
    */
   private logError(error: Error | string, options: ErrorOptions): void {
+    if (options.silent) return;
+
     const errorMessage = error instanceof Error ? error.message : error;
-    const logMessage = this.formatLogMessage(errorMessage, options);
-    
-    // Don't log if silent
-    if (options.silent) {
-      return;
-    }
-    
+    const location = options.location ? `[${options.location}]` : '';
+    const logMessage = `${location} ${errorMessage}`.trim();
+
     // Log based on severity
     switch (options.severity) {
       case ErrorSeverity.CRITICAL:
@@ -192,79 +168,13 @@ export class CentralizedErrorHandler {
         core.warning(logMessage);
         break;
       case ErrorSeverity.LOW:
-        core.notice(logMessage);
+        core.info(logMessage);
         break;
     }
-    
-    // Log stack trace in debug mode
-    if (error instanceof Error && error.stack && core.isDebug()) {
-      core.debug(`Stack trace:\n${error.stack}`);
-    }
   }
 
-  /**
-   * Format log message
-   */
-  private formatLogMessage(errorMessage: string, options: ErrorOptions): string {
-    const parts = [`[${options.category || ErrorCategory.UNKNOWN}]`];
-    
-    if (options.location) {
-      parts.push(`at ${options.location}`);
-    }
-    
-    parts.push(errorMessage);
-    
-    return parts.join(' ');
-  }
-
-  /**
-   * Post error to GitHub PR
-   */
-  private async postErrorToGitHub(error: Error | string, context: ErrorOptions): Promise<void> {
-    if (!this.github || this.prNumber === 0) {
-      return;
-    }
-
-    const errorMessage = error instanceof Error ? error.message : error;
-    const errorStack = error instanceof Error && context.includeStackTrace ? error.stack : undefined;
-    
-    let message = `### 🚨 Error Occurred\n\n`;
-    message += `**Error**: ${errorMessage}\n\n`;
-    
-    if (context.location) {
-      message += `**Location**: \`${context.location}\`\n\n`;
-    }
-    
-    if (context.userAction) {
-      message += `**During**: ${context.userAction}\n\n`;
-    }
-    
-    if (context.metadata && Object.keys(context.metadata).length > 0) {
-      message += `**Context**:\n`;
-      for (const [key, value] of Object.entries(context.metadata)) {
-        message += `- ${key}: ${JSON.stringify(value)}\n`;
-      }
-      message += '\n';
-    }
-    
-    if (context.tips && context.tips.length > 0) {
-      message += `**💡 Troubleshooting Tips**:\n`;
-      for (const tip of context.tips) {
-        message += `- ${tip}\n`;
-      }
-      message += '\n';
-    }
-    
-    if (errorStack) {
-      message += `<details>\n<summary>Stack Trace</summary>\n\n\`\`\`\n${errorStack}\n\`\`\`\n</details>\n`;
-    }
-    
-    try {
-      await this.github.createComment(message);
-    } catch (postError) {
-      core.warning(`Failed to post error to GitHub: ${postError}`);
-    }
-  }
+  // Individual error posting removed - only post summary at end
+  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
 
   /**
    * Update error statistics
@@ -290,19 +200,54 @@ export class CentralizedErrorHandler {
     if (this.isTestMode) {
       return;
     }
-    
+
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', async (error) => {
       core.error(`Uncaught Exception: ${error.message}`);
       if (error.stack) {
         core.debug(error.stack);
       }
+
+      // Add to error buffer without throwing
+      const errorEntry = {
+        error,
+        context: {
+          severity: ErrorSeverity.CRITICAL,
+          category: ErrorCategory.UNKNOWN,
+          location: 'uncaught-exception'
+        },
+        timestamp: new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+
+      // Try to post error summary before exiting
+      await this.postErrorSummary().catch(() => {});
+
       process.exit(1);
     });
-    
+
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
-      core.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+    process.on('unhandledRejection', async (reason, promise) => {
+      const errorMessage = reason instanceof Error ? reason.message : String(reason);
+      core.error(`Unhandled Rejection: ${errorMessage}`);
+
+      // Add to error buffer without throwing
+      const errorEntry = {
+        error: new Error(errorMessage),
+        context: {
+          severity: ErrorSeverity.CRITICAL,
+          category: ErrorCategory.UNKNOWN,
+          location: 'unhandled-rejection'
+        },
+        timestamp: new Date()
+      };
+      this.errorBuffer.push(errorEntry);
+      this.updateErrorStats(errorEntry.context);
+
+      // Try to post error summary before exiting
+      await this.postErrorSummary().catch(() => {});
+
       process.exit(1);
     });
   }
@@ -332,50 +277,60 @@ export class CentralizedErrorHandler {
    * Post a summary of all errors
    */
   async postErrorSummary(): Promise<void> {
-    if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
+    if (!this.github || this.prNumber === 0) {
+      core.debug('Skipping error summary: No GitHub service or PR number');
       return;
     }
-    
-    let message = `## 📊 Error Summary\n\n`;
-    message += `Total errors: ${this.errorStats.total}\n`;
-    message += `Recovered: ${this.errorStats.recovered}\n\n`;
-    
-    // By severity
-    message += `### By Severity\n`;
-    for (const [severity, count] of Object.entries(this.errorStats.bySeverity)) {
-      if (count > 0) {
-        message += `- ${severity}: ${count}\n`;
-      }
+
+    if (this.errorBuffer.length === 0) {
+      core.info('✅ No errors to report');
+      return;
     }
-    message += '\n';
-    
-    // By category
-    message += `### By Category\n`;
-    for (const [category, count] of Object.entries(this.errorStats.byCategory)) {
-      if (count > 0) {
-        message += `- ${category}: ${count}\n`;
-      }
+
+    // Group errors by location (package/source)
+    const byLocation: Record<string, number> = {};
+    for (const entry of this.errorBuffer) {
+      const location = entry.context?.location || 'unknown';
+      byLocation[location] = (byLocation[location] || 0) + 1;
     }
-    message += '\n';
-    
-    // Recent errors
-    if (this.errorBuffer.length > 0) {
-      message += `### Recent Errors\n`;
-      message += `<details>\n<summary>Last ${Math.min(10, this.errorBuffer.length)} errors</summary>\n\n`;
-      
-      const recentErrors = this.errorBuffer.slice(-10);
-      for (const entry of recentErrors) {
-        const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
-        message += `- **${entry.timestamp.toISOString()}**`;
-        if (entry.context?.location) {
-          message += ` at \`${entry.context.location}\``;
-        }
-        message += `: ${errorMessage}\n`;
-      }
-      
-      message += `\n</details>\n`;
+
+    let message = `## ⚠️ Error Summary\n\n`;
+    message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? 's' : ''} occurred`;
+    if (this.errorStats.recovered > 0) {
+      message += ` (${this.errorStats.recovered} recovered)`;
     }
-    
+    message += `\n\n`;
+
+    // By severity (only if multiple types)
+    const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
+    if (severityCounts.length > 1) {
+      message += `**By Severity**: `;
+      message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(' • ');
+      message += `\n\n`;
+    }
+
+    // By source/package
+    const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
+    if (locationCounts.length > 0) {
+      message += `**By Source**: `;
+      message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(' • ');
+      message += `\n\n`;
+    }
+
+    // Recent errors (compact format)
+    message += `<details>\n<summary><strong>Error Details</strong></summary>\n\n`;
+    const recentErrors = this.errorBuffer.slice(-5); // Show last 5 only
+    for (const entry of recentErrors) {
+      const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
+      const time = entry.timestamp.toLocaleTimeString();
+      const location = entry.context?.location ? `[${entry.context.location}]` : '';
+      message += `- **${time}** ${location} ${errorMessage}\n`;
+    }
+    if (this.errorBuffer.length > 5) {
+      message += `\n...and ${this.errorBuffer.length - 5} more\n`;
+    }
+    message += `\n</details>\n`;
+
     try {
       await this.github.createComment(message);
     } catch (error) {

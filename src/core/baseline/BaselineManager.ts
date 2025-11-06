@@ -1,287 +1,397 @@
 import * as core from '@actions/core';
-import { BaselineStorage } from '../baseline/BaselineStorage';
-import { BaselineStrategyFactory } from '../baseline/BaselineStrategies';
-import { VisualDiffer } from '../baseline/VisualDiffer';
-import { 
-  Baseline, 
-  BaselineUpdateRequest,
-  BaselineComparison,
-  BaselineQuery
-} from '../baseline/types';
+import { Page, Browser, chromium } from 'playwright';
+import { PNG } from 'pngjs';
+import { StorageProvider } from './types';
+import { errorHandler, ErrorCategory, ErrorSeverity } from '..';
 import * as github from '@actions/github';
+import pixelmatch from 'pixelmatch';
+
+export interface DynamicBaselineConfig {
+  productionUrl?: string;
+  storageProvider: StorageProvider;
+}
+
+export interface BaselineResult {
+  route: string;
+  viewport: { width: number; height: number };
+  screenshot: Buffer;
+  timestamp: number;
+}
 
 /**
- * Manages visual baselines for comparison
+ * Manages dynamic baseline creation and fetching from production/main branch
  */
 export class BaselineManager {
-  private storage: BaselineStorage;
-  private differ: VisualDiffer;
-  private strategy: string;
+  private browser: Browser | null = null;
 
-  constructor(
-    firebaseConfig?: any,
-    options?: {
-      strategy?: string;
-      diffThreshold?: number;
+  constructor(private config: DynamicBaselineConfig) {
+  }
+
+  /**
+   * Create baselines for routes from production URL
+   */
+  async createBaselines(routes: string[], viewports: Array<{ width: number; height: number }>): Promise<BaselineResult[]> {
+    if (!this.config.productionUrl) {
+      core.warning('No production URL configured for baseline creation');
+      return [];
     }
-  ) {
-    this.storage = new BaselineStorage(firebaseConfig);
-    this.differ = new VisualDiffer({
-      threshold: options?.diffThreshold || 0.1
-    });
-    this.strategy = options?.strategy || 'smart';
-  }
 
-  /**
-   * Initialize baseline manager
-   */
-  async initialize(): Promise<void> {
-    await this.storage.initialize();
-  }
+    const baseUrl = this.config.productionUrl;
 
-  /**
-   * Update baseline for a PR
-   */
-  async updateBaseline(request: BaselineUpdateRequest): Promise<void> {
-    core.info(`Updating baseline for PR #${request.prNumber}`);
-    
-    const repository = BaselineStorage.getCurrentRepository();
-    const commit = github.context.sha;
-    const author = github.context.actor;
-    
-    for (const screenshot of request.screenshots) {
-      try {
-        // Calculate fingerprint
-        const fingerprint = this.calculateFingerprint(screenshot.buffer);
-        
-        // Save image to storage
-        const imagePath = await this.storage.saveImage(
-          screenshot.buffer,
-          {
-            route: screenshot.route,
-            viewport: screenshot.viewport,
-            prNumber: request.prNumber,
-            ...screenshot.metadata
+    core.info(`📸 Creating baselines from: ${baseUrl}`);
+    const results: BaselineResult[] = [];
+
+    try {
+      // Launch browser
+      this.browser = await chromium.launch({ headless: true });
+      const context = await this.browser.newContext();
+      const page = await context.newPage();
+
+      // Navigate to each route and capture screenshots
+      for (const route of routes) {
+        for (const viewport of viewports) {
+          try {
+            const result = await this.captureBaseline(page, baseUrl, route, viewport);
+            results.push(result);
+            
+            // Save to storage
+            await this.saveBaseline(result);
+          } catch (error) {
+            core.warning(`Failed to capture baseline for ${route} at ${viewport.width}x${viewport.height}: ${error}`);
           }
-        );
-        
-        // Create baseline record
-        const baseline = await this.storage.save({
-          repository,
-          route: screenshot.route,
-          viewport: screenshot.viewport,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          metadata: {
-            commit,
-            author,
-            prNumber: request.prNumber,
-            tags: ['pr-update'],
-            ...screenshot.metadata
-          },
-          fingerprint,
-          dimensions: this.getImageDimensions(screenshot.buffer)
-        });
-        
-        core.info(`✅ Updated baseline for ${screenshot.route} at ${screenshot.viewport}`);
-      } catch (error) {
-        core.error(`Failed to update baseline for ${screenshot.route}: ${error.message}`);
+        }
+      }
+
+      core.info(`✅ Created ${results.length} baselines`);
+
+    } catch (error) {
+      await errorHandler.handleError(error as Error, {
+        severity: ErrorSeverity.MEDIUM,
+        category: ErrorCategory.BROWSER,
+        userAction: 'Create baselines',
+        metadata: { baseUrl, routeCount: routes.length },
+        recoverable: true
+      });
+    } finally {
+      if (this.browser) {
+        await this.browser.close();
       }
     }
+
+    return results;
+  }
+
+
+  /**
+   * Create baselines for newly discovered routes only
+   */
+  async createMissingBaselines(routes: string[], viewports: Array<{ width: number; height: number }>): Promise<BaselineResult[]> {
+    const missingRoutes: string[] = [];
+
+    // Check which routes don't have baselines
+    for (const route of routes) {
+      let routeHasBaselines = false;
+      
+      for (const viewport of viewports) {
+        try {
+          const baselineKey = this.getBaselineKey(route, viewport);
+          const exists = await this.baselineExists(baselineKey);
+          
+          if (exists) {
+            routeHasBaselines = true;
+            break; // Found at least one baseline for this route
+          }
+        } catch (error: any) {
+          core.debug(`Error checking baseline existence for ${route}: ${error.message || error}`);
+          // Continue checking other viewports
+        }
+      }
+      
+      if (!routeHasBaselines) {
+        missingRoutes.push(route);
+      }
+    }
+
+    if (missingRoutes.length === 0) {
+      core.info('✅ All routes have baselines');
+      return [];
+    }
+
+    core.info(`📸 Creating baselines for ${missingRoutes.length} new routes: ${missingRoutes.join(', ')}`);
+    return this.createBaselines(missingRoutes, viewports);
   }
 
   /**
-   * Get baseline for comparison
+   * Capture a single baseline screenshot
    */
-  async getBaseline(
-    route: string, 
-    viewport: string,
-    options?: {
-      strategy?: string;
-      prNumber?: number;
-      branch?: string;
-    }
-  ): Promise<Baseline | null> {
-    // Build query
-    const query: BaselineQuery = {
-      repository: BaselineStorage.getCurrentRepository(),
+  private async captureBaseline(
+    page: Page,
+    baseUrl: string,
+    route: string,
+    viewport: { width: number; height: number }
+  ): Promise<BaselineResult> {
+    // Construct URL
+    const url = route.startsWith('/') 
+      ? `${baseUrl}${route}`
+      : `${baseUrl}/${route}`;
+
+    // Set viewport
+    await page.setViewportSize(viewport);
+
+    // Navigate to page
+    await page.goto(url, { 
+      waitUntil: 'networkidle',
+      timeout: 30000 
+    });
+
+    // Wait for any animations
+    await page.waitForTimeout(1000);
+
+    // Capture screenshot
+    const screenshot = await page.screenshot({ 
+      fullPage: true,
+      type: 'png'
+    });
+
+    return {
       route,
       viewport,
-      limit: 50 // Get more candidates for strategy to choose from
+      screenshot,
+      timestamp: Date.now()
     };
+  }
+
+  /**
+   * Save baseline to storage
+   */
+  private async saveBaseline(result: BaselineResult): Promise<void> {
+    const key = this.getBaselineKey(result.route, result.viewport);
     
-    // Find candidates
-    const candidates = await this.storage.find(query);
+    await this.config.storageProvider.uploadFile(key, result.screenshot, {
+      contentType: 'image/png',
+      metadata: {
+        route: result.route,
+        viewport: `${result.viewport.width}x${result.viewport.height}`,
+        timestamp: result.timestamp.toString(),
+        source: 'production'
+      }
+    });
+
+    core.info(`✅ Saved baseline: ${key}`);
+  }
+
+  /**
+   * Get baseline key for storage
+   */
+  private getBaselineKey(route: string, viewport: { width: number; height: number }): string {
+    const sanitizedRoute = route.replace(/\//g, '_').replace(/^_+|_+$/g, '') || 'root';
+    return `baselines/${sanitizedRoute}_${viewport.width}x${viewport.height}.png`;
+  }
+
+  /**
+   * Check if baseline exists
+   */
+  private async baselineExists(key: string): Promise<boolean> {
+    try {
+      const files = await this.config.storageProvider.listFiles?.('baselines/');
+      return files?.includes(key) || false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Fetch baseline for comparison
+   */
+  async fetchBaseline(route: string, viewport: { width: number; height: number }): Promise<Buffer | null> {
+    const key = this.getBaselineKey(route, viewport);
     
-    if (candidates.length === 0) {
-      core.warning(`No baseline found for ${route} at ${viewport}`);
+    try {
+      const baseline = await this.config.storageProvider.downloadFile(key);
+      core.debug(`✅ Baseline found: ${key}`);
+      return baseline;
+    } catch (error: any) {
+      const errorMessage = error.message || String(error);
+      
+      // Handle file not found errors gracefully
+      if (error.code === 404 || 
+          errorMessage.includes('No such object') || 
+          errorMessage.includes('File not found') ||
+          errorMessage.includes('does not exist')) {
+        core.info(`ℹ️ No baseline found for ${route} at ${viewport.width}x${viewport.height}. Will create from current screenshot.`);
+        return null;
+      }
+      
+      // Log unexpected errors but don't fail
+      core.warning(`⚠️ Unexpected error fetching baseline ${key}: ${errorMessage}`);
       return null;
     }
+  }
+
+  /**
+   * Update baseline with new screenshot
+   */
+  async updateBaseline(route: string, viewport: { width: number; height: number }, screenshot: Buffer): Promise<void> {
+    const key = this.getBaselineKey(route, viewport);
     
-    // Apply strategy
-    const strategyName = options?.strategy || this.strategy;
-    const strategy = BaselineStrategyFactory.create(strategyName, {
-      prNumber: options?.prNumber,
-      baseBranch: options?.branch || 'main',
-      currentBranch: github.context.ref?.replace('refs/heads/', '')
+    await this.config.storageProvider.uploadFile(key, screenshot, {
+      contentType: 'image/png',
+      metadata: {
+        route,
+        viewport: `${viewport.width}x${viewport.height}`,
+        timestamp: Date.now().toString(),
+        source: 'update'
+      }
     });
-    
-    const selected = strategy.selectBaseline(query, candidates);
-    
-    if (selected) {
-      core.info(`Selected baseline: ${selected.id} (${strategy.name} strategy)`);
-    }
-    
-    return selected;
+
+    core.info(`✅ Updated baseline: ${key}`);
   }
 
   /**
    * Compare screenshot with baseline
    */
-  async compare(
-    current: Buffer, 
-    baseline: Baseline,
-    metadata?: any
-  ): Promise<BaselineComparison> {
-    return await this.differ.compare(baseline, current, metadata);
-  }
-
-  /**
-   * Tag a baseline
-   */
-  async tagBaseline(baselineId: string, tags: string[]): Promise<void> {
-    const baseline = await this.storage.get(baselineId);
-    if (!baseline) {
-      throw new Error(`Baseline ${baselineId} not found`);
-    }
-    
-    // Add tags
-    baseline.metadata.tags = [...(baseline.metadata.tags || []), ...tags];
-    baseline.updatedAt = Date.now();
-    
-    // Save updated baseline
-    await this.storage.save(baseline);
-    
-    core.info(`Tagged baseline ${baselineId} with: ${tags.join(', ')}`);
-  }
-
-  /**
-   * Promote baseline to stable
-   */
-  async promoteToStable(
+  async compareWithBaseline(
     route: string,
-    viewport: string,
-    commit?: string
-  ): Promise<void> {
-    const query: BaselineQuery = {
-      repository: BaselineStorage.getCurrentRepository(),
-      route,
-      viewport,
-      commit
-    };
+    viewport: { width: number; height: number },
+    screenshot: Buffer
+  ): Promise<{
+    hasDifference: boolean;
+    diffPercentage: number;
+    diffImage?: Buffer;
+  }> {
+    const baseline = await this.fetchBaseline(route, viewport);
     
-    const candidates = await this.storage.find(query);
-    
-    if (candidates.length === 0) {
-      throw new Error(`No baseline found for ${route} at ${viewport}`);
-    }
-    
-    // Tag the most recent as stable
-    const baseline = candidates[0];
-    await this.tagBaseline(baseline.id, ['stable']);
-    
-    core.info(`Promoted baseline ${baseline.id} to stable`);
-  }
-
-  /**
-   * Clean up old baselines
-   */
-  async cleanup(options?: {
-    keepDays?: number;
-    keepCount?: number;
-    keepTags?: string[];
-  }): Promise<number> {
-    const keepDays = options?.keepDays || 30;
-    const keepCount = options?.keepCount || 10;
-    const keepTags = options?.keepTags || ['stable', 'release'];
-    
-    const cutoffTime = Date.now() - (keepDays * 24 * 60 * 60 * 1000);
-    
-    // Get all baselines
-    const all = await this.storage.find({
-      repository: BaselineStorage.getCurrentRepository(),
-      limit: 1000
-    });
-    
-    // Group by route and viewport
-    const grouped = new Map<string, Baseline[]>();
-    for (const baseline of all) {
-      const key = `${baseline.route}-${baseline.viewport}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
+    if (!baseline) {
+      // No baseline exists, save current as baseline
+      core.info(`📸 Creating new baseline for ${route} at ${viewport.width}x${viewport.height}`);
+      try {
+        await this.updateBaseline(route, viewport, screenshot);
+        core.info(`✅ New baseline created successfully for ${route}`);
+        return { hasDifference: false, diffPercentage: 0 };
+      } catch (error: any) {
+        core.error(`❌ Failed to create baseline for ${route}: ${error.message || error}`);
+        // Don't fail the test, just report no difference since we can't compare
+        return { hasDifference: false, diffPercentage: 0 };
       }
-      grouped.get(key)!.push(baseline);
     }
-    
-    let deleted = 0;
-    
-    // Clean up each group
-    for (const [key, baselines] of grouped) {
-      // Sort by date descending
-      baselines.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    // Perform pixel comparison
+    try {
+      const currentImg = PNG.sync.read(screenshot);
+      const baselineImg = PNG.sync.read(baseline);
       
-      // Keep recent ones and tagged ones
-      let kept = 0;
-      for (let i = 0; i < baselines.length; i++) {
-        const baseline = baselines[i];
-        
-        const hasKeepTag = baseline.metadata.tags?.some(tag => 
-          keepTags.includes(tag)
-        );
-        
-        if (
-          kept < keepCount ||
-          baseline.updatedAt > cutoffTime ||
-          hasKeepTag
-        ) {
-          kept++;
-        } else {
-          // Delete old baseline
-          await this.storage.delete(baseline.id);
-          deleted++;
-          core.info(`Deleted old baseline: ${baseline.id}`);
-        }
+      // Check dimensions
+      if (currentImg.width !== baselineImg.width || currentImg.height !== baselineImg.height) {
+        core.warning(`Image dimensions mismatch for ${route} at ${viewport.width}x${viewport.height}`);
+        return { hasDifference: true, diffPercentage: 100 };
       }
+
+      // Use pixelmatch for comparison
+      const diffImg = new PNG({ width: currentImg.width, height: currentImg.height });
+      
+      const numDiffPixels = pixelmatch(
+        baselineImg.data,
+        currentImg.data,
+        diffImg.data,
+        currentImg.width,
+        currentImg.height,
+        {
+          threshold: 0.1,
+          includeAA: true,
+          alpha: 0.1
+        }
+      );
+      
+      const totalPixels = currentImg.width * currentImg.height;
+      const diffPercentage = (numDiffPixels / totalPixels) * 100;
+      
+      if (diffPercentage > 0.1) { // 0.1% threshold
+        return {
+          hasDifference: true,
+          diffPercentage,
+          diffImage: PNG.sync.write(diffImg)
+        };
+      }
+
+      return { hasDifference: false, diffPercentage };
+
+    } catch (error) {
+      core.warning(`Failed to compare images: ${error}`);
+      return { hasDifference: true, diffPercentage: 100 };
     }
-    
-    core.info(`Cleanup complete: deleted ${deleted} old baselines`);
-    return deleted;
+  }
+
+
+  /**
+   * Create baselines on demand when production URL is available
+   */
+  async ensureBaselines(routes: string[], viewports: Array<{ width: number; height: number }>): Promise<void> {
+    // Skip baseline creation if no production URL is configured
+    if (!this.config.productionUrl) {
+      core.info('ℹ️ No production URL configured. Skipping baseline creation and visual comparisons.');
+      return;
+    }
+
+    try {
+      // Check if we have any baselines at all
+      const hasAnyBaselines = await this.hasAnyBaselines();
+      
+      if (!hasAnyBaselines) {
+        core.info('🎯 No baselines found. Creating initial baselines from production URL...');
+        await this.createBaselines(routes, viewports);
+      } else {
+        // Create missing baselines only
+        await this.createMissingBaselines(routes, viewports);
+      }
+    } catch (error: any) {
+      core.warning(`⚠️ Baseline initialization failed: ${error.message || error}`);
+      core.info('📝 Visual tests will continue but comparison will be skipped for missing baselines');
+      // Don't throw - let visual testing continue without baseline comparison
+    }
   }
 
   /**
-   * Calculate fingerprint for image
+   * Check if any baselines exist
    */
-  private calculateFingerprint(buffer: Buffer): string {
-    const crypto = require('crypto');
-    return crypto
-      .createHash('sha256')
-      .update(buffer)
-      .digest('hex');
+  private async hasAnyBaselines(): Promise<boolean> {
+    try {
+      const files = await this.config.storageProvider.listFiles?.('baselines/');
+      return files && files.length > 0;
+    } catch {
+      return false;
+    }
   }
 
   /**
-   * Get image dimensions from buffer
+   * Create baselines from main branch deployments (if available)
+   * @param routes - Array of routes to create baselines for
    */
-  private getImageDimensions(buffer: Buffer): { width: number; height: number } {
-    // This is a simplified version - in production, use a proper image library
-    // For PNG images, dimensions are at bytes 16-24
-    if (buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-      const width = buffer.readUInt32BE(16);
-      const height = buffer.readUInt32BE(20);
-      return { width, height };
+  async createBaselinesFromMainBranch(routes: string[]): Promise<boolean> {
+    core.info('🔍 Attempting to create baselines from main branch deployments...');
+
+    if (!routes || routes.length === 0) {
+      core.warning('No routes provided for baseline creation');
+      return false;
     }
-    
-    // Default fallback
-    return { width: 1920, height: 1080 };
+
+    // This method would typically:
+    // 1. Check for existing deployments from main branch
+    // 2. Find the latest successful deployment URL
+    // 3. Use that URL to create baselines
+
+    // For now, we'll try to use the production URL if available
+    if (this.config.productionUrl) {
+      const viewports = [
+        { width: 1920, height: 1080 },
+        { width: 768, height: 1024 },
+        { width: 375, height: 667 }
+      ];
+
+      const results = await this.createBaselines(routes, viewports);
+      return results.length > 0;
+    }
+
+    core.warning('No production URL configured for main branch baseline creation');
+    return false;
   }
 }

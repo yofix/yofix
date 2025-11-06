@@ -30,6 +30,11 @@ echo -e "Base version: ${GREEN}${BASE_VERSION}${NC}"
 echo -e "Current branch: ${GREEN}${CURRENT_BRANCH}${NC}"
 echo ""
 
+# Build the project before tagging
+echo -e "\n${BLUE}⚙️  Building project (yarn build)...${NC}"
+yarn build
+echo -e "${GREEN}✅ Build completed${NC}"
+
 # Check for uncommitted changes
 if ! git diff-index --quiet HEAD --; then
     echo -e "${YELLOW}📝 Uncommitted changes detected${NC}"
@@ -114,10 +119,7 @@ DEV_VERSION="v${BASE_VERSION}-dev.${COMMIT_HASH}"
 
 echo -e "\n${BLUE}🏷️  Creating dev version: ${GREEN}${DEV_VERSION}${NC}"
 
-# Build the project before tagging
-echo -e "\n${BLUE}⚙️  Building project (yarn build)...${NC}"
-yarn build
-echo -e "${GREEN}✅ Build completed${NC}"
+
 
 # Check if tag already exists
 if git rev-parse "$DEV_VERSION" >/dev/null 2>&1; then

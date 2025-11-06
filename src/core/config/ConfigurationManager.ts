@@ -306,8 +306,8 @@ export class ConfigurationManager {
 
     // Auth mode validation
     this.addValidator('auth-mode', {
-      test: (value) => ['selectors', 'ai', 'llm', 'smart', 'none'].includes(value),
-      message: 'Must be one of: selectors, ai, llm, smart, none'
+      test: (value) => ['selectors', 'ai', 'llm', 'smart', 'none', 'baseline'].includes(value),
+      message: 'Must be one of: selectors, ai, llm, smart, none, baseline'
     });
   }
 }

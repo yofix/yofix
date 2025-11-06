@@ -6,6 +6,7 @@
  */
 
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import {
@@ -93,7 +94,7 @@ export class RepositoryLearner {
       this.metrics.confidence.overall = confidenceScore;
 
       const learnedPattern: LearnedPattern = {
-        framework: repoInfo.framework,
+        framework: repoInfo.framework as FrameworkType,
         version: repoInfo.packageJson?.dependencies?.[this.getFrameworkPackageName(repoInfo.framework)] || '1.0',
         learnedAt: new Date().toISOString(),
         patterns,
@@ -224,8 +225,8 @@ export class RepositoryLearner {
     // Prioritize: smaller files first (likely route definitions)
     const sortedFiles = allFiles.sort((a, b) => {
       try {
-        const statA = fs.statSync(a);
-        const statB = fs.statSync(b);
+        const statA = fsSync.statSync(a);
+        const statB = fsSync.statSync(b);
         return (statA.size || 0) - (statB.size || 0);
       } catch {
         return 0;

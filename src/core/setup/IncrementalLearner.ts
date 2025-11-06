@@ -32,7 +32,7 @@ export class IncrementalLearner {
   ) {
     this.anthropic = new Anthropic({ apiKey: claudeApiKey });
     this.patternStore = patternStore;
-    this.updateThreshold = updateThreshold ?? config.get('patternLearning.incrementalUpdateThreshold', 0.1);
+    this.updateThreshold = updateThreshold ?? 0.1; // Default threshold 10%
   }
 
   /**
@@ -106,7 +106,7 @@ export class IncrementalLearner {
     const prompt = this.buildAnalysisPrompt(currentPatterns, this.fallbackCases);
 
     const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2048,
       temperature: 0.1,
       messages: [{

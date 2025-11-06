@@ -8,7 +8,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { LearnedPattern, LearningMetrics } from './types';
-import { StorageProvider } from '../../providers/storage/StorageProvider';
+// import { StorageProvider } from '../../providers/storage/StorageProvider'; // Removed - using local storage only
 
 export interface PatternStoreConfig {
   /**
@@ -24,8 +24,9 @@ export interface PatternStoreConfig {
 
   /**
    * Remote storage provider (optional)
+   * Note: Remote storage removed - using local storage only
    */
-  storageProvider?: StorageProvider;
+  storageProvider?: any;
 
   /**
    * Remote storage path
@@ -42,7 +43,7 @@ export interface PatternStoreConfig {
 export class PatternStore {
   private repoRoot: string;
   private localPath: string;
-  private storageProvider?: StorageProvider;
+  private storageProvider?: any; // StorageProvider removed - using local storage only
   private remotePath: string;
   private stalenessDays: number;
 

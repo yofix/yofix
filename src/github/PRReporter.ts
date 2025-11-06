@@ -46,9 +46,8 @@ export class PRReporter {
     } catch (error) {
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.HIGH,
-        category: ErrorCategory.UNKNOWN,
-        userAction: 'Post verification results to PR',
-        metadata: { prNumber: this.prNumber }
+        category: ErrorCategory.GITHUB,
+        location: 'pr-reporter'
       });
       throw error;
     }
@@ -86,9 +85,8 @@ ${message}
     } catch (error) {
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.MEDIUM,
-        category: ErrorCategory.UNKNOWN,
-        userAction: 'Post status update to PR',
-        metadata: { status, prNumber: this.prNumber },
+        category: ErrorCategory.GITHUB,
+        location: 'pr-reporter',
         recoverable: true
       });
     }
@@ -101,13 +99,12 @@ ${message}
     const statusEmoji = result.status === 'success' ? '✅' : result.status === 'partial' ? '⚠️' : '❌';
     const firebaseEmoji = '🔥';
     const reactEmoji = '⚛️';
-    
-    // Header with overall status
-    let comment = `## ${statusEmoji} Runtime PR Verification - React SPA
 
-**Status**: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)} | `;
-    comment += `${reactEmoji} React ${result.firebaseConfig.buildSystem === 'vite' ? 'Vite' : 'CRA'} | `;
-    comment += `${firebaseEmoji} Firebase ${result.firebaseConfig.target}\n\n`;
+    // Get framework name from route-impact-analyzer or fallback to generic
+    const frameworkName = result.framework || 'Web App';
+
+    // Header with overall status
+    let comment = `## ${statusEmoji} Runtime PR Verification - ${frameworkName}\n\n`;
 
     // Test summary
     comment += `**Test Results**: ${result.passedTests}/${result.totalTests} passed`;
@@ -140,13 +137,13 @@ ${message}
       core.info(`Embedding ${screenshots.length} screenshots in PR comment`);
       const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
       core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
-      
+
       // Use enhanced comparison layout if baseline data is available
       const hasBaselineData = screenshots.some(s => s.comparison || s.baseline);
       if (hasBaselineData) {
-        comment += this.generateVisualComparisonTable(screenshots);
+        comment += this.generateVisualComparisonTable(screenshots, result);
       } else {
-        comment += this.generateEmbeddedScreenshots(screenshots);
+        comment += this.generateEmbeddedScreenshots(screenshots, result);
       }
     }
     
@@ -162,46 +159,6 @@ ${message}
 
     // Expandable details section
     comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
-
-    // Components and routes verified
-    if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
-      comment += '### ✅ React App Verification\n\n';
-      
-      if (result.summary.componentsVerified.length > 0) {
-        comment += `**Components Tested**: ${result.summary.componentsVerified.join(', ')}\n\n`;
-      }
-      
-      if (result.summary.routesTested.length > 0) {
-        comment += `**Routes Verified**: ${result.summary.routesTested.join(', ')}\n\n`;
-      }
-    }
-
-    // Individual test results
-    comment += '### 📋 Test Results\n\n';
-    
-    for (const test of result.testResults) {
-      const testEmoji = test.status === 'passed' ? '✅' : test.status === 'failed' ? '❌' : '⏭️';
-      comment += `${testEmoji} **${test.testName}** (${this.formatDuration(test.duration)})\n`;
-      
-      if (test.errors.length > 0) {
-        comment += `   - ⚠️ Issues: ${test.errors.slice(0, 2).join(', ')}`;
-        if (test.errors.length > 2) {
-          comment += ` and ${test.errors.length - 2} more`;
-        }
-        comment += '\n';
-      }
-      
-      if (test.screenshots.length > 0) {
-        comment += '   - 📸 Screenshots captured for: ';
-        comment += test.screenshots.map(s => s.viewport.name).join(', ') + '\n';
-      }
-      
-      if (test.videos.length > 0 && test.videos[0]?.firebaseUrl) {
-        comment += `   - 🎥 Video: [View Recording](${test.videos[0].firebaseUrl})\n`;
-      }
-      
-      comment += '\n';
-    }
 
     // Issues found section
     if (result.summary.issuesFound.length > 0) {
@@ -266,7 +223,7 @@ ${message}
   /**
    * Generate visual comparison table with baseline vs current screenshots
    */
-  private generateVisualComparisonTable(screenshots: any[]): string {
+  private generateVisualComparisonTable(screenshots: any[], result: VerificationResult): string {
     if (screenshots.length === 0) {
       return '';
     }
@@ -309,9 +266,9 @@ ${message}
       
       const statusIcon = isNewRoute ? '🆕' : routeHasIssues ? '⚠️' : '✅';
       const statusText = isNewRoute ? 'New Route' : routeHasIssues ? 'Issues Detected' : 'No Issues';
-      
+
       content += `<details>\n`;
-      content += `<summary><strong>📍 ${route}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
+      content += `<summary><strong>📍 ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
       
       // Create comparison table for this route
       content += `| Baseline (Last Updated) | Current Screenshot | Comparison |\n`;
@@ -433,24 +390,35 @@ ${message}
   }
 
   /**
+   * Get base preview URL without trailing slash
+   */
+  private getBasePreviewUrl(result: VerificationResult): string {
+    return result.firebaseConfig.previewUrl.replace(/\/$/, '');
+  }
+
+  /**
+   * Create clickable route link with preview URL
+   */
+  private createRouteLink(route: string, result: VerificationResult): string {
+    const baseUrl = this.getBasePreviewUrl(result);
+    return `[${route}](${baseUrl}${route})`;
+  }
+
+  /**
    * Generate embedded screenshots for PR comment (legacy method)
    */
-  private generateEmbeddedScreenshots(screenshots: any[]): string {
+  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult): string {
     if (screenshots.length === 0) {
       return '';
     }
 
     let gallery = '### 📸 Screenshots\n\n';
-    
-    // Group screenshots by test/route name (remove viewport info)
+
+    // Group screenshots by route (use the route property directly from screenshot)
     const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      // Extract route from screenshot name by removing viewport dimensions
-      let route = screenshot.name;
-      // Remove viewport size pattern (e.g., -1920x1080)
-      route = route.replace(/-\d+x\d+$/, '');
-      // Clean up the route name
-      route = route.replace(/^\//, '').replace(/-/g, ' ');
-      
+      // Use the route property that was preserved from @yofix/browser
+      const route = screenshot.route || '/';
+
       if (!acc[route]) {
         acc[route] = [];
       }
@@ -458,33 +426,57 @@ ${message}
       return acc;
     }, {} as Record<string, any[]>);
 
-    // Generate gallery for each route
+    // Generate collapsible gallery for each route
     for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      gallery += `#### Route: \`${route}\`\n\n`;
-      
       // Only show images if they have Firebase URLs
       const screenshotsWithUrls = (routeScreenshots as any[]).filter((s: any) => s.firebaseUrl);
-      
+
       if (screenshotsWithUrls.length === 0) {
-        gallery += `_Screenshots captured but URLs not available_\n\n`;
         continue;
       }
-      
+
+      // Get the full URL from the first screenshot
+      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
+
+      // Get route-level total time from test results
+      const testResult = result.testResults.find(test => {
+        let testRoute = test.testId.replace('test-', '');
+        // Extract pathname from full URL if needed
+        if (testRoute.startsWith('http://') || testRoute.startsWith('https://')) {
+          try {
+            const url = new URL(testRoute);
+            testRoute = url.pathname;
+          } catch (error) {
+            // Keep as-is if parsing fails
+          }
+        }
+        return testRoute === route;
+      });
+
+      const totalTimeText = testResult?.duration ? ` • ${this.formatDuration(testResult.duration)}` : '';
+
+      // Create collapsible section for each route
+      gallery += `<details>\n`;
+      gallery += `<summary><strong>📍 Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>\n\n`;
+
       // Create a table for viewports
       gallery += '<table>\n<tr>\n';
-      
+
       // Sort by viewport size (desktop, tablet, mobile)
       const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
-      
+
       for (const screenshot of sorted) {
+        // Get individual screenshot duration (viewport resize + reflow + capture)
+        const durationText = screenshot.duration ? ` • ${this.formatDuration(screenshot.duration)}` : '';
+
         gallery += `<td align="center">\n`;
-        gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
-        gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}" />\n`;
+        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}×${screenshot.viewport.height}`}${durationText}</strong><br>\n`;
+        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />\n`;
         gallery += `</td>\n`;
       }
-      
+
       gallery += '</tr>\n</table>\n\n';
+      gallery += `</details>\n\n`;
     }
 
     return gallery;

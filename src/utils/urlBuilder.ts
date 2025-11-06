@@ -16,17 +16,23 @@
  * buildFullUrl("https://example.com", "base/leaderboard") => "https://example.com/base/leaderboard"
  */
 export function buildFullUrl(baseUrl: string, route: string): string {
-  // Remove trailing slash from base URL
+  // If route is already a full URL (e.g., from route-impact-analyzer), return it as-is
+  // route-impact-analyzer returns full URLs when baseUrl is provided during analysis
+  if (route.startsWith('http://') || route.startsWith('https://')) {
+    return route;
+  }
+
+  // Otherwise, build full URL from baseUrl + relative route (e.g., from config or manual input)
   const cleanBase = baseUrl.replace(/\/$/, '');
-  
+
   // Handle empty route (homepage)
   if (!route || route === '/') {
     return cleanBase;
   }
-  
+
   // Ensure route starts with slash
   const cleanRoute = route.startsWith('/') ? route : `/${route}`;
-  
+
   return `${cleanBase}${cleanRoute}`;
 }
 

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { VisualAnalyzer } from '../core/analysis/VisualAnalyzer';
-import { FixGenerator } from '../core/fixes/FixGenerator';
-import { ReportFormatter } from '../bot/ReportFormatter';
+// VisualAnalyzer and FixGenerator removed - bot functionality no longer available
+// ReportFormatter removed - bot functionality no longer available
 import { RepositoryLearner } from '../core/setup/RepositoryLearner';
 import { PatternStore } from '../core/setup/PatternStore';
 import * as dotenv from 'dotenv';
@@ -50,30 +49,14 @@ program
     console.log(chalk.blue(`🔍 Scanning ${url}...`));
     
     try {
-      const analyzer = new VisualAnalyzer(claudeKey);
-      const formatter = new ReportFormatter();
-      
-      // Mock PR context for CLI usage
-      const result = await analyzer.scan({
-        prNumber: 0,
-        routes: options.routes,
-        viewports: options.viewports,
-        options: {
-          previewUrl: url,
-          maxRoutes: 10
-        }
-      });
-      
-      const report = formatter.formatScanResult(result);
-      
-      if (options.output) {
-        await write(options.output, report, { createDirectories: true });
-        console.log(chalk.green(`✅ Results saved to ${options.output}`));
-      } else {
-        console.log(report);
-      }
-      
-    } catch (error) {
+      // const analyzer = new VisualAnalyzer(claudeKey); // Removed - bot functionality unavailable
+      // const formatter = new ReportFormatter(); // Removed - bot functionality unavailable
+
+      console.log(chalk.yellow('⚠️ Visual analysis removed - only simple screenshot capture supported'));
+      console.log(chalk.blue('Use the GitHub Action for full functionality'));
+      process.exit(0);
+
+    } catch (error: any) {
       console.error(chalk.red(`Error: ${error.message}`));
       process.exit(1);
     }
@@ -103,23 +86,15 @@ program
       if (!parseResult.success) {
         throw new Error(`Invalid JSON in file: ${parseResult.error}`);
       }
-      const scanResult = parseResult.data;
-      const generator = new FixGenerator(claudeKey);
-      const formatter = new ReportFormatter();
-      
-      console.log(chalk.blue(`🔧 Generating fixes for ${scanResult.issues.length} issues...`));
-      
-      const fixResult = await generator.generateFixes(scanResult.issues);
-      const report = formatter.formatFixResult(fixResult);
-      
-      if (options.output) {
-        await write(options.output, report, { createDirectories: true });
-        console.log(chalk.green(`✅ Fixes saved to ${options.output}`));
-      } else {
-        console.log(report);
-      }
-      
-    } catch (error) {
+      // const scanResult = parseResult.data;
+      // const generator = new FixGenerator(claudeKey); // Removed - bot functionality unavailable
+      // const formatter = new ReportFormatter(); // Removed - bot functionality unavailable
+
+      console.log(chalk.yellow('⚠️ Fix generation removed - only simple screenshot capture supported'));
+      console.log(chalk.blue('Use the GitHub Action for full functionality'));
+      process.exit(0);
+
+    } catch (error: any) {
       console.error(chalk.red(`Error: ${error.message}`));
       process.exit(1);
     }
@@ -198,78 +173,7 @@ program
     }
   });
 
-program
-  .command('analyze <file>')
-  .description('Analyze which routes are impacted by a file change')
-  .option('-v, --verbose', 'Show detailed analysis')
-  .action(async (file, options) => {
-    try {
-      const repoRoot = process.cwd();
-
-      console.log(chalk.blue.bold('\n🔍 YoFix Route Impact Analysis\n'));
-      console.log(chalk.gray(`File: ${file}`));
-      console.log(chalk.gray('─'.repeat(60)));
-
-      // Check if patterns exist
-      const store = new PatternStore({ repoRoot });
-      const patterns = await store.load();
-
-      if (!patterns) {
-        console.log(chalk.yellow('\n⚠️  No learned patterns found'));
-        console.log(chalk.gray('   Run "yofix setup" first to learn routing patterns\n'));
-        process.exit(1);
-      }
-
-      console.log(chalk.green(`\n✓ Loaded patterns (${patterns.framework}, ${(patterns.confidence * 100).toFixed(0)}% confidence)`));
-
-      // Import analyzer (need to use dynamic import since it's compiled)
-      const { TreeSitterRouteAnalyzer } = require('../core/analysis/TreeSitterRouteAnalyzer');
-
-      // Initialize analyzer
-      const analyzer = new TreeSitterRouteAnalyzer(repoRoot);
-      await analyzer.initialize();
-
-      // Analyze file
-      console.log(chalk.blue('\n📊 Analyzing route impact...\n'));
-      const routeMap = await analyzer.detectRoutes([file]);
-
-      // Get all routes from the map
-      const allRoutes = new Set<string>();
-      for (const [_, routes] of routeMap.entries()) {
-        routes.forEach(route => allRoutes.add(route));
-      }
-
-      if (allRoutes.size === 0) {
-        console.log(chalk.yellow('⚠️  No routes found that directly use this file'));
-        console.log(chalk.gray('\n   This could mean:'));
-        console.log(chalk.gray('   - The file is not a component used in routes'));
-        console.log(chalk.gray('   - The file is a utility/helper'));
-        console.log(chalk.gray('   - Import graph analysis needs more context\n'));
-      } else {
-        console.log(chalk.green.bold(`✓ Found ${allRoutes.size} impacted route(s):\n`));
-
-        Array.from(allRoutes).sort().forEach((route, index) => {
-          console.log(chalk.cyan(`   ${index + 1}. ${route}`));
-        });
-
-        if (options.verbose) {
-          console.log(chalk.blue('\n📂 Analysis Details:'));
-          console.log(chalk.gray(`   Component directories: ${patterns.patterns.componentPaths.directories.join(', ')}`));
-          console.log(chalk.gray(`   Route locations: ${patterns.patterns.routeDefinitions.locations.join(', ')}`));
-          console.log(chalk.gray(`   Reference style: ${patterns.patterns.componentPaths.referenceStyle}`));
-        }
-
-        console.log(chalk.green('\n✅ Analysis complete!\n'));
-      }
-
-    } catch (error) {
-      console.error(chalk.red(`\n❌ Analysis failed: ${error.message}`));
-      if (error.stack) {
-        console.error(chalk.gray(error.stack));
-      }
-      process.exit(1);
-    }
-  });
+// Removed: 'analyze' command - now using route-impact-analyzer package via GitHub Action
 
 program
   .command('test')

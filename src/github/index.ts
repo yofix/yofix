@@ -15,10 +15,8 @@ export {
 
 // PR reporting
 export { PRReporter } from './PRReporter';
-export { RobustPRReporter } from './RobustPRReporter';
 
-// Authentication
-export { SmartAuthHandler } from './SmartAuthHandler';
+// Authentication - AuthHandler removed (used browser-agent)
 
 // Types
 export * from './types';

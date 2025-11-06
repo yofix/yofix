@@ -165,53 +165,9 @@ export class GitHubCommentEngine {
     }
   }
 
-  /**
-   * Post an error comment with enhanced context
-   */
-  async postError(error: Error | string, context?: ErrorContext): Promise<void> {
-    const errorMessage = error instanceof Error ? error.message : error;
-    const errorStack = error instanceof Error && context?.includeStackTrace ? error.stack : undefined;
-    
-    // Track error
-    this.errorSummary.push({
-      timestamp: new Date(),
-      error: errorMessage,
-      location: context?.location
-    });
-    
-    let message = `### 🚨 Error Occurred\n\n`;
-    message += `**Error**: ${errorMessage}\n\n`;
-    
-    if (context?.location) {
-      message += `**Location**: \`${context.location}\`\n\n`;
-    }
-    
-    if (context?.userAction) {
-      message += `**During**: ${context.userAction}\n\n`;
-    }
-    
-    if (context?.metadata && Object.keys(context.metadata).length > 0) {
-      message += `**Context**:\n`;
-      for (const [key, value] of Object.entries(context.metadata)) {
-        message += `- ${key}: ${JSON.stringify(value)}\n`;
-      }
-      message += '\n';
-    }
-    
-    if (context?.tips && context.tips.length > 0) {
-      message += `**💡 Troubleshooting Tips**:\n`;
-      for (const tip of context.tips) {
-        message += `- ${tip}\n`;
-      }
-      message += '\n';
-    }
-    
-    if (errorStack) {
-      message += `<details>\n<summary>Stack Trace</summary>\n\n\`\`\`\n${errorStack}\n\`\`\`\n</details>\n`;
-    }
-    
-    await this.postComment(message, { isError: true, signature: 'yofix-error' });
-  }
+  // postError() method removed - duplicate logic with CentralizedErrorHandler
+  // Use CentralizedErrorHandler.handleError() for error handling instead
+  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
 
   /**
    * Post a progress update

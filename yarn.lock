@@ -1644,7 +1644,7 @@
     "@babel/parser" "^7.27.2"
     "@babel/types" "^7.27.1"
 
-"@babel/traverse@^7.26.4", "@babel/traverse@^7.28.5":
+"@babel/traverse@^7.26.4":
   version "7.28.5"
   resolved "https://registry.yarnpkg.com/@babel/traverse/-/traverse-7.28.5.tgz#450cab9135d21a7a2ca9d2d35aa05c20e68c360b"
   integrity sha512-TCCj4t55U90khlYkVV/0TfkJkAkUg3jZFA3Neb7unZT8CPok7iiRfaX0F+WnqWqt7OxhOn0uBKXCw4lbL8W0aQ==
@@ -4287,10 +4287,10 @@
     typescript "^5.7.2"
     zod "^3.24.1"
 
-"@yofix/browser@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@yofix/browser/-/browser-1.0.4.tgz#bcc1050bb81b2effbfe64f0e16a742317d4ed3ca"
-  integrity sha512-FLZMkhWxzvq0SZj8eazrW6KuRYwkRButysF/Bod+y1OTpWXRnoq8pGYE3otAwrx97aCfeDJf/s95v5H/G9NY/Q==
+"@yofix/browser@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@yofix/browser/-/browser-1.0.5.tgz#5cd7f9ea92f462248f164cf77bceca83a4dd8d5e"
+  integrity sha512-MwEOtcRKR052mVYrKvis6YuYJHivl3OPhev/bKmEaGp8UMFD7aMdjfretUKUL8VYHHLkVjMVAN9gp1E7yW0RCA==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"
@@ -6979,13 +6979,6 @@ pirates@^4.0.4:
   resolved "https://registry.npmjs.org/pirates/-/pirates-4.0.7.tgz"
   integrity sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==
 
-pixelmatch@^7.1.0:
-  version "7.1.0"
-  resolved "https://registry.npmjs.org/pixelmatch/-/pixelmatch-7.1.0.tgz"
-  integrity sha512-1wrVzJ2STrpmONHKBy228LM1b84msXDUoAzVEl0R8Mz4Ce6EPr+IVtxm8+yvrqLYMHswREkjYFaMxnyGnaY3Ng==
-  dependencies:
-    pngjs "^7.0.0"
-
 pkg-dir@^4.2.0:
   version "4.2.0"
   resolved "https://registry.npmjs.org/pkg-dir/-/pkg-dir-4.2.0.tgz"
@@ -7020,11 +7013,6 @@ playwright@^1.49.0:
     playwright-core "1.56.1"
   optionalDependencies:
     fsevents "2.3.2"
-
-pngjs@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.npmjs.org/pngjs/-/pngjs-7.0.0.tgz"
-  integrity sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==
 
 prelude-ls@^1.2.1:
   version "1.2.1"

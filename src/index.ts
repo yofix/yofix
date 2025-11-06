@@ -479,25 +479,27 @@ async function runVisualTesting(): Promise<void> {
 
 function extractRoutesFromImpactTree(impactTree: ExternalRouteImpactTree): string[] {
   const routes = new Set<string>();
-  
+
   if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
     for (const componentRoutes of impactTree.componentRouteMapping.values()) {
       for (const routeInfo of componentRoutes) {
         if (routeInfo.routePath) {
+          // Pass routes as-is to @yofix/browser - it handles both full URLs and paths
           routes.add(routeInfo.routePath);
         }
       }
     }
   }
-  
+
   if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
     for (const impact of impactTree.affectedRoutes) {
       if (impact.route) {
+        // Pass routes as-is to @yofix/browser - it handles both full URLs and paths
         routes.add(impact.route);
       }
     }
   }
-  
+
   return Array.from(routes);
 }
 

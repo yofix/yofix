@@ -459,14 +459,10 @@ ${message}
 
     let gallery = '### 📸 Screenshots\n\n';
 
-    // Group screenshots by test/route name (remove viewport info)
+    // Group screenshots by route (use the route property directly from screenshot)
     const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      // Extract route from screenshot name by removing viewport dimensions
-      let route = screenshot.name;
-      // Remove viewport size pattern (e.g., -1920x1080)
-      route = route.replace(/-\d+x\d+$/, '');
-      // Clean up the route name
-      route = route.replace(/^\//, '').replace(/-/g, ' ');
+      // Use the route property that was preserved from @yofix/browser
+      const route = screenshot.route || '/';
 
       if (!acc[route]) {
         acc[route] = [];
@@ -475,37 +471,38 @@ ${message}
       return acc;
     }, {} as Record<string, any[]>);
 
-    // Generate gallery for each route
+    // Generate collapsible gallery for each route
     for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      // Make route clickable if it looks like a valid path
-      const routeDisplay = route.startsWith('/') || route === 'root'
-        ? this.createRouteLink(route === 'root' ? '/' : route, result)
-        : `\`${route}\``;
-      gallery += `#### Route: ${routeDisplay}\n\n`;
-      
       // Only show images if they have Firebase URLs
       const screenshotsWithUrls = (routeScreenshots as any[]).filter((s: any) => s.firebaseUrl);
-      
+
       if (screenshotsWithUrls.length === 0) {
-        gallery += `_Screenshots captured but URLs not available_\n\n`;
         continue;
       }
-      
+
+      // Get the full URL from the first screenshot
+      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
+
+      // Create collapsible section for each route
+      gallery += `<details>\n`;
+      gallery += `<summary><strong>📍 Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>\n\n`;
+
       // Create a table for viewports
       gallery += '<table>\n<tr>\n';
-      
+
       // Sort by viewport size (desktop, tablet, mobile)
       const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
-      
+
       for (const screenshot of sorted) {
         gallery += `<td align="center">\n`;
-        gallery += `<strong>${screenshot.viewport.name}</strong><br>\n`;
+        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}×${screenshot.viewport.height}`}</strong><br>\n`;
         gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}" />\n`;
+        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />\n`;
         gallery += `</td>\n`;
       }
-      
+
       gallery += '</tr>\n</table>\n\n';
+      gallery += `</details>\n\n`;
     }
 
     return gallery;

@@ -291,14 +291,20 @@ async function runVisualTesting(): Promise<void> {
     // @yofix/browser now outputs data ready for @yofix/storage - no conversion needed!
     // Flatten RouteScreenshot[] to file list for upload
     // Also create a map to preserve metadata for later
-    const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any }>();
+    const screenshotMetadataMap = new Map<string, { route: string; fullUrl: string; viewport: any; metadata: any }>();
 
     const filesForUpload = screenshotResult.screenshots.flatMap(routeScreenshot =>
       routeScreenshot.screenshots.map(screenshot => {
         // Store metadata for later retrieval
+        // @yofix/browser structure: screenshot has width, height, viewport (string like "1920x1080")
         screenshotMetadataMap.set(screenshot.path, {
           route: routeScreenshot.route,
-          viewport: screenshot.metadata?.viewport || { width: 0, height: 0, name: '' },
+          fullUrl: routeScreenshot.fullUrl,
+          viewport: {
+            width: screenshot.width,
+            height: screenshot.height,
+            name: screenshot.viewport // e.g., "1920x1080"
+          },
           metadata: screenshot.metadata
         });
 
@@ -432,14 +438,17 @@ async function runVisualTesting(): Promise<void> {
               // Retrieve original metadata using local path
               const metadata = screenshotMetadataMap.get(f.localPath);
               const viewport = metadata?.viewport || { width: 0, height: 0, name: '' };
+              const screenshotRoute = metadata?.route || routePath;
+              const fullUrl = metadata?.fullUrl || '';
 
               return {
-                name: `${routePath}-${viewport.width}x${viewport.height}.png`,
+                name: `${screenshotRoute}-${viewport.width}x${viewport.height}.png`,
                 path: f.localPath,
                 viewport: viewport,
                 timestamp: Date.now(),
                 firebaseUrl: f.url || '',
-                route: routePath
+                route: screenshotRoute,
+                fullUrl: fullUrl
               };
             }),
           videos: [],

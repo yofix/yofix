@@ -37526,9 +37526,7 @@ ${message}
     }
     let gallery = "### \u{1F4F8} Screenshots\n\n";
     const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      let route = screenshot.name;
-      route = route.replace(/-\d+x\d+$/, "");
-      route = route.replace(/^\//, "").replace(/-/g, " ");
+      const route = screenshot.route || "/";
       if (!acc[route]) {
         acc[route] = [];
       }
@@ -37536,32 +37534,34 @@ ${message}
       return acc;
     }, {});
     for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      const routeDisplay = route.startsWith("/") || route === "root" ? this.createRouteLink(route === "root" ? "/" : route, result) : `\`${route}\``;
-      gallery += `#### Route: ${routeDisplay}
-
-`;
       const screenshotsWithUrls = routeScreenshots.filter((s) => s.firebaseUrl);
       if (screenshotsWithUrls.length === 0) {
-        gallery += `_Screenshots captured but URLs not available_
-
-`;
         continue;
       }
+      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
+      gallery += `<details>
+`;
+      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>
+
+`;
       gallery += "<table>\n<tr>\n";
       const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
       for (const screenshot of sorted) {
         gallery += `<td align="center">
 `;
-        gallery += `<strong>${screenshot.viewport.name}</strong><br>
+        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}</strong><br>
 `;
         gallery += `${screenshot.viewport.width}\xD7${screenshot.viewport.height}<br>
 `;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${screenshot.name}" />
+        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />
 `;
         gallery += `</td>
 `;
       }
       gallery += "</tr>\n</table>\n\n";
+      gallery += `</details>
+
+`;
     }
     return gallery;
   }
@@ -38514,10 +38514,15 @@ async function runVisualTesting() {
     const screenshotMetadataMap = /* @__PURE__ */ new Map();
     const filesForUpload = screenshotResult.screenshots.flatMap(
       (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
-        var _a2;
         screenshotMetadataMap.set(screenshot.path, {
           route: routeScreenshot.route,
-          viewport: ((_a2 = screenshot.metadata) == null ? void 0 : _a2.viewport) || { width: 0, height: 0, name: "" },
+          fullUrl: routeScreenshot.fullUrl,
+          viewport: {
+            width: screenshot.width,
+            height: screenshot.height,
+            name: screenshot.viewport
+            // e.g., "1920x1080"
+          },
           metadata: screenshot.metadata
         });
         return {
@@ -38620,13 +38625,16 @@ async function runVisualTesting() {
           }).map((f) => {
             const metadata = screenshotMetadataMap.get(f.localPath);
             const viewport = (metadata == null ? void 0 : metadata.viewport) || { width: 0, height: 0, name: "" };
+            const screenshotRoute = (metadata == null ? void 0 : metadata.route) || routePath;
+            const fullUrl = (metadata == null ? void 0 : metadata.fullUrl) || "";
             return {
-              name: `${routePath}-${viewport.width}x${viewport.height}.png`,
+              name: `${screenshotRoute}-${viewport.width}x${viewport.height}.png`,
               path: f.localPath,
               viewport,
               timestamp: Date.now(),
               firebaseUrl: f.url || "",
-              route: routePath
+              route: screenshotRoute,
+              fullUrl
             };
           }),
           videos: [],

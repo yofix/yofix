@@ -230,6 +230,85 @@ $ yarn build
 
 ---
 
+---
+
+### 5. ✅ Viewport Showing as "undefined×undefined" in PR Comments
+**File**: `src/steps/3-upload-storage.step.ts:66`
+
+**Error**:
+Viewport information showing as "undefined×undefined" instead of "1920×1080" in GitHub PR comments.
+
+**Root Cause**:
+The @yofix/browser package returns viewport data directly on screenshot objects (`screenshot.viewport`, `screenshot.width`, `screenshot.height`), not in `screenshot.metadata.viewport`. Step 3 was looking in the wrong place.
+
+**Fix**:
+```typescript
+// Before
+screenshotMetadataMap.set(screenshot.path, {
+  route: routeScreenshot.route,
+  viewport: screenshot.metadata?.viewport || { width: 0, height: 0, name: '' },
+  metadata: screenshot.metadata
+});
+
+// After
+screenshotMetadataMap.set(screenshot.path, {
+  route: routeScreenshot.route,
+  viewport: {
+    width: screenshot.width,
+    height: screenshot.height,
+    name: screenshot.viewport
+  },
+  metadata: screenshot.metadata
+});
+```
+
+**Reasoning**: The @yofix/browser package structure (verified in StorageUploader.ts:187-194) shows viewport data is on the screenshot object directly, not nested in metadata.
+
+---
+
+### 6. ✅ Redundant Information in PR Comments
+**File**: `src/github/PRReporter.ts:165-206`
+
+**Issue**:
+PR comments showed duplicate information:
+- "Routes Verified" section listed all routes
+- "Test Results" section showed the same routes again
+- Long URLs made the comment hard to read
+
+**Fix**:
+```typescript
+// Changes made:
+1. Removed redundant "Routes Verified" section
+2. Simplified "Components Tested" → "React Components Tested"
+3. Extract route name from URL (e.g., "matrix" instead of full URL)
+4. Show screenshot count with viewports (e.g., "3 screenshots (1920×1080, 768×1024)")
+```
+
+**Before**:
+```
+Components Tested: Matrix, StoreRestoreTable
+Routes Verified: https://example.com/guard/restore/matrix, https://example.com/guard/restore/history
+
+📋 Test Results
+✅ Route Test: https://example.com/guard/restore/matrix (54.2s)
+📸 Screenshots captured for:
+```
+
+**After**:
+```
+React Components Tested
+Matrix, StoreRestoreTable
+
+📋 Test Results
+✅ matrix (54.2s)
+   - 📸 3 screenshots (1920×1080, 768×1024, 375×667)
+✅ history (54.2s)
+   - 📸 3 screenshots (1920×1080, 768×1024, 375×667)
+```
+
+---
+
 ## Status: ✅ ALL FIXED
 
 All TypeScript errors in step files have been resolved. Build succeeds with no type errors.
+Viewport metadata now displays correctly. PR comment format simplified and deduplicated.

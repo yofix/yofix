@@ -63,7 +63,11 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
         // Store metadata for later retrieval
         screenshotMetadataMap.set(screenshot.path, {
           route: routeScreenshot.route,
-          viewport: screenshot.metadata?.viewport || { width: 0, height: 0, name: '' },
+          viewport: {
+            width: screenshot.width,
+            height: screenshot.height,
+            name: screenshot.viewport
+          },
           metadata: screenshot.metadata
         });
 

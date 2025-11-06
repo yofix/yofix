@@ -27315,26 +27315,18 @@ ${message}
       comment += this.generateEmbeddedVideos(videos);
     }
     comment += "<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n";
-    if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
-      comment += "### \u2705 React App Verification\n\n";
-      if (result.summary.componentsVerified.length > 0) {
-        comment += `**Components Tested**: ${result.summary.componentsVerified.join(", ")}
+    if (result.summary.componentsVerified.length > 0) {
+      comment += "### \u2705 React Components Tested\n\n";
+      comment += `${result.summary.componentsVerified.join(", ")}
 
 `;
-      }
-      if (result.summary.routesTested.length > 0) {
-        const routeLinks = result.summary.routesTested.map(
-          (route) => this.createRouteLink(route, result)
-        );
-        comment += `**Routes Verified**: ${routeLinks.join(", ")}
-
-`;
-      }
     }
     comment += "### \u{1F4CB} Test Results\n\n";
     for (const test of result.testResults) {
       const testEmoji = test.status === "passed" ? "\u2705" : test.status === "failed" ? "\u274C" : "\u23ED\uFE0F";
-      comment += `${testEmoji} **${test.testName}** (${this.formatDuration(test.duration)})
+      const routePath = test.testId.replace("test-", "");
+      const routeName = routePath.split("/").pop() || routePath;
+      comment += `${testEmoji} **${routeName}** (${this.formatDuration(test.duration)})
 `;
       if (test.errors.length > 0) {
         comment += `   - \u26A0\uFE0F Issues: ${test.errors.slice(0, 2).join(", ")}`;
@@ -27344,8 +27336,9 @@ ${message}
         comment += "\n";
       }
       if (test.screenshots.length > 0) {
-        comment += "   - \u{1F4F8} Screenshots captured for: ";
-        comment += test.screenshots.map((s) => s.viewport.name).join(", ") + "\n";
+        const viewports = test.screenshots.map((s) => s.viewport.name || `${s.viewport.width}\xD7${s.viewport.height}`).filter((v, i, arr) => arr.indexOf(v) === i);
+        comment += `   - \u{1F4F8} ${test.screenshots.length} screenshot${test.screenshots.length !== 1 ? "s" : ""} (${viewports.join(", ")})
+`;
       }
       if (test.videos.length > 0 && ((_a = test.videos[0]) == null ? void 0 : _a.firebaseUrl)) {
         comment += `   - \u{1F3A5} Video: [View Recording](${test.videos[0].firebaseUrl})

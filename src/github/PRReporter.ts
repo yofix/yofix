@@ -161,30 +161,23 @@ ${message}
     // Expandable details section
     comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
 
-    // Components and routes verified
-    if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
-      comment += '### ✅ React App Verification\n\n';
-
-      if (result.summary.componentsVerified.length > 0) {
-        comment += `**Components Tested**: ${result.summary.componentsVerified.join(', ')}\n\n`;
-      }
-
-      if (result.summary.routesTested.length > 0) {
-        // Make routes clickable links with preview URL
-        const routeLinks = result.summary.routesTested.map(route =>
-          this.createRouteLink(route, result)
-        );
-        comment += `**Routes Verified**: ${routeLinks.join(', ')}\n\n`;
-      }
+    // Components verified
+    if (result.summary.componentsVerified.length > 0) {
+      comment += '### ✅ React Components Tested\n\n';
+      comment += `${result.summary.componentsVerified.join(', ')}\n\n`;
     }
 
-    // Individual test results
+    // Individual test results (routes are shown here, no need for separate "Routes Verified" section)
     comment += '### 📋 Test Results\n\n';
-    
+
     for (const test of result.testResults) {
       const testEmoji = test.status === 'passed' ? '✅' : test.status === 'failed' ? '❌' : '⏭️';
-      comment += `${testEmoji} **${test.testName}** (${this.formatDuration(test.duration)})\n`;
-      
+      // Extract route path from full URL for cleaner display
+      const routePath = test.testId.replace('test-', '');
+      const routeName = routePath.split('/').pop() || routePath;
+
+      comment += `${testEmoji} **${routeName}** (${this.formatDuration(test.duration)})\n`;
+
       if (test.errors.length > 0) {
         comment += `   - ⚠️ Issues: ${test.errors.slice(0, 2).join(', ')}`;
         if (test.errors.length > 2) {
@@ -192,16 +185,18 @@ ${message}
         }
         comment += '\n';
       }
-      
+
       if (test.screenshots.length > 0) {
-        comment += '   - 📸 Screenshots captured for: ';
-        comment += test.screenshots.map(s => s.viewport.name).join(', ') + '\n';
+        const viewports = test.screenshots
+          .map(s => s.viewport.name || `${s.viewport.width}×${s.viewport.height}`)
+          .filter((v, i, arr) => arr.indexOf(v) === i); // unique viewports
+        comment += `   - 📸 ${test.screenshots.length} screenshot${test.screenshots.length !== 1 ? 's' : ''} (${viewports.join(', ')})\n`;
       }
-      
+
       if (test.videos.length > 0 && test.videos[0]?.firebaseUrl) {
         comment += `   - 🎥 Video: [View Recording](${test.videos[0].firebaseUrl})\n`;
       }
-      
+
       comment += '\n';
     }
 

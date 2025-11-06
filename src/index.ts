@@ -51,8 +51,8 @@ async function run(): Promise<void> {
   } catch (error) {
     await errorHandler.handleError(error as Error, {
       severity: ErrorSeverity.CRITICAL,
-      category: ErrorCategory.UNKNOWN,
-      location: 'main run function'
+      category: ErrorCategory.ORCHESTRATION,
+      location: 'orchestration'
     });
     throw error;
   } finally {
@@ -173,14 +173,9 @@ async function runVisualTesting(): Promise<void> {
         }
         await errorHandler.handleError(error, {
           severity: ErrorSeverity.MEDIUM,
-          category: ErrorCategory.ANALYSIS,
-          userAction: 'Third-party route impact analysis',
-          recoverable: true,
-          metadata: {
-            prNumber,
-            errorMessage: error.message,
-            errorName: error.name
-          }
+          category: ErrorCategory.PACKAGE,
+          location: '@yofix/analyzer',
+          recoverable: true
         });
         core.warning('Third-party route analyzer failed. Falling back to testing homepage only.');
         affectedRoutes = ['/'];
@@ -477,14 +472,8 @@ async function runVisualTesting(): Promise<void> {
     // Use centralized error handler
     await errorHandler.handleError(error as Error, {
       severity: ErrorSeverity.CRITICAL,
-      category: ErrorCategory.UNKNOWN,
-      userAction: 'Visual testing workflow',
-      metadata: {
-        prNumber,
-        previewUrl: inputs?.previewUrl,
-        authMode: inputs?.authMode
-      },
-      tips: getErrorTips(error instanceof Error ? error.message : String(error))
+      category: ErrorCategory.ORCHESTRATION,
+      location: 'visual-testing'
     });
     
     core.setFailed(error instanceof Error ? error.message : String(error));
@@ -639,42 +628,7 @@ function validateInputs(inputs: ActionInputs): string | null {
   return null;
 }
 
-/**
- * Get helpful tips based on error message
- */
-function getErrorTips(errorMessage: string): string[] {
-  const tips: string[] = [];
-  
-  if (errorMessage.includes('Claude API') || errorMessage.includes('authentication_error')) {
-    tips.push('🔑 **API Key Issue**: Verify your Claude API key is valid and has sufficient credits');
-    tips.push('📋 Set `CLAUDE_API_KEY` secret in your repository settings');
-  }
-  
-  if (errorMessage.includes('Firebase') || errorMessage.includes('storage')) {
-    tips.push('🔥 **Firebase Issue**: Check your Firebase credentials and storage bucket');
-    tips.push('📋 Ensure `firebase-credentials` is base64 encoded correctly');
-    tips.push('💡 Alternative: Use `storage-provider: s3` for AWS S3 storage');
-  }
-  
-  if (errorMessage.includes('preview-url') || errorMessage.includes('accessible')) {
-    tips.push('🌐 **Preview URL Issue**: The preview URL might not be accessible');
-    tips.push('⏳ Wait for deployment to complete before running YoFix');
-    tips.push('🔒 Check if the URL requires authentication');
-  }
-  
-  if (errorMessage.includes('auth') || errorMessage.includes('login')) {
-    tips.push('🔐 **Authentication Issue**: Check your test credentials');
-    tips.push('🤖 Try `auth-mode: smart` if LLM auth fails');
-    tips.push('📍 Verify `auth-login-url` points to the correct login page');
-  }
-  
-  if (tips.length === 0) {
-    tips.push('📖 Check the [documentation](https://github.com/yofix/yofix#configuration)');
-    tips.push('🐛 [Report an issue](https://github.com/yofix/yofix/issues) if the problem persists');
-  }
-  
-  return tips;
-}
+// getErrorTips removed - error messages should be self-explanatory
 
 // Export for external usage
 export { run };

@@ -9,42 +9,22 @@ export enum ErrorSeverity {
 }
 
 export enum ErrorCategory {
-  AUTHENTICATION = 'authentication',
-  API = 'api',
-  NETWORK = 'network',
-  CONFIGURATION = 'configuration',
-  BROWSER = 'browser',
-  ANALYSIS = 'analysis',
-  STORAGE = 'storage',
-  MODULE = 'module',
-  AI = 'ai',
-  FILE_SYSTEM = 'file_system',
-  VALIDATION = 'validation',
-  PROCESSING = 'processing',
-  UNKNOWN = 'unknown'
+  PACKAGE = 'package',           // Errors from @yofix/* packages
+  GITHUB = 'github',             // GitHub API/PR integration
+  CONFIGURATION = 'configuration', // Input validation, missing config
+  ORCHESTRATION = 'orchestration', // Main workflow logic
+  UNKNOWN = 'unknown'            // Fallback
 }
 
 export interface ErrorContext {
   /**
-   * Error location in code
+   * Package or location that threw the error (e.g., '@yofix/browser', 'orchestration')
    */
   location?: string;
   /**
-   * User action that triggered the error
-   */
-  userAction?: string;
-  /**
-   * Additional context data
+   * Additional context data (keep minimal)
    */
   metadata?: Record<string, any>;
-  /**
-   * Whether to include stack trace
-   */
-  includeStackTrace?: boolean;
-  /**
-   * Custom troubleshooting tips
-   */
-  tips?: string[];
 }
 
 export interface ErrorOptions extends ErrorContext {
@@ -167,14 +147,12 @@ export class CentralizedErrorHandler {
    * Log error to console/GitHub Actions
    */
   private logError(error: Error | string, options: ErrorOptions): void {
+    if (options.silent) return;
+
     const errorMessage = error instanceof Error ? error.message : error;
-    const logMessage = this.formatLogMessage(errorMessage, options);
-    
-    // Don't log if silent
-    if (options.silent) {
-      return;
-    }
-    
+    const location = options.location ? `[${options.location}]` : '';
+    const logMessage = `${location} ${errorMessage}`.trim();
+
     // Log based on severity
     switch (options.severity) {
       case ErrorSeverity.CRITICAL:
@@ -190,29 +168,9 @@ export class CentralizedErrorHandler {
         core.warning(logMessage);
         break;
       case ErrorSeverity.LOW:
-        core.notice(logMessage);
+        core.info(logMessage);
         break;
     }
-    
-    // Log stack trace in debug mode
-    if (error instanceof Error && error.stack && core.isDebug()) {
-      core.debug(`Stack trace:\n${error.stack}`);
-    }
-  }
-
-  /**
-   * Format log message
-   */
-  private formatLogMessage(errorMessage: string, options: ErrorOptions): string {
-    const parts = [`[${options.category || ErrorCategory.UNKNOWN}]`];
-    
-    if (options.location) {
-      parts.push(`at ${options.location}`);
-    }
-    
-    parts.push(errorMessage);
-    
-    return parts.join(' ');
   }
 
   // Individual error posting removed - only post summary at end
@@ -287,47 +245,51 @@ export class CentralizedErrorHandler {
     if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
       return;
     }
-    
-    let message = `## 📊 Error Summary\n\n`;
-    message += `Total errors: ${this.errorStats.total}\n`;
-    message += `Recovered: ${this.errorStats.recovered}\n\n`;
-    
-    // By severity
-    message += `### By Severity\n`;
-    for (const [severity, count] of Object.entries(this.errorStats.bySeverity)) {
-      if (count > 0) {
-        message += `- ${severity}: ${count}\n`;
-      }
+
+    // Group errors by location (package/source)
+    const byLocation: Record<string, number> = {};
+    for (const entry of this.errorBuffer) {
+      const location = entry.context?.location || 'unknown';
+      byLocation[location] = (byLocation[location] || 0) + 1;
     }
-    message += '\n';
-    
-    // By category
-    message += `### By Category\n`;
-    for (const [category, count] of Object.entries(this.errorStats.byCategory)) {
-      if (count > 0) {
-        message += `- ${category}: ${count}\n`;
-      }
+
+    let message = `## ⚠️ Error Summary\n\n`;
+    message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? 's' : ''} occurred`;
+    if (this.errorStats.recovered > 0) {
+      message += ` (${this.errorStats.recovered} recovered)`;
     }
-    message += '\n';
-    
-    // Recent errors
-    if (this.errorBuffer.length > 0) {
-      message += `### Recent Errors\n`;
-      message += `<details>\n<summary>Last ${Math.min(10, this.errorBuffer.length)} errors</summary>\n\n`;
-      
-      const recentErrors = this.errorBuffer.slice(-10);
-      for (const entry of recentErrors) {
-        const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
-        message += `- **${entry.timestamp.toISOString()}**`;
-        if (entry.context?.location) {
-          message += ` at \`${entry.context.location}\``;
-        }
-        message += `: ${errorMessage}\n`;
-      }
-      
-      message += `\n</details>\n`;
+    message += `\n\n`;
+
+    // By severity (only if multiple types)
+    const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
+    if (severityCounts.length > 1) {
+      message += `**By Severity**: `;
+      message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(' • ');
+      message += `\n\n`;
     }
-    
+
+    // By source/package
+    const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
+    if (locationCounts.length > 0) {
+      message += `**By Source**: `;
+      message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(' • ');
+      message += `\n\n`;
+    }
+
+    // Recent errors (compact format)
+    message += `<details>\n<summary><strong>Error Details</strong></summary>\n\n`;
+    const recentErrors = this.errorBuffer.slice(-5); // Show last 5 only
+    for (const entry of recentErrors) {
+      const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
+      const time = entry.timestamp.toLocaleTimeString();
+      const location = entry.context?.location ? `[${entry.context.location}]` : '';
+      message += `- **${time}** ${location} ${errorMessage}\n`;
+    }
+    if (this.errorBuffer.length > 5) {
+      message += `\n...and ${this.errorBuffer.length - 5} more\n`;
+    }
+    message += `\n</details>\n`;
+
     try {
       await this.github.createComment(message);
     } catch (error) {

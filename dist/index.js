@@ -19745,10 +19745,10 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       error5(message);
     }
     exports2.setFailed = setFailed3;
-    function isDebug3() {
+    function isDebug2() {
       return process.env["RUNNER_DEBUG"] === "1";
     }
-    exports2.isDebug = isDebug3;
+    exports2.isDebug = isDebug2;
     function debug8(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
@@ -19761,10 +19761,10 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.warning = warning10;
-    function notice2(message, properties = {}) {
+    function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.notice = notice2;
+    exports2.notice = notice;
     function info9(message) {
       process.stdout.write(message + os2.EOL);
     }
@@ -35336,18 +35336,10 @@ var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity5) => {
   return ErrorSeverity5;
 })(ErrorSeverity || {});
 var ErrorCategory = /* @__PURE__ */ ((ErrorCategory2) => {
-  ErrorCategory2["AUTHENTICATION"] = "authentication";
-  ErrorCategory2["API"] = "api";
-  ErrorCategory2["NETWORK"] = "network";
+  ErrorCategory2["PACKAGE"] = "package";
+  ErrorCategory2["GITHUB"] = "github";
   ErrorCategory2["CONFIGURATION"] = "configuration";
-  ErrorCategory2["BROWSER"] = "browser";
-  ErrorCategory2["ANALYSIS"] = "analysis";
-  ErrorCategory2["STORAGE"] = "storage";
-  ErrorCategory2["MODULE"] = "module";
-  ErrorCategory2["AI"] = "ai";
-  ErrorCategory2["FILE_SYSTEM"] = "file_system";
-  ErrorCategory2["VALIDATION"] = "validation";
-  ErrorCategory2["PROCESSING"] = "processing";
+  ErrorCategory2["ORCHESTRATION"] = "orchestration";
   ErrorCategory2["UNKNOWN"] = "unknown";
   return ErrorCategory2;
 })(ErrorCategory || {});
@@ -35431,11 +35423,10 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
    * Log error to console/GitHub Actions
    */
   logError(error5, options) {
+    if (options.silent) return;
     const errorMessage = error5 instanceof Error ? error5.message : error5;
-    const logMessage = this.formatLogMessage(errorMessage, options);
-    if (options.silent) {
-      return;
-    }
+    const location = options.location ? `[${options.location}]` : "";
+    const logMessage = `${location} ${errorMessage}`.trim();
     switch (options.severity) {
       case "critical" /* CRITICAL */:
         core3.error(logMessage);
@@ -35450,24 +35441,9 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
         core3.warning(logMessage);
         break;
       case "low" /* LOW */:
-        core3.notice(logMessage);
+        core3.info(logMessage);
         break;
     }
-    if (error5 instanceof Error && error5.stack && core3.isDebug()) {
-      core3.debug(`Stack trace:
-${error5.stack}`);
-    }
-  }
-  /**
-   * Format log message
-   */
-  formatLogMessage(errorMessage, options) {
-    const parts = [`[${options.category || "unknown" /* UNKNOWN */}]`];
-    if (options.location) {
-      parts.push(`at ${options.location}`);
-    }
-    parts.push(errorMessage);
-    return parts.join(" ");
   }
   // Individual error posting removed - only post summary at end
   // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
@@ -35525,57 +35501,61 @@ ${error5.stack}`);
    * Post a summary of all errors
    */
   async postErrorSummary() {
-    var _a;
+    var _a, _b;
     if (!this.github || this.prNumber === 0 || this.errorBuffer.length === 0) {
       return;
     }
-    let message = `## \u{1F4CA} Error Summary
-
-`;
-    message += `Total errors: ${this.errorStats.total}
-`;
-    message += `Recovered: ${this.errorStats.recovered}
-
-`;
-    message += `### By Severity
-`;
-    for (const [severity, count] of Object.entries(this.errorStats.bySeverity)) {
-      if (count > 0) {
-        message += `- ${severity}: ${count}
-`;
-      }
+    const byLocation = {};
+    for (const entry of this.errorBuffer) {
+      const location = ((_a = entry.context) == null ? void 0 : _a.location) || "unknown";
+      byLocation[location] = (byLocation[location] || 0) + 1;
     }
-    message += "\n";
-    message += `### By Category
-`;
-    for (const [category, count] of Object.entries(this.errorStats.byCategory)) {
-      if (count > 0) {
-        message += `- ${category}: ${count}
-`;
-      }
-    }
-    message += "\n";
-    if (this.errorBuffer.length > 0) {
-      message += `### Recent Errors
-`;
-      message += `<details>
-<summary>Last ${Math.min(10, this.errorBuffer.length)} errors</summary>
+    let message = `## \u26A0\uFE0F Error Summary
 
 `;
-      const recentErrors = this.errorBuffer.slice(-10);
-      for (const entry of recentErrors) {
-        const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
-        message += `- **${entry.timestamp.toISOString()}**`;
-        if ((_a = entry.context) == null ? void 0 : _a.location) {
-          message += ` at \`${entry.context.location}\``;
-        }
-        message += `: ${errorMessage}
+    message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? "s" : ""} occurred`;
+    if (this.errorStats.recovered > 0) {
+      message += ` (${this.errorStats.recovered} recovered)`;
+    }
+    message += `
+
 `;
-      }
+    const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
+    if (severityCounts.length > 1) {
+      message += `**By Severity**: `;
+      message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(" \u2022 ");
       message += `
+
+`;
+    }
+    const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
+    if (locationCounts.length > 0) {
+      message += `**By Source**: `;
+      message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(" \u2022 ");
+      message += `
+
+`;
+    }
+    message += `<details>
+<summary><strong>Error Details</strong></summary>
+
+`;
+    const recentErrors = this.errorBuffer.slice(-5);
+    for (const entry of recentErrors) {
+      const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
+      const time = entry.timestamp.toLocaleTimeString();
+      const location = ((_b = entry.context) == null ? void 0 : _b.location) ? `[${entry.context.location}]` : "";
+      message += `- **${time}** ${location} ${errorMessage}
+`;
+    }
+    if (this.errorBuffer.length > 5) {
+      message += `
+...and ${this.errorBuffer.length - 5} more
+`;
+    }
+    message += `
 </details>
 `;
-    }
     try {
       await this.github.createComment(message);
     } catch (error5) {
@@ -35875,7 +35855,7 @@ var botActivity = new BotActivityHandler();
 // src/core/error/ErrorHandlerFactory.ts
 var core5 = __toESM(require_core());
 function createModuleLogger(options) {
-  const { module: module2, debug: debug8 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
+  const { module: module2, debug: debug8 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
   return {
     debug: (message, ...args) => {
       if (debug8 || core5.isDebug()) {
@@ -36115,7 +36095,7 @@ var CircuitBreaker = class {
     this.halfOpenSuccesses = 0;
     this.logger = createModuleLogger({
       module: `CircuitBreaker.${this.config.serviceName}`,
-      defaultCategory: "network" /* NETWORK */
+      defaultCategory: ErrorCategory.NETWORK
     });
     this.failureThreshold = config2.failureThreshold ?? 5;
     this.resetTimeout = config2.resetTimeout ?? 6e4;
@@ -36197,7 +36177,7 @@ var CircuitBreaker = class {
     }
     errorHandler.handleError(error5, {
       severity: "medium" /* MEDIUM */,
-      category: "network" /* NETWORK */,
+      category: ErrorCategory.NETWORK,
       userAction: `${this.config.serviceName} operation`,
       metadata: {
         circuitState: this.state,
@@ -36230,7 +36210,7 @@ var CircuitBreaker = class {
         new Error(`Circuit breaker opened for ${this.config.serviceName}`),
         {
           severity: "high" /* HIGH */,
-          category: "network" /* NETWORK */,
+          category: ErrorCategory.NETWORK,
           userAction: "Circuit breaker activation",
           metadata: this.getStats()
         }
@@ -36587,7 +36567,7 @@ function getBooleanConfig(key, defaultValue = false) {
 // src/core/utils/JSONParser.ts
 var logger = createModuleLogger({
   module: "JSONParser",
-  defaultCategory: "processing" /* PROCESSING */
+  defaultCategory: ErrorCategory.PROCESSING
 });
 
 // src/core/utils/FileSystemWrapper.ts
@@ -36596,7 +36576,7 @@ var fsSync = __toESM(require("fs"));
 var path2 = __toESM(require("path"));
 var logger2 = createModuleLogger({
   module: "FileSystem",
-  defaultCategory: "file_system" /* FILE_SYSTEM */
+  defaultCategory: ErrorCategory.FILE_SYSTEM
 });
 var FileSystem = class {
   /**
@@ -36614,7 +36594,7 @@ var FileSystem = class {
       },
       {
         name: `Check file exists: ${path2.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         fallback: false
       }
@@ -36648,7 +36628,7 @@ var FileSystem = class {
       },
       {
         name: `Read file: ${path2.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
         fallback: null
@@ -36695,7 +36675,7 @@ var FileSystem = class {
       },
       {
         name: `Write file: ${path2.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
         fallback: false
@@ -36726,7 +36706,7 @@ var FileSystem = class {
       },
       {
         name: `Delete: ${path2.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { filePath },
         fallback: false
@@ -36745,7 +36725,7 @@ var FileSystem = class {
       },
       {
         name: `Create directory: ${path2.basename(dirPath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { dirPath },
         fallback: false
@@ -36780,7 +36760,7 @@ var FileSystem = class {
       },
       {
         name: `List directory: ${path2.basename(dirPath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { dirPath, options },
         fallback: []
@@ -36831,7 +36811,7 @@ var FileSystem = class {
       },
       {
         name: `Move file: ${path2.basename(source)} to ${path2.basename(destination)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { source, destination },
         fallback: false
@@ -36847,7 +36827,7 @@ var FileSystem = class {
       async () => await fs2.stat(filePath),
       {
         name: `Get file stats: ${path2.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
+        category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { filePath },
         fallback: null
@@ -36924,7 +36904,7 @@ var {
 // src/core/utils/ValidationPatterns.ts
 var logger3 = createModuleLogger({
   module: "ValidationPatterns",
-  defaultCategory: "validation" /* VALIDATION */
+  defaultCategory: ErrorCategory.VALIDATION
 });
 var Validators = class {
   /**
@@ -37118,7 +37098,7 @@ var Validators = class {
 // src/core/utils/AsyncUtilities.ts
 var logger4 = createModuleLogger({
   module: "AsyncUtilities",
-  defaultCategory: "processing" /* PROCESSING */
+  defaultCategory: ErrorCategory.PROCESSING
 });
 
 // src/core/index.ts
@@ -37160,9 +37140,8 @@ var PRReporter = class {
     } catch (error5) {
       await errorHandler.handleError(error5, {
         severity: "high" /* HIGH */,
-        category: "unknown" /* UNKNOWN */,
-        userAction: "Post verification results to PR",
-        metadata: { prNumber: this.prNumber }
+        category: "github" /* GITHUB */,
+        location: "pr-reporter"
       });
       throw error5;
     }
@@ -37196,9 +37175,8 @@ ${message}
     } catch (error5) {
       await errorHandler.handleError(error5, {
         severity: "medium" /* MEDIUM */,
-        category: "unknown" /* UNKNOWN */,
-        userAction: "Post status update to PR",
-        metadata: { status, prNumber: this.prNumber },
+        category: "github" /* GITHUB */,
+        location: "pr-reporter",
         recoverable: true
       });
     }
@@ -38354,8 +38332,8 @@ async function run() {
   } catch (error5) {
     await errorHandler.handleError(error5, {
       severity: "critical" /* CRITICAL */,
-      category: "unknown" /* UNKNOWN */,
-      location: "main run function"
+      category: "orchestration" /* ORCHESTRATION */,
+      location: "orchestration"
     });
     throw error5;
   } finally {
@@ -38443,14 +38421,9 @@ async function runVisualTesting() {
         }
         await errorHandler.handleError(error5, {
           severity: "medium" /* MEDIUM */,
-          category: "analysis" /* ANALYSIS */,
-          userAction: "Third-party route impact analysis",
-          recoverable: true,
-          metadata: {
-            prNumber,
-            errorMessage: error5.message,
-            errorName: error5.name
-          }
+          category: "package" /* PACKAGE */,
+          location: "@yofix/analyzer",
+          recoverable: true
         });
         core11.warning("Third-party route analyzer failed. Falling back to testing homepage only.");
         affectedRoutes = ["/"];
@@ -38682,14 +38655,8 @@ async function runVisualTesting() {
   } catch (error5) {
     await errorHandler.handleError(error5, {
       severity: "critical" /* CRITICAL */,
-      category: "unknown" /* UNKNOWN */,
-      userAction: "Visual testing workflow",
-      metadata: {
-        prNumber,
-        previewUrl: inputs == null ? void 0 : inputs.previewUrl,
-        authMode: inputs == null ? void 0 : inputs.authMode
-      },
-      tips: getErrorTips(error5 instanceof Error ? error5.message : String(error5))
+      category: "orchestration" /* ORCHESTRATION */,
+      location: "visual-testing"
     });
     core11.setFailed(error5 instanceof Error ? error5.message : String(error5));
   } finally {
@@ -38809,33 +38776,6 @@ function validateInputs(inputs) {
     return `Invalid test-timeout: ${timeoutResult.error}`;
   }
   return null;
-}
-function getErrorTips(errorMessage) {
-  const tips = [];
-  if (errorMessage.includes("Claude API") || errorMessage.includes("authentication_error")) {
-    tips.push("\u{1F511} **API Key Issue**: Verify your Claude API key is valid and has sufficient credits");
-    tips.push("\u{1F4CB} Set `CLAUDE_API_KEY` secret in your repository settings");
-  }
-  if (errorMessage.includes("Firebase") || errorMessage.includes("storage")) {
-    tips.push("\u{1F525} **Firebase Issue**: Check your Firebase credentials and storage bucket");
-    tips.push("\u{1F4CB} Ensure `firebase-credentials` is base64 encoded correctly");
-    tips.push("\u{1F4A1} Alternative: Use `storage-provider: s3` for AWS S3 storage");
-  }
-  if (errorMessage.includes("preview-url") || errorMessage.includes("accessible")) {
-    tips.push("\u{1F310} **Preview URL Issue**: The preview URL might not be accessible");
-    tips.push("\u23F3 Wait for deployment to complete before running YoFix");
-    tips.push("\u{1F512} Check if the URL requires authentication");
-  }
-  if (errorMessage.includes("auth") || errorMessage.includes("login")) {
-    tips.push("\u{1F510} **Authentication Issue**: Check your test credentials");
-    tips.push("\u{1F916} Try `auth-mode: smart` if LLM auth fails");
-    tips.push("\u{1F4CD} Verify `auth-login-url` points to the correct login page");
-  }
-  if (tips.length === 0) {
-    tips.push("\u{1F4D6} Check the [documentation](https://github.com/yofix/yofix#configuration)");
-    tips.push("\u{1F41B} [Report an issue](https://github.com/yofix/yofix/issues) if the problem persists");
-  }
-  return tips;
 }
 if (require.main === module) {
   const mainStartTime = Date.now();

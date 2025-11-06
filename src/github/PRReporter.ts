@@ -46,9 +46,8 @@ export class PRReporter {
     } catch (error) {
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.HIGH,
-        category: ErrorCategory.UNKNOWN,
-        userAction: 'Post verification results to PR',
-        metadata: { prNumber: this.prNumber }
+        category: ErrorCategory.GITHUB,
+        location: 'pr-reporter'
       });
       throw error;
     }
@@ -86,9 +85,8 @@ ${message}
     } catch (error) {
       await errorHandler.handleError(error as Error, {
         severity: ErrorSeverity.MEDIUM,
-        category: ErrorCategory.UNKNOWN,
-        userAction: 'Post status update to PR',
-        metadata: { status, prNumber: this.prNumber },
+        category: ErrorCategory.GITHUB,
+        location: 'pr-reporter',
         recoverable: true
       });
     }

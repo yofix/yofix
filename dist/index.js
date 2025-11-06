@@ -38511,13 +38511,22 @@ async function runVisualTesting() {
     outputDir = screenshotResult.outputDirectory;
     core11.info(`\u2705 Captured ${screenshotResult.screenshots.length} route screenshots`);
     core11.info(`  Output directory: ${outputDir}`);
+    const screenshotMetadataMap = /* @__PURE__ */ new Map();
     const filesForUpload = screenshotResult.screenshots.flatMap(
-      (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => ({
-        path: screenshot.path,
-        destination: screenshot.destination,
-        contentType: screenshot.contentType,
-        metadata: screenshot.metadata
-      }))
+      (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
+        var _a2;
+        screenshotMetadataMap.set(screenshot.path, {
+          route: routeScreenshot.route,
+          viewport: ((_a2 = screenshot.metadata) == null ? void 0 : _a2.viewport) || { width: 0, height: 0, name: "" },
+          metadata: screenshot.metadata
+        });
+        return {
+          path: screenshot.path,
+          destination: screenshot.destination,
+          contentType: screenshot.contentType,
+          metadata: screenshot.metadata
+        };
+      })
     );
     core11.info(`\u{1F4E6} Prepared ${filesForUpload.length} files for upload`);
     let uploadedFiles = [];
@@ -38560,7 +38569,7 @@ async function runVisualTesting() {
         uploadedFiles = uploadResult.files;
         core11.info("\u2705 Screenshots uploaded successfully:");
         uploadedFiles.forEach((file) => {
-          core11.info(`  \u{1F4F8} ${file.remotePath}: ${file.url}`);
+          core11.info(`  \u{1F4F8} ${file.remotePath}: ${file.url || "pending"}`);
         });
         core11.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
         const projectId = inputs.storageBucket.split(".")[0] || "unknown";
@@ -38608,14 +38617,18 @@ async function runVisualTesting() {
             const match = f.remotePath.includes(sanitizedRoute);
             core11.debug(`  Checking "${f.remotePath}" contains "${sanitizedRoute}": ${match}`);
             return match;
-          }).map((f) => ({
-            name: import_path.default.basename(f.remotePath),
-            path: f.localPath,
-            viewport: { width: 0, height: 0, name: "" },
-            // TODO: Extract from metadata
-            timestamp: Date.now(),
-            firebaseUrl: f.url
-          })),
+          }).map((f) => {
+            const metadata = screenshotMetadataMap.get(f.localPath);
+            const viewport = (metadata == null ? void 0 : metadata.viewport) || { width: 0, height: 0, name: "" };
+            return {
+              name: `${routePath}-${viewport.width}x${viewport.height}.png`,
+              path: f.localPath,
+              viewport,
+              timestamp: Date.now(),
+              firebaseUrl: f.url || "",
+              route: routePath
+            };
+          }),
           videos: [],
           errors: r.error ? [r.error] : [],
           consoleMessages: []

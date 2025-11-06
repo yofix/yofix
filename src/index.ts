@@ -290,19 +290,31 @@ async function runVisualTesting(): Promise<void> {
 
     // @yofix/browser now outputs data ready for @yofix/storage - no conversion needed!
     // Flatten RouteScreenshot[] to file list for upload
+    // Also create a map to preserve metadata for later
+    const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any }>();
+
     const filesForUpload = screenshotResult.screenshots.flatMap(routeScreenshot =>
-      routeScreenshot.screenshots.map(screenshot => ({
-        path: screenshot.path,
-        destination: screenshot.destination,
-        contentType: screenshot.contentType,
-        metadata: screenshot.metadata
-      }))
+      routeScreenshot.screenshots.map(screenshot => {
+        // Store metadata for later retrieval
+        screenshotMetadataMap.set(screenshot.path, {
+          route: routeScreenshot.route,
+          viewport: screenshot.metadata?.viewport || { width: 0, height: 0, name: '' },
+          metadata: screenshot.metadata
+        });
+
+        return {
+          path: screenshot.path,
+          destination: screenshot.destination,
+          contentType: screenshot.contentType,
+          metadata: screenshot.metadata
+        };
+      })
     );
 
     core.info(`📦 Prepared ${filesForUpload.length} files for upload`);
-    
+
     // Upload screenshots to Firebase if configured
-    let uploadedFiles: Array<{ localPath: string; url: string }> = [];
+    let uploadedFiles: Array<{ localPath: string; remotePath: string; url?: string }> = [];
     let screenshotsUrl = ''; // Will be set after upload or constructed from bucket
 
     if (inputs.firebaseCredentials && inputs.storageBucket) {
@@ -354,7 +366,7 @@ async function runVisualTesting(): Promise<void> {
         // Log uploaded URLs
         core.info('✅ Screenshots uploaded successfully:');
         uploadedFiles.forEach(file => {
-          core.info(`  📸 ${file.remotePath}: ${file.url}`);
+          core.info(`  📸 ${file.remotePath}: ${file.url || 'pending'}`);
         });
         core.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
 
@@ -416,13 +428,20 @@ async function runVisualTesting(): Promise<void> {
               core.debug(`  Checking "${f.remotePath}" contains "${sanitizedRoute}": ${match}`);
               return match;
             })
-            .map(f => ({
-              name: path.basename(f.remotePath),
-              path: f.localPath,
-              viewport: { width: 0, height: 0, name: '' }, // TODO: Extract from metadata
-              timestamp: Date.now(),
-              firebaseUrl: f.url
-            })),
+            .map(f => {
+              // Retrieve original metadata using local path
+              const metadata = screenshotMetadataMap.get(f.localPath);
+              const viewport = metadata?.viewport || { width: 0, height: 0, name: '' };
+
+              return {
+                name: `${routePath}-${viewport.width}x${viewport.height}.png`,
+                path: f.localPath,
+                viewport: viewport,
+                timestamp: Date.now(),
+                firebaseUrl: f.url || '',
+                route: routePath
+              };
+            }),
           videos: [],
           errors: r.error ? [r.error] : [],
           consoleMessages: []

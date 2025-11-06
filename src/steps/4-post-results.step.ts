@@ -72,6 +72,7 @@ export async function postResults(stepData: StepData): Promise<StepData> {
         previewUrl,
         region: firebaseConfig.region
       },
+      framework: routes.routesToTest?.framework || routes.impactTree?.framework,
       totalTests: screenshotResult.screenshots.length,
       passedTests: screenshotResult.screenshots.filter((r: any) => r.success !== false).length,
       failedTests: screenshotResult.screenshots.filter((r: any) => r.success === false).length,

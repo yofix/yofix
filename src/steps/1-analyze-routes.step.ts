@@ -35,15 +35,13 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
           affectedRoutes: ['/'],
           impactTree: null,
           routesToTest: null,
-          components: ['App'],
-          impactCommentBody: null
+          components: ['App']
         }
       };
     }
 
     let impactTree: ExternalRouteImpactTree | null = null;
     let routesToTest: ExternalRouteImpactTree | null = null;
-    let impactCommentBody: string | null = null;
     let affectedRoutes: string[] = [];
     let components: string[] = ['App'];
 
@@ -71,7 +69,6 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
 
       impactTree = externalAnalysis.impactTree;
       routesToTest = externalAnalysis.routesToTest;
-      impactCommentBody = externalAnalysis.commentBody;
 
       // Extract routes from impact tree
       affectedRoutes = extractRoutesFromImpactTree(routesToTest || impactTree);
@@ -82,20 +79,7 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
       // Log summary
       logImpactTreeSummary(routesToTest || impactTree);
 
-      // Post impact comment to PR (with timeout)
-      if (impactCommentBody) {
-        try {
-          await Promise.race([
-            github.createComment(impactCommentBody),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('GitHub comment timeout')), 15000)
-            )
-          ]);
-          core.info('✅ Posted route impact summary to PR');
-        } catch (commentError) {
-          core.warning(`Failed to post impact summary to PR: ${commentError}`);
-        }
-      }
+      // Note: Route impact comment posting removed - not needed in PR comments
 
     } catch (error) {
       core.error(`❌ Route impact analyzer error: ${error}`);
@@ -127,8 +111,7 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
         affectedRoutes,
         impactTree,
         routesToTest,
-        components,
-        impactCommentBody
+        components
       }
     };
   });

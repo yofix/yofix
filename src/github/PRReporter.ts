@@ -99,13 +99,12 @@ ${message}
     const statusEmoji = result.status === 'success' ? '✅' : result.status === 'partial' ? '⚠️' : '❌';
     const firebaseEmoji = '🔥';
     const reactEmoji = '⚛️';
-    
-    // Header with overall status
-    let comment = `## ${statusEmoji} Runtime PR Verification - React SPA
 
-**Status**: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)} | `;
-    comment += `${reactEmoji} React ${result.firebaseConfig.buildSystem === 'vite' ? 'Vite' : 'CRA'} | `;
-    comment += `${firebaseEmoji} Firebase ${result.firebaseConfig.target}\n\n`;
+    // Get framework name from route-impact-analyzer or fallback to generic
+    const frameworkName = result.framework || 'Web App';
+
+    // Header with overall status
+    let comment = `## ${statusEmoji} Runtime PR Verification - ${frameworkName}\n\n`;
 
     // Test summary
     comment += `**Test Results**: ${result.passedTests}/${result.totalTests} passed`;
@@ -138,13 +137,20 @@ ${message}
       core.info(`Embedding ${screenshots.length} screenshots in PR comment`);
       const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
       core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
-      
+
+      // Create route->duration map from test results
+      const routeDurationMap = new Map<string, number>();
+      result.testResults.forEach(test => {
+        const routePath = test.testId.replace('test-', '');
+        routeDurationMap.set(routePath, test.duration);
+      });
+
       // Use enhanced comparison layout if baseline data is available
       const hasBaselineData = screenshots.some(s => s.comparison || s.baseline);
       if (hasBaselineData) {
         comment += this.generateVisualComparisonTable(screenshots, result);
       } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result);
+        comment += this.generateEmbeddedScreenshots(screenshots, result, routeDurationMap);
       }
     }
     
@@ -160,45 +166,6 @@ ${message}
 
     // Expandable details section
     comment += '<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n';
-
-    // Components verified
-    if (result.summary.componentsVerified.length > 0) {
-      comment += '### ✅ React Components Tested\n\n';
-      comment += `${result.summary.componentsVerified.join(', ')}\n\n`;
-    }
-
-    // Individual test results (routes are shown here, no need for separate "Routes Verified" section)
-    comment += '### 📋 Test Results\n\n';
-
-    for (const test of result.testResults) {
-      const testEmoji = test.status === 'passed' ? '✅' : test.status === 'failed' ? '❌' : '⏭️';
-      // Extract route path from full URL for cleaner display
-      const routePath = test.testId.replace('test-', '');
-      const routeName = routePath.split('/').pop() || routePath;
-
-      comment += `${testEmoji} **${routeName}** (${this.formatDuration(test.duration)})\n`;
-
-      if (test.errors.length > 0) {
-        comment += `   - ⚠️ Issues: ${test.errors.slice(0, 2).join(', ')}`;
-        if (test.errors.length > 2) {
-          comment += ` and ${test.errors.length - 2} more`;
-        }
-        comment += '\n';
-      }
-
-      if (test.screenshots.length > 0) {
-        const viewports = test.screenshots
-          .map(s => s.viewport.name || `${s.viewport.width}×${s.viewport.height}`)
-          .filter((v, i, arr) => arr.indexOf(v) === i); // unique viewports
-        comment += `   - 📸 ${test.screenshots.length} screenshot${test.screenshots.length !== 1 ? 's' : ''} (${viewports.join(', ')})\n`;
-      }
-
-      if (test.videos.length > 0 && test.videos[0]?.firebaseUrl) {
-        comment += `   - 🎥 Video: [View Recording](${test.videos[0].firebaseUrl})\n`;
-      }
-
-      comment += '\n';
-    }
 
     // Issues found section
     if (result.summary.issuesFound.length > 0) {
@@ -447,7 +414,7 @@ ${message}
   /**
    * Generate embedded screenshots for PR comment (legacy method)
    */
-  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult): string {
+  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult, routeDurationMap?: Map<string, number>): string {
     if (screenshots.length === 0) {
       return '';
     }
@@ -478,6 +445,10 @@ ${message}
       // Get the full URL from the first screenshot
       const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
 
+      // Get the duration for this route
+      const duration = routeDurationMap?.get(route);
+      const durationText = duration ? ` • ${this.formatDuration(duration)}` : '';
+
       // Create collapsible section for each route
       gallery += `<details>\n`;
       gallery += `<summary><strong>📍 Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>\n\n`;
@@ -490,8 +461,7 @@ ${message}
 
       for (const screenshot of sorted) {
         gallery += `<td align="center">\n`;
-        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}×${screenshot.viewport.height}`}</strong><br>\n`;
-        gallery += `${screenshot.viewport.width}×${screenshot.viewport.height}<br>\n`;
+        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}×${screenshot.viewport.height}`}${durationText}</strong><br>\n`;
         gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />\n`;
         gallery += `</td>\n`;
       }

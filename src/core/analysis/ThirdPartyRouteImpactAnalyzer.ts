@@ -21,6 +21,7 @@ export interface ExternalRouteImpactTree {
       routeFile: string;
     }>
   >;
+  framework?: string;
 }
 
 interface ExternalImpactResult {
@@ -208,6 +209,7 @@ export async function analyzeRoutesWithExternalTool(
     totalFilesChanged: changedFiles.length,
     totalRoutesAffected: uniqueRoutes.size,
     componentRouteMapping,
+    framework: result.metadata?.framework,
   };
 
   // Create filtered routesToTest tree
@@ -277,6 +279,7 @@ export async function analyzeRoutesWithExternalTool(
     totalFilesChanged: changedFiles.length,
     totalRoutesAffected: routesToTestMap.size,
     componentRouteMapping: routesToTestComponentMapping,
+    framework: result.metadata?.framework,
   };
 
   core.info(`📊 Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);

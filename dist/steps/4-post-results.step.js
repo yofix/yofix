@@ -27263,15 +27263,11 @@ ${message}
    * Generate comprehensive comment body with React-specific results
    */
   generateCommentBody(result, storageConsoleUrl) {
-    var _a;
     const statusEmoji = result.status === "success" ? "\u2705" : result.status === "partial" ? "\u26A0\uFE0F" : "\u274C";
     const firebaseEmoji = "\u{1F525}";
     const reactEmoji = "\u269B\uFE0F";
-    let comment = `## ${statusEmoji} Runtime PR Verification - React SPA
-
-**Status**: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)} | `;
-    comment += `${reactEmoji} React ${result.firebaseConfig.buildSystem === "vite" ? "Vite" : "CRA"} | `;
-    comment += `${firebaseEmoji} Firebase ${result.firebaseConfig.target}
+    const frameworkName = result.framework || "Web App";
+    let comment = `## ${statusEmoji} Runtime PR Verification - ${frameworkName}
 
 `;
     comment += `**Test Results**: ${result.passedTests}/${result.totalTests} passed`;
@@ -27301,11 +27297,16 @@ ${message}
       core6.info(`Embedding ${screenshots.length} screenshots in PR comment`);
       const screenshotsWithUrls = screenshots.filter((s) => s.firebaseUrl);
       core6.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
+      const routeDurationMap = /* @__PURE__ */ new Map();
+      result.testResults.forEach((test) => {
+        const routePath = test.testId.replace("test-", "");
+        routeDurationMap.set(routePath, test.duration);
+      });
       const hasBaselineData = screenshots.some((s) => s.comparison || s.baseline);
       if (hasBaselineData) {
         comment += this.generateVisualComparisonTable(screenshots, result);
       } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result);
+        comment += this.generateEmbeddedScreenshots(screenshots, result, routeDurationMap);
       }
     }
     if (videos.length > 0) {
@@ -27315,37 +27316,6 @@ ${message}
       comment += this.generateEmbeddedVideos(videos);
     }
     comment += "<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n";
-    if (result.summary.componentsVerified.length > 0) {
-      comment += "### \u2705 React Components Tested\n\n";
-      comment += `${result.summary.componentsVerified.join(", ")}
-
-`;
-    }
-    comment += "### \u{1F4CB} Test Results\n\n";
-    for (const test of result.testResults) {
-      const testEmoji = test.status === "passed" ? "\u2705" : test.status === "failed" ? "\u274C" : "\u23ED\uFE0F";
-      const routePath = test.testId.replace("test-", "");
-      const routeName = routePath.split("/").pop() || routePath;
-      comment += `${testEmoji} **${routeName}** (${this.formatDuration(test.duration)})
-`;
-      if (test.errors.length > 0) {
-        comment += `   - \u26A0\uFE0F Issues: ${test.errors.slice(0, 2).join(", ")}`;
-        if (test.errors.length > 2) {
-          comment += ` and ${test.errors.length - 2} more`;
-        }
-        comment += "\n";
-      }
-      if (test.screenshots.length > 0) {
-        const viewports = test.screenshots.map((s) => s.viewport.name || `${s.viewport.width}\xD7${s.viewport.height}`).filter((v, i, arr) => arr.indexOf(v) === i);
-        comment += `   - \u{1F4F8} ${test.screenshots.length} screenshot${test.screenshots.length !== 1 ? "s" : ""} (${viewports.join(", ")})
-`;
-      }
-      if (test.videos.length > 0 && ((_a = test.videos[0]) == null ? void 0 : _a.firebaseUrl)) {
-        comment += `   - \u{1F3A5} Video: [View Recording](${test.videos[0].firebaseUrl})
-`;
-      }
-      comment += "\n";
-    }
     if (result.summary.issuesFound.length > 0) {
       comment += "### \u26A0\uFE0F Issues Detected\n\n";
       for (const issue of result.summary.issuesFound.slice(0, 5)) {
@@ -27591,7 +27561,7 @@ ${message}
   /**
    * Generate embedded screenshots for PR comment (legacy method)
    */
-  generateEmbeddedScreenshots(screenshots, result) {
+  generateEmbeddedScreenshots(screenshots, result, routeDurationMap) {
     if (screenshots.length === 0) {
       return "";
     }
@@ -27610,6 +27580,8 @@ ${message}
         continue;
       }
       const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
+      const duration = routeDurationMap == null ? void 0 : routeDurationMap.get(route);
+      const durationText = duration ? ` \u2022 ${this.formatDuration(duration)}` : "";
       gallery += `<details>
 `;
       gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>
@@ -27620,9 +27592,7 @@ ${message}
       for (const screenshot of sorted) {
         gallery += `<td align="center">
 `;
-        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}</strong><br>
-`;
-        gallery += `${screenshot.viewport.width}\xD7${screenshot.viewport.height}<br>
+        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}${durationText}</strong><br>
 `;
         gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />
 `;
@@ -27922,7 +27892,7 @@ async function executeStep(stepName, stepFunction) {
 // src/steps/4-post-results.step.ts
 async function postResults(stepData) {
   return executeStep("Post Results to PR", async () => {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata } = stepData;
     const internal = stepData._internal;
     if (!routes || !screenshots) {
@@ -27959,6 +27929,7 @@ async function postResults(stepData) {
         previewUrl,
         region: firebaseConfig.region
       },
+      framework: ((_c = routes.routesToTest) == null ? void 0 : _c.framework) || ((_d = routes.impactTree) == null ? void 0 : _d.framework),
       totalTests: screenshotResult.screenshots.length,
       passedTests: screenshotResult.screenshots.filter((r) => r.success !== false).length,
       failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
@@ -28001,7 +27972,7 @@ async function postResults(stepData) {
       summary: {
         componentsVerified: analysis.components,
         routesTested: analysis.routes,
-        issuesFound: ((_c = screenshotResult.errors) == null ? void 0 : _c.map((e) => e.message)) || []
+        issuesFound: ((_e = screenshotResult.errors) == null ? void 0 : _e.map((e) => e.message)) || []
       }
     };
     core8.info(`\u{1F4CA} Verification Summary:`);
@@ -28034,7 +28005,7 @@ ${timingSummary}`);
       });
     }
     core8.setOutput("success", verificationResult.status === "success");
-    core8.setOutput("issues-found", ((_d = screenshotResult.errors) == null ? void 0 : _d.length) || 0);
+    core8.setOutput("issues-found", ((_f = screenshotResult.errors) == null ? void 0 : _f.length) || 0);
     core8.setOutput("critical-issues", 0);
     core8.setOutput("warning-issues", 0);
     core8.setOutput("total-tests", verificationResult.totalTests);

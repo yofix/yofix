@@ -110,6 +110,7 @@ export interface ConsoleMessage {
 export interface VerificationResult {
   status: 'success' | 'failure' | 'partial';
   firebaseConfig: FirebaseConfig;
+  framework?: string;
   totalTests: number;
   passedTests: number;
   failedTests: number;

@@ -25302,7 +25302,7 @@ function createEmptyImpactTree(totalFilesChanged) {
   };
 }
 async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d, _e;
   const configuration = getConfiguration();
   const claudeApiKey = configuration.getInput("claude-api-key");
   if (!claudeApiKey) {
@@ -25425,7 +25425,8 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     sharedComponents,
     totalFilesChanged: changedFiles.length,
     totalRoutesAffected: uniqueRoutes.size,
-    componentRouteMapping
+    componentRouteMapping,
+    framework: (_b = result.metadata) == null ? void 0 : _b.framework
   };
   const routesToTestMap = /* @__PURE__ */ new Map();
   const routesToTestComponentMapping = /* @__PURE__ */ new Map();
@@ -25471,16 +25472,17 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     sharedComponents,
     totalFilesChanged: changedFiles.length,
     totalRoutesAffected: routesToTestMap.size,
-    componentRouteMapping: routesToTestComponentMapping
+    componentRouteMapping: routesToTestComponentMapping,
+    framework: (_c = result.metadata) == null ? void 0 : _c.framework
   };
   core.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
   const basePreviewUrl = previewUrl.replace(/\/$/, "");
   const header = "## \u{1F310} Route Impact (route-impact-analyzer)\n";
   const summaryLines = [
-    `- Files analyzed: **${((_b = result.metadata) == null ? void 0 : _b.totalFiles) ?? changedFiles.length}**`,
+    `- Files analyzed: **${((_d = result.metadata) == null ? void 0 : _d.totalFiles) ?? changedFiles.length}**`,
     `- Routes impacted: **${uniqueRoutes.size}**`,
     `- Routes to test: **${routesToTestMap.size}**`,
-    `- Framework: **${((_c = result.metadata) == null ? void 0 : _c.framework) ?? "unknown"}**`,
+    `- Framework: **${((_e = result.metadata) == null ? void 0 : _e.framework) ?? "unknown"}**`,
     `- Preview URL: **${basePreviewUrl}**`,
     ""
   ];
@@ -27646,14 +27648,12 @@ async function analyzeRoutes(stepData) {
           affectedRoutes: ["/"],
           impactTree: null,
           routesToTest: null,
-          components: ["App"],
-          impactCommentBody: null
+          components: ["App"]
         }
       };
     }
     let impactTree = null;
     let routesToTest = null;
-    let impactCommentBody = null;
     let affectedRoutes = [];
     let components = ["App"];
     try {
@@ -27671,23 +27671,9 @@ async function analyzeRoutes(stepData) {
       );
       impactTree = externalAnalysis.impactTree;
       routesToTest = externalAnalysis.routesToTest;
-      impactCommentBody = externalAnalysis.commentBody;
       affectedRoutes = extractRoutesFromImpactTree(routesToTest || impactTree);
       components = extractComponentsFromImpactTree(routesToTest || impactTree);
       logImpactTreeSummary(routesToTest || impactTree);
-      if (impactCommentBody) {
-        try {
-          await Promise.race([
-            github.createComment(impactCommentBody),
-            new Promise(
-              (_, reject) => setTimeout(() => reject(new Error("GitHub comment timeout")), 15e3)
-            )
-          ]);
-          core8.info("\u2705 Posted route impact summary to PR");
-        } catch (commentError) {
-          core8.warning(`Failed to post impact summary to PR: ${commentError}`);
-        }
-      }
     } catch (error6) {
       core8.error(`\u274C Route impact analyzer error: ${error6}`);
       await errorHandler.handleError(error6, {
@@ -27711,8 +27697,7 @@ async function analyzeRoutes(stepData) {
         affectedRoutes,
         impactTree,
         routesToTest,
-        components,
-        impactCommentBody
+        components
       }
     };
   });

@@ -359,7 +359,7 @@ async function runVisualTesting(): Promise<void> {
         // Log uploaded URLs
         core.info('✅ Screenshots uploaded successfully:');
         uploadedFiles.forEach(file => {
-          core.info(`  📸 ${file.destination}: ${file.url}`);
+          core.info(`  📸 ${file.remotePath}: ${file.url}`);
         });
         core.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
 
@@ -395,9 +395,9 @@ async function runVisualTesting(): Promise<void> {
         status: r.success !== false ? 'passed' : 'failed',
         duration: screenshotResult.totalDuration,
         screenshots: uploadedFiles
-          .filter(f => f.destination.startsWith(r.route.replace(/^\//, '').replace(/\//g, '-')))
+          .filter(f => f.remotePath && f.remotePath.includes(r.route.replace(/^\//, '').replace(/\//g, '-')))
           .map(f => ({
-            name: path.basename(f.destination),
+            name: path.basename(f.remotePath),
             path: f.localPath,
             viewport: { width: 0, height: 0, name: '' }, // TODO: Extract from metadata
             timestamp: Date.now(),

@@ -38701,7 +38701,7 @@ async function runVisualTesting() {
         uploadedFiles = uploadResult.files;
         core11.info("\u2705 Screenshots uploaded successfully:");
         uploadedFiles.forEach((file) => {
-          core11.info(`  \u{1F4F8} ${file.destination}: ${file.url}`);
+          core11.info(`  \u{1F4F8} ${file.remotePath}: ${file.url}`);
         });
         core11.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
         const projectId = inputs.storageBucket.split(".")[0] || "unknown";
@@ -38732,8 +38732,8 @@ async function runVisualTesting() {
         testName: `Route Test: ${r.route}`,
         status: r.success !== false ? "passed" : "failed",
         duration: screenshotResult.totalDuration,
-        screenshots: uploadedFiles.filter((f) => f.destination.startsWith(r.route.replace(/^\//, "").replace(/\//g, "-"))).map((f) => ({
-          name: import_path.default.basename(f.destination),
+        screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(r.route.replace(/^\//, "").replace(/\//g, "-"))).map((f) => ({
+          name: import_path.default.basename(f.remotePath),
           path: f.localPath,
           viewport: { width: 0, height: 0, name: "" },
           // TODO: Extract from metadata

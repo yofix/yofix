@@ -4287,10 +4287,10 @@
     typescript "^5.7.2"
     zod "^3.24.1"
 
-"@yofix/browser@^1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@yofix/browser/-/browser-1.0.6.tgz#1e985c15ca1a9036005ff09de89d5e6a6e907cc0"
-  integrity sha512-lAMugJO/tINWj0vEYJs4I/wD1IXsFi9PkmlLMFHEC6oHbROvkTj1/FjWgW9QPfAasYDmDeYB7l6BkMXBh8o4+A==
+"@yofix/browser@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@yofix/browser/-/browser-1.0.7.tgz#7a658c2672ecf523d63d48ad9817bd0a69ec834d"
+  integrity sha512-StYW/RxhfTAFdlgpd8bR3JUz1WkNmjJH2DibT9x0sRNmXCZbKGgT9ohUhk6gM02nxKDyfJw6NXN9mZUFPX9eug==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"
@@ -4303,10 +4303,10 @@
     playwright "^1.49.0"
     zod "^3.24.1"
 
-"@yofix/storage@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@yofix/storage/-/storage-1.0.0.tgz#f8037b64d2b7984f56e14944bf50f3a14a90bfb5"
-  integrity sha512-p0C4cRtBUf6gl96hyhNZ9pVD+BSyecD9WPnvlBMs8DKgBsz4S5j76Bg2kWZMv7SXNCiNA/Mk47xnqYE8ApProA==
+"@yofix/storage@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@yofix/storage/-/storage-1.0.1.tgz#4042fa190e95072c495d7376ab9c5a5d56f481c9"
+  integrity sha512-TU7bYFRyhcc9FEj91AX7HDSzQkIutxbaRsnnZH5fomlbiwlQHpFxgKKFi+N/auIbVLGTy9wKSGvVwzh5JWMx7g==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"

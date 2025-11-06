@@ -139,72 +139,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    # Step 1: Initialize YoFix
-    - name: 🚀 Initialize YoFix Visual Testing
-      shell: bash
-      run: |
-        echo "::group::YoFix Initialization"
-        echo "YoFix Version: v1.0.20"
-        echo "Preview URL: ${{ inputs.preview-url }}"
-        echo "Storage Provider: ${{ inputs.storage-provider }}"
-        echo "Test Timeout: ${{ inputs.test-timeout }}"
-        echo "Viewports: ${{ inputs.viewports }}"
-        echo "Max Routes: ${{ inputs.max-routes }}"
-        echo "::endgroup::"
-    
-    # Step 2: Validate Configuration
-    - name: ✅ Validate Configuration
-      shell: bash
-      run: |
-        echo "::group::Configuration Validation"
-        # Check required inputs
-        if [ -z "${{ inputs.preview-url }}" ]; then
-          echo "❌ Error: preview-url is required"
-          exit 1
-        fi
-        
-        if [ -z "${{ inputs.github-token }}" ]; then
-          echo "❌ Error: github-token is required"
-          exit 1
-        fi
-        
-        if [ -z "${{ inputs.claude-api-key }}" ]; then
-          echo "❌ Error: claude-api-key is required"
-          exit 1
-        fi
-        
-        # Validate storage configuration
-        if [ "${{ inputs.storage-provider }}" = "firebase" ]; then
-          if [ -z "${{ inputs.firebase-credentials }}" ] || [ -z "${{ inputs.storage-bucket }}" ]; then
-            echo "⚠️ Warning: Firebase storage configuration incomplete"
-          else
-            echo "✅ Firebase storage configuration validated"
-          fi
-        fi
-        
-        if [ "${{ inputs.storage-provider }}" = "s3" ]; then
-          if [ -z "${{ inputs.s3-bucket }}" ]; then
-            echo "❌ Error: s3-bucket is required for S3 storage"
-            exit 1
-          fi
-          echo "✅ S3 storage configuration validated"
-        fi
-        
-        echo "✅ All required configurations validated"
-        echo "::endgroup::"
-    
-    # Step 3: Get Playwright version
-    - name: 🎭 Determine Playwright Version
-      id: playwright-version
-      shell: bash
-      run: |
-        echo "::group::Playwright Version Detection"
-        # Default Playwright version
-        echo "version=1.54.1" >> $GITHUB_OUTPUT
-        echo "Playwright version: 1.54.1"
-        echo "::endgroup::"
-    
-    # Step 4: Cache Playwright browsers
+    # Step 1: Cache Playwright browsers
     - name: 📦 Cache Playwright Browsers
       uses: actions/cache@v4
       id: playwright-cache
@@ -212,133 +147,64 @@ runs:
         path: |
           ~/.cache/ms-playwright
           ~/playwright-deps
-        key: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-v2
+        key: playwright-browsers-${{ runner.os }}-1.54.1-v2
         restore-keys: |
-          playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-
+          playwright-browsers-${{ runner.os }}-1.54.1-
           playwright-browsers-${{ runner.os }}-
     
-    # Step 5: Setup Playwright
+    # Step 2: Setup Playwright
     - name: 🎭 Setup Playwright Environment
       shell: bash
       run: |
         echo "::group::Playwright Setup"
         cd ${{ github.action_path }}
-        
+
         if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
           echo "📦 Installing Playwright browsers (cache miss)..."
-          
+
           # Install Playwright with browsers and dependencies
-          npx -y playwright@${{ steps.playwright-version.outputs.version }} install chromium --with-deps
-          
+          npx -y playwright@1.54.1 install chromium --with-deps
+
           # Save installed dependencies list for caching
           mkdir -p ~/playwright-deps
           dpkg -l > ~/playwright-deps/installed-packages.txt
-          
+
           echo "✅ Playwright browsers and dependencies installed"
         else
           echo "🚀 Using cached Playwright browsers"
-          
+
           # Just ensure system dependencies are present (fast operation)
           # This handles cases where the runner image has changed
-          npx -y playwright@${{ steps.playwright-version.outputs.version }} install-deps chromium || true
+          npx -y playwright@1.54.1 install-deps chromium || true
         fi
         echo "::endgroup::"
     
-    # Step 6: Install runtime dependencies
+    # Step 3: Install runtime dependencies
     - name: 📦 Install YoFix Dependencies
       shell: bash
       run: |
         echo "::group::YoFix Dependencies Installation"
         echo "📦 Installing runtime dependencies..."
         cd ${{ github.action_path }}
-        
-        # List current directory contents
-        echo "Current directory contents:"
-        ls -la
-        
+
         # Install only production dependencies including all externalized modules
         echo "Running: npm install --production --ignore-scripts"
         npm install --production --ignore-scripts
-        
+
         # Rebuild native modules to ensure correct binaries
         echo "Rebuilding native modules..."
         npm rebuild
-        
-        # Verify key dependencies are installed
-        echo "Verifying key dependencies:"
-        for dep in sharp tree-sitter playwright firebase-admin; do
-          if [ -d "node_modules/$dep" ]; then
-            echo "✅ $dep installed"
-          else
-            echo "❌ $dep NOT found"
-          fi
-        done
-        
+
         echo "✅ Runtime dependencies installed"
         echo "::endgroup::"
-    
-    # Step 7: Initialize Storage Provider
-    - name: 🗄️ Initialize Storage Provider
+
+    # Step 4: Initialize YoFix
+    - name: 📋 Initialize YoFix
+      id: initialize
       shell: bash
       run: |
-        echo "::group::Storage Provider Setup"
-        echo "Storage Provider: ${{ inputs.storage-provider }}"
-        
-        if [ "${{ inputs.storage-provider }}" = "firebase" ]; then
-          if [ -n "${{ inputs.firebase-credentials }}" ] && [ -n "${{ inputs.storage-bucket }}" ]; then
-            echo "✅ Firebase storage will be initialized"
-            echo "Bucket: ${{ inputs.storage-bucket }}"
-          fi
-        fi
-        
-        if [ "${{ inputs.storage-provider }}" = "s3" ]; then
-          echo "✅ S3 storage will be initialized"
-          echo "Bucket: ${{ inputs.s3-bucket }}"
-          echo "Region: ${{ inputs.aws-region }}"
-        fi
-        echo "::endgroup::"
-    
-    # Step 8: Prepare Test Environment
-    - name: 🔧 Prepare Test Environment
-      shell: bash
-      run: |
-        echo "::group::Test Environment Preparation"
-        echo "Setting up environment variables..."
-        if [ -n "${{ inputs.auth-email }}" ] && [ -n "${{ inputs.auth-password }}" ]; then
-          echo "✅ Authentication credentials configured"
-        else
-          echo "ℹ️ No authentication credentials provided"
-        fi
-        
-        echo "✅ Test environment prepared"
-        echo "::endgroup::"
-    
-    # Step 9: Run Visual Tests
-    - name: 🧪 Execute Visual Tests
-      id: visual-tests
-      shell: bash
-      run: |
-        echo "::group::Visual Test Execution"
-        echo "🚀 Starting YoFix visual tests..."
-        echo "Test URL: ${{ inputs.preview-url }}"
-        
-        # Run the tests with error handling
-        set +e  # Don't exit on error
-        node ${{ github.action_path }}/dist/index.js
-        EXIT_CODE=$?
-        set -e
-        
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "✅ Visual tests completed successfully"
-          echo "test-status=success" >> $GITHUB_OUTPUT
-        else
-          echo "❌ Visual tests failed with exit code: $EXIT_CODE"
-          echo "test-status=failed" >> $GITHUB_OUTPUT
-          # Don't exit here, let continue-on-error handle it
-        fi
-        
-        echo "::endgroup::"
-        exit $EXIT_CODE
+        echo "🚀 Initializing YoFix step-based workflow..."
+        node ${{ github.action_path }}/dist/steps/0-initialize.step.js
       env:
         INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
@@ -365,8 +231,64 @@ runs:
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
         INPUT_TEST-ROUTES: ${{ inputs.test-routes }}
         INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
-    
-    # Step 10: Generate Test Summary
+
+    # Step 5: Analyze Routes
+    - name: 🔍 Find Impact Routes
+      id: analyze-routes
+      shell: bash
+      run: |
+        echo "🛰️ Analyzing route impacts using route-impact-analyzer..."
+        node ${{ github.action_path }}/dist/steps/1-analyze-routes.step.js
+      env:
+        INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE-MODEL: ${{ inputs.claude-model }}
+        INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
+
+    # Step 6: Browse Routes
+    - name: 🌐 Browse Impact Routes
+      id: browse-routes
+      shell: bash
+      run: |
+        echo "📸 Capturing screenshots for affected routes..."
+        node ${{ github.action_path }}/dist/steps/2-browse-routes.step.js
+      env:
+        INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_VIEWPORTS: ${{ inputs.viewports }}
+        INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
+        INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}
+
+    # Step 7: Upload Screenshots
+    - name: ☁️ Upload Screenshots to Storage
+      id: upload-storage
+      shell: bash
+      run: |
+        echo "📤 Uploading screenshots to cloud storage..."
+        node ${{ github.action_path }}/dist/steps/3-upload-storage.step.js
+      env:
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+
+    # Step 8: Post Results
+    - name: 💬 Post GitHub Comment
+      id: post-results
+      if: always()
+      shell: bash
+      run: |
+        echo "📝 Posting results to GitHub PR..."
+        node ${{ github.action_path }}/dist/steps/4-post-results.step.js
+      env:
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+
+    # Step 9: Generate Test Summary
     - name: 📊 Generate Test Summary
       if: always()
       shell: bash
@@ -374,24 +296,29 @@ runs:
         echo "::group::Test Summary"
         echo "## YoFix Visual Test Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if [ "${{ steps.visual-tests.outputs.test-status }}" = "success" ]; then
+
+        if [ "${{ steps.post-results.outputs.success }}" = "true" ]; then
           echo "✅ **Status:** All visual tests passed" >> $GITHUB_STEP_SUMMARY
         else
-          echo "❌ **Status:** Visual tests failed" >> $GITHUB_STEP_SUMMARY
+          echo "❌ **Status:** Visual tests completed with issues" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Test Configuration" >> $GITHUB_STEP_SUMMARY
         echo "- **Preview URL:** ${{ inputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Routes Tested:** ${{ steps.analyze-routes.outputs.routes-count }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Viewports:** ${{ inputs.viewports }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Max Routes:** ${{ inputs.max-routes }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Storage Provider:** ${{ inputs.storage-provider }}" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ -n "${{ inputs.auth-email }}" ]; then
           echo "- **Authentication:** Enabled" >> $GITHUB_STEP_SUMMARY
         else
           echo "- **Authentication:** Disabled" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
+        if [ -n "${{ steps.post-results.outputs.duration-seconds }}" ]; then
+          echo "- **Duration:** ${{ steps.post-results.outputs.duration-seconds }}s" >> $GITHUB_STEP_SUMMARY
+        fi
+
         echo "::endgroup::"

@@ -94,11 +94,11 @@ var require_command = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.issue = exports2.issueCommand = void 0;
-    var os2 = __importStar(require("os"));
+    var os = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueCommand(command, properties, message) {
       const cmd = new Command(command, properties, message);
-      process.stdout.write(cmd.toString() + os2.EOL);
+      process.stdout.write(cmd.toString() + os.EOL);
     }
     exports2.issueCommand = issueCommand;
     function issue(name, message = "") {
@@ -180,9 +180,9 @@ var require_file_command = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.prepareKeyValueMessage = exports2.issueFileCommand = void 0;
-    var crypto2 = __importStar(require("crypto"));
+    var crypto = __importStar(require("crypto"));
     var fs4 = __importStar(require("fs"));
-    var os2 = __importStar(require("os"));
+    var os = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
       const filePath = process.env[`GITHUB_${command}`];
@@ -192,13 +192,13 @@ var require_file_command = __commonJS({
       if (!fs4.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs4.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os2.EOL}`, {
+      fs4.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
         encoding: "utf8"
       });
     }
     exports2.issueFileCommand = issueFileCommand;
     function prepareKeyValueMessage(key, value) {
-      const delimiter = `ghadelimiter_${crypto2.randomUUID()}`;
+      const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
       const convertedValue = (0, utils_1.toCommandValue)(value);
       if (key.includes(delimiter)) {
         throw new Error(`Unexpected input: name should not contain the delimiter "${delimiter}"`);
@@ -206,7 +206,7 @@ var require_file_command = __commonJS({
       if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
       }
-      return `${key}<<${delimiter}${os2.EOL}${convertedValue}${os2.EOL}${delimiter}`;
+      return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
     }
     exports2.prepareKeyValueMessage = prepareKeyValueMessage;
   }
@@ -397,7 +397,7 @@ var require_tunnel = __commonJS({
         connectOptions.headers = connectOptions.headers || {};
         connectOptions.headers["Proxy-Authorization"] = "Basic " + new Buffer(connectOptions.proxyAuth).toString("base64");
       }
-      debug8("making CONNECT request");
+      debug5("making CONNECT request");
       var connectReq = self.request(connectOptions);
       connectReq.useChunkedEncodingByDefault = false;
       connectReq.once("response", onResponse);
@@ -417,40 +417,40 @@ var require_tunnel = __commonJS({
         connectReq.removeAllListeners();
         socket.removeAllListeners();
         if (res.statusCode !== 200) {
-          debug8(
+          debug5(
             "tunneling socket could not be established, statusCode=%d",
             res.statusCode
           );
           socket.destroy();
-          var error5 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
-          error5.code = "ECONNRESET";
-          options.request.emit("error", error5);
+          var error6 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
+          error6.code = "ECONNRESET";
+          options.request.emit("error", error6);
           self.removeSocket(placeholder);
           return;
         }
         if (head.length > 0) {
-          debug8("got illegal response body from proxy");
+          debug5("got illegal response body from proxy");
           socket.destroy();
-          var error5 = new Error("got illegal response body from proxy");
-          error5.code = "ECONNRESET";
-          options.request.emit("error", error5);
+          var error6 = new Error("got illegal response body from proxy");
+          error6.code = "ECONNRESET";
+          options.request.emit("error", error6);
           self.removeSocket(placeholder);
           return;
         }
-        debug8("tunneling connection has established");
+        debug5("tunneling connection has established");
         self.sockets[self.sockets.indexOf(placeholder)] = socket;
         return cb(socket);
       }
       function onError(cause) {
         connectReq.removeAllListeners();
-        debug8(
+        debug5(
           "tunneling socket could not be established, cause=%s\n",
           cause.message,
           cause.stack
         );
-        var error5 = new Error("tunneling socket could not be established, cause=" + cause.message);
-        error5.code = "ECONNRESET";
-        options.request.emit("error", error5);
+        var error6 = new Error("tunneling socket could not be established, cause=" + cause.message);
+        error6.code = "ECONNRESET";
+        options.request.emit("error", error6);
         self.removeSocket(placeholder);
       }
     };
@@ -505,9 +505,9 @@ var require_tunnel = __commonJS({
       }
       return target;
     }
-    var debug8;
+    var debug5;
     if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
-      debug8 = function() {
+      debug5 = function() {
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[0] === "string") {
           args[0] = "TUNNEL: " + args[0];
@@ -517,10 +517,10 @@ var require_tunnel = __commonJS({
         console.error.apply(console, args);
       };
     } else {
-      debug8 = function() {
+      debug5 = function() {
       };
     }
-    exports2.debug = debug8;
+    exports2.debug = debug5;
   }
 });
 
@@ -995,14 +995,14 @@ var require_util = __commonJS({
         }
         const port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80;
         let origin = url.origin != null ? url.origin : `${url.protocol}//${url.hostname}:${port}`;
-        let path4 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
+        let path5 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
         if (origin.endsWith("/")) {
           origin = origin.substring(0, origin.length - 1);
         }
-        if (path4 && !path4.startsWith("/")) {
-          path4 = `/${path4}`;
+        if (path5 && !path5.startsWith("/")) {
+          path5 = `/${path5}`;
         }
-        url = new URL(origin + path4);
+        url = new URL(origin + path5);
       }
       return url;
     }
@@ -2616,20 +2616,20 @@ var require_parseParams = __commonJS({
 var require_basename = __commonJS({
   "node_modules/undici/node_modules/@fastify/busboy/lib/utils/basename.js"(exports2, module2) {
     "use strict";
-    module2.exports = function basename2(path4) {
-      if (typeof path4 !== "string") {
+    module2.exports = function basename2(path5) {
+      if (typeof path5 !== "string") {
         return "";
       }
-      for (var i = path4.length - 1; i >= 0; --i) {
-        switch (path4.charCodeAt(i)) {
+      for (var i = path5.length - 1; i >= 0; --i) {
+        switch (path5.charCodeAt(i)) {
           case 47:
           // '/'
           case 92:
-            path4 = path4.slice(i + 1);
-            return path4 === ".." || path4 === "." ? "" : path4;
+            path5 = path5.slice(i + 1);
+            return path5 === ".." || path5 === "." ? "" : path5;
         }
       }
-      return path4 === ".." || path4 === "." ? "" : path4;
+      return path5 === ".." || path5 === "." ? "" : path5;
     };
   }
 });
@@ -3634,11 +3634,11 @@ var require_util2 = __commonJS({
     var assert = require("assert");
     var { isUint8Array } = require("util/types");
     var supportedHashes = [];
-    var crypto2;
+    var crypto;
     try {
-      crypto2 = require("crypto");
+      crypto = require("crypto");
       const possibleRelevantHashes = ["sha256", "sha384", "sha512"];
-      supportedHashes = crypto2.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
+      supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash));
     } catch {
     }
     function responseURL(response) {
@@ -3916,7 +3916,7 @@ var require_util2 = __commonJS({
       }
     }
     function bytesMatch(bytes, metadataList) {
-      if (crypto2 === void 0) {
+      if (crypto === void 0) {
         return true;
       }
       const parsedMetadata = parseMetadata(metadataList);
@@ -3931,7 +3931,7 @@ var require_util2 = __commonJS({
       for (const item of metadata) {
         const algorithm = item.algo;
         const expectedValue = item.hash;
-        let actualValue = crypto2.createHash(algorithm).update(bytes).digest("base64");
+        let actualValue = crypto.createHash(algorithm).update(bytes).digest("base64");
         if (actualValue[actualValue.length - 1] === "=") {
           if (actualValue[actualValue.length - 2] === "=") {
             actualValue = actualValue.slice(0, -2);
@@ -5278,8 +5278,8 @@ var require_body = __commonJS({
     var { parseMIMEType, serializeAMimeType } = require_dataURL();
     var random;
     try {
-      const crypto2 = require("node:crypto");
-      random = (max) => crypto2.randomInt(0, max);
+      const crypto = require("node:crypto");
+      random = (max) => crypto.randomInt(0, max);
     } catch {
       random = (max) => Math.floor(Math.random(max));
     }
@@ -5463,7 +5463,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
         throw new DOMException2("The operation was aborted.", "AbortError");
       }
     }
-    function bodyMixinMethods(instance) {
+    function bodyMixinMethods(instance2) {
       const methods = {
         blob() {
           return specConsumeBody(this, (bytes) => {
@@ -5474,21 +5474,21 @@ Content-Type: ${value.type || "application/octet-stream"}\r
               mimeType = serializeAMimeType(mimeType);
             }
             return new Blob2([bytes], { type: mimeType });
-          }, instance);
+          }, instance2);
         },
         arrayBuffer() {
           return specConsumeBody(this, (bytes) => {
             return new Uint8Array(bytes).buffer;
-          }, instance);
+          }, instance2);
         },
         text() {
-          return specConsumeBody(this, utf8DecodeBytes, instance);
+          return specConsumeBody(this, utf8DecodeBytes, instance2);
         },
         json() {
-          return specConsumeBody(this, parseJSONFromBytes, instance);
+          return specConsumeBody(this, parseJSONFromBytes, instance2);
         },
         async formData() {
-          webidl.brandCheck(this, instance);
+          webidl.brandCheck(this, instance2);
           throwIfAborted(this[kState]);
           const contentType = this.headers.get("Content-Type");
           if (/multipart\/form-data/.test(contentType)) {
@@ -5563,7 +5563,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
             await Promise.resolve();
             throwIfAborted(this[kState]);
             throw webidl.errors.exception({
-              header: `${instance.name}.formData`,
+              header: `${instance2.name}.formData`,
               message: "Could not parse content as FormData."
             });
           }
@@ -5574,14 +5574,14 @@ Content-Type: ${value.type || "application/octet-stream"}\r
     function mixinBody(prototype) {
       Object.assign(prototype.prototype, bodyMixinMethods(prototype));
     }
-    async function specConsumeBody(object, convertBytesToJSValue, instance) {
-      webidl.brandCheck(object, instance);
+    async function specConsumeBody(object, convertBytesToJSValue, instance2) {
+      webidl.brandCheck(object, instance2);
       throwIfAborted(object[kState]);
       if (bodyUnusable(object[kState].body)) {
         throw new TypeError("Body is unusable");
       }
       const promise = createDeferredPromise();
-      const errorSteps = (error5) => promise.reject(error5);
+      const errorSteps = (error6) => promise.reject(error6);
       const successSteps = (data) => {
         try {
           promise.resolve(convertBytesToJSValue(data));
@@ -5662,7 +5662,7 @@ var require_request = __commonJS({
     }
     var Request = class _Request {
       constructor(origin, {
-        path: path4,
+        path: path5,
         method,
         body,
         headers,
@@ -5676,11 +5676,11 @@ var require_request = __commonJS({
         throwOnError,
         expectContinue
       }, handler) {
-        if (typeof path4 !== "string") {
+        if (typeof path5 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path4[0] !== "/" && !(path4.startsWith("http://") || path4.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path5[0] !== "/" && !(path5.startsWith("http://") || path5.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.exec(path4) !== null) {
+        } else if (invalidPathRegex.exec(path5) !== null) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -5743,7 +5743,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? util.buildURL(path4, query) : path4;
+        this.path = query ? util.buildURL(path5, query) : path5;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -5867,16 +5867,16 @@ var require_request = __commonJS({
           this.onError(err);
         }
       }
-      onError(error5) {
+      onError(error6) {
         this.onFinally();
         if (channels.error.hasSubscribers) {
-          channels.error.publish({ request: this, error: error5 });
+          channels.error.publish({ request: this, error: error6 });
         }
         if (this.aborted) {
           return;
         }
         this.aborted = true;
-        return this[kHandler].onError(error5);
+        return this[kHandler].onError(error6);
       }
       onFinally() {
         if (this.errorHandler) {
@@ -6739,8 +6739,8 @@ var require_RedirectHandler = __commonJS({
       onUpgrade(statusCode, headers, socket) {
         this.handler.onUpgrade(statusCode, headers, socket);
       }
-      onError(error5) {
-        this.handler.onError(error5);
+      onError(error6) {
+        this.handler.onError(error6);
       }
       onHeaders(statusCode, headers, resume, statusText) {
         this.location = this.history.length >= this.maxRedirections || util.isDisturbed(this.opts.body) ? null : parseLocation(statusCode, headers);
@@ -6751,9 +6751,9 @@ var require_RedirectHandler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path4 = search ? `${pathname}${search}` : pathname;
+        const path5 = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path4;
+        this.opts.path = path5;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -7993,7 +7993,7 @@ var require_client = __commonJS({
         writeH2(client, client[kHTTP2Session], request);
         return;
       }
-      const { body, method, path: path4, host, upgrade, headers, blocking, reset } = request;
+      const { body, method, path: path5, host, upgrade, headers, blocking, reset } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8043,7 +8043,7 @@ var require_client = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path4} HTTP/1.1\r
+      let header = `${method} ${path5} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -8106,7 +8106,7 @@ upgrade: ${upgrade}\r
       return true;
     }
     function writeH2(client, session, request) {
-      const { body, method, path: path4, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
+      const { body, method, path: path5, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
       let headers;
       if (typeof reqHeaders === "string") headers = Request[kHTTP2CopyHeaders](reqHeaders.trim());
       else headers = reqHeaders;
@@ -8149,7 +8149,7 @@ upgrade: ${upgrade}\r
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path4;
+      headers[HTTP2_HEADER_PATH] = path5;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
@@ -8881,7 +8881,7 @@ var require_pool = __commonJS({
         this[kOptions] = { ...util.deepClone(options), connect, allowH2 };
         this[kOptions].interceptors = options.interceptors ? { ...options.interceptors } : void 0;
         this[kFactory] = factory;
-        this.on("connectionError", (origin2, targets, error5) => {
+        this.on("connectionError", (origin2, targets, error6) => {
           for (const target of targets) {
             const idx = this[kClients].indexOf(target);
             if (idx !== -1) {
@@ -10389,20 +10389,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path4) {
-      if (typeof path4 !== "string") {
-        return path4;
+    function safeUrl(path5) {
+      if (typeof path5 !== "string") {
+        return path5;
       }
-      const pathSegments = path4.split("?");
+      const pathSegments = path5.split("?");
       if (pathSegments.length !== 2) {
-        return path4;
+        return path5;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path4, method, body, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path4);
+    function matchKey(mockDispatch2, { path: path5, method, body, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path5);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -10420,7 +10420,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path4 }) => matchValue(safeUrl(path4), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path5 }) => matchValue(safeUrl(path5), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -10457,9 +10457,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path: path4, method, body, headers, query } = opts;
+      const { path: path5, method, body, headers, query } = opts;
       return {
-        path: path4,
+        path: path5,
         method,
         body,
         headers,
@@ -10490,13 +10490,13 @@ var require_mock_utils = __commonJS({
       if (mockDispatch2.data.callback) {
         mockDispatch2.data = { ...mockDispatch2.data, ...mockDispatch2.data.callback(opts) };
       }
-      const { data: { statusCode, data, headers, trailers, error: error5 }, delay: delay2, persist } = mockDispatch2;
+      const { data: { statusCode, data, headers, trailers, error: error6 }, delay: delay2, persist } = mockDispatch2;
       const { timesInvoked, times } = mockDispatch2;
       mockDispatch2.consumed = !persist && timesInvoked >= times;
       mockDispatch2.pending = timesInvoked < times;
-      if (error5 !== null) {
+      if (error6 !== null) {
         deleteMockDispatch(this[kDispatches], key);
-        handler.onError(error5);
+        handler.onError(error6);
         return true;
       }
       if (typeof delay2 === "number" && delay2 > 0) {
@@ -10534,19 +10534,19 @@ var require_mock_utils = __commonJS({
         if (agent.isMockActive) {
           try {
             mockDispatch.call(this, opts, handler);
-          } catch (error5) {
-            if (error5 instanceof MockNotMatchedError) {
+          } catch (error6) {
+            if (error6 instanceof MockNotMatchedError) {
               const netConnect = agent[kGetNetConnect]();
               if (netConnect === false) {
-                throw new MockNotMatchedError(`${error5.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
+                throw new MockNotMatchedError(`${error6.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
               }
               if (checkNetConnect(netConnect, origin)) {
                 originalDispatch.call(this, opts, handler);
               } else {
-                throw new MockNotMatchedError(`${error5.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
+                throw new MockNotMatchedError(`${error6.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
               }
             } else {
-              throw error5;
+              throw error6;
             }
           }
         } else {
@@ -10709,11 +10709,11 @@ var require_mock_interceptor = __commonJS({
       /**
        * Mock an undici request with a defined error.
        */
-      replyWithError(error5) {
-        if (typeof error5 === "undefined") {
+      replyWithError(error6) {
+        if (typeof error6 === "undefined") {
           throw new InvalidArgumentError("error must be defined");
         }
-        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error5 });
+        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error6 });
         return new MockScope(newMockDispatch);
       }
       /**
@@ -10908,10 +10908,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path4, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path5, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path4,
+            Path: path5,
             "Status code": statusCode,
             Persistent: persist ? "\u2705" : "\u274C",
             Invocations: timesInvoked,
@@ -12398,15 +12398,15 @@ var require_request2 = __commonJS({
           signal = input[kSignal];
         }
         const origin = this[kRealm].settingsObject.origin;
-        let window2 = "client";
+        let window = "client";
         if (((_b = (_a = request.window) == null ? void 0 : _a.constructor) == null ? void 0 : _b.name) === "EnvironmentSettingsObject" && sameOrigin(request.window, origin)) {
-          window2 = request.window;
+          window = request.window;
         }
         if (init.window != null) {
-          throw new TypeError(`'window' option '${window2}' must be null`);
+          throw new TypeError(`'window' option '${window}' must be null`);
         }
         if ("window" in init) {
-          window2 = "no-window";
+          window = "no-window";
         }
         request = makeRequest({
           // URL request’s URL.
@@ -12421,7 +12421,7 @@ var require_request2 = __commonJS({
           // client This’s relevant settings object.
           client: this[kRealm].settingsObject,
           // window window.
-          window: window2,
+          window,
           // priority request’s priority.
           priority: request.priority,
           // origin request’s origin. The propagation of the origin is only significant for navigation requests
@@ -13044,18 +13044,18 @@ var require_fetch = __commonJS({
         this.emit("terminated", reason);
       }
       // https://fetch.spec.whatwg.org/#fetch-controller-abort
-      abort(error5) {
+      abort(error6) {
         var _a;
         if (this.state !== "ongoing") {
           return;
         }
         this.state = "aborted";
-        if (!error5) {
-          error5 = new DOMException2("The operation was aborted.", "AbortError");
+        if (!error6) {
+          error6 = new DOMException2("The operation was aborted.", "AbortError");
         }
-        this.serializedAbortReason = error5;
-        (_a = this.connection) == null ? void 0 : _a.destroy(error5);
-        this.emit("terminated", error5);
+        this.serializedAbortReason = error6;
+        (_a = this.connection) == null ? void 0 : _a.destroy(error6);
+        this.emit("terminated", error6);
       }
     };
     function fetch(input, init = {}) {
@@ -13161,14 +13161,14 @@ var require_fetch = __commonJS({
         performance.markResourceTiming(timingInfo, originalURL.href, initiatorType, globalThis2, cacheState);
       }
     }
-    function abortFetch(p, request, responseObject, error5) {
+    function abortFetch(p, request, responseObject, error6) {
       var _a, _b;
-      if (!error5) {
-        error5 = new DOMException2("The operation was aborted.", "AbortError");
+      if (!error6) {
+        error6 = new DOMException2("The operation was aborted.", "AbortError");
       }
-      p.reject(error5);
+      p.reject(error6);
       if (request.body != null && isReadable((_a = request.body) == null ? void 0 : _a.stream)) {
-        request.body.stream.cancel(error5).catch((err) => {
+        request.body.stream.cancel(error6).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13180,7 +13180,7 @@ var require_fetch = __commonJS({
       }
       const response = responseObject[kState];
       if (response.body != null && isReadable((_b = response.body) == null ? void 0 : _b.stream)) {
-        response.body.stream.cancel(error5).catch((err) => {
+        response.body.stream.cancel(error6).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13963,14 +13963,14 @@ var require_fetch = __commonJS({
               fetchParams.controller.ended = true;
               this.body.push(null);
             },
-            onError(error5) {
+            onError(error6) {
               var _a;
               if (this.abort) {
                 fetchParams.controller.off("terminated", this.abort);
               }
-              (_a = this.body) == null ? void 0 : _a.destroy(error5);
-              fetchParams.controller.terminate(error5);
-              reject(error5);
+              (_a = this.body) == null ? void 0 : _a.destroy(error6);
+              fetchParams.controller.terminate(error6);
+              reject(error6);
             },
             onUpgrade(status, headersList, socket) {
               if (status !== 101) {
@@ -14436,8 +14436,8 @@ var require_util4 = __commonJS({
                   }
                   fr[kResult] = result;
                   fireAProgressEvent("load", fr);
-                } catch (error5) {
-                  fr[kError] = error5;
+                } catch (error6) {
+                  fr[kError] = error6;
                   fireAProgressEvent("error", fr);
                 }
                 if (fr[kState] !== "loading") {
@@ -14446,13 +14446,13 @@ var require_util4 = __commonJS({
               });
               break;
             }
-          } catch (error5) {
+          } catch (error6) {
             if (fr[kAborted]) {
               return;
             }
             queueMicrotask(() => {
               fr[kState] = "done";
-              fr[kError] = error5;
+              fr[kError] = error6;
               fireAProgressEvent("error", fr);
               if (fr[kState] !== "loading") {
                 fireAProgressEvent("loadend", fr);
@@ -15544,8 +15544,8 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path4) {
-      for (const char of path4) {
+    function validateCookiePath(path5) {
+      for (const char of path5) {
         const code = char.charCodeAt(0);
         if (code < 33 || char === ";") {
           throw new Error("Invalid cookie path");
@@ -16342,9 +16342,9 @@ var require_connection = __commonJS({
     channels.open = diagnosticsChannel.channel("undici:websocket:open");
     channels.close = diagnosticsChannel.channel("undici:websocket:close");
     channels.socketError = diagnosticsChannel.channel("undici:websocket:socket_error");
-    var crypto2;
+    var crypto;
     try {
-      crypto2 = require("crypto");
+      crypto = require("crypto");
     } catch {
     }
     function establishWebSocketConnection(url, protocols, ws, onEstablish, options) {
@@ -16363,7 +16363,7 @@ var require_connection = __commonJS({
         const headersList = new Headers(options.headers)[kHeadersList];
         request.headersList = headersList;
       }
-      const keyValue = crypto2.randomBytes(16).toString("base64");
+      const keyValue = crypto.randomBytes(16).toString("base64");
       request.headersList.append("sec-websocket-key", keyValue);
       request.headersList.append("sec-websocket-version", "13");
       for (const protocol of protocols) {
@@ -16393,7 +16393,7 @@ var require_connection = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto2.createHash("sha1").update(keyValue + uid).digest("base64");
+          const digest = crypto.createHash("sha1").update(keyValue + uid).digest("base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(ws, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -16454,11 +16454,11 @@ var require_connection = __commonJS({
         });
       }
     }
-    function onSocketError(error5) {
+    function onSocketError(error6) {
       const { ws } = this;
       ws[kReadyState] = states.CLOSING;
       if (channels.socketError.hasSubscribers) {
-        channels.socketError.publish(error5);
+        channels.socketError.publish(error6);
       }
       this.destroy();
     }
@@ -16473,9 +16473,9 @@ var require_frame = __commonJS({
   "node_modules/undici/lib/websocket/frame.js"(exports2, module2) {
     "use strict";
     var { maxUnsigned16Bit } = require_constants5();
-    var crypto2;
+    var crypto;
     try {
-      crypto2 = require("crypto");
+      crypto = require("crypto");
     } catch {
     }
     var WebsocketFrameSend = class {
@@ -16484,7 +16484,7 @@ var require_frame = __commonJS({
        */
       constructor(data) {
         this.frameData = data;
-        this.maskKey = crypto2.randomBytes(4);
+        this.maskKey = crypto.randomBytes(4);
       }
       createFrame(opcode) {
         var _a;
@@ -17227,11 +17227,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path4 = opts.path;
+          let path5 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path4 = `/${path4}`;
+            path5 = `/${path5}`;
           }
-          url = new URL(util.parseOrigin(url).origin + path4);
+          url = new URL(util.parseOrigin(url).origin + path5);
         } else {
           if (!opts) {
             opts = typeof url === "object" ? url : {};
@@ -17603,12 +17603,12 @@ var require_lib = __commonJS({
             throw new Error("Client has already been disposed.");
           }
           const parsedUrl = new URL(requestUrl);
-          let info9 = this._prepareRequest(verb, parsedUrl, headers);
+          let info7 = this._prepareRequest(verb, parsedUrl, headers);
           const maxTries = this._allowRetries && RetryableHttpVerbs.includes(verb) ? this._maxRetries + 1 : 1;
           let numTries = 0;
           let response;
           do {
-            response = yield this.requestRaw(info9, data);
+            response = yield this.requestRaw(info7, data);
             if (response && response.message && response.message.statusCode === HttpCodes.Unauthorized) {
               let authenticationHandler;
               for (const handler of this.handlers) {
@@ -17618,7 +17618,7 @@ var require_lib = __commonJS({
                 }
               }
               if (authenticationHandler) {
-                return authenticationHandler.handleAuthentication(this, info9, data);
+                return authenticationHandler.handleAuthentication(this, info7, data);
               } else {
                 return response;
               }
@@ -17641,8 +17641,8 @@ var require_lib = __commonJS({
                   }
                 }
               }
-              info9 = this._prepareRequest(verb, parsedRedirectUrl, headers);
-              response = yield this.requestRaw(info9, data);
+              info7 = this._prepareRequest(verb, parsedRedirectUrl, headers);
+              response = yield this.requestRaw(info7, data);
               redirectsRemaining--;
             }
             if (!response.message.statusCode || !HttpResponseRetryCodes.includes(response.message.statusCode)) {
@@ -17671,7 +17671,7 @@ var require_lib = __commonJS({
        * @param info
        * @param data
        */
-      requestRaw(info9, data) {
+      requestRaw(info7, data) {
         return __awaiter(this, void 0, void 0, function* () {
           return new Promise((resolve, reject) => {
             function callbackForResult(err, res) {
@@ -17683,7 +17683,7 @@ var require_lib = __commonJS({
                 resolve(res);
               }
             }
-            this.requestRawWithCallback(info9, data, callbackForResult);
+            this.requestRawWithCallback(info7, data, callbackForResult);
           });
         });
       }
@@ -17693,12 +17693,12 @@ var require_lib = __commonJS({
        * @param data
        * @param onResult
        */
-      requestRawWithCallback(info9, data, onResult) {
+      requestRawWithCallback(info7, data, onResult) {
         if (typeof data === "string") {
-          if (!info9.options.headers) {
-            info9.options.headers = {};
+          if (!info7.options.headers) {
+            info7.options.headers = {};
           }
-          info9.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
+          info7.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
         }
         let callbackCalled = false;
         function handleResult(err, res) {
@@ -17707,7 +17707,7 @@ var require_lib = __commonJS({
             onResult(err, res);
           }
         }
-        const req = info9.httpModule.request(info9.options, (msg) => {
+        const req = info7.httpModule.request(info7.options, (msg) => {
           const res = new HttpClientResponse(msg);
           handleResult(void 0, res);
         });
@@ -17719,7 +17719,7 @@ var require_lib = __commonJS({
           if (socket) {
             socket.end();
           }
-          handleResult(new Error(`Request timeout: ${info9.options.path}`));
+          handleResult(new Error(`Request timeout: ${info7.options.path}`));
         });
         req.on("error", function(err) {
           handleResult(err);
@@ -17755,27 +17755,27 @@ var require_lib = __commonJS({
         return this._getProxyAgentDispatcher(parsedUrl, proxyUrl);
       }
       _prepareRequest(method, requestUrl, headers) {
-        const info9 = {};
-        info9.parsedUrl = requestUrl;
-        const usingSsl = info9.parsedUrl.protocol === "https:";
-        info9.httpModule = usingSsl ? https : http;
+        const info7 = {};
+        info7.parsedUrl = requestUrl;
+        const usingSsl = info7.parsedUrl.protocol === "https:";
+        info7.httpModule = usingSsl ? https : http;
         const defaultPort = usingSsl ? 443 : 80;
-        info9.options = {};
-        info9.options.host = info9.parsedUrl.hostname;
-        info9.options.port = info9.parsedUrl.port ? parseInt(info9.parsedUrl.port) : defaultPort;
-        info9.options.path = (info9.parsedUrl.pathname || "") + (info9.parsedUrl.search || "");
-        info9.options.method = method;
-        info9.options.headers = this._mergeHeaders(headers);
+        info7.options = {};
+        info7.options.host = info7.parsedUrl.hostname;
+        info7.options.port = info7.parsedUrl.port ? parseInt(info7.parsedUrl.port) : defaultPort;
+        info7.options.path = (info7.parsedUrl.pathname || "") + (info7.parsedUrl.search || "");
+        info7.options.method = method;
+        info7.options.headers = this._mergeHeaders(headers);
         if (this.userAgent != null) {
-          info9.options.headers["user-agent"] = this.userAgent;
+          info7.options.headers["user-agent"] = this.userAgent;
         }
-        info9.options.agent = this._getAgent(info9.parsedUrl);
+        info7.options.agent = this._getAgent(info7.parsedUrl);
         if (this.handlers) {
           for (const handler of this.handlers) {
-            handler.prepareRequest(info9.options);
+            handler.prepareRequest(info7.options);
           }
         }
-        return info9;
+        return info7;
       }
       _mergeHeaders(headers) {
         if (this.requestOptions && this.requestOptions.headers) {
@@ -18091,12 +18091,12 @@ var require_oidc_utils = __commonJS({
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
           const httpclient = _OidcClient.createHttpClient();
-          const res = yield httpclient.getJson(id_token_url).catch((error5) => {
+          const res = yield httpclient.getJson(id_token_url).catch((error6) => {
             throw new Error(`Failed to get ID Token. 
  
-        Error Code : ${error5.statusCode}
+        Error Code : ${error6.statusCode}
  
-        Error Message: ${error5.message}`);
+        Error Message: ${error6.message}`);
           });
           const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
           if (!id_token) {
@@ -18117,8 +18117,8 @@ var require_oidc_utils = __commonJS({
             const id_token = yield _OidcClient.getCall(id_token_url);
             (0, core_1.setSecret)(id_token);
             return id_token;
-          } catch (error5) {
-            throw new Error(`Error message: ${error5.message}`);
+          } catch (error6) {
+            throw new Error(`Error message: ${error6.message}`);
           }
         });
       }
@@ -18454,7 +18454,7 @@ var require_path_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.toPlatformPath = exports2.toWin32Path = exports2.toPosixPath = void 0;
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     function toPosixPath(pth) {
       return pth.replace(/[\\]/g, "/");
     }
@@ -18464,7 +18464,7 @@ var require_path_utils = __commonJS({
     }
     exports2.toWin32Path = toWin32Path;
     function toPlatformPath(pth) {
-      return pth.replace(/[/\\]/g, path4.sep);
+      return pth.replace(/[/\\]/g, path5.sep);
     }
     exports2.toPlatformPath = toPlatformPath;
   }
@@ -18528,7 +18528,7 @@ var require_io_util = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCmdPath = exports2.tryGetExecutablePath = exports2.isRooted = exports2.isDirectory = exports2.exists = exports2.READONLY = exports2.UV_FS_O_EXLOCK = exports2.IS_WINDOWS = exports2.unlink = exports2.symlink = exports2.stat = exports2.rmdir = exports2.rm = exports2.rename = exports2.readlink = exports2.readdir = exports2.open = exports2.mkdir = exports2.lstat = exports2.copyFile = exports2.chmod = void 0;
     var fs4 = __importStar(require("fs"));
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     _a = fs4.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
     exports2.IS_WINDOWS = process.platform === "win32";
     exports2.UV_FS_O_EXLOCK = 268435456;
@@ -18577,7 +18577,7 @@ var require_io_util = __commonJS({
         }
         if (stats && stats.isFile()) {
           if (exports2.IS_WINDOWS) {
-            const upperExt = path4.extname(filePath).toUpperCase();
+            const upperExt = path5.extname(filePath).toUpperCase();
             if (extensions.some((validExt) => validExt.toUpperCase() === upperExt)) {
               return filePath;
             }
@@ -18601,11 +18601,11 @@ var require_io_util = __commonJS({
           if (stats && stats.isFile()) {
             if (exports2.IS_WINDOWS) {
               try {
-                const directory = path4.dirname(filePath);
-                const upperName = path4.basename(filePath).toUpperCase();
+                const directory = path5.dirname(filePath);
+                const upperName = path5.basename(filePath).toUpperCase();
                 for (const actualName of yield exports2.readdir(directory)) {
                   if (upperName === actualName.toUpperCase()) {
-                    filePath = path4.join(directory, actualName);
+                    filePath = path5.join(directory, actualName);
                     break;
                   }
                 }
@@ -18700,7 +18700,7 @@ var require_io = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.findInPath = exports2.which = exports2.mkdirP = exports2.rmRF = exports2.mv = exports2.cp = void 0;
     var assert_1 = require("assert");
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var ioUtil = __importStar(require_io_util());
     function cp(source, dest, options = {}) {
       return __awaiter(this, void 0, void 0, function* () {
@@ -18709,7 +18709,7 @@ var require_io = __commonJS({
         if (destStat && destStat.isFile() && !force) {
           return;
         }
-        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path4.join(dest, path4.basename(source)) : dest;
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path5.join(dest, path5.basename(source)) : dest;
         if (!(yield ioUtil.exists(source))) {
           throw new Error(`no such file or directory: ${source}`);
         }
@@ -18721,7 +18721,7 @@ var require_io = __commonJS({
             yield cpDirRecursive(source, newDest, 0, force);
           }
         } else {
-          if (path4.relative(source, newDest) === "") {
+          if (path5.relative(source, newDest) === "") {
             throw new Error(`'${newDest}' and '${source}' are the same file`);
           }
           yield copyFile2(source, newDest, force);
@@ -18734,7 +18734,7 @@ var require_io = __commonJS({
         if (yield ioUtil.exists(dest)) {
           let destExists = true;
           if (yield ioUtil.isDirectory(dest)) {
-            dest = path4.join(dest, path4.basename(source));
+            dest = path5.join(dest, path5.basename(source));
             destExists = yield ioUtil.exists(dest);
           }
           if (destExists) {
@@ -18745,7 +18745,7 @@ var require_io = __commonJS({
             }
           }
         }
-        yield mkdirP(path4.dirname(dest));
+        yield mkdirP(path5.dirname(dest));
         yield ioUtil.rename(source, dest);
       });
     }
@@ -18808,7 +18808,7 @@ var require_io = __commonJS({
         }
         const extensions = [];
         if (ioUtil.IS_WINDOWS && process.env["PATHEXT"]) {
-          for (const extension of process.env["PATHEXT"].split(path4.delimiter)) {
+          for (const extension of process.env["PATHEXT"].split(path5.delimiter)) {
             if (extension) {
               extensions.push(extension);
             }
@@ -18821,12 +18821,12 @@ var require_io = __commonJS({
           }
           return [];
         }
-        if (tool.includes(path4.sep)) {
+        if (tool.includes(path5.sep)) {
           return [];
         }
         const directories = [];
         if (process.env.PATH) {
-          for (const p of process.env.PATH.split(path4.delimiter)) {
+          for (const p of process.env.PATH.split(path5.delimiter)) {
             if (p) {
               directories.push(p);
             }
@@ -18834,7 +18834,7 @@ var require_io = __commonJS({
         }
         const matches = [];
         for (const directory of directories) {
-          const filePath = yield ioUtil.tryGetExecutablePath(path4.join(directory, tool), extensions);
+          const filePath = yield ioUtil.tryGetExecutablePath(path5.join(directory, tool), extensions);
           if (filePath) {
             matches.push(filePath);
           }
@@ -18947,10 +18947,10 @@ var require_toolrunner = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.argStringToArray = exports2.ToolRunner = void 0;
-    var os2 = __importStar(require("os"));
+    var os = __importStar(require("os"));
     var events = __importStar(require("events"));
     var child = __importStar(require("child_process"));
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var io = __importStar(require_io());
     var ioUtil = __importStar(require_io_util());
     var timers_1 = require("timers");
@@ -19002,12 +19002,12 @@ var require_toolrunner = __commonJS({
       _processLineBuffer(data, strBuffer, onLine) {
         try {
           let s = strBuffer + data.toString();
-          let n = s.indexOf(os2.EOL);
+          let n = s.indexOf(os.EOL);
           while (n > -1) {
             const line = s.substring(0, n);
             onLine(line);
-            s = s.substring(n + os2.EOL.length);
-            n = s.indexOf(os2.EOL);
+            s = s.substring(n + os.EOL.length);
+            n = s.indexOf(os.EOL);
           }
           return s;
         } catch (err) {
@@ -19165,7 +19165,7 @@ var require_toolrunner = __commonJS({
       exec() {
         return __awaiter(this, void 0, void 0, function* () {
           if (!ioUtil.isRooted(this.toolPath) && (this.toolPath.includes("/") || IS_WINDOWS && this.toolPath.includes("\\"))) {
-            this.toolPath = path4.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            this.toolPath = path5.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
           }
           this.toolPath = yield io.which(this.toolPath, true);
           return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -19176,7 +19176,7 @@ var require_toolrunner = __commonJS({
             }
             const optionsNonNull = this._cloneExecOptions(this.options);
             if (!optionsNonNull.silent && optionsNonNull.outStream) {
-              optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os2.EOL);
+              optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os.EOL);
             }
             const state = new ExecState(optionsNonNull, this.toolPath);
             state.on("debug", (message) => {
@@ -19240,7 +19240,7 @@ var require_toolrunner = __commonJS({
               this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
               state.CheckComplete();
             });
-            state.on("done", (error5, exitCode) => {
+            state.on("done", (error6, exitCode) => {
               if (stdbuffer.length > 0) {
                 this.emit("stdline", stdbuffer);
               }
@@ -19248,8 +19248,8 @@ var require_toolrunner = __commonJS({
                 this.emit("errline", errbuffer);
               }
               cp.removeAllListeners();
-              if (error5) {
-                reject(error5);
+              if (error6) {
+                reject(error6);
               } else {
                 resolve(exitCode);
               }
@@ -19344,14 +19344,14 @@ var require_toolrunner = __commonJS({
         this.emit("debug", message);
       }
       _setResult() {
-        let error5;
+        let error6;
         if (this.processExited) {
           if (this.processError) {
-            error5 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            error6 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
           } else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-            error5 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            error6 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
           } else if (this.processStderr && this.options.failOnStdErr) {
-            error5 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            error6 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
           }
         }
         if (this.timeout) {
@@ -19359,7 +19359,7 @@ var require_toolrunner = __commonJS({
           this.timeout = null;
         }
         this.done = true;
-        this.emit("done", error5, this.processExitCode);
+        this.emit("done", error6, this.processExitCode);
       }
       static HandleTimeout(state) {
         if (state.done) {
@@ -19664,8 +19664,8 @@ var require_core = __commonJS({
     var command_1 = require_command();
     var file_command_1 = require_file_command();
     var utils_1 = require_utils();
-    var os2 = __importStar(require("os"));
-    var path4 = __importStar(require("path"));
+    var os = __importStar(require("os"));
+    var path5 = __importStar(require("path"));
     var oidc_utils_1 = require_oidc_utils();
     var ExitCode;
     (function(ExitCode2) {
@@ -19693,7 +19693,7 @@ var require_core = __commonJS({
       } else {
         (0, command_1.issueCommand)("add-path", {}, inputPath);
       }
-      process.env["PATH"] = `${inputPath}${path4.delimiter}${process.env["PATH"]}`;
+      process.env["PATH"] = `${inputPath}${path5.delimiter}${process.env["PATH"]}`;
     }
     exports2.addPath = addPath;
     function getInput(name, options) {
@@ -19732,7 +19732,7 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       if (filePath) {
         return (0, file_command_1.issueFileCommand)("OUTPUT", (0, file_command_1.prepareKeyValueMessage)(name, value));
       }
-      process.stdout.write(os2.EOL);
+      process.stdout.write(os.EOL);
       (0, command_1.issueCommand)("set-output", { name }, (0, utils_1.toCommandValue)(value));
     }
     exports2.setOutput = setOutput2;
@@ -19742,49 +19742,49 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     exports2.setCommandEcho = setCommandEcho;
     function setFailed3(message) {
       process.exitCode = ExitCode.Failure;
-      error5(message);
+      error6(message);
     }
     exports2.setFailed = setFailed3;
     function isDebug2() {
       return process.env["RUNNER_DEBUG"] === "1";
     }
     exports2.isDebug = isDebug2;
-    function debug8(message) {
+    function debug5(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
-    exports2.debug = debug8;
-    function error5(message, properties = {}) {
+    exports2.debug = debug5;
+    function error6(message, properties = {}) {
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.error = error5;
-    function warning10(message, properties = {}) {
+    exports2.error = error6;
+    function warning8(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning10;
+    exports2.warning = warning8;
     function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.notice = notice;
-    function info9(message) {
-      process.stdout.write(message + os2.EOL);
+    function info7(message) {
+      process.stdout.write(message + os.EOL);
     }
-    exports2.info = info9;
-    function startGroup(name) {
+    exports2.info = info7;
+    function startGroup2(name) {
       (0, command_1.issue)("group", name);
     }
-    exports2.startGroup = startGroup;
-    function endGroup() {
+    exports2.startGroup = startGroup2;
+    function endGroup2() {
       (0, command_1.issue)("endgroup");
     }
-    exports2.endGroup = endGroup;
+    exports2.endGroup = endGroup2;
     function group(name, fn) {
       return __awaiter(this, void 0, void 0, function* () {
-        startGroup(name);
+        startGroup2(name);
         let result;
         try {
           result = yield fn();
         } finally {
-          endGroup();
+          endGroup2();
         }
         return result;
       });
@@ -19849,8 +19849,8 @@ var require_context = __commonJS({
           if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
             this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
           } else {
-            const path4 = process.env.GITHUB_EVENT_PATH;
-            process.stdout.write(`GITHUB_EVENT_PATH ${path4} does not exist${os_1.EOL}`);
+            const path5 = process.env.GITHUB_EVENT_PATH;
+            process.stdout.write(`GITHUB_EVENT_PATH ${path5} does not exist${os_1.EOL}`);
           }
         }
         this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -20058,8 +20058,8 @@ var require_add = __commonJS({
       }
       if (kind === "error") {
         hook = function(method, options) {
-          return Promise.resolve().then(method.bind(null, options)).catch(function(error5) {
-            return orig(error5, options);
+          return Promise.resolve().then(method.bind(null, options)).catch(function(error6) {
+            return orig(error6, options);
           });
         };
       }
@@ -20793,7 +20793,7 @@ var require_dist_node5 = __commonJS({
         }
         if (status >= 400) {
           const data = await getResponseData(response);
-          const error5 = new import_request_error.RequestError(toErrorMessage(data), status, {
+          const error6 = new import_request_error.RequestError(toErrorMessage(data), status, {
             response: {
               url,
               status,
@@ -20802,7 +20802,7 @@ var require_dist_node5 = __commonJS({
             },
             request: requestOptions
           });
-          throw error5;
+          throw error6;
         }
         return parseSuccessResponseBody ? await getResponseData(response) : response.body;
       }).then((data) => {
@@ -20812,17 +20812,17 @@ var require_dist_node5 = __commonJS({
           headers,
           data
         };
-      }).catch((error5) => {
-        if (error5 instanceof import_request_error.RequestError)
-          throw error5;
-        else if (error5.name === "AbortError")
-          throw error5;
-        let message = error5.message;
-        if (error5.name === "TypeError" && "cause" in error5) {
-          if (error5.cause instanceof Error) {
-            message = error5.cause.message;
-          } else if (typeof error5.cause === "string") {
-            message = error5.cause;
+      }).catch((error6) => {
+        if (error6 instanceof import_request_error.RequestError)
+          throw error6;
+        else if (error6.name === "AbortError")
+          throw error6;
+        let message = error6.message;
+        if (error6.name === "TypeError" && "cause" in error6) {
+          if (error6.cause instanceof Error) {
+            message = error6.cause.message;
+          } else if (typeof error6.cause === "string") {
+            message = error6.cause;
           }
         }
         throw new import_request_error.RequestError(message, 500, {
@@ -20909,13 +20909,13 @@ var require_dist_node6 = __commonJS({
       return to;
     };
     var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
-    var index_exports2 = {};
-    __export2(index_exports2, {
+    var index_exports = {};
+    __export2(index_exports, {
       GraphqlResponseError: () => GraphqlResponseError,
       graphql: () => graphql2,
       withCustomRequest: () => withCustomRequest
     });
-    module2.exports = __toCommonJS2(index_exports2);
+    module2.exports = __toCommonJS2(index_exports);
     var import_request3 = require_dist_node5();
     var import_universal_user_agent = require_dist_node();
     var VERSION = "7.1.1";
@@ -21117,11 +21117,11 @@ var require_dist_node8 = __commonJS({
       return to;
     };
     var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
-    var index_exports2 = {};
-    __export2(index_exports2, {
+    var index_exports = {};
+    __export2(index_exports, {
       Octokit: () => Octokit
     });
-    module2.exports = __toCommonJS2(index_exports2);
+    module2.exports = __toCommonJS2(index_exports);
     var import_universal_user_agent = require_dist_node();
     var import_before_after_hook = require_before_after_hook();
     var import_request = require_dist_node5();
@@ -23487,9 +23487,9 @@ var require_dist_node10 = __commonJS({
                 /<([^<>]+)>;\s*rel="next"/
               ) || [])[1];
               return { value: normalizedResponse };
-            } catch (error5) {
-              if (error5.status !== 409)
-                throw error5;
+            } catch (error6) {
+              if (error6.status !== 409)
+                throw error6;
               url = "";
               return {
                 value: {
@@ -23894,9884 +23894,15 @@ var require_github = __commonJS({
   }
 });
 
-// node_modules/@ioredis/commands/built/commands.json
-var require_commands = __commonJS({
-  "node_modules/@ioredis/commands/built/commands.json"(exports2, module2) {
-    module2.exports = {
-      acl: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      append: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      asking: {
-        arity: 1,
-        flags: [
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      auth: {
-        arity: -2,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "no_auth",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      bgrewriteaof: {
-        arity: 1,
-        flags: [
-          "admin",
-          "noscript",
-          "no_async_loading"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      bgsave: {
-        arity: -1,
-        flags: [
-          "admin",
-          "noscript",
-          "no_async_loading"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      bitcount: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      bitfield: {
-        arity: -2,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      bitfield_ro: {
-        arity: -2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      bitop: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 2,
-        keyStop: -1,
-        step: 1
-      },
-      bitpos: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      blmove: {
-        arity: 6,
-        flags: [
-          "write",
-          "denyoom",
-          "noscript",
-          "blocking"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      blmpop: {
-        arity: -5,
-        flags: [
-          "write",
-          "blocking",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      blpop: {
-        arity: -3,
-        flags: [
-          "write",
-          "noscript",
-          "blocking"
-        ],
-        keyStart: 1,
-        keyStop: -2,
-        step: 1
-      },
-      brpop: {
-        arity: -3,
-        flags: [
-          "write",
-          "noscript",
-          "blocking"
-        ],
-        keyStart: 1,
-        keyStop: -2,
-        step: 1
-      },
-      brpoplpush: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom",
-          "noscript",
-          "blocking"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      bzmpop: {
-        arity: -5,
-        flags: [
-          "write",
-          "blocking",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      bzpopmax: {
-        arity: -3,
-        flags: [
-          "write",
-          "noscript",
-          "blocking",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: -2,
-        step: 1
-      },
-      bzpopmin: {
-        arity: -3,
-        flags: [
-          "write",
-          "noscript",
-          "blocking",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: -2,
-        step: 1
-      },
-      client: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      cluster: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      command: {
-        arity: -1,
-        flags: [
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      config: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      copy: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      dbsize: {
-        arity: 1,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      debug: {
-        arity: -2,
-        flags: [
-          "admin",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      decr: {
-        arity: 2,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      decrby: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      del: {
-        arity: -2,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      discard: {
-        arity: 1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      dump: {
-        arity: 2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      echo: {
-        arity: 2,
-        flags: [
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      eval: {
-        arity: -3,
-        flags: [
-          "noscript",
-          "stale",
-          "skip_monitor",
-          "no_mandatory_keys",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      eval_ro: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "noscript",
-          "stale",
-          "skip_monitor",
-          "no_mandatory_keys",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      evalsha: {
-        arity: -3,
-        flags: [
-          "noscript",
-          "stale",
-          "skip_monitor",
-          "no_mandatory_keys",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      evalsha_ro: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "noscript",
-          "stale",
-          "skip_monitor",
-          "no_mandatory_keys",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      exec: {
-        arity: 1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "skip_slowlog"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      exists: {
-        arity: -2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      expire: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      expireat: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      expiretime: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      failover: {
-        arity: -1,
-        flags: [
-          "admin",
-          "noscript",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      fcall: {
-        arity: -3,
-        flags: [
-          "noscript",
-          "stale",
-          "skip_monitor",
-          "no_mandatory_keys",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      fcall_ro: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "noscript",
-          "stale",
-          "skip_monitor",
-          "no_mandatory_keys",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      flushall: {
-        arity: -1,
-        flags: [
-          "write"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      flushdb: {
-        arity: -1,
-        flags: [
-          "write"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      function: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      geoadd: {
-        arity: -5,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      geodist: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      geohash: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      geopos: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      georadius: {
-        arity: -6,
-        flags: [
-          "write",
-          "denyoom",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      georadius_ro: {
-        arity: -6,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      georadiusbymember: {
-        arity: -5,
-        flags: [
-          "write",
-          "denyoom",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      georadiusbymember_ro: {
-        arity: -5,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      geosearch: {
-        arity: -7,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      geosearchstore: {
-        arity: -8,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      get: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      getbit: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      getdel: {
-        arity: 2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      getex: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      getrange: {
-        arity: 4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      getset: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hdel: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hello: {
-        arity: -1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "no_auth",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      hexists: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hget: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hgetall: {
-        arity: 2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hincrby: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hincrbyfloat: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hkeys: {
-        arity: 2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hlen: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hmget: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hmset: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hrandfield: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hscan: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hset: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hsetnx: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hstrlen: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      hvals: {
-        arity: 2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      incr: {
-        arity: 2,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      incrby: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      incrbyfloat: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      info: {
-        arity: -1,
-        flags: [
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      keys: {
-        arity: 2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      lastsave: {
-        arity: 1,
-        flags: [
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      latency: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      lcs: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      lindex: {
-        arity: 3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      linsert: {
-        arity: 5,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      llen: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lmove: {
-        arity: 5,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      lmpop: {
-        arity: -4,
-        flags: [
-          "write",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      lolwut: {
-        arity: -1,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      lpop: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lpos: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lpush: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lpushx: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lrange: {
-        arity: 4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lrem: {
-        arity: 4,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      lset: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      ltrim: {
-        arity: 4,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      memory: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      mget: {
-        arity: -2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      migrate: {
-        arity: -6,
-        flags: [
-          "write",
-          "movablekeys"
-        ],
-        keyStart: 3,
-        keyStop: 3,
-        step: 1
-      },
-      module: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      monitor: {
-        arity: 1,
-        flags: [
-          "admin",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      move: {
-        arity: 3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      mset: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 2
-      },
-      msetnx: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 2
-      },
-      multi: {
-        arity: 1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      object: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      persist: {
-        arity: 2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      pexpire: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      pexpireat: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      pexpiretime: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      pfadd: {
-        arity: -2,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      pfcount: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      pfdebug: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "admin"
-        ],
-        keyStart: 2,
-        keyStop: 2,
-        step: 1
-      },
-      pfmerge: {
-        arity: -2,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      pfselftest: {
-        arity: 1,
-        flags: [
-          "admin"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      ping: {
-        arity: -1,
-        flags: [
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      psetex: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      psubscribe: {
-        arity: -2,
-        flags: [
-          "pubsub",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      psync: {
-        arity: -3,
-        flags: [
-          "admin",
-          "noscript",
-          "no_async_loading",
-          "no_multi"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      pttl: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      publish: {
-        arity: 3,
-        flags: [
-          "pubsub",
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      pubsub: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      punsubscribe: {
-        arity: -1,
-        flags: [
-          "pubsub",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      quit: {
-        arity: -1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "no_auth",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      randomkey: {
-        arity: 1,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      readonly: {
-        arity: 1,
-        flags: [
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      readwrite: {
-        arity: 1,
-        flags: [
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      rename: {
-        arity: 3,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      renamenx: {
-        arity: 3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      replconf: {
-        arity: -1,
-        flags: [
-          "admin",
-          "noscript",
-          "loading",
-          "stale",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      replicaof: {
-        arity: 3,
-        flags: [
-          "admin",
-          "noscript",
-          "stale",
-          "no_async_loading"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      reset: {
-        arity: 1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "no_auth",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      restore: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      "restore-asking": {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "asking"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      role: {
-        arity: 1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      rpop: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      rpoplpush: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      rpush: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      rpushx: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      sadd: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      save: {
-        arity: 1,
-        flags: [
-          "admin",
-          "noscript",
-          "no_async_loading",
-          "no_multi"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      scan: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      scard: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      script: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      sdiff: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      sdiffstore: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      select: {
-        arity: 2,
-        flags: [
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      set: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      setbit: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      setex: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      setnx: {
-        arity: 3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      setrange: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      shutdown: {
-        arity: -1,
-        flags: [
-          "admin",
-          "noscript",
-          "loading",
-          "stale",
-          "no_multi",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      sinter: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      sintercard: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      sinterstore: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      sismember: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      slaveof: {
-        arity: 3,
-        flags: [
-          "admin",
-          "noscript",
-          "stale",
-          "no_async_loading"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      slowlog: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      smembers: {
-        arity: 2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      smismember: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      smove: {
-        arity: 4,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      sort: {
-        arity: -2,
-        flags: [
-          "write",
-          "denyoom",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      sort_ro: {
-        arity: -2,
-        flags: [
-          "readonly",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      spop: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      spublish: {
-        arity: 3,
-        flags: [
-          "pubsub",
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      srandmember: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      srem: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      sscan: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      ssubscribe: {
-        arity: -2,
-        flags: [
-          "pubsub",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      strlen: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      subscribe: {
-        arity: -2,
-        flags: [
-          "pubsub",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      substr: {
-        arity: 4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      sunion: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      sunionstore: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      sunsubscribe: {
-        arity: -1,
-        flags: [
-          "pubsub",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      swapdb: {
-        arity: 3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      sync: {
-        arity: 1,
-        flags: [
-          "admin",
-          "noscript",
-          "no_async_loading",
-          "no_multi"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      time: {
-        arity: 1,
-        flags: [
-          "loading",
-          "stale",
-          "fast"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      touch: {
-        arity: -2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      ttl: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      type: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      unlink: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      unsubscribe: {
-        arity: -1,
-        flags: [
-          "pubsub",
-          "noscript",
-          "loading",
-          "stale"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      unwatch: {
-        arity: 1,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "allow_busy"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      wait: {
-        arity: 3,
-        flags: [
-          "noscript"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      watch: {
-        arity: -2,
-        flags: [
-          "noscript",
-          "loading",
-          "stale",
-          "fast",
-          "allow_busy"
-        ],
-        keyStart: 1,
-        keyStop: -1,
-        step: 1
-      },
-      xack: {
-        arity: -4,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xadd: {
-        arity: -5,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xautoclaim: {
-        arity: -6,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xclaim: {
-        arity: -6,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xdel: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xgroup: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      xinfo: {
-        arity: -2,
-        flags: [],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      xlen: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xpending: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xrange: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xread: {
-        arity: -4,
-        flags: [
-          "readonly",
-          "blocking",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      xreadgroup: {
-        arity: -7,
-        flags: [
-          "write",
-          "blocking",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      xrevrange: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xsetid: {
-        arity: -3,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      xtrim: {
-        arity: -4,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zadd: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zcard: {
-        arity: 2,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zcount: {
-        arity: 4,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zdiff: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      zdiffstore: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zincrby: {
-        arity: 4,
-        flags: [
-          "write",
-          "denyoom",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zinter: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      zintercard: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      zinterstore: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zlexcount: {
-        arity: 4,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zmpop: {
-        arity: -4,
-        flags: [
-          "write",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      zmscore: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zpopmax: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zpopmin: {
-        arity: -2,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrandmember: {
-        arity: -2,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrange: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrangebylex: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrangebyscore: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrangestore: {
-        arity: -5,
-        flags: [
-          "write",
-          "denyoom"
-        ],
-        keyStart: 1,
-        keyStop: 2,
-        step: 1
-      },
-      zrank: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrem: {
-        arity: -3,
-        flags: [
-          "write",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zremrangebylex: {
-        arity: 4,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zremrangebyrank: {
-        arity: 4,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zremrangebyscore: {
-        arity: 4,
-        flags: [
-          "write"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrevrange: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrevrangebylex: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrevrangebyscore: {
-        arity: -4,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zrevrank: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zscan: {
-        arity: -3,
-        flags: [
-          "readonly"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zscore: {
-        arity: 3,
-        flags: [
-          "readonly",
-          "fast"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      },
-      zunion: {
-        arity: -3,
-        flags: [
-          "readonly",
-          "movablekeys"
-        ],
-        keyStart: 0,
-        keyStop: 0,
-        step: 0
-      },
-      zunionstore: {
-        arity: -4,
-        flags: [
-          "write",
-          "denyoom",
-          "movablekeys"
-        ],
-        keyStart: 1,
-        keyStop: 1,
-        step: 1
-      }
-    };
-  }
+// src/steps/1-analyze-routes.step.ts
+var analyze_routes_step_exports = {};
+__export(analyze_routes_step_exports, {
+  analyzeRoutes: () => analyzeRoutes,
+  main: () => main
 });
-
-// node_modules/@ioredis/commands/built/index.js
-var require_built = __commonJS({
-  "node_modules/@ioredis/commands/built/index.js"(exports2) {
-    "use strict";
-    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
-      return mod && mod.__esModule ? mod : { "default": mod };
-    };
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.getKeyIndexes = exports2.hasFlag = exports2.exists = exports2.list = void 0;
-    var commands_json_1 = __importDefault(require_commands());
-    exports2.list = Object.keys(commands_json_1.default);
-    var flags = {};
-    exports2.list.forEach((commandName) => {
-      flags[commandName] = commands_json_1.default[commandName].flags.reduce(function(flags2, flag) {
-        flags2[flag] = true;
-        return flags2;
-      }, {});
-    });
-    function exists2(commandName) {
-      return Boolean(commands_json_1.default[commandName]);
-    }
-    exports2.exists = exists2;
-    function hasFlag(commandName, flag) {
-      if (!flags[commandName]) {
-        throw new Error("Unknown command " + commandName);
-      }
-      return Boolean(flags[commandName][flag]);
-    }
-    exports2.hasFlag = hasFlag;
-    function getKeyIndexes(commandName, args, options) {
-      const command = commands_json_1.default[commandName];
-      if (!command) {
-        throw new Error("Unknown command " + commandName);
-      }
-      if (!Array.isArray(args)) {
-        throw new Error("Expect args to be an array");
-      }
-      const keys = [];
-      const parseExternalKey = Boolean(options && options.parseExternalKey);
-      const takeDynamicKeys = (args2, startIndex) => {
-        const keys2 = [];
-        const keyStop = Number(args2[startIndex]);
-        for (let i = 0; i < keyStop; i++) {
-          keys2.push(i + startIndex + 1);
-        }
-        return keys2;
-      };
-      const takeKeyAfterToken = (args2, startIndex, token) => {
-        for (let i = startIndex; i < args2.length - 1; i += 1) {
-          if (String(args2[i]).toLowerCase() === token.toLowerCase()) {
-            return i + 1;
-          }
-        }
-        return null;
-      };
-      switch (commandName) {
-        case "zunionstore":
-        case "zinterstore":
-        case "zdiffstore":
-          keys.push(0, ...takeDynamicKeys(args, 1));
-          break;
-        case "eval":
-        case "evalsha":
-        case "eval_ro":
-        case "evalsha_ro":
-        case "fcall":
-        case "fcall_ro":
-        case "blmpop":
-        case "bzmpop":
-          keys.push(...takeDynamicKeys(args, 1));
-          break;
-        case "sintercard":
-        case "lmpop":
-        case "zunion":
-        case "zinter":
-        case "zmpop":
-        case "zintercard":
-        case "zdiff": {
-          keys.push(...takeDynamicKeys(args, 0));
-          break;
-        }
-        case "georadius": {
-          keys.push(0);
-          const storeKey = takeKeyAfterToken(args, 5, "STORE");
-          if (storeKey)
-            keys.push(storeKey);
-          const distKey = takeKeyAfterToken(args, 5, "STOREDIST");
-          if (distKey)
-            keys.push(distKey);
-          break;
-        }
-        case "georadiusbymember": {
-          keys.push(0);
-          const storeKey = takeKeyAfterToken(args, 4, "STORE");
-          if (storeKey)
-            keys.push(storeKey);
-          const distKey = takeKeyAfterToken(args, 4, "STOREDIST");
-          if (distKey)
-            keys.push(distKey);
-          break;
-        }
-        case "sort":
-        case "sort_ro":
-          keys.push(0);
-          for (let i = 1; i < args.length - 1; i++) {
-            let arg = args[i];
-            if (typeof arg !== "string") {
-              continue;
-            }
-            const directive = arg.toUpperCase();
-            if (directive === "GET") {
-              i += 1;
-              arg = args[i];
-              if (arg !== "#") {
-                if (parseExternalKey) {
-                  keys.push([i, getExternalKeyNameLength(arg)]);
-                } else {
-                  keys.push(i);
-                }
-              }
-            } else if (directive === "BY") {
-              i += 1;
-              if (parseExternalKey) {
-                keys.push([i, getExternalKeyNameLength(args[i])]);
-              } else {
-                keys.push(i);
-              }
-            } else if (directive === "STORE") {
-              i += 1;
-              keys.push(i);
-            }
-          }
-          break;
-        case "migrate":
-          if (args[2] === "") {
-            for (let i = 5; i < args.length - 1; i++) {
-              const arg = args[i];
-              if (typeof arg === "string" && arg.toUpperCase() === "KEYS") {
-                for (let j = i + 1; j < args.length; j++) {
-                  keys.push(j);
-                }
-                break;
-              }
-            }
-          } else {
-            keys.push(2);
-          }
-          break;
-        case "xreadgroup":
-        case "xread":
-          for (let i = commandName === "xread" ? 0 : 3; i < args.length - 1; i++) {
-            if (String(args[i]).toUpperCase() === "STREAMS") {
-              for (let j = i + 1; j <= i + (args.length - 1 - i) / 2; j++) {
-                keys.push(j);
-              }
-              break;
-            }
-          }
-          break;
-        default:
-          if (command.step > 0) {
-            const keyStart = command.keyStart - 1;
-            const keyStop = command.keyStop > 0 ? command.keyStop : args.length + command.keyStop + 1;
-            for (let i = keyStart; i < keyStop; i += command.step) {
-              keys.push(i);
-            }
-          }
-          break;
-      }
-      return keys;
-    }
-    exports2.getKeyIndexes = getKeyIndexes;
-    function getExternalKeyNameLength(key) {
-      if (typeof key !== "string") {
-        key = String(key);
-      }
-      const hashPos = key.indexOf("->");
-      return hashPos === -1 ? key.length : hashPos;
-    }
-  }
-});
-
-// node_modules/standard-as-callback/built/utils.js
-var require_utils5 = __commonJS({
-  "node_modules/standard-as-callback/built/utils.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.tryCatch = exports2.errorObj = void 0;
-    exports2.errorObj = { e: {} };
-    var tryCatchTarget;
-    function tryCatcher(err, val) {
-      try {
-        const target = tryCatchTarget;
-        tryCatchTarget = null;
-        return target.apply(this, arguments);
-      } catch (e) {
-        exports2.errorObj.e = e;
-        return exports2.errorObj;
-      }
-    }
-    function tryCatch(fn) {
-      tryCatchTarget = fn;
-      return tryCatcher;
-    }
-    exports2.tryCatch = tryCatch;
-  }
-});
-
-// node_modules/standard-as-callback/built/index.js
-var require_built2 = __commonJS({
-  "node_modules/standard-as-callback/built/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var utils_1 = require_utils5();
-    function throwLater(e) {
-      setTimeout(function() {
-        throw e;
-      }, 0);
-    }
-    function asCallback(promise, nodeback, options) {
-      if (typeof nodeback === "function") {
-        promise.then((val) => {
-          let ret;
-          if (options !== void 0 && Object(options).spread && Array.isArray(val)) {
-            ret = utils_1.tryCatch(nodeback).apply(void 0, [null].concat(val));
-          } else {
-            ret = val === void 0 ? utils_1.tryCatch(nodeback)(null) : utils_1.tryCatch(nodeback)(null, val);
-          }
-          if (ret === utils_1.errorObj) {
-            throwLater(ret.e);
-          }
-        }, (cause) => {
-          if (!cause) {
-            const newReason = new Error(cause + "");
-            Object.assign(newReason, { cause });
-            cause = newReason;
-          }
-          const ret = utils_1.tryCatch(nodeback)(cause);
-          if (ret === utils_1.errorObj) {
-            throwLater(ret.e);
-          }
-        });
-      }
-      return promise;
-    }
-    exports2.default = asCallback;
-  }
-});
-
-// node_modules/redis-errors/lib/old.js
-var require_old = __commonJS({
-  "node_modules/redis-errors/lib/old.js"(exports2, module2) {
-    "use strict";
-    var assert = require("assert");
-    var util = require("util");
-    function RedisError(message) {
-      Object.defineProperty(this, "message", {
-        value: message || "",
-        configurable: true,
-        writable: true
-      });
-      Error.captureStackTrace(this, this.constructor);
-    }
-    util.inherits(RedisError, Error);
-    Object.defineProperty(RedisError.prototype, "name", {
-      value: "RedisError",
-      configurable: true,
-      writable: true
-    });
-    function ParserError(message, buffer, offset) {
-      assert(buffer);
-      assert.strictEqual(typeof offset, "number");
-      Object.defineProperty(this, "message", {
-        value: message || "",
-        configurable: true,
-        writable: true
-      });
-      const tmp = Error.stackTraceLimit;
-      Error.stackTraceLimit = 2;
-      Error.captureStackTrace(this, this.constructor);
-      Error.stackTraceLimit = tmp;
-      this.offset = offset;
-      this.buffer = buffer;
-    }
-    util.inherits(ParserError, RedisError);
-    Object.defineProperty(ParserError.prototype, "name", {
-      value: "ParserError",
-      configurable: true,
-      writable: true
-    });
-    function ReplyError(message) {
-      Object.defineProperty(this, "message", {
-        value: message || "",
-        configurable: true,
-        writable: true
-      });
-      const tmp = Error.stackTraceLimit;
-      Error.stackTraceLimit = 2;
-      Error.captureStackTrace(this, this.constructor);
-      Error.stackTraceLimit = tmp;
-    }
-    util.inherits(ReplyError, RedisError);
-    Object.defineProperty(ReplyError.prototype, "name", {
-      value: "ReplyError",
-      configurable: true,
-      writable: true
-    });
-    function AbortError(message) {
-      Object.defineProperty(this, "message", {
-        value: message || "",
-        configurable: true,
-        writable: true
-      });
-      Error.captureStackTrace(this, this.constructor);
-    }
-    util.inherits(AbortError, RedisError);
-    Object.defineProperty(AbortError.prototype, "name", {
-      value: "AbortError",
-      configurable: true,
-      writable: true
-    });
-    function InterruptError(message) {
-      Object.defineProperty(this, "message", {
-        value: message || "",
-        configurable: true,
-        writable: true
-      });
-      Error.captureStackTrace(this, this.constructor);
-    }
-    util.inherits(InterruptError, AbortError);
-    Object.defineProperty(InterruptError.prototype, "name", {
-      value: "InterruptError",
-      configurable: true,
-      writable: true
-    });
-    module2.exports = {
-      RedisError,
-      ParserError,
-      ReplyError,
-      AbortError,
-      InterruptError
-    };
-  }
-});
-
-// node_modules/redis-errors/lib/modern.js
-var require_modern = __commonJS({
-  "node_modules/redis-errors/lib/modern.js"(exports2, module2) {
-    "use strict";
-    var assert = require("assert");
-    var RedisError = class extends Error {
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    var ParserError = class extends RedisError {
-      constructor(message, buffer, offset) {
-        assert(buffer);
-        assert.strictEqual(typeof offset, "number");
-        const tmp = Error.stackTraceLimit;
-        Error.stackTraceLimit = 2;
-        super(message);
-        Error.stackTraceLimit = tmp;
-        this.offset = offset;
-        this.buffer = buffer;
-      }
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    var ReplyError = class extends RedisError {
-      constructor(message) {
-        const tmp = Error.stackTraceLimit;
-        Error.stackTraceLimit = 2;
-        super(message);
-        Error.stackTraceLimit = tmp;
-      }
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    var AbortError = class extends RedisError {
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    var InterruptError = class extends AbortError {
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    module2.exports = {
-      RedisError,
-      ParserError,
-      ReplyError,
-      AbortError,
-      InterruptError
-    };
-  }
-});
-
-// node_modules/redis-errors/index.js
-var require_redis_errors = __commonJS({
-  "node_modules/redis-errors/index.js"(exports2, module2) {
-    "use strict";
-    var Errors = process.version.charCodeAt(1) < 55 && process.version.charCodeAt(2) === 46 ? require_old() : require_modern();
-    module2.exports = Errors;
-  }
-});
-
-// node_modules/cluster-key-slot/lib/index.js
-var require_lib2 = __commonJS({
-  "node_modules/cluster-key-slot/lib/index.js"(exports2, module2) {
-    var lookup = [
-      0,
-      4129,
-      8258,
-      12387,
-      16516,
-      20645,
-      24774,
-      28903,
-      33032,
-      37161,
-      41290,
-      45419,
-      49548,
-      53677,
-      57806,
-      61935,
-      4657,
-      528,
-      12915,
-      8786,
-      21173,
-      17044,
-      29431,
-      25302,
-      37689,
-      33560,
-      45947,
-      41818,
-      54205,
-      50076,
-      62463,
-      58334,
-      9314,
-      13379,
-      1056,
-      5121,
-      25830,
-      29895,
-      17572,
-      21637,
-      42346,
-      46411,
-      34088,
-      38153,
-      58862,
-      62927,
-      50604,
-      54669,
-      13907,
-      9842,
-      5649,
-      1584,
-      30423,
-      26358,
-      22165,
-      18100,
-      46939,
-      42874,
-      38681,
-      34616,
-      63455,
-      59390,
-      55197,
-      51132,
-      18628,
-      22757,
-      26758,
-      30887,
-      2112,
-      6241,
-      10242,
-      14371,
-      51660,
-      55789,
-      59790,
-      63919,
-      35144,
-      39273,
-      43274,
-      47403,
-      23285,
-      19156,
-      31415,
-      27286,
-      6769,
-      2640,
-      14899,
-      10770,
-      56317,
-      52188,
-      64447,
-      60318,
-      39801,
-      35672,
-      47931,
-      43802,
-      27814,
-      31879,
-      19684,
-      23749,
-      11298,
-      15363,
-      3168,
-      7233,
-      60846,
-      64911,
-      52716,
-      56781,
-      44330,
-      48395,
-      36200,
-      40265,
-      32407,
-      28342,
-      24277,
-      20212,
-      15891,
-      11826,
-      7761,
-      3696,
-      65439,
-      61374,
-      57309,
-      53244,
-      48923,
-      44858,
-      40793,
-      36728,
-      37256,
-      33193,
-      45514,
-      41451,
-      53516,
-      49453,
-      61774,
-      57711,
-      4224,
-      161,
-      12482,
-      8419,
-      20484,
-      16421,
-      28742,
-      24679,
-      33721,
-      37784,
-      41979,
-      46042,
-      49981,
-      54044,
-      58239,
-      62302,
-      689,
-      4752,
-      8947,
-      13010,
-      16949,
-      21012,
-      25207,
-      29270,
-      46570,
-      42443,
-      38312,
-      34185,
-      62830,
-      58703,
-      54572,
-      50445,
-      13538,
-      9411,
-      5280,
-      1153,
-      29798,
-      25671,
-      21540,
-      17413,
-      42971,
-      47098,
-      34713,
-      38840,
-      59231,
-      63358,
-      50973,
-      55100,
-      9939,
-      14066,
-      1681,
-      5808,
-      26199,
-      30326,
-      17941,
-      22068,
-      55628,
-      51565,
-      63758,
-      59695,
-      39368,
-      35305,
-      47498,
-      43435,
-      22596,
-      18533,
-      30726,
-      26663,
-      6336,
-      2273,
-      14466,
-      10403,
-      52093,
-      56156,
-      60223,
-      64286,
-      35833,
-      39896,
-      43963,
-      48026,
-      19061,
-      23124,
-      27191,
-      31254,
-      2801,
-      6864,
-      10931,
-      14994,
-      64814,
-      60687,
-      56684,
-      52557,
-      48554,
-      44427,
-      40424,
-      36297,
-      31782,
-      27655,
-      23652,
-      19525,
-      15522,
-      11395,
-      7392,
-      3265,
-      61215,
-      65342,
-      53085,
-      57212,
-      44955,
-      49082,
-      36825,
-      40952,
-      28183,
-      32310,
-      20053,
-      24180,
-      11923,
-      16050,
-      3793,
-      7920
-    ];
-    var toUTF8Array = function toUTF8Array2(str) {
-      var char;
-      var i = 0;
-      var p = 0;
-      var utf8 = [];
-      var len = str.length;
-      for (; i < len; i++) {
-        char = str.charCodeAt(i);
-        if (char < 128) {
-          utf8[p++] = char;
-        } else if (char < 2048) {
-          utf8[p++] = char >> 6 | 192;
-          utf8[p++] = char & 63 | 128;
-        } else if ((char & 64512) === 55296 && i + 1 < str.length && (str.charCodeAt(i + 1) & 64512) === 56320) {
-          char = 65536 + ((char & 1023) << 10) + (str.charCodeAt(++i) & 1023);
-          utf8[p++] = char >> 18 | 240;
-          utf8[p++] = char >> 12 & 63 | 128;
-          utf8[p++] = char >> 6 & 63 | 128;
-          utf8[p++] = char & 63 | 128;
-        } else {
-          utf8[p++] = char >> 12 | 224;
-          utf8[p++] = char >> 6 & 63 | 128;
-          utf8[p++] = char & 63 | 128;
-        }
-      }
-      return utf8;
-    };
-    var generate = module2.exports = function generate2(str) {
-      var char;
-      var i = 0;
-      var start = -1;
-      var result = 0;
-      var resultHash = 0;
-      var utf8 = typeof str === "string" ? toUTF8Array(str) : str;
-      var len = utf8.length;
-      while (i < len) {
-        char = utf8[i++];
-        if (start === -1) {
-          if (char === 123) {
-            start = i;
-          }
-        } else if (char !== 125) {
-          resultHash = lookup[(char ^ resultHash >> 8) & 255] ^ resultHash << 8;
-        } else if (i - 1 !== start) {
-          return resultHash & 16383;
-        }
-        result = lookup[(char ^ result >> 8) & 255] ^ result << 8;
-      }
-      return result & 16383;
-    };
-    module2.exports.generateMulti = function generateMulti(keys) {
-      var i = 1;
-      var len = keys.length;
-      var base = generate(keys[0]);
-      while (i < len) {
-        if (generate(keys[i++]) !== base) return -1;
-      }
-      return base;
-    };
-  }
-});
-
-// node_modules/lodash.defaults/index.js
-var require_lodash = __commonJS({
-  "node_modules/lodash.defaults/index.js"(exports2, module2) {
-    var MAX_SAFE_INTEGER = 9007199254740991;
-    var argsTag = "[object Arguments]";
-    var funcTag = "[object Function]";
-    var genTag = "[object GeneratorFunction]";
-    var reIsUint = /^(?:0|[1-9]\d*)$/;
-    function apply(func, thisArg, args) {
-      switch (args.length) {
-        case 0:
-          return func.call(thisArg);
-        case 1:
-          return func.call(thisArg, args[0]);
-        case 2:
-          return func.call(thisArg, args[0], args[1]);
-        case 3:
-          return func.call(thisArg, args[0], args[1], args[2]);
-      }
-      return func.apply(thisArg, args);
-    }
-    function baseTimes(n, iteratee) {
-      var index = -1, result = Array(n);
-      while (++index < n) {
-        result[index] = iteratee(index);
-      }
-      return result;
-    }
-    var objectProto = Object.prototype;
-    var hasOwnProperty = objectProto.hasOwnProperty;
-    var objectToString = objectProto.toString;
-    var propertyIsEnumerable = objectProto.propertyIsEnumerable;
-    var nativeMax = Math.max;
-    function arrayLikeKeys(value, inherited) {
-      var result = isArray(value) || isArguments(value) ? baseTimes(value.length, String) : [];
-      var length = result.length, skipIndexes = !!length;
-      for (var key in value) {
-        if ((inherited || hasOwnProperty.call(value, key)) && !(skipIndexes && (key == "length" || isIndex(key, length)))) {
-          result.push(key);
-        }
-      }
-      return result;
-    }
-    function assignInDefaults(objValue, srcValue, key, object) {
-      if (objValue === void 0 || eq(objValue, objectProto[key]) && !hasOwnProperty.call(object, key)) {
-        return srcValue;
-      }
-      return objValue;
-    }
-    function assignValue(object, key, value) {
-      var objValue = object[key];
-      if (!(hasOwnProperty.call(object, key) && eq(objValue, value)) || value === void 0 && !(key in object)) {
-        object[key] = value;
-      }
-    }
-    function baseKeysIn(object) {
-      if (!isObject(object)) {
-        return nativeKeysIn(object);
-      }
-      var isProto = isPrototype(object), result = [];
-      for (var key in object) {
-        if (!(key == "constructor" && (isProto || !hasOwnProperty.call(object, key)))) {
-          result.push(key);
-        }
-      }
-      return result;
-    }
-    function baseRest(func, start) {
-      start = nativeMax(start === void 0 ? func.length - 1 : start, 0);
-      return function() {
-        var args = arguments, index = -1, length = nativeMax(args.length - start, 0), array = Array(length);
-        while (++index < length) {
-          array[index] = args[start + index];
-        }
-        index = -1;
-        var otherArgs = Array(start + 1);
-        while (++index < start) {
-          otherArgs[index] = args[index];
-        }
-        otherArgs[start] = array;
-        return apply(func, this, otherArgs);
-      };
-    }
-    function copyObject(source, props, object, customizer) {
-      object || (object = {});
-      var index = -1, length = props.length;
-      while (++index < length) {
-        var key = props[index];
-        var newValue = customizer ? customizer(object[key], source[key], key, object, source) : void 0;
-        assignValue(object, key, newValue === void 0 ? source[key] : newValue);
-      }
-      return object;
-    }
-    function createAssigner(assigner) {
-      return baseRest(function(object, sources) {
-        var index = -1, length = sources.length, customizer = length > 1 ? sources[length - 1] : void 0, guard = length > 2 ? sources[2] : void 0;
-        customizer = assigner.length > 3 && typeof customizer == "function" ? (length--, customizer) : void 0;
-        if (guard && isIterateeCall(sources[0], sources[1], guard)) {
-          customizer = length < 3 ? void 0 : customizer;
-          length = 1;
-        }
-        object = Object(object);
-        while (++index < length) {
-          var source = sources[index];
-          if (source) {
-            assigner(object, source, index, customizer);
-          }
-        }
-        return object;
-      });
-    }
-    function isIndex(value, length) {
-      length = length == null ? MAX_SAFE_INTEGER : length;
-      return !!length && (typeof value == "number" || reIsUint.test(value)) && (value > -1 && value % 1 == 0 && value < length);
-    }
-    function isIterateeCall(value, index, object) {
-      if (!isObject(object)) {
-        return false;
-      }
-      var type = typeof index;
-      if (type == "number" ? isArrayLike(object) && isIndex(index, object.length) : type == "string" && index in object) {
-        return eq(object[index], value);
-      }
-      return false;
-    }
-    function isPrototype(value) {
-      var Ctor = value && value.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto;
-      return value === proto;
-    }
-    function nativeKeysIn(object) {
-      var result = [];
-      if (object != null) {
-        for (var key in Object(object)) {
-          result.push(key);
-        }
-      }
-      return result;
-    }
-    function eq(value, other) {
-      return value === other || value !== value && other !== other;
-    }
-    function isArguments(value) {
-      return isArrayLikeObject(value) && hasOwnProperty.call(value, "callee") && (!propertyIsEnumerable.call(value, "callee") || objectToString.call(value) == argsTag);
-    }
-    var isArray = Array.isArray;
-    function isArrayLike(value) {
-      return value != null && isLength(value.length) && !isFunction(value);
-    }
-    function isArrayLikeObject(value) {
-      return isObjectLike(value) && isArrayLike(value);
-    }
-    function isFunction(value) {
-      var tag = isObject(value) ? objectToString.call(value) : "";
-      return tag == funcTag || tag == genTag;
-    }
-    function isLength(value) {
-      return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-    }
-    function isObject(value) {
-      var type = typeof value;
-      return !!value && (type == "object" || type == "function");
-    }
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    var assignInWith = createAssigner(function(object, source, srcIndex, customizer) {
-      copyObject(source, keysIn(source), object, customizer);
-    });
-    var defaults = baseRest(function(args) {
-      args.push(void 0, assignInDefaults);
-      return apply(assignInWith, void 0, args);
-    });
-    function keysIn(object) {
-      return isArrayLike(object) ? arrayLikeKeys(object, true) : baseKeysIn(object);
-    }
-    module2.exports = defaults;
-  }
-});
-
-// node_modules/lodash.isarguments/index.js
-var require_lodash2 = __commonJS({
-  "node_modules/lodash.isarguments/index.js"(exports2, module2) {
-    var MAX_SAFE_INTEGER = 9007199254740991;
-    var argsTag = "[object Arguments]";
-    var funcTag = "[object Function]";
-    var genTag = "[object GeneratorFunction]";
-    var objectProto = Object.prototype;
-    var hasOwnProperty = objectProto.hasOwnProperty;
-    var objectToString = objectProto.toString;
-    var propertyIsEnumerable = objectProto.propertyIsEnumerable;
-    function isArguments(value) {
-      return isArrayLikeObject(value) && hasOwnProperty.call(value, "callee") && (!propertyIsEnumerable.call(value, "callee") || objectToString.call(value) == argsTag);
-    }
-    function isArrayLike(value) {
-      return value != null && isLength(value.length) && !isFunction(value);
-    }
-    function isArrayLikeObject(value) {
-      return isObjectLike(value) && isArrayLike(value);
-    }
-    function isFunction(value) {
-      var tag = isObject(value) ? objectToString.call(value) : "";
-      return tag == funcTag || tag == genTag;
-    }
-    function isLength(value) {
-      return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-    }
-    function isObject(value) {
-      var type = typeof value;
-      return !!value && (type == "object" || type == "function");
-    }
-    function isObjectLike(value) {
-      return !!value && typeof value == "object";
-    }
-    module2.exports = isArguments;
-  }
-});
-
-// node_modules/ioredis/built/utils/lodash.js
-var require_lodash3 = __commonJS({
-  "node_modules/ioredis/built/utils/lodash.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.isArguments = exports2.defaults = exports2.noop = void 0;
-    var defaults = require_lodash();
-    exports2.defaults = defaults;
-    var isArguments = require_lodash2();
-    exports2.isArguments = isArguments;
-    function noop() {
-    }
-    exports2.noop = noop;
-  }
-});
-
-// node_modules/ms/index.js
-var require_ms = __commonJS({
-  "node_modules/ms/index.js"(exports2, module2) {
-    var s = 1e3;
-    var m = s * 60;
-    var h = m * 60;
-    var d = h * 24;
-    var w = d * 7;
-    var y = d * 365.25;
-    module2.exports = function(val, options) {
-      options = options || {};
-      var type = typeof val;
-      if (type === "string" && val.length > 0) {
-        return parse(val);
-      } else if (type === "number" && isFinite(val)) {
-        return options.long ? fmtLong(val) : fmtShort(val);
-      }
-      throw new Error(
-        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
-      );
-    };
-    function parse(str) {
-      str = String(str);
-      if (str.length > 100) {
-        return;
-      }
-      var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
-        str
-      );
-      if (!match) {
-        return;
-      }
-      var n = parseFloat(match[1]);
-      var type = (match[2] || "ms").toLowerCase();
-      switch (type) {
-        case "years":
-        case "year":
-        case "yrs":
-        case "yr":
-        case "y":
-          return n * y;
-        case "weeks":
-        case "week":
-        case "w":
-          return n * w;
-        case "days":
-        case "day":
-        case "d":
-          return n * d;
-        case "hours":
-        case "hour":
-        case "hrs":
-        case "hr":
-        case "h":
-          return n * h;
-        case "minutes":
-        case "minute":
-        case "mins":
-        case "min":
-        case "m":
-          return n * m;
-        case "seconds":
-        case "second":
-        case "secs":
-        case "sec":
-        case "s":
-          return n * s;
-        case "milliseconds":
-        case "millisecond":
-        case "msecs":
-        case "msec":
-        case "ms":
-          return n;
-        default:
-          return void 0;
-      }
-    }
-    function fmtShort(ms) {
-      var msAbs = Math.abs(ms);
-      if (msAbs >= d) {
-        return Math.round(ms / d) + "d";
-      }
-      if (msAbs >= h) {
-        return Math.round(ms / h) + "h";
-      }
-      if (msAbs >= m) {
-        return Math.round(ms / m) + "m";
-      }
-      if (msAbs >= s) {
-        return Math.round(ms / s) + "s";
-      }
-      return ms + "ms";
-    }
-    function fmtLong(ms) {
-      var msAbs = Math.abs(ms);
-      if (msAbs >= d) {
-        return plural(ms, msAbs, d, "day");
-      }
-      if (msAbs >= h) {
-        return plural(ms, msAbs, h, "hour");
-      }
-      if (msAbs >= m) {
-        return plural(ms, msAbs, m, "minute");
-      }
-      if (msAbs >= s) {
-        return plural(ms, msAbs, s, "second");
-      }
-      return ms + " ms";
-    }
-    function plural(ms, msAbs, n, name) {
-      var isPlural = msAbs >= n * 1.5;
-      return Math.round(ms / n) + " " + name + (isPlural ? "s" : "");
-    }
-  }
-});
-
-// node_modules/debug/src/common.js
-var require_common = __commonJS({
-  "node_modules/debug/src/common.js"(exports2, module2) {
-    function setup(env2) {
-      createDebug.debug = createDebug;
-      createDebug.default = createDebug;
-      createDebug.coerce = coerce;
-      createDebug.disable = disable;
-      createDebug.enable = enable;
-      createDebug.enabled = enabled;
-      createDebug.humanize = require_ms();
-      createDebug.destroy = destroy;
-      Object.keys(env2).forEach((key) => {
-        createDebug[key] = env2[key];
-      });
-      createDebug.names = [];
-      createDebug.skips = [];
-      createDebug.formatters = {};
-      function selectColor(namespace) {
-        let hash = 0;
-        for (let i = 0; i < namespace.length; i++) {
-          hash = (hash << 5) - hash + namespace.charCodeAt(i);
-          hash |= 0;
-        }
-        return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
-      }
-      createDebug.selectColor = selectColor;
-      function createDebug(namespace) {
-        let prevTime;
-        let enableOverride = null;
-        let namespacesCache;
-        let enabledCache;
-        function debug8(...args) {
-          if (!debug8.enabled) {
-            return;
-          }
-          const self = debug8;
-          const curr = Number(/* @__PURE__ */ new Date());
-          const ms = curr - (prevTime || curr);
-          self.diff = ms;
-          self.prev = prevTime;
-          self.curr = curr;
-          prevTime = curr;
-          args[0] = createDebug.coerce(args[0]);
-          if (typeof args[0] !== "string") {
-            args.unshift("%O");
-          }
-          let index = 0;
-          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
-            if (match === "%%") {
-              return "%";
-            }
-            index++;
-            const formatter = createDebug.formatters[format];
-            if (typeof formatter === "function") {
-              const val = args[index];
-              match = formatter.call(self, val);
-              args.splice(index, 1);
-              index--;
-            }
-            return match;
-          });
-          createDebug.formatArgs.call(self, args);
-          const logFn = self.log || createDebug.log;
-          logFn.apply(self, args);
-        }
-        debug8.namespace = namespace;
-        debug8.useColors = createDebug.useColors();
-        debug8.color = createDebug.selectColor(namespace);
-        debug8.extend = extend;
-        debug8.destroy = createDebug.destroy;
-        Object.defineProperty(debug8, "enabled", {
-          enumerable: true,
-          configurable: false,
-          get: () => {
-            if (enableOverride !== null) {
-              return enableOverride;
-            }
-            if (namespacesCache !== createDebug.namespaces) {
-              namespacesCache = createDebug.namespaces;
-              enabledCache = createDebug.enabled(namespace);
-            }
-            return enabledCache;
-          },
-          set: (v) => {
-            enableOverride = v;
-          }
-        });
-        if (typeof createDebug.init === "function") {
-          createDebug.init(debug8);
-        }
-        return debug8;
-      }
-      function extend(namespace, delimiter) {
-        const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
-        newDebug.log = this.log;
-        return newDebug;
-      }
-      function enable(namespaces) {
-        createDebug.save(namespaces);
-        createDebug.namespaces = namespaces;
-        createDebug.names = [];
-        createDebug.skips = [];
-        const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
-        for (const ns of split) {
-          if (ns[0] === "-") {
-            createDebug.skips.push(ns.slice(1));
-          } else {
-            createDebug.names.push(ns);
-          }
-        }
-      }
-      function matchesTemplate(search, template) {
-        let searchIndex = 0;
-        let templateIndex = 0;
-        let starIndex = -1;
-        let matchIndex = 0;
-        while (searchIndex < search.length) {
-          if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
-            if (template[templateIndex] === "*") {
-              starIndex = templateIndex;
-              matchIndex = searchIndex;
-              templateIndex++;
-            } else {
-              searchIndex++;
-              templateIndex++;
-            }
-          } else if (starIndex !== -1) {
-            templateIndex = starIndex + 1;
-            matchIndex++;
-            searchIndex = matchIndex;
-          } else {
-            return false;
-          }
-        }
-        while (templateIndex < template.length && template[templateIndex] === "*") {
-          templateIndex++;
-        }
-        return templateIndex === template.length;
-      }
-      function disable() {
-        const namespaces = [
-          ...createDebug.names,
-          ...createDebug.skips.map((namespace) => "-" + namespace)
-        ].join(",");
-        createDebug.enable("");
-        return namespaces;
-      }
-      function enabled(name) {
-        for (const skip of createDebug.skips) {
-          if (matchesTemplate(name, skip)) {
-            return false;
-          }
-        }
-        for (const ns of createDebug.names) {
-          if (matchesTemplate(name, ns)) {
-            return true;
-          }
-        }
-        return false;
-      }
-      function coerce(val) {
-        if (val instanceof Error) {
-          return val.stack || val.message;
-        }
-        return val;
-      }
-      function destroy() {
-        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-      }
-      createDebug.enable(createDebug.load());
-      return createDebug;
-    }
-    module2.exports = setup;
-  }
-});
-
-// node_modules/debug/src/browser.js
-var require_browser = __commonJS({
-  "node_modules/debug/src/browser.js"(exports2, module2) {
-    exports2.formatArgs = formatArgs;
-    exports2.save = save;
-    exports2.load = load;
-    exports2.useColors = useColors;
-    exports2.storage = localstorage();
-    exports2.destroy = /* @__PURE__ */ (() => {
-      let warned = false;
-      return () => {
-        if (!warned) {
-          warned = true;
-          console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-        }
-      };
-    })();
-    exports2.colors = [
-      "#0000CC",
-      "#0000FF",
-      "#0033CC",
-      "#0033FF",
-      "#0066CC",
-      "#0066FF",
-      "#0099CC",
-      "#0099FF",
-      "#00CC00",
-      "#00CC33",
-      "#00CC66",
-      "#00CC99",
-      "#00CCCC",
-      "#00CCFF",
-      "#3300CC",
-      "#3300FF",
-      "#3333CC",
-      "#3333FF",
-      "#3366CC",
-      "#3366FF",
-      "#3399CC",
-      "#3399FF",
-      "#33CC00",
-      "#33CC33",
-      "#33CC66",
-      "#33CC99",
-      "#33CCCC",
-      "#33CCFF",
-      "#6600CC",
-      "#6600FF",
-      "#6633CC",
-      "#6633FF",
-      "#66CC00",
-      "#66CC33",
-      "#9900CC",
-      "#9900FF",
-      "#9933CC",
-      "#9933FF",
-      "#99CC00",
-      "#99CC33",
-      "#CC0000",
-      "#CC0033",
-      "#CC0066",
-      "#CC0099",
-      "#CC00CC",
-      "#CC00FF",
-      "#CC3300",
-      "#CC3333",
-      "#CC3366",
-      "#CC3399",
-      "#CC33CC",
-      "#CC33FF",
-      "#CC6600",
-      "#CC6633",
-      "#CC9900",
-      "#CC9933",
-      "#CCCC00",
-      "#CCCC33",
-      "#FF0000",
-      "#FF0033",
-      "#FF0066",
-      "#FF0099",
-      "#FF00CC",
-      "#FF00FF",
-      "#FF3300",
-      "#FF3333",
-      "#FF3366",
-      "#FF3399",
-      "#FF33CC",
-      "#FF33FF",
-      "#FF6600",
-      "#FF6633",
-      "#FF9900",
-      "#FF9933",
-      "#FFCC00",
-      "#FFCC33"
-    ];
-    function useColors() {
-      if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
-        return true;
-      }
-      if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-        return false;
-      }
-      let m;
-      return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // Is firebug? http://stackoverflow.com/a/398120/376773
-      typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || // Is firefox >= v31?
-      // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-      typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
-      typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
-    }
-    function formatArgs(args) {
-      args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module2.exports.humanize(this.diff);
-      if (!this.useColors) {
-        return;
-      }
-      const c = "color: " + this.color;
-      args.splice(1, 0, c, "color: inherit");
-      let index = 0;
-      let lastC = 0;
-      args[0].replace(/%[a-zA-Z%]/g, (match) => {
-        if (match === "%%") {
-          return;
-        }
-        index++;
-        if (match === "%c") {
-          lastC = index;
-        }
-      });
-      args.splice(lastC, 0, c);
-    }
-    exports2.log = console.debug || console.log || (() => {
-    });
-    function save(namespaces) {
-      try {
-        if (namespaces) {
-          exports2.storage.setItem("debug", namespaces);
-        } else {
-          exports2.storage.removeItem("debug");
-        }
-      } catch (error5) {
-      }
-    }
-    function load() {
-      let r;
-      try {
-        r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
-      } catch (error5) {
-      }
-      if (!r && typeof process !== "undefined" && "env" in process) {
-        r = process.env.DEBUG;
-      }
-      return r;
-    }
-    function localstorage() {
-      try {
-        return localStorage;
-      } catch (error5) {
-      }
-    }
-    module2.exports = require_common()(exports2);
-    var { formatters } = module2.exports;
-    formatters.j = function(v) {
-      try {
-        return JSON.stringify(v);
-      } catch (error5) {
-        return "[UnexpectedJSONParseError]: " + error5.message;
-      }
-    };
-  }
-});
-
-// node_modules/has-flag/index.js
-var require_has_flag = __commonJS({
-  "node_modules/has-flag/index.js"(exports2, module2) {
-    "use strict";
-    module2.exports = (flag, argv = process.argv) => {
-      const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
-      const position = argv.indexOf(prefix + flag);
-      const terminatorPosition = argv.indexOf("--");
-      return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
-    };
-  }
-});
-
-// node_modules/supports-color/index.js
-var require_supports_color = __commonJS({
-  "node_modules/supports-color/index.js"(exports2, module2) {
-    "use strict";
-    var os2 = require("os");
-    var tty = require("tty");
-    var hasFlag = require_has_flag();
-    var { env: env2 } = process;
-    var forceColor;
-    if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
-      forceColor = 0;
-    } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
-      forceColor = 1;
-    }
-    if ("FORCE_COLOR" in env2) {
-      if (env2.FORCE_COLOR === "true") {
-        forceColor = 1;
-      } else if (env2.FORCE_COLOR === "false") {
-        forceColor = 0;
-      } else {
-        forceColor = env2.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env2.FORCE_COLOR, 10), 3);
-      }
-    }
-    function translateLevel(level) {
-      if (level === 0) {
-        return false;
-      }
-      return {
-        level,
-        hasBasic: true,
-        has256: level >= 2,
-        has16m: level >= 3
-      };
-    }
-    function supportsColor(haveStream, streamIsTTY) {
-      if (forceColor === 0) {
-        return 0;
-      }
-      if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
-        return 3;
-      }
-      if (hasFlag("color=256")) {
-        return 2;
-      }
-      if (haveStream && !streamIsTTY && forceColor === void 0) {
-        return 0;
-      }
-      const min = forceColor || 0;
-      if (env2.TERM === "dumb") {
-        return min;
-      }
-      if (process.platform === "win32") {
-        const osRelease = os2.release().split(".");
-        if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
-          return Number(osRelease[2]) >= 14931 ? 3 : 2;
-        }
-        return 1;
-      }
-      if ("CI" in env2) {
-        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign) => sign in env2) || env2.CI_NAME === "codeship") {
-          return 1;
-        }
-        return min;
-      }
-      if ("TEAMCITY_VERSION" in env2) {
-        return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env2.TEAMCITY_VERSION) ? 1 : 0;
-      }
-      if (env2.COLORTERM === "truecolor") {
-        return 3;
-      }
-      if ("TERM_PROGRAM" in env2) {
-        const version = parseInt((env2.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
-        switch (env2.TERM_PROGRAM) {
-          case "iTerm.app":
-            return version >= 3 ? 3 : 2;
-          case "Apple_Terminal":
-            return 2;
-        }
-      }
-      if (/-256(color)?$/i.test(env2.TERM)) {
-        return 2;
-      }
-      if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env2.TERM)) {
-        return 1;
-      }
-      if ("COLORTERM" in env2) {
-        return 1;
-      }
-      return min;
-    }
-    function getSupportLevel(stream) {
-      const level = supportsColor(stream, stream && stream.isTTY);
-      return translateLevel(level);
-    }
-    module2.exports = {
-      supportsColor: getSupportLevel,
-      stdout: translateLevel(supportsColor(true, tty.isatty(1))),
-      stderr: translateLevel(supportsColor(true, tty.isatty(2)))
-    };
-  }
-});
-
-// node_modules/debug/src/node.js
-var require_node = __commonJS({
-  "node_modules/debug/src/node.js"(exports2, module2) {
-    var tty = require("tty");
-    var util = require("util");
-    exports2.init = init;
-    exports2.log = log;
-    exports2.formatArgs = formatArgs;
-    exports2.save = save;
-    exports2.load = load;
-    exports2.useColors = useColors;
-    exports2.destroy = util.deprecate(
-      () => {
-      },
-      "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`."
-    );
-    exports2.colors = [6, 2, 3, 4, 5, 1];
-    try {
-      const supportsColor = require_supports_color();
-      if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
-        exports2.colors = [
-          20,
-          21,
-          26,
-          27,
-          32,
-          33,
-          38,
-          39,
-          40,
-          41,
-          42,
-          43,
-          44,
-          45,
-          56,
-          57,
-          62,
-          63,
-          68,
-          69,
-          74,
-          75,
-          76,
-          77,
-          78,
-          79,
-          80,
-          81,
-          92,
-          93,
-          98,
-          99,
-          112,
-          113,
-          128,
-          129,
-          134,
-          135,
-          148,
-          149,
-          160,
-          161,
-          162,
-          163,
-          164,
-          165,
-          166,
-          167,
-          168,
-          169,
-          170,
-          171,
-          172,
-          173,
-          178,
-          179,
-          184,
-          185,
-          196,
-          197,
-          198,
-          199,
-          200,
-          201,
-          202,
-          203,
-          204,
-          205,
-          206,
-          207,
-          208,
-          209,
-          214,
-          215,
-          220,
-          221
-        ];
-      }
-    } catch (error5) {
-    }
-    exports2.inspectOpts = Object.keys(process.env).filter((key) => {
-      return /^debug_/i.test(key);
-    }).reduce((obj, key) => {
-      const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
-        return k.toUpperCase();
-      });
-      let val = process.env[key];
-      if (/^(yes|on|true|enabled)$/i.test(val)) {
-        val = true;
-      } else if (/^(no|off|false|disabled)$/i.test(val)) {
-        val = false;
-      } else if (val === "null") {
-        val = null;
-      } else {
-        val = Number(val);
-      }
-      obj[prop] = val;
-      return obj;
-    }, {});
-    function useColors() {
-      return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
-    }
-    function formatArgs(args) {
-      const { namespace: name, useColors: useColors2 } = this;
-      if (useColors2) {
-        const c = this.color;
-        const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
-        const prefix = `  ${colorCode};1m${name} \x1B[0m`;
-        args[0] = prefix + args[0].split("\n").join("\n" + prefix);
-        args.push(colorCode + "m+" + module2.exports.humanize(this.diff) + "\x1B[0m");
-      } else {
-        args[0] = getDate() + name + " " + args[0];
-      }
-    }
-    function getDate() {
-      if (exports2.inspectOpts.hideDate) {
-        return "";
-      }
-      return (/* @__PURE__ */ new Date()).toISOString() + " ";
-    }
-    function log(...args) {
-      return process.stderr.write(util.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
-    }
-    function save(namespaces) {
-      if (namespaces) {
-        process.env.DEBUG = namespaces;
-      } else {
-        delete process.env.DEBUG;
-      }
-    }
-    function load() {
-      return process.env.DEBUG;
-    }
-    function init(debug8) {
-      debug8.inspectOpts = {};
-      const keys = Object.keys(exports2.inspectOpts);
-      for (let i = 0; i < keys.length; i++) {
-        debug8.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
-      }
-    }
-    module2.exports = require_common()(exports2);
-    var { formatters } = module2.exports;
-    formatters.o = function(v) {
-      this.inspectOpts.colors = this.useColors;
-      return util.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
-    };
-    formatters.O = function(v) {
-      this.inspectOpts.colors = this.useColors;
-      return util.inspect(v, this.inspectOpts);
-    };
-  }
-});
-
-// node_modules/debug/src/index.js
-var require_src = __commonJS({
-  "node_modules/debug/src/index.js"(exports2, module2) {
-    if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
-      module2.exports = require_browser();
-    } else {
-      module2.exports = require_node();
-    }
-  }
-});
-
-// node_modules/ioredis/built/utils/debug.js
-var require_debug = __commonJS({
-  "node_modules/ioredis/built/utils/debug.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.genRedactedString = exports2.getStringValue = exports2.MAX_ARGUMENT_LENGTH = void 0;
-    var debug_1 = require_src();
-    var MAX_ARGUMENT_LENGTH = 200;
-    exports2.MAX_ARGUMENT_LENGTH = MAX_ARGUMENT_LENGTH;
-    var NAMESPACE_PREFIX = "ioredis";
-    function getStringValue(v) {
-      if (v === null) {
-        return;
-      }
-      switch (typeof v) {
-        case "boolean":
-          return;
-        case "number":
-          return;
-        case "object":
-          if (Buffer.isBuffer(v)) {
-            return v.toString("hex");
-          }
-          if (Array.isArray(v)) {
-            return v.join(",");
-          }
-          try {
-            return JSON.stringify(v);
-          } catch (e) {
-            return;
-          }
-        case "string":
-          return v;
-      }
-    }
-    exports2.getStringValue = getStringValue;
-    function genRedactedString(str, maxLen) {
-      const { length } = str;
-      return length <= maxLen ? str : str.slice(0, maxLen) + ' ... <REDACTED full-length="' + length + '">';
-    }
-    exports2.genRedactedString = genRedactedString;
-    function genDebugFunction(namespace) {
-      const fn = (0, debug_1.default)(`${NAMESPACE_PREFIX}:${namespace}`);
-      function wrappedDebug(...args) {
-        if (!fn.enabled) {
-          return;
-        }
-        for (let i = 1; i < args.length; i++) {
-          const str = getStringValue(args[i]);
-          if (typeof str === "string" && str.length > MAX_ARGUMENT_LENGTH) {
-            args[i] = genRedactedString(str, MAX_ARGUMENT_LENGTH);
-          }
-        }
-        return fn.apply(null, args);
-      }
-      Object.defineProperties(wrappedDebug, {
-        namespace: {
-          get() {
-            return fn.namespace;
-          }
-        },
-        enabled: {
-          get() {
-            return fn.enabled;
-          }
-        },
-        destroy: {
-          get() {
-            return fn.destroy;
-          }
-        },
-        log: {
-          get() {
-            return fn.log;
-          },
-          set(l) {
-            fn.log = l;
-          }
-        }
-      });
-      return wrappedDebug;
-    }
-    exports2.default = genDebugFunction;
-  }
-});
-
-// node_modules/ioredis/built/constants/TLSProfiles.js
-var require_TLSProfiles = __commonJS({
-  "node_modules/ioredis/built/constants/TLSProfiles.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var RedisCloudCA = `-----BEGIN CERTIFICATE-----
-MIIDTzCCAjegAwIBAgIJAKSVpiDswLcwMA0GCSqGSIb3DQEBBQUAMD4xFjAUBgNV
-BAoMDUdhcmFudGlhIERhdGExJDAiBgNVBAMMG1NTTCBDZXJ0aWZpY2F0aW9uIEF1
-dGhvcml0eTAeFw0xMzEwMDExMjE0NTVaFw0yMzA5MjkxMjE0NTVaMD4xFjAUBgNV
-BAoMDUdhcmFudGlhIERhdGExJDAiBgNVBAMMG1NTTCBDZXJ0aWZpY2F0aW9uIEF1
-dGhvcml0eTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALZqkh/DczWP
-JnxnHLQ7QL0T4B4CDKWBKCcisriGbA6ZePWVNo4hfKQC6JrzfR+081NeD6VcWUiz
-rmd+jtPhIY4c+WVQYm5PKaN6DT1imYdxQw7aqO5j2KUCEh/cznpLxeSHoTxlR34E
-QwF28Wl3eg2vc5ct8LjU3eozWVk3gb7alx9mSA2SgmuX5lEQawl++rSjsBStemY2
-BDwOpAMXIrdEyP/cVn8mkvi/BDs5M5G+09j0gfhyCzRWMQ7Hn71u1eolRxwVxgi3
-TMn+/vTaFSqxKjgck6zuAYjBRPaHe7qLxHNr1So/Mc9nPy+3wHebFwbIcnUojwbp
-4nctkWbjb2cCAwEAAaNQME4wHQYDVR0OBBYEFP1whtcrydmW3ZJeuSoKZIKjze3w
-MB8GA1UdIwQYMBaAFP1whtcrydmW3ZJeuSoKZIKjze3wMAwGA1UdEwQFMAMBAf8w
-DQYJKoZIhvcNAQEFBQADggEBAG2erXhwRAa7+ZOBs0B6X57Hwyd1R4kfmXcs0rta
-lbPpvgULSiB+TCbf3EbhJnHGyvdCY1tvlffLjdA7HJ0PCOn+YYLBA0pTU/dyvrN6
-Su8NuS5yubnt9mb13nDGYo1rnt0YRfxN+8DM3fXIVr038A30UlPX2Ou1ExFJT0MZ
-uFKY6ZvLdI6/1cbgmguMlAhM+DhKyV6Sr5699LM3zqeI816pZmlREETYkGr91q7k
-BpXJu/dtHaGxg1ZGu6w/PCsYGUcECWENYD4VQPd8N32JjOfu6vEgoEAwfPP+3oGp
-Z4m3ewACcWOAenqflb+cQYC4PsF7qbXDmRaWrbKntOlZ3n0=
------END CERTIFICATE-----
------BEGIN CERTIFICATE-----
-MIIGMTCCBBmgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwajELMAkGA1UEBhMCVVMx
-CzAJBgNVBAgMAkNBMQswCQYDVQQHDAJDQTESMBAGA1UECgwJUmVkaXNMYWJzMS0w
-KwYDVQQDDCRSZWRpc0xhYnMgUm9vdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkwHhcN
-MTgwMjI1MTUzNzM3WhcNMjgwMjIzMTUzNzM3WjBfMQswCQYDVQQGEwJVUzELMAkG
-A1UECAwCQ0ExEjAQBgNVBAoMCVJlZGlzTGFiczEvMC0GA1UEAwwmUkNQIEludGVy
-bWVkaWF0ZSBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkwggIiMA0GCSqGSIb3DQEBAQUA
-A4ICDwAwggIKAoICAQDf9dqbxc8Bq7Ctq9rWcxrGNKKHivqLAFpPq02yLPx6fsOv
-Tq7GsDChAYBBc4v7Y2Ap9RD5Vs3dIhEANcnolf27QwrG9RMnnvzk8pCvp1o6zSU4
-VuOE1W66/O1/7e2rVxyrnTcP7UgK43zNIXu7+tiAqWsO92uSnuMoGPGpeaUm1jym
-hjWKtkAwDFSqvHY+XL5qDVBEjeUe+WHkYUg40cAXjusAqgm2hZt29c2wnVrxW25W
-P0meNlzHGFdA2AC5z54iRiqj57dTfBTkHoBczQxcyw6hhzxZQ4e5I5zOKjXXEhZN
-r0tA3YC14CTabKRus/JmZieyZzRgEy2oti64tmLYTqSlAD78pRL40VNoaSYetXLw
-hhNsXCHgWaY6d5bLOc/aIQMAV5oLvZQKvuXAF1IDmhPA+bZbpWipp0zagf1P1H3s
-UzsMdn2KM0ejzgotbtNlj5TcrVwpmvE3ktvUAuA+hi3FkVx1US+2Gsp5x4YOzJ7u
-P1WPk6ShF0JgnJH2ILdj6kttTWwFzH17keSFICWDfH/+kM+k7Y1v3EXMQXE7y0T9
-MjvJskz6d/nv+sQhY04xt64xFMGTnZjlJMzfQNi7zWFLTZnDD0lPowq7l3YiPoTT
-t5Xky83lu0KZsZBo0WlWaDG00gLVdtRgVbcuSWxpi5BdLb1kRab66JptWjxwXQID
-AQABo4HrMIHoMDoGA1UdHwQzMDEwL6AtoCuGKWh0dHBzOi8vcmwtY2Etc2VydmVy
-LnJlZGlzbGFicy5jb20vdjEvY3JsMEYGCCsGAQUFBwEBBDowODA2BggrBgEFBQcw
-AYYqaHR0cHM6Ly9ybC1jYS1zZXJ2ZXIucmVkaXNsYWJzLmNvbS92MS9vY3NwMB0G
-A1UdDgQWBBQHar5OKvQUpP2qWt6mckzToeCOHDAfBgNVHSMEGDAWgBQi42wH6hM4
-L2sujEvLM0/u8lRXTzASBgNVHRMBAf8ECDAGAQH/AgEAMA4GA1UdDwEB/wQEAwIB
-hjANBgkqhkiG9w0BAQsFAAOCAgEAirEn/iTsAKyhd+pu2W3Z5NjCko4NPU0EYUbr
-AP7+POK2rzjIrJO3nFYQ/LLuC7KCXG+2qwan2SAOGmqWst13Y+WHp44Kae0kaChW
-vcYLXXSoGQGC8QuFSNUdaeg3RbMDYFT04dOkqufeWVccoHVxyTSg9eD8LZuHn5jw
-7QDLiEECBmIJHk5Eeo2TAZrx4Yx6ufSUX5HeVjlAzqwtAqdt99uCJ/EL8bgpWbe+
-XoSpvUv0SEC1I1dCAhCKAvRlIOA6VBcmzg5Am12KzkqTul12/VEFIgzqu0Zy2Jbc
-AUPrYVu/+tOGXQaijy7YgwH8P8n3s7ZeUa1VABJHcxrxYduDDJBLZi+MjheUDaZ1
-jQRHYevI2tlqeSBqdPKG4zBY5lS0GiAlmuze5oENt0P3XboHoZPHiqcK3VECgTVh
-/BkJcuudETSJcZDmQ8YfoKfBzRQNg2sv/hwvUv73Ss51Sco8GEt2lD8uEdib1Q6z
-zDT5lXJowSzOD5ZA9OGDjnSRL+2riNtKWKEqvtEG3VBJoBzu9GoxbAc7wIZLxmli
-iF5a/Zf5X+UXD3s4TMmy6C4QZJpAA2egsSQCnraWO2ULhh7iXMysSkF/nzVfZn43
-iqpaB8++9a37hWq14ZmOv0TJIDz//b2+KC4VFXWQ5W5QC6whsjT+OlG4p5ZYG0jo
-616pxqo=
------END CERTIFICATE-----
------BEGIN CERTIFICATE-----
-MIIFujCCA6KgAwIBAgIJAJ1aTT1lu2ScMA0GCSqGSIb3DQEBCwUAMGoxCzAJBgNV
-BAYTAlVTMQswCQYDVQQIDAJDQTELMAkGA1UEBwwCQ0ExEjAQBgNVBAoMCVJlZGlz
-TGFiczEtMCsGA1UEAwwkUmVkaXNMYWJzIFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9y
-aXR5MB4XDTE4MDIyNTE1MjA0MloXDTM4MDIyMDE1MjA0MlowajELMAkGA1UEBhMC
-VVMxCzAJBgNVBAgMAkNBMQswCQYDVQQHDAJDQTESMBAGA1UECgwJUmVkaXNMYWJz
-MS0wKwYDVQQDDCRSZWRpc0xhYnMgUm9vdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkw
-ggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDLEjXy7YrbN5Waau5cd6g1
-G5C2tMmeTpZ0duFAPxNU4oE3RHS5gGiok346fUXuUxbZ6QkuzeN2/2Z+RmRcJhQY
-Dm0ZgdG4x59An1TJfnzKKoWj8ISmoHS/TGNBdFzXV7FYNLBuqZouqePI6ReC6Qhl
-pp45huV32Q3a6IDrrvx7Wo5ZczEQeFNbCeCOQYNDdTmCyEkHqc2AGo8eoIlSTutT
-ULOC7R5gzJVTS0e1hesQ7jmqHjbO+VQS1NAL4/5K6cuTEqUl+XhVhPdLWBXJQ5ag
-54qhX4v+ojLzeU1R/Vc6NjMvVtptWY6JihpgplprN0Yh2556ewcXMeturcKgXfGJ
-xeYzsjzXerEjrVocX5V8BNrg64NlifzTMKNOOv4fVZszq1SIHR8F9ROrqiOdh8iC
-JpUbLpXH9hWCSEO6VRMB2xJoKu3cgl63kF30s77x7wLFMEHiwsQRKxooE1UhgS9K
-2sO4TlQ1eWUvFvHSTVDQDlGQ6zu4qjbOpb3Q8bQwoK+ai2alkXVR4Ltxe9QlgYK3
-StsnPhruzZGA0wbXdpw0bnM+YdlEm5ffSTpNIfgHeaa7Dtb801FtA71ZlH7A6TaI
-SIQuUST9EKmv7xrJyx0W1pGoPOLw5T029aTjnICSLdtV9bLwysrLhIYG5bnPq78B
-cS+jZHFGzD7PUVGQD01nOQIDAQABo2MwYTAdBgNVHQ4EFgQUIuNsB+oTOC9rLoxL
-yzNP7vJUV08wHwYDVR0jBBgwFoAUIuNsB+oTOC9rLoxLyzNP7vJUV08wDwYDVR0T
-AQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggIBAHfg
-z5pMNUAKdMzK1aS1EDdK9yKz4qicILz5czSLj1mC7HKDRy8cVADUxEICis++CsCu
-rYOvyCVergHQLREcxPq4rc5Nq1uj6J6649NEeh4WazOOjL4ZfQ1jVznMbGy+fJm3
-3Hoelv6jWRG9iqeJZja7/1s6YC6bWymI/OY1e4wUKeNHAo+Vger7MlHV+RuabaX+
-hSJ8bJAM59NCM7AgMTQpJCncrcdLeceYniGy5Q/qt2b5mJkQVkIdy4TPGGB+AXDJ
-D0q3I/JDRkDUFNFdeW0js7fHdsvCR7O3tJy5zIgEV/o/BCkmJVtuwPYOrw/yOlKj
-TY/U7ATAx9VFF6/vYEOMYSmrZlFX+98L6nJtwDqfLB5VTltqZ4H/KBxGE3IRSt9l
-FXy40U+LnXzhhW+7VBAvyYX8GEXhHkKU8Gqk1xitrqfBXY74xKgyUSTolFSfFVgj
-mcM/X4K45bka+qpkj7Kfv/8D4j6aZekwhN2ly6hhC1SmQ8qjMjpG/mrWOSSHZFmf
-ybu9iD2AYHeIOkshIl6xYIa++Q/00/vs46IzAbQyriOi0XxlSMMVtPx0Q3isp+ji
-n8Mq9eOuxYOEQ4of8twUkUDd528iwGtEdwf0Q01UyT84S62N8AySl1ZBKXJz6W4F
-UhWfa/HQYOAPDdEjNgnVwLI23b8t0TozyCWw7q8h
------END CERTIFICATE-----
-
------BEGIN CERTIFICATE-----
-MIIEjzCCA3egAwIBAgIQe55B/ALCKJDZtdNT8kD6hTANBgkqhkiG9w0BAQsFADBM
-MSAwHgYDVQQLExdHbG9iYWxTaWduIFJvb3QgQ0EgLSBSMzETMBEGA1UEChMKR2xv
-YmFsU2lnbjETMBEGA1UEAxMKR2xvYmFsU2lnbjAeFw0yMjAxMjYxMjAwMDBaFw0y
-NTAxMjYwMDAwMDBaMFgxCzAJBgNVBAYTAkJFMRkwFwYDVQQKExBHbG9iYWxTaWdu
-IG52LXNhMS4wLAYDVQQDEyVHbG9iYWxTaWduIEF0bGFzIFIzIE9WIFRMUyBDQSAy
-MDIyIFEyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmGmg1LW9b7Lf
-8zDD83yBDTEkt+FOxKJZqF4veWc5KZsQj9HfnUS2e5nj/E+JImlGPsQuoiosLuXD
-BVBNAMcUFa11buFMGMeEMwiTmCXoXRrXQmH0qjpOfKgYc5gHG3BsRGaRrf7VR4eg
-ofNMG9wUBw4/g/TT7+bQJdA4NfE7Y4d5gEryZiBGB/swaX6Jp/8MF4TgUmOWmalK
-dZCKyb4sPGQFRTtElk67F7vU+wdGcrcOx1tDcIB0ncjLPMnaFicagl+daWGsKqTh
-counQb6QJtYHa91KvCfKWocMxQ7OIbB5UARLPmC4CJ1/f8YFm35ebfzAeULYdGXu
-jE9CLor0OwIDAQABo4IBXzCCAVswDgYDVR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQG
-CCsGAQUFBwMBBggrBgEFBQcDAjASBgNVHRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQW
-BBSH5Zq7a7B/t95GfJWkDBpA8HHqdjAfBgNVHSMEGDAWgBSP8Et/qC5FJK5NUPpj
-move4t0bvDB7BggrBgEFBQcBAQRvMG0wLgYIKwYBBQUHMAGGImh0dHA6Ly9vY3Nw
-Mi5nbG9iYWxzaWduLmNvbS9yb290cjMwOwYIKwYBBQUHMAKGL2h0dHA6Ly9zZWN1
-cmUuZ2xvYmFsc2lnbi5jb20vY2FjZXJ0L3Jvb3QtcjMuY3J0MDYGA1UdHwQvMC0w
-K6ApoCeGJWh0dHA6Ly9jcmwuZ2xvYmFsc2lnbi5jb20vcm9vdC1yMy5jcmwwIQYD
-VR0gBBowGDAIBgZngQwBAgIwDAYKKwYBBAGgMgoBAjANBgkqhkiG9w0BAQsFAAOC
-AQEAKRic9/f+nmhQU/wz04APZLjgG5OgsuUOyUEZjKVhNGDwxGTvKhyXGGAMW2B/
-3bRi+aElpXwoxu3pL6fkElbX3B0BeS5LoDtxkyiVEBMZ8m+sXbocwlPyxrPbX6mY
-0rVIvnuUeBH8X0L5IwfpNVvKnBIilTbcebfHyXkPezGwz7E1yhUULjJFm2bt0SdX
-y+4X/WeiiYIv+fTVgZZgl+/2MKIsu/qdBJc3f3TvJ8nz+Eax1zgZmww+RSQWeOj3
-15Iw6Z5FX+NwzY/Ab+9PosR5UosSeq+9HhtaxZttXG1nVh+avYPGYddWmiMT90J5
-ZgKnO/Fx2hBgTxhOTMYaD312kg==
------END CERTIFICATE-----
-
------BEGIN CERTIFICATE-----
-MIIDXzCCAkegAwIBAgILBAAAAAABIVhTCKIwDQYJKoZIhvcNAQELBQAwTDEgMB4G
-A1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjMxEzARBgNVBAoTCkdsb2JhbFNp
-Z24xEzARBgNVBAMTCkdsb2JhbFNpZ24wHhcNMDkwMzE4MTAwMDAwWhcNMjkwMzE4
-MTAwMDAwWjBMMSAwHgYDVQQLExdHbG9iYWxTaWduIFJvb3QgQ0EgLSBSMzETMBEG
-A1UEChMKR2xvYmFsU2lnbjETMBEGA1UEAxMKR2xvYmFsU2lnbjCCASIwDQYJKoZI
-hvcNAQEBBQADggEPADCCAQoCggEBAMwldpB5BngiFvXAg7aEyiie/QV2EcWtiHL8
-RgJDx7KKnQRfJMsuS+FggkbhUqsMgUdwbN1k0ev1LKMPgj0MK66X17YUhhB5uzsT
-gHeMCOFJ0mpiLx9e+pZo34knlTifBtc+ycsmWQ1z3rDI6SYOgxXG71uL0gRgykmm
-KPZpO/bLyCiR5Z2KYVc3rHQU3HTgOu5yLy6c+9C7v/U9AOEGM+iCK65TpjoWc4zd
-QQ4gOsC0p6Hpsk+QLjJg6VfLuQSSaGjlOCZgdbKfd/+RFO+uIEn8rUAVSNECMWEZ
-XriX7613t2Saer9fwRPvm2L7DWzgVGkWqQPabumDk3F2xmmFghcCAwEAAaNCMEAw
-DgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFI/wS3+o
-LkUkrk1Q+mOai97i3Ru8MA0GCSqGSIb3DQEBCwUAA4IBAQBLQNvAUKr+yAzv95ZU
-RUm7lgAJQayzE4aGKAczymvmdLm6AC2upArT9fHxD4q/c2dKg8dEe3jgr25sbwMp
-jjM5RcOO5LlXbKr8EpbsU8Yt5CRsuZRj+9xTaGdWPoO4zzUhw8lo/s7awlOqzJCK
-6fBdRoyV3XpYKBovHd7NADdBj+1EbddTKJd+82cEHhXXipa0095MJ6RMG3NzdvQX
-mcIfeg7jLQitChws/zyrVQ4PkX4268NXSb7hLi18YIvDQVETI53O9zJrlAGomecs
-Mx86OyXShkDOOyyGeMlhLxS67ttVb9+E7gUJTb0o2HLO02JQZR7rkpeDMdmztcpH
-WD9f
------END CERTIFICATE-----`;
-    var TLSProfiles = {
-      RedisCloudFixed: { ca: RedisCloudCA },
-      RedisCloudFlexible: { ca: RedisCloudCA }
-    };
-    exports2.default = TLSProfiles;
-  }
-});
-
-// node_modules/ioredis/built/utils/index.js
-var require_utils6 = __commonJS({
-  "node_modules/ioredis/built/utils/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.noop = exports2.defaults = exports2.Debug = exports2.zipMap = exports2.CONNECTION_CLOSED_ERROR_MSG = exports2.shuffle = exports2.sample = exports2.resolveTLSProfile = exports2.parseURL = exports2.optimizeErrorStack = exports2.toArg = exports2.convertMapToArray = exports2.convertObjectToArray = exports2.timeout = exports2.packObject = exports2.isInt = exports2.wrapMultiResult = exports2.convertBufferToString = void 0;
-    var url_1 = require("url");
-    var lodash_1 = require_lodash3();
-    Object.defineProperty(exports2, "defaults", { enumerable: true, get: function() {
-      return lodash_1.defaults;
-    } });
-    Object.defineProperty(exports2, "noop", { enumerable: true, get: function() {
-      return lodash_1.noop;
-    } });
-    var debug_1 = require_debug();
-    exports2.Debug = debug_1.default;
-    var TLSProfiles_1 = require_TLSProfiles();
-    function convertBufferToString(value, encoding) {
-      if (value instanceof Buffer) {
-        return value.toString(encoding);
-      }
-      if (Array.isArray(value)) {
-        const length = value.length;
-        const res = Array(length);
-        for (let i = 0; i < length; ++i) {
-          res[i] = value[i] instanceof Buffer && encoding === "utf8" ? value[i].toString() : convertBufferToString(value[i], encoding);
-        }
-        return res;
-      }
-      return value;
-    }
-    exports2.convertBufferToString = convertBufferToString;
-    function wrapMultiResult(arr) {
-      if (!arr) {
-        return null;
-      }
-      const result = [];
-      const length = arr.length;
-      for (let i = 0; i < length; ++i) {
-        const item = arr[i];
-        if (item instanceof Error) {
-          result.push([item]);
-        } else {
-          result.push([null, item]);
-        }
-      }
-      return result;
-    }
-    exports2.wrapMultiResult = wrapMultiResult;
-    function isInt(value) {
-      const x = parseFloat(value);
-      return !isNaN(value) && (x | 0) === x;
-    }
-    exports2.isInt = isInt;
-    function packObject(array) {
-      const result = {};
-      const length = array.length;
-      for (let i = 1; i < length; i += 2) {
-        result[array[i - 1]] = array[i];
-      }
-      return result;
-    }
-    exports2.packObject = packObject;
-    function timeout(callback, timeout2) {
-      let timer = null;
-      const run2 = function() {
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
-          callback.apply(this, arguments);
-        }
-      };
-      timer = setTimeout(run2, timeout2, new Error("timeout"));
-      return run2;
-    }
-    exports2.timeout = timeout;
-    function convertObjectToArray(obj) {
-      const result = [];
-      const keys = Object.keys(obj);
-      for (let i = 0, l = keys.length; i < l; i++) {
-        result.push(keys[i], obj[keys[i]]);
-      }
-      return result;
-    }
-    exports2.convertObjectToArray = convertObjectToArray;
-    function convertMapToArray(map) {
-      const result = [];
-      let pos = 0;
-      map.forEach(function(value, key) {
-        result[pos] = key;
-        result[pos + 1] = value;
-        pos += 2;
-      });
-      return result;
-    }
-    exports2.convertMapToArray = convertMapToArray;
-    function toArg(arg) {
-      if (arg === null || typeof arg === "undefined") {
-        return "";
-      }
-      return String(arg);
-    }
-    exports2.toArg = toArg;
-    function optimizeErrorStack(error5, friendlyStack, filterPath) {
-      const stacks = friendlyStack.split("\n");
-      let lines = "";
-      let i;
-      for (i = 1; i < stacks.length; ++i) {
-        if (stacks[i].indexOf(filterPath) === -1) {
-          break;
-        }
-      }
-      for (let j = i; j < stacks.length; ++j) {
-        lines += "\n" + stacks[j];
-      }
-      if (error5.stack) {
-        const pos = error5.stack.indexOf("\n");
-        error5.stack = error5.stack.slice(0, pos) + lines;
-      }
-      return error5;
-    }
-    exports2.optimizeErrorStack = optimizeErrorStack;
-    function parseURL(url) {
-      if (isInt(url)) {
-        return { port: url };
-      }
-      let parsed = (0, url_1.parse)(url, true, true);
-      if (!parsed.slashes && url[0] !== "/") {
-        url = "//" + url;
-        parsed = (0, url_1.parse)(url, true, true);
-      }
-      const options = parsed.query || {};
-      const result = {};
-      if (parsed.auth) {
-        const index = parsed.auth.indexOf(":");
-        result.username = index === -1 ? parsed.auth : parsed.auth.slice(0, index);
-        result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
-      }
-      if (parsed.pathname) {
-        if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
-          if (parsed.pathname.length > 1) {
-            result.db = parsed.pathname.slice(1);
-          }
-        } else {
-          result.path = parsed.pathname;
-        }
-      }
-      if (parsed.host) {
-        result.host = parsed.hostname;
-      }
-      if (parsed.port) {
-        result.port = parsed.port;
-      }
-      if (typeof options.family === "string") {
-        const intFamily = Number.parseInt(options.family, 10);
-        if (!Number.isNaN(intFamily)) {
-          result.family = intFamily;
-        }
-      }
-      (0, lodash_1.defaults)(result, options);
-      return result;
-    }
-    exports2.parseURL = parseURL;
-    function resolveTLSProfile(options) {
-      let tls = options === null || options === void 0 ? void 0 : options.tls;
-      if (typeof tls === "string")
-        tls = { profile: tls };
-      const profile = TLSProfiles_1.default[tls === null || tls === void 0 ? void 0 : tls.profile];
-      if (profile) {
-        tls = Object.assign({}, profile, tls);
-        delete tls.profile;
-        options = Object.assign({}, options, { tls });
-      }
-      return options;
-    }
-    exports2.resolveTLSProfile = resolveTLSProfile;
-    function sample(array, from = 0) {
-      const length = array.length;
-      if (from >= length) {
-        return null;
-      }
-      return array[from + Math.floor(Math.random() * (length - from))];
-    }
-    exports2.sample = sample;
-    function shuffle(array) {
-      let counter = array.length;
-      while (counter > 0) {
-        const index = Math.floor(Math.random() * counter);
-        counter--;
-        [array[counter], array[index]] = [array[index], array[counter]];
-      }
-      return array;
-    }
-    exports2.shuffle = shuffle;
-    exports2.CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
-    function zipMap(keys, values) {
-      const map = /* @__PURE__ */ new Map();
-      keys.forEach((key, index) => {
-        map.set(key, values[index]);
-      });
-      return map;
-    }
-    exports2.zipMap = zipMap;
-  }
-});
-
-// node_modules/ioredis/built/Command.js
-var require_Command = __commonJS({
-  "node_modules/ioredis/built/Command.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var commands_1 = require_built();
-    var calculateSlot = require_lib2();
-    var standard_as_callback_1 = require_built2();
-    var utils_1 = require_utils6();
-    var Command = class _Command {
-      /**
-       * Creates an instance of Command.
-       * @param name Command name
-       * @param args An array of command arguments
-       * @param options
-       * @param callback The callback that handles the response.
-       * If omit, the response will be handled via Promise
-       */
-      constructor(name, args = [], options = {}, callback) {
-        this.name = name;
-        this.inTransaction = false;
-        this.isResolved = false;
-        this.transformed = false;
-        this.replyEncoding = options.replyEncoding;
-        this.errorStack = options.errorStack;
-        this.args = args.flat();
-        this.callback = callback;
-        this.initPromise();
-        if (options.keyPrefix) {
-          const isBufferKeyPrefix = options.keyPrefix instanceof Buffer;
-          let keyPrefixBuffer = isBufferKeyPrefix ? options.keyPrefix : null;
-          this._iterateKeys((key) => {
-            if (key instanceof Buffer) {
-              if (keyPrefixBuffer === null) {
-                keyPrefixBuffer = Buffer.from(options.keyPrefix);
-              }
-              return Buffer.concat([keyPrefixBuffer, key]);
-            } else if (isBufferKeyPrefix) {
-              return Buffer.concat([options.keyPrefix, Buffer.from(String(key))]);
-            }
-            return options.keyPrefix + key;
-          });
-        }
-        if (options.readOnly) {
-          this.isReadOnly = true;
-        }
-      }
-      /**
-       * Check whether the command has the flag
-       */
-      static checkFlag(flagName, commandName) {
-        return !!this.getFlagMap()[flagName][commandName];
-      }
-      static setArgumentTransformer(name, func) {
-        this._transformer.argument[name] = func;
-      }
-      static setReplyTransformer(name, func) {
-        this._transformer.reply[name] = func;
-      }
-      static getFlagMap() {
-        if (!this.flagMap) {
-          this.flagMap = Object.keys(_Command.FLAGS).reduce((map, flagName) => {
-            map[flagName] = {};
-            _Command.FLAGS[flagName].forEach((commandName) => {
-              map[flagName][commandName] = true;
-            });
-            return map;
-          }, {});
-        }
-        return this.flagMap;
-      }
-      getSlot() {
-        if (typeof this.slot === "undefined") {
-          const key = this.getKeys()[0];
-          this.slot = key == null ? null : calculateSlot(key);
-        }
-        return this.slot;
-      }
-      getKeys() {
-        return this._iterateKeys();
-      }
-      /**
-       * Convert command to writable buffer or string
-       */
-      toWritable(_socket) {
-        let result;
-        const commandStr = "*" + (this.args.length + 1) + "\r\n$" + Buffer.byteLength(this.name) + "\r\n" + this.name + "\r\n";
-        if (this.bufferMode) {
-          const buffers = new MixedBuffers();
-          buffers.push(commandStr);
-          for (let i = 0; i < this.args.length; ++i) {
-            const arg = this.args[i];
-            if (arg instanceof Buffer) {
-              if (arg.length === 0) {
-                buffers.push("$0\r\n\r\n");
-              } else {
-                buffers.push("$" + arg.length + "\r\n");
-                buffers.push(arg);
-                buffers.push("\r\n");
-              }
-            } else {
-              buffers.push("$" + Buffer.byteLength(arg) + "\r\n" + arg + "\r\n");
-            }
-          }
-          result = buffers.toBuffer();
-        } else {
-          result = commandStr;
-          for (let i = 0; i < this.args.length; ++i) {
-            const arg = this.args[i];
-            result += "$" + Buffer.byteLength(arg) + "\r\n" + arg + "\r\n";
-          }
-        }
-        return result;
-      }
-      stringifyArguments() {
-        for (let i = 0; i < this.args.length; ++i) {
-          const arg = this.args[i];
-          if (typeof arg === "string") {
-          } else if (arg instanceof Buffer) {
-            this.bufferMode = true;
-          } else {
-            this.args[i] = (0, utils_1.toArg)(arg);
-          }
-        }
-      }
-      /**
-       * Convert buffer/buffer[] to string/string[],
-       * and apply reply transformer.
-       */
-      transformReply(result) {
-        if (this.replyEncoding) {
-          result = (0, utils_1.convertBufferToString)(result, this.replyEncoding);
-        }
-        const transformer = _Command._transformer.reply[this.name];
-        if (transformer) {
-          result = transformer(result);
-        }
-        return result;
-      }
-      /**
-       * Set the wait time before terminating the attempt to execute a command
-       * and generating an error.
-       */
-      setTimeout(ms) {
-        if (!this._commandTimeoutTimer) {
-          this._commandTimeoutTimer = setTimeout(() => {
-            if (!this.isResolved) {
-              this.reject(new Error("Command timed out"));
-            }
-          }, ms);
-        }
-      }
-      initPromise() {
-        const promise = new Promise((resolve, reject) => {
-          if (!this.transformed) {
-            this.transformed = true;
-            const transformer = _Command._transformer.argument[this.name];
-            if (transformer) {
-              this.args = transformer(this.args);
-            }
-            this.stringifyArguments();
-          }
-          this.resolve = this._convertValue(resolve);
-          if (this.errorStack) {
-            this.reject = (err) => {
-              reject((0, utils_1.optimizeErrorStack)(err, this.errorStack.stack, __dirname));
-            };
-          } else {
-            this.reject = reject;
-          }
-        });
-        this.promise = (0, standard_as_callback_1.default)(promise, this.callback);
-      }
-      /**
-       * Iterate through the command arguments that are considered keys.
-       */
-      _iterateKeys(transform = (key) => key) {
-        if (typeof this.keys === "undefined") {
-          this.keys = [];
-          if ((0, commands_1.exists)(this.name)) {
-            const keyIndexes = (0, commands_1.getKeyIndexes)(this.name, this.args);
-            for (const index of keyIndexes) {
-              this.args[index] = transform(this.args[index]);
-              this.keys.push(this.args[index]);
-            }
-          }
-        }
-        return this.keys;
-      }
-      /**
-       * Convert the value from buffer to the target encoding.
-       */
-      _convertValue(resolve) {
-        return (value) => {
-          try {
-            const existingTimer = this._commandTimeoutTimer;
-            if (existingTimer) {
-              clearTimeout(existingTimer);
-              delete this._commandTimeoutTimer;
-            }
-            resolve(this.transformReply(value));
-            this.isResolved = true;
-          } catch (err) {
-            this.reject(err);
-          }
-          return this.promise;
-        };
-      }
-    };
-    exports2.default = Command;
-    Command.FLAGS = {
-      VALID_IN_SUBSCRIBER_MODE: [
-        "subscribe",
-        "psubscribe",
-        "unsubscribe",
-        "punsubscribe",
-        "ssubscribe",
-        "sunsubscribe",
-        "ping",
-        "quit"
-      ],
-      VALID_IN_MONITOR_MODE: ["monitor", "auth"],
-      ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe", "ssubscribe"],
-      EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"],
-      WILL_DISCONNECT: ["quit"]
-    };
-    Command._transformer = {
-      argument: {},
-      reply: {}
-    };
-    var msetArgumentTransformer = function(args) {
-      if (args.length === 1) {
-        if (args[0] instanceof Map) {
-          return (0, utils_1.convertMapToArray)(args[0]);
-        }
-        if (typeof args[0] === "object" && args[0] !== null) {
-          return (0, utils_1.convertObjectToArray)(args[0]);
-        }
-      }
-      return args;
-    };
-    var hsetArgumentTransformer = function(args) {
-      if (args.length === 2) {
-        if (args[1] instanceof Map) {
-          return [args[0]].concat((0, utils_1.convertMapToArray)(args[1]));
-        }
-        if (typeof args[1] === "object" && args[1] !== null) {
-          return [args[0]].concat((0, utils_1.convertObjectToArray)(args[1]));
-        }
-      }
-      return args;
-    };
-    Command.setArgumentTransformer("mset", msetArgumentTransformer);
-    Command.setArgumentTransformer("msetnx", msetArgumentTransformer);
-    Command.setArgumentTransformer("hset", hsetArgumentTransformer);
-    Command.setArgumentTransformer("hmset", hsetArgumentTransformer);
-    Command.setReplyTransformer("hgetall", function(result) {
-      if (Array.isArray(result)) {
-        const obj = {};
-        for (let i = 0; i < result.length; i += 2) {
-          const key = result[i];
-          const value = result[i + 1];
-          if (key in obj) {
-            Object.defineProperty(obj, key, {
-              value,
-              configurable: true,
-              enumerable: true,
-              writable: true
-            });
-          } else {
-            obj[key] = value;
-          }
-        }
-        return obj;
-      }
-      return result;
-    });
-    var MixedBuffers = class {
-      constructor() {
-        this.length = 0;
-        this.items = [];
-      }
-      push(x) {
-        this.length += Buffer.byteLength(x);
-        this.items.push(x);
-      }
-      toBuffer() {
-        const result = Buffer.allocUnsafe(this.length);
-        let offset = 0;
-        for (const item of this.items) {
-          const length = Buffer.byteLength(item);
-          Buffer.isBuffer(item) ? item.copy(result, offset) : result.write(item, offset, length);
-          offset += length;
-        }
-        return result;
-      }
-    };
-  }
-});
-
-// node_modules/ioredis/built/errors/ClusterAllFailedError.js
-var require_ClusterAllFailedError = __commonJS({
-  "node_modules/ioredis/built/errors/ClusterAllFailedError.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var redis_errors_1 = require_redis_errors();
-    var ClusterAllFailedError = class extends redis_errors_1.RedisError {
-      constructor(message, lastNodeError) {
-        super(message);
-        this.lastNodeError = lastNodeError;
-        Error.captureStackTrace(this, this.constructor);
-      }
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    exports2.default = ClusterAllFailedError;
-    ClusterAllFailedError.defaultMessage = "Failed to refresh slots cache.";
-  }
-});
-
-// node_modules/ioredis/built/ScanStream.js
-var require_ScanStream = __commonJS({
-  "node_modules/ioredis/built/ScanStream.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var stream_1 = require("stream");
-    var ScanStream = class extends stream_1.Readable {
-      constructor(opt) {
-        super(opt);
-        this.opt = opt;
-        this._redisCursor = "0";
-        this._redisDrained = false;
-      }
-      _read() {
-        if (this._redisDrained) {
-          this.push(null);
-          return;
-        }
-        const args = [this._redisCursor];
-        if (this.opt.key) {
-          args.unshift(this.opt.key);
-        }
-        if (this.opt.match) {
-          args.push("MATCH", this.opt.match);
-        }
-        if (this.opt.type) {
-          args.push("TYPE", this.opt.type);
-        }
-        if (this.opt.count) {
-          args.push("COUNT", String(this.opt.count));
-        }
-        if (this.opt.noValues) {
-          args.push("NOVALUES");
-        }
-        this.opt.redis[this.opt.command](args, (err, res) => {
-          if (err) {
-            this.emit("error", err);
-            return;
-          }
-          this._redisCursor = res[0] instanceof Buffer ? res[0].toString() : res[0];
-          if (this._redisCursor === "0") {
-            this._redisDrained = true;
-          }
-          this.push(res[1]);
-        });
-      }
-      close() {
-        this._redisDrained = true;
-      }
-    };
-    exports2.default = ScanStream;
-  }
-});
-
-// node_modules/ioredis/built/autoPipelining.js
-var require_autoPipelining = __commonJS({
-  "node_modules/ioredis/built/autoPipelining.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.executeWithAutoPipelining = exports2.getFirstValueInFlattenedArray = exports2.shouldUseAutoPipelining = exports2.notAllowedAutoPipelineCommands = exports2.kCallbacks = exports2.kExec = void 0;
-    var lodash_1 = require_lodash3();
-    var calculateSlot = require_lib2();
-    var standard_as_callback_1 = require_built2();
-    exports2.kExec = Symbol("exec");
-    exports2.kCallbacks = Symbol("callbacks");
-    exports2.notAllowedAutoPipelineCommands = [
-      "auth",
-      "info",
-      "script",
-      "quit",
-      "cluster",
-      "pipeline",
-      "multi",
-      "subscribe",
-      "psubscribe",
-      "unsubscribe",
-      "unpsubscribe",
-      "select"
-    ];
-    function executeAutoPipeline(client, slotKey) {
-      if (client._runningAutoPipelines.has(slotKey)) {
-        return;
-      }
-      if (!client._autoPipelines.has(slotKey)) {
-        return;
-      }
-      client._runningAutoPipelines.add(slotKey);
-      const pipeline = client._autoPipelines.get(slotKey);
-      client._autoPipelines.delete(slotKey);
-      const callbacks = pipeline[exports2.kCallbacks];
-      pipeline[exports2.kCallbacks] = null;
-      pipeline.exec(function(err, results) {
-        client._runningAutoPipelines.delete(slotKey);
-        if (err) {
-          for (let i = 0; i < callbacks.length; i++) {
-            process.nextTick(callbacks[i], err);
-          }
-        } else {
-          for (let i = 0; i < callbacks.length; i++) {
-            process.nextTick(callbacks[i], ...results[i]);
-          }
-        }
-        if (client._autoPipelines.has(slotKey)) {
-          executeAutoPipeline(client, slotKey);
-        }
-      });
-    }
-    function shouldUseAutoPipelining(client, functionName, commandName) {
-      return functionName && client.options.enableAutoPipelining && !client.isPipeline && !exports2.notAllowedAutoPipelineCommands.includes(commandName) && !client.options.autoPipeliningIgnoredCommands.includes(commandName);
-    }
-    exports2.shouldUseAutoPipelining = shouldUseAutoPipelining;
-    function getFirstValueInFlattenedArray(args) {
-      for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        if (typeof arg === "string") {
-          return arg;
-        } else if (Array.isArray(arg) || (0, lodash_1.isArguments)(arg)) {
-          if (arg.length === 0) {
-            continue;
-          }
-          return arg[0];
-        }
-        const flattened = [arg].flat();
-        if (flattened.length > 0) {
-          return flattened[0];
-        }
-      }
-      return void 0;
-    }
-    exports2.getFirstValueInFlattenedArray = getFirstValueInFlattenedArray;
-    function executeWithAutoPipelining(client, functionName, commandName, args, callback) {
-      if (client.isCluster && !client.slots.length) {
-        if (client.status === "wait")
-          client.connect().catch(lodash_1.noop);
-        return (0, standard_as_callback_1.default)(new Promise(function(resolve, reject) {
-          client.delayUntilReady((err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            executeWithAutoPipelining(client, functionName, commandName, args, null).then(resolve, reject);
-          });
-        }), callback);
-      }
-      const prefix = client.options.keyPrefix || "";
-      const slotKey = client.isCluster ? client.slots[calculateSlot(`${prefix}${getFirstValueInFlattenedArray(args)}`)].join(",") : "main";
-      if (!client._autoPipelines.has(slotKey)) {
-        const pipeline2 = client.pipeline();
-        pipeline2[exports2.kExec] = false;
-        pipeline2[exports2.kCallbacks] = [];
-        client._autoPipelines.set(slotKey, pipeline2);
-      }
-      const pipeline = client._autoPipelines.get(slotKey);
-      if (!pipeline[exports2.kExec]) {
-        pipeline[exports2.kExec] = true;
-        setImmediate(executeAutoPipeline, client, slotKey);
-      }
-      const autoPipelinePromise = new Promise(function(resolve, reject) {
-        pipeline[exports2.kCallbacks].push(function(err, value) {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(value);
-        });
-        if (functionName === "call") {
-          args.unshift(commandName);
-        }
-        pipeline[functionName](...args);
-      });
-      return (0, standard_as_callback_1.default)(autoPipelinePromise, callback);
-    }
-    exports2.executeWithAutoPipelining = executeWithAutoPipelining;
-  }
-});
-
-// node_modules/ioredis/built/Script.js
-var require_Script = __commonJS({
-  "node_modules/ioredis/built/Script.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var crypto_1 = require("crypto");
-    var Command_1 = require_Command();
-    var standard_as_callback_1 = require_built2();
-    var Script = class {
-      constructor(lua, numberOfKeys = null, keyPrefix = "", readOnly = false) {
-        this.lua = lua;
-        this.numberOfKeys = numberOfKeys;
-        this.keyPrefix = keyPrefix;
-        this.readOnly = readOnly;
-        this.sha = (0, crypto_1.createHash)("sha1").update(lua).digest("hex");
-        const sha = this.sha;
-        const socketHasScriptLoaded = /* @__PURE__ */ new WeakSet();
-        this.Command = class CustomScriptCommand extends Command_1.default {
-          toWritable(socket) {
-            const origReject = this.reject;
-            this.reject = (err) => {
-              if (err.message.indexOf("NOSCRIPT") !== -1) {
-                socketHasScriptLoaded.delete(socket);
-              }
-              origReject.call(this, err);
-            };
-            if (!socketHasScriptLoaded.has(socket)) {
-              socketHasScriptLoaded.add(socket);
-              this.name = "eval";
-              this.args[0] = lua;
-            } else if (this.name === "eval") {
-              this.name = "evalsha";
-              this.args[0] = sha;
-            }
-            return super.toWritable(socket);
-          }
-        };
-      }
-      execute(container, args, options, callback) {
-        if (typeof this.numberOfKeys === "number") {
-          args.unshift(this.numberOfKeys);
-        }
-        if (this.keyPrefix) {
-          options.keyPrefix = this.keyPrefix;
-        }
-        if (this.readOnly) {
-          options.readOnly = true;
-        }
-        const evalsha = new this.Command("evalsha", [this.sha, ...args], options);
-        evalsha.promise = evalsha.promise.catch((err) => {
-          if (err.message.indexOf("NOSCRIPT") === -1) {
-            throw err;
-          }
-          const resend = new this.Command("evalsha", [this.sha, ...args], options);
-          const client = container.isPipeline ? container.redis : container;
-          return client.sendCommand(resend);
-        });
-        (0, standard_as_callback_1.default)(evalsha.promise, callback);
-        return container.sendCommand(evalsha);
-      }
-    };
-    exports2.default = Script;
-  }
-});
-
-// node_modules/ioredis/built/utils/Commander.js
-var require_Commander = __commonJS({
-  "node_modules/ioredis/built/utils/Commander.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var commands_1 = require_built();
-    var autoPipelining_1 = require_autoPipelining();
-    var Command_1 = require_Command();
-    var Script_1 = require_Script();
-    var Commander = class {
-      constructor() {
-        this.options = {};
-        this.scriptsSet = {};
-        this.addedBuiltinSet = /* @__PURE__ */ new Set();
-      }
-      /**
-       * Return supported builtin commands
-       */
-      getBuiltinCommands() {
-        return commands.slice(0);
-      }
-      /**
-       * Create a builtin command
-       */
-      createBuiltinCommand(commandName) {
-        return {
-          string: generateFunction(null, commandName, "utf8"),
-          buffer: generateFunction(null, commandName, null)
-        };
-      }
-      /**
-       * Create add builtin command
-       */
-      addBuiltinCommand(commandName) {
-        this.addedBuiltinSet.add(commandName);
-        this[commandName] = generateFunction(commandName, commandName, "utf8");
-        this[commandName + "Buffer"] = generateFunction(commandName + "Buffer", commandName, null);
-      }
-      /**
-       * Define a custom command using lua script
-       */
-      defineCommand(name, definition) {
-        const script = new Script_1.default(definition.lua, definition.numberOfKeys, this.options.keyPrefix, definition.readOnly);
-        this.scriptsSet[name] = script;
-        this[name] = generateScriptingFunction(name, name, script, "utf8");
-        this[name + "Buffer"] = generateScriptingFunction(name + "Buffer", name, script, null);
-      }
-      /**
-       * @ignore
-       */
-      sendCommand(command, stream, node) {
-        throw new Error('"sendCommand" is not implemented');
-      }
-    };
-    var commands = commands_1.list.filter((command) => command !== "monitor");
-    commands.push("sentinel");
-    commands.forEach(function(commandName) {
-      Commander.prototype[commandName] = generateFunction(commandName, commandName, "utf8");
-      Commander.prototype[commandName + "Buffer"] = generateFunction(commandName + "Buffer", commandName, null);
-    });
-    Commander.prototype.call = generateFunction("call", "utf8");
-    Commander.prototype.callBuffer = generateFunction("callBuffer", null);
-    Commander.prototype.send_command = Commander.prototype.call;
-    function generateFunction(functionName, _commandName, _encoding) {
-      if (typeof _encoding === "undefined") {
-        _encoding = _commandName;
-        _commandName = null;
-      }
-      return function(...args) {
-        const commandName = _commandName || args.shift();
-        let callback = args[args.length - 1];
-        if (typeof callback === "function") {
-          args.pop();
-        } else {
-          callback = void 0;
-        }
-        const options = {
-          errorStack: this.options.showFriendlyErrorStack ? new Error() : void 0,
-          keyPrefix: this.options.keyPrefix,
-          replyEncoding: _encoding
-        };
-        if (!(0, autoPipelining_1.shouldUseAutoPipelining)(this, functionName, commandName)) {
-          return this.sendCommand(
-            // @ts-expect-error
-            new Command_1.default(commandName, args, options, callback)
-          );
-        }
-        return (0, autoPipelining_1.executeWithAutoPipelining)(
-          this,
-          functionName,
-          commandName,
-          // @ts-expect-error
-          args,
-          callback
-        );
-      };
-    }
-    function generateScriptingFunction(functionName, commandName, script, encoding) {
-      return function(...args) {
-        const callback = typeof args[args.length - 1] === "function" ? args.pop() : void 0;
-        const options = {
-          replyEncoding: encoding
-        };
-        if (this.options.showFriendlyErrorStack) {
-          options.errorStack = new Error();
-        }
-        if (!(0, autoPipelining_1.shouldUseAutoPipelining)(this, functionName, commandName)) {
-          return script.execute(this, args, options, callback);
-        }
-        return (0, autoPipelining_1.executeWithAutoPipelining)(this, functionName, commandName, args, callback);
-      };
-    }
-    exports2.default = Commander;
-  }
-});
-
-// node_modules/ioredis/built/Pipeline.js
-var require_Pipeline = __commonJS({
-  "node_modules/ioredis/built/Pipeline.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var calculateSlot = require_lib2();
-    var commands_1 = require_built();
-    var standard_as_callback_1 = require_built2();
-    var util_1 = require("util");
-    var Command_1 = require_Command();
-    var utils_1 = require_utils6();
-    var Commander_1 = require_Commander();
-    function generateMultiWithNodes(redis, keys) {
-      const slot = calculateSlot(keys[0]);
-      const target = redis._groupsBySlot[slot];
-      for (let i = 1; i < keys.length; i++) {
-        if (redis._groupsBySlot[calculateSlot(keys[i])] !== target) {
-          return -1;
-        }
-      }
-      return slot;
-    }
-    var Pipeline = class extends Commander_1.default {
-      constructor(redis) {
-        super();
-        this.redis = redis;
-        this.isPipeline = true;
-        this.replyPending = 0;
-        this._queue = [];
-        this._result = [];
-        this._transactions = 0;
-        this._shaToScript = {};
-        this.isCluster = this.redis.constructor.name === "Cluster" || this.redis.isCluster;
-        this.options = redis.options;
-        Object.keys(redis.scriptsSet).forEach((name) => {
-          const script = redis.scriptsSet[name];
-          this._shaToScript[script.sha] = script;
-          this[name] = redis[name];
-          this[name + "Buffer"] = redis[name + "Buffer"];
-        });
-        redis.addedBuiltinSet.forEach((name) => {
-          this[name] = redis[name];
-          this[name + "Buffer"] = redis[name + "Buffer"];
-        });
-        this.promise = new Promise((resolve, reject) => {
-          this.resolve = resolve;
-          this.reject = reject;
-        });
-        const _this = this;
-        Object.defineProperty(this, "length", {
-          get: function() {
-            return _this._queue.length;
-          }
-        });
-      }
-      fillResult(value, position) {
-        if (this._queue[position].name === "exec" && Array.isArray(value[1])) {
-          const execLength = value[1].length;
-          for (let i = 0; i < execLength; i++) {
-            if (value[1][i] instanceof Error) {
-              continue;
-            }
-            const cmd = this._queue[position - (execLength - i)];
-            try {
-              value[1][i] = cmd.transformReply(value[1][i]);
-            } catch (err) {
-              value[1][i] = err;
-            }
-          }
-        }
-        this._result[position] = value;
-        if (--this.replyPending) {
-          return;
-        }
-        if (this.isCluster) {
-          let retriable = true;
-          let commonError;
-          for (let i = 0; i < this._result.length; ++i) {
-            const error5 = this._result[i][0];
-            const command = this._queue[i];
-            if (error5) {
-              if (command.name === "exec" && error5.message === "EXECABORT Transaction discarded because of previous errors.") {
-                continue;
-              }
-              if (!commonError) {
-                commonError = {
-                  name: error5.name,
-                  message: error5.message
-                };
-              } else if (commonError.name !== error5.name || commonError.message !== error5.message) {
-                retriable = false;
-                break;
-              }
-            } else if (!command.inTransaction) {
-              const isReadOnly = (0, commands_1.exists)(command.name) && (0, commands_1.hasFlag)(command.name, "readonly");
-              if (!isReadOnly) {
-                retriable = false;
-                break;
-              }
-            }
-          }
-          if (commonError && retriable) {
-            const _this = this;
-            const errv = commonError.message.split(" ");
-            const queue = this._queue;
-            let inTransaction = false;
-            this._queue = [];
-            for (let i = 0; i < queue.length; ++i) {
-              if (errv[0] === "ASK" && !inTransaction && queue[i].name !== "asking" && (!queue[i - 1] || queue[i - 1].name !== "asking")) {
-                const asking = new Command_1.default("asking");
-                asking.ignore = true;
-                this.sendCommand(asking);
-              }
-              queue[i].initPromise();
-              this.sendCommand(queue[i]);
-              inTransaction = queue[i].inTransaction;
-            }
-            let matched = true;
-            if (typeof this.leftRedirections === "undefined") {
-              this.leftRedirections = {};
-            }
-            const exec = function() {
-              _this.exec();
-            };
-            const cluster = this.redis;
-            cluster.handleError(commonError, this.leftRedirections, {
-              moved: function(_slot, key) {
-                _this.preferKey = key;
-                cluster.slots[errv[1]] = [key];
-                cluster._groupsBySlot[errv[1]] = cluster._groupsIds[cluster.slots[errv[1]].join(";")];
-                cluster.refreshSlotsCache();
-                _this.exec();
-              },
-              ask: function(_slot, key) {
-                _this.preferKey = key;
-                _this.exec();
-              },
-              tryagain: exec,
-              clusterDown: exec,
-              connectionClosed: exec,
-              maxRedirections: () => {
-                matched = false;
-              },
-              defaults: () => {
-                matched = false;
-              }
-            });
-            if (matched) {
-              return;
-            }
-          }
-        }
-        let ignoredCount = 0;
-        for (let i = 0; i < this._queue.length - ignoredCount; ++i) {
-          if (this._queue[i + ignoredCount].ignore) {
-            ignoredCount += 1;
-          }
-          this._result[i] = this._result[i + ignoredCount];
-        }
-        this.resolve(this._result.slice(0, this._result.length - ignoredCount));
-      }
-      sendCommand(command) {
-        if (this._transactions > 0) {
-          command.inTransaction = true;
-        }
-        const position = this._queue.length;
-        command.pipelineIndex = position;
-        command.promise.then((result) => {
-          this.fillResult([null, result], position);
-        }).catch((error5) => {
-          this.fillResult([error5], position);
-        });
-        this._queue.push(command);
-        return this;
-      }
-      addBatch(commands) {
-        let command, commandName, args;
-        for (let i = 0; i < commands.length; ++i) {
-          command = commands[i];
-          commandName = command[0];
-          args = command.slice(1);
-          this[commandName].apply(this, args);
-        }
-        return this;
-      }
-    };
-    exports2.default = Pipeline;
-    var multi = Pipeline.prototype.multi;
-    Pipeline.prototype.multi = function() {
-      this._transactions += 1;
-      return multi.apply(this, arguments);
-    };
-    var execBuffer = Pipeline.prototype.execBuffer;
-    Pipeline.prototype.execBuffer = (0, util_1.deprecate)(function() {
-      if (this._transactions > 0) {
-        this._transactions -= 1;
-      }
-      return execBuffer.apply(this, arguments);
-    }, "Pipeline#execBuffer: Use Pipeline#exec instead");
-    Pipeline.prototype.exec = function(callback) {
-      if (this.isCluster && !this.redis.slots.length) {
-        if (this.redis.status === "wait")
-          this.redis.connect().catch(utils_1.noop);
-        if (callback && !this.nodeifiedPromise) {
-          this.nodeifiedPromise = true;
-          (0, standard_as_callback_1.default)(this.promise, callback);
-        }
-        this.redis.delayUntilReady((err) => {
-          if (err) {
-            this.reject(err);
-            return;
-          }
-          this.exec(callback);
-        });
-        return this.promise;
-      }
-      if (this._transactions > 0) {
-        this._transactions -= 1;
-        return execBuffer.apply(this, arguments);
-      }
-      if (!this.nodeifiedPromise) {
-        this.nodeifiedPromise = true;
-        (0, standard_as_callback_1.default)(this.promise, callback);
-      }
-      if (!this._queue.length) {
-        this.resolve([]);
-      }
-      let pipelineSlot;
-      if (this.isCluster) {
-        const sampleKeys = [];
-        for (let i = 0; i < this._queue.length; i++) {
-          const keys = this._queue[i].getKeys();
-          if (keys.length) {
-            sampleKeys.push(keys[0]);
-          }
-          if (keys.length && calculateSlot.generateMulti(keys) < 0) {
-            this.reject(new Error("All the keys in a pipeline command should belong to the same slot"));
-            return this.promise;
-          }
-        }
-        if (sampleKeys.length) {
-          pipelineSlot = generateMultiWithNodes(this.redis, sampleKeys);
-          if (pipelineSlot < 0) {
-            this.reject(new Error("All keys in the pipeline should belong to the same slots allocation group"));
-            return this.promise;
-          }
-        } else {
-          pipelineSlot = Math.random() * 16384 | 0;
-        }
-      }
-      const _this = this;
-      execPipeline();
-      return this.promise;
-      function execPipeline() {
-        let writePending = _this.replyPending = _this._queue.length;
-        let node;
-        if (_this.isCluster) {
-          node = {
-            slot: pipelineSlot,
-            redis: _this.redis.connectionPool.nodes.all[_this.preferKey]
-          };
-        }
-        let data = "";
-        let buffers;
-        const stream = {
-          isPipeline: true,
-          destination: _this.isCluster ? node : { redis: _this.redis },
-          write(writable) {
-            if (typeof writable !== "string") {
-              if (!buffers) {
-                buffers = [];
-              }
-              if (data) {
-                buffers.push(Buffer.from(data, "utf8"));
-                data = "";
-              }
-              buffers.push(writable);
-            } else {
-              data += writable;
-            }
-            if (!--writePending) {
-              if (buffers) {
-                if (data) {
-                  buffers.push(Buffer.from(data, "utf8"));
-                }
-                stream.destination.redis.stream.write(Buffer.concat(buffers));
-              } else {
-                stream.destination.redis.stream.write(data);
-              }
-              writePending = _this._queue.length;
-              data = "";
-              buffers = void 0;
-            }
-          }
-        };
-        for (let i = 0; i < _this._queue.length; ++i) {
-          _this.redis.sendCommand(_this._queue[i], stream, node);
-        }
-        return _this.promise;
-      }
-    };
-  }
-});
-
-// node_modules/ioredis/built/transaction.js
-var require_transaction = __commonJS({
-  "node_modules/ioredis/built/transaction.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.addTransactionSupport = void 0;
-    var utils_1 = require_utils6();
-    var standard_as_callback_1 = require_built2();
-    var Pipeline_1 = require_Pipeline();
-    function addTransactionSupport(redis) {
-      redis.pipeline = function(commands) {
-        const pipeline = new Pipeline_1.default(this);
-        if (Array.isArray(commands)) {
-          pipeline.addBatch(commands);
-        }
-        return pipeline;
-      };
-      const { multi } = redis;
-      redis.multi = function(commands, options) {
-        if (typeof options === "undefined" && !Array.isArray(commands)) {
-          options = commands;
-          commands = null;
-        }
-        if (options && options.pipeline === false) {
-          return multi.call(this);
-        }
-        const pipeline = new Pipeline_1.default(this);
-        pipeline.multi();
-        if (Array.isArray(commands)) {
-          pipeline.addBatch(commands);
-        }
-        const exec2 = pipeline.exec;
-        pipeline.exec = function(callback) {
-          if (this.isCluster && !this.redis.slots.length) {
-            if (this.redis.status === "wait")
-              this.redis.connect().catch(utils_1.noop);
-            return (0, standard_as_callback_1.default)(new Promise((resolve, reject) => {
-              this.redis.delayUntilReady((err) => {
-                if (err) {
-                  reject(err);
-                  return;
-                }
-                this.exec(pipeline).then(resolve, reject);
-              });
-            }), callback);
-          }
-          if (this._transactions > 0) {
-            exec2.call(pipeline);
-          }
-          if (this.nodeifiedPromise) {
-            return exec2.call(pipeline);
-          }
-          const promise = exec2.call(pipeline);
-          return (0, standard_as_callback_1.default)(promise.then(function(result) {
-            const execResult = result[result.length - 1];
-            if (typeof execResult === "undefined") {
-              throw new Error("Pipeline cannot be used to send any commands when the `exec()` has been called on it.");
-            }
-            if (execResult[0]) {
-              execResult[0].previousErrors = [];
-              for (let i = 0; i < result.length - 1; ++i) {
-                if (result[i][0]) {
-                  execResult[0].previousErrors.push(result[i][0]);
-                }
-              }
-              throw execResult[0];
-            }
-            return (0, utils_1.wrapMultiResult)(execResult[1]);
-          }), callback);
-        };
-        const { execBuffer } = pipeline;
-        pipeline.execBuffer = function(callback) {
-          if (this._transactions > 0) {
-            execBuffer.call(pipeline);
-          }
-          return pipeline.exec(callback);
-        };
-        return pipeline;
-      };
-      const { exec } = redis;
-      redis.exec = function(callback) {
-        return (0, standard_as_callback_1.default)(exec.call(this).then(function(results) {
-          if (Array.isArray(results)) {
-            results = (0, utils_1.wrapMultiResult)(results);
-          }
-          return results;
-        }), callback);
-      };
-    }
-    exports2.addTransactionSupport = addTransactionSupport;
-  }
-});
-
-// node_modules/ioredis/built/utils/applyMixin.js
-var require_applyMixin = __commonJS({
-  "node_modules/ioredis/built/utils/applyMixin.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    function applyMixin(derivedConstructor, mixinConstructor) {
-      Object.getOwnPropertyNames(mixinConstructor.prototype).forEach((name) => {
-        Object.defineProperty(derivedConstructor.prototype, name, Object.getOwnPropertyDescriptor(mixinConstructor.prototype, name));
-      });
-    }
-    exports2.default = applyMixin;
-  }
-});
-
-// node_modules/ioredis/built/cluster/ClusterOptions.js
-var require_ClusterOptions = __commonJS({
-  "node_modules/ioredis/built/cluster/ClusterOptions.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.DEFAULT_CLUSTER_OPTIONS = void 0;
-    var dns_1 = require("dns");
-    exports2.DEFAULT_CLUSTER_OPTIONS = {
-      clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2e3),
-      enableOfflineQueue: true,
-      enableReadyCheck: true,
-      scaleReads: "master",
-      maxRedirections: 16,
-      retryDelayOnMoved: 0,
-      retryDelayOnFailover: 100,
-      retryDelayOnClusterDown: 100,
-      retryDelayOnTryAgain: 100,
-      slotsRefreshTimeout: 1e3,
-      useSRVRecords: false,
-      resolveSrv: dns_1.resolveSrv,
-      dnsLookup: dns_1.lookup,
-      enableAutoPipelining: false,
-      autoPipeliningIgnoredCommands: [],
-      shardedSubscribers: false
-    };
-  }
-});
-
-// node_modules/ioredis/built/cluster/util.js
-var require_util8 = __commonJS({
-  "node_modules/ioredis/built/cluster/util.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.getConnectionName = exports2.weightSrvRecords = exports2.groupSrvRecords = exports2.getUniqueHostnamesFromOptions = exports2.normalizeNodeOptions = exports2.nodeKeyToRedisOptions = exports2.getNodeKey = void 0;
-    var utils_1 = require_utils6();
-    var net_1 = require("net");
-    function getNodeKey(node) {
-      node.port = node.port || 6379;
-      node.host = node.host || "127.0.0.1";
-      return node.host + ":" + node.port;
-    }
-    exports2.getNodeKey = getNodeKey;
-    function nodeKeyToRedisOptions(nodeKey) {
-      const portIndex = nodeKey.lastIndexOf(":");
-      if (portIndex === -1) {
-        throw new Error(`Invalid node key ${nodeKey}`);
-      }
-      return {
-        host: nodeKey.slice(0, portIndex),
-        port: Number(nodeKey.slice(portIndex + 1))
-      };
-    }
-    exports2.nodeKeyToRedisOptions = nodeKeyToRedisOptions;
-    function normalizeNodeOptions(nodes) {
-      return nodes.map((node) => {
-        const options = {};
-        if (typeof node === "object") {
-          Object.assign(options, node);
-        } else if (typeof node === "string") {
-          Object.assign(options, (0, utils_1.parseURL)(node));
-        } else if (typeof node === "number") {
-          options.port = node;
-        } else {
-          throw new Error("Invalid argument " + node);
-        }
-        if (typeof options.port === "string") {
-          options.port = parseInt(options.port, 10);
-        }
-        delete options.db;
-        if (!options.port) {
-          options.port = 6379;
-        }
-        if (!options.host) {
-          options.host = "127.0.0.1";
-        }
-        return (0, utils_1.resolveTLSProfile)(options);
-      });
-    }
-    exports2.normalizeNodeOptions = normalizeNodeOptions;
-    function getUniqueHostnamesFromOptions(nodes) {
-      const uniqueHostsMap = {};
-      nodes.forEach((node) => {
-        uniqueHostsMap[node.host] = true;
-      });
-      return Object.keys(uniqueHostsMap).filter((host) => !(0, net_1.isIP)(host));
-    }
-    exports2.getUniqueHostnamesFromOptions = getUniqueHostnamesFromOptions;
-    function groupSrvRecords(records) {
-      const recordsByPriority = {};
-      for (const record of records) {
-        if (!recordsByPriority.hasOwnProperty(record.priority)) {
-          recordsByPriority[record.priority] = {
-            totalWeight: record.weight,
-            records: [record]
-          };
-        } else {
-          recordsByPriority[record.priority].totalWeight += record.weight;
-          recordsByPriority[record.priority].records.push(record);
-        }
-      }
-      return recordsByPriority;
-    }
-    exports2.groupSrvRecords = groupSrvRecords;
-    function weightSrvRecords(recordsGroup) {
-      if (recordsGroup.records.length === 1) {
-        recordsGroup.totalWeight = 0;
-        return recordsGroup.records.shift();
-      }
-      const random = Math.floor(Math.random() * (recordsGroup.totalWeight + recordsGroup.records.length));
-      let total = 0;
-      for (const [i, record] of recordsGroup.records.entries()) {
-        total += 1 + record.weight;
-        if (total > random) {
-          recordsGroup.totalWeight -= record.weight;
-          recordsGroup.records.splice(i, 1);
-          return record;
-        }
-      }
-    }
-    exports2.weightSrvRecords = weightSrvRecords;
-    function getConnectionName(component, nodeConnectionName) {
-      const prefix = `ioredis-cluster(${component})`;
-      return nodeConnectionName ? `${prefix}:${nodeConnectionName}` : prefix;
-    }
-    exports2.getConnectionName = getConnectionName;
-  }
-});
-
-// node_modules/ioredis/built/cluster/ClusterSubscriber.js
-var require_ClusterSubscriber = __commonJS({
-  "node_modules/ioredis/built/cluster/ClusterSubscriber.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var util_1 = require_util8();
-    var utils_1 = require_utils6();
-    var Redis_1 = require_Redis();
-    var debug8 = (0, utils_1.Debug)("cluster:subscriber");
-    var ClusterSubscriber = class {
-      constructor(connectionPool, emitter, isSharded = false) {
-        this.connectionPool = connectionPool;
-        this.emitter = emitter;
-        this.isSharded = isSharded;
-        this.started = false;
-        this.subscriber = null;
-        this.slotRange = [];
-        this.onSubscriberEnd = () => {
-          if (!this.started) {
-            debug8("subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting.");
-            return;
-          }
-          debug8("subscriber has disconnected, selecting a new one...");
-          this.selectSubscriber();
-        };
-        this.connectionPool.on("-node", (_, key) => {
-          if (!this.started || !this.subscriber) {
-            return;
-          }
-          if ((0, util_1.getNodeKey)(this.subscriber.options) === key) {
-            debug8("subscriber has left, selecting a new one...");
-            this.selectSubscriber();
-          }
-        });
-        this.connectionPool.on("+node", () => {
-          if (!this.started || this.subscriber) {
-            return;
-          }
-          debug8("a new node is discovered and there is no subscriber, selecting a new one...");
-          this.selectSubscriber();
-        });
-      }
-      getInstance() {
-        return this.subscriber;
-      }
-      /**
-       * Associate this subscriber to a specific slot range.
-       *
-       * Returns the range or an empty array if the slot range couldn't be associated.
-       *
-       * BTW: This is more for debugging and testing purposes.
-       *
-       * @param range
-       */
-      associateSlotRange(range) {
-        if (this.isSharded) {
-          this.slotRange = range;
-        }
-        return this.slotRange;
-      }
-      start() {
-        this.started = true;
-        this.selectSubscriber();
-        debug8("started");
-      }
-      stop() {
-        this.started = false;
-        if (this.subscriber) {
-          this.subscriber.disconnect();
-          this.subscriber = null;
-        }
-      }
-      isStarted() {
-        return this.started;
-      }
-      selectSubscriber() {
-        const lastActiveSubscriber = this.lastActiveSubscriber;
-        if (lastActiveSubscriber) {
-          lastActiveSubscriber.off("end", this.onSubscriberEnd);
-          lastActiveSubscriber.disconnect();
-        }
-        if (this.subscriber) {
-          this.subscriber.off("end", this.onSubscriberEnd);
-          this.subscriber.disconnect();
-        }
-        const sampleNode = (0, utils_1.sample)(this.connectionPool.getNodes());
-        if (!sampleNode) {
-          debug8("selecting subscriber failed since there is no node discovered in the cluster yet");
-          this.subscriber = null;
-          return;
-        }
-        const { options } = sampleNode;
-        debug8("selected a subscriber %s:%s", options.host, options.port);
-        let connectionPrefix = "subscriber";
-        if (this.isSharded)
-          connectionPrefix = "ssubscriber";
-        this.subscriber = new Redis_1.default({
-          port: options.port,
-          host: options.host,
-          username: options.username,
-          password: options.password,
-          enableReadyCheck: true,
-          connectionName: (0, util_1.getConnectionName)(connectionPrefix, options.connectionName),
-          lazyConnect: true,
-          tls: options.tls,
-          // Don't try to reconnect the subscriber connection. If the connection fails
-          // we will get an end event (handled below), at which point we'll pick a new
-          // node from the pool and try to connect to that as the subscriber connection.
-          retryStrategy: null
-        });
-        this.subscriber.on("error", utils_1.noop);
-        this.subscriber.once("end", this.onSubscriberEnd);
-        const previousChannels = { subscribe: [], psubscribe: [], ssubscribe: [] };
-        if (lastActiveSubscriber) {
-          const condition = lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
-          if (condition && condition.subscriber) {
-            previousChannels.subscribe = condition.subscriber.channels("subscribe");
-            previousChannels.psubscribe = condition.subscriber.channels("psubscribe");
-            previousChannels.ssubscribe = condition.subscriber.channels("ssubscribe");
-          }
-        }
-        if (previousChannels.subscribe.length || previousChannels.psubscribe.length || previousChannels.ssubscribe.length) {
-          let pending = 0;
-          for (const type of ["subscribe", "psubscribe", "ssubscribe"]) {
-            const channels = previousChannels[type];
-            if (channels.length) {
-              pending += 1;
-              debug8("%s %d channels", type, channels.length);
-              this.subscriber[type](channels).then(() => {
-                if (!--pending) {
-                  this.lastActiveSubscriber = this.subscriber;
-                }
-              }).catch(() => {
-                debug8("failed to %s %d channels", type, channels.length);
-              });
-            }
-          }
-        } else {
-          this.lastActiveSubscriber = this.subscriber;
-        }
-        for (const event of [
-          "message",
-          "messageBuffer"
-        ]) {
-          this.subscriber.on(event, (arg1, arg2) => {
-            this.emitter.emit(event, arg1, arg2);
-          });
-        }
-        for (const event of ["pmessage", "pmessageBuffer"]) {
-          this.subscriber.on(event, (arg1, arg2, arg3) => {
-            this.emitter.emit(event, arg1, arg2, arg3);
-          });
-        }
-        if (this.isSharded == true) {
-          for (const event of [
-            "smessage",
-            "smessageBuffer"
-          ]) {
-            this.subscriber.on(event, (arg1, arg2) => {
-              this.emitter.emit(event, arg1, arg2);
-            });
-          }
-        }
-      }
-    };
-    exports2.default = ClusterSubscriber;
-  }
-});
-
-// node_modules/ioredis/built/cluster/ConnectionPool.js
-var require_ConnectionPool = __commonJS({
-  "node_modules/ioredis/built/cluster/ConnectionPool.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var events_1 = require("events");
-    var utils_1 = require_utils6();
-    var util_1 = require_util8();
-    var Redis_1 = require_Redis();
-    var debug8 = (0, utils_1.Debug)("cluster:connectionPool");
-    var ConnectionPool = class extends events_1.EventEmitter {
-      constructor(redisOptions) {
-        super();
-        this.redisOptions = redisOptions;
-        this.nodes = {
-          all: {},
-          master: {},
-          slave: {}
-        };
-        this.specifiedOptions = {};
-      }
-      getNodes(role = "all") {
-        const nodes = this.nodes[role];
-        return Object.keys(nodes).map((key) => nodes[key]);
-      }
-      getInstanceByKey(key) {
-        return this.nodes.all[key];
-      }
-      getSampleInstance(role) {
-        const keys = Object.keys(this.nodes[role]);
-        const sampleKey = (0, utils_1.sample)(keys);
-        return this.nodes[role][sampleKey];
-      }
-      /**
-       * Add a master node to the pool
-       * @param node
-       */
-      addMasterNode(node) {
-        const key = (0, util_1.getNodeKey)(node.options);
-        const redis = this.createRedisFromOptions(node, node.options.readOnly);
-        if (!node.options.readOnly) {
-          this.nodes.all[key] = redis;
-          this.nodes.master[key] = redis;
-          return true;
-        }
-        return false;
-      }
-      /**
-       * Creates a Redis connection instance from the node options
-       * @param node
-       * @param readOnly
-       */
-      createRedisFromOptions(node, readOnly) {
-        const redis = new Redis_1.default((0, utils_1.defaults)({
-          // Never try to reconnect when a node is lose,
-          // instead, waiting for a `MOVED` error and
-          // fetch the slots again.
-          retryStrategy: null,
-          // Offline queue should be enabled so that
-          // we don't need to wait for the `ready` event
-          // before sending commands to the node.
-          enableOfflineQueue: true,
-          readOnly
-        }, node, this.redisOptions, { lazyConnect: true }));
-        return redis;
-      }
-      /**
-       * Find or create a connection to the node
-       */
-      findOrCreate(node, readOnly = false) {
-        const key = (0, util_1.getNodeKey)(node);
-        readOnly = Boolean(readOnly);
-        if (this.specifiedOptions[key]) {
-          Object.assign(node, this.specifiedOptions[key]);
-        } else {
-          this.specifiedOptions[key] = node;
-        }
-        let redis;
-        if (this.nodes.all[key]) {
-          redis = this.nodes.all[key];
-          if (redis.options.readOnly !== readOnly) {
-            redis.options.readOnly = readOnly;
-            debug8("Change role of %s to %s", key, readOnly ? "slave" : "master");
-            redis[readOnly ? "readonly" : "readwrite"]().catch(utils_1.noop);
-            if (readOnly) {
-              delete this.nodes.master[key];
-              this.nodes.slave[key] = redis;
-            } else {
-              delete this.nodes.slave[key];
-              this.nodes.master[key] = redis;
-            }
-          }
-        } else {
-          debug8("Connecting to %s as %s", key, readOnly ? "slave" : "master");
-          redis = this.createRedisFromOptions(node, readOnly);
-          this.nodes.all[key] = redis;
-          this.nodes[readOnly ? "slave" : "master"][key] = redis;
-          redis.once("end", () => {
-            this.removeNode(key);
-            this.emit("-node", redis, key);
-            if (!Object.keys(this.nodes.all).length) {
-              this.emit("drain");
-            }
-          });
-          this.emit("+node", redis, key);
-          redis.on("error", function(error5) {
-            this.emit("nodeError", error5, key);
-          });
-        }
-        return redis;
-      }
-      /**
-       * Reset the pool with a set of nodes.
-       * The old node will be removed.
-       */
-      reset(nodes) {
-        debug8("Reset with %O", nodes);
-        const newNodes = {};
-        nodes.forEach((node) => {
-          const key = (0, util_1.getNodeKey)(node);
-          if (!(node.readOnly && newNodes[key])) {
-            newNodes[key] = node;
-          }
-        });
-        Object.keys(this.nodes.all).forEach((key) => {
-          if (!newNodes[key]) {
-            debug8("Disconnect %s because the node does not hold any slot", key);
-            this.nodes.all[key].disconnect();
-            this.removeNode(key);
-          }
-        });
-        Object.keys(newNodes).forEach((key) => {
-          const node = newNodes[key];
-          this.findOrCreate(node, node.readOnly);
-        });
-      }
-      /**
-       * Remove a node from the pool.
-       */
-      removeNode(key) {
-        const { nodes } = this;
-        if (nodes.all[key]) {
-          debug8("Remove %s from the pool", key);
-          delete nodes.all[key];
-        }
-        delete nodes.master[key];
-        delete nodes.slave[key];
-      }
-    };
-    exports2.default = ConnectionPool;
-  }
-});
-
-// node_modules/denque/index.js
-var require_denque = __commonJS({
-  "node_modules/denque/index.js"(exports2, module2) {
-    "use strict";
-    function Denque(array, options) {
-      var options = options || {};
-      this._capacity = options.capacity;
-      this._head = 0;
-      this._tail = 0;
-      if (Array.isArray(array)) {
-        this._fromArray(array);
-      } else {
-        this._capacityMask = 3;
-        this._list = new Array(4);
-      }
-    }
-    Denque.prototype.peekAt = function peekAt(index) {
-      var i = index;
-      if (i !== (i | 0)) {
-        return void 0;
-      }
-      var len = this.size();
-      if (i >= len || i < -len) return void 0;
-      if (i < 0) i += len;
-      i = this._head + i & this._capacityMask;
-      return this._list[i];
-    };
-    Denque.prototype.get = function get(i) {
-      return this.peekAt(i);
-    };
-    Denque.prototype.peek = function peek() {
-      if (this._head === this._tail) return void 0;
-      return this._list[this._head];
-    };
-    Denque.prototype.peekFront = function peekFront() {
-      return this.peek();
-    };
-    Denque.prototype.peekBack = function peekBack() {
-      return this.peekAt(-1);
-    };
-    Object.defineProperty(Denque.prototype, "length", {
-      get: function length() {
-        return this.size();
-      }
-    });
-    Denque.prototype.size = function size() {
-      if (this._head === this._tail) return 0;
-      if (this._head < this._tail) return this._tail - this._head;
-      else return this._capacityMask + 1 - (this._head - this._tail);
-    };
-    Denque.prototype.unshift = function unshift(item) {
-      if (arguments.length === 0) return this.size();
-      var len = this._list.length;
-      this._head = this._head - 1 + len & this._capacityMask;
-      this._list[this._head] = item;
-      if (this._tail === this._head) this._growArray();
-      if (this._capacity && this.size() > this._capacity) this.pop();
-      if (this._head < this._tail) return this._tail - this._head;
-      else return this._capacityMask + 1 - (this._head - this._tail);
-    };
-    Denque.prototype.shift = function shift() {
-      var head = this._head;
-      if (head === this._tail) return void 0;
-      var item = this._list[head];
-      this._list[head] = void 0;
-      this._head = head + 1 & this._capacityMask;
-      if (head < 2 && this._tail > 1e4 && this._tail <= this._list.length >>> 2) this._shrinkArray();
-      return item;
-    };
-    Denque.prototype.push = function push(item) {
-      if (arguments.length === 0) return this.size();
-      var tail = this._tail;
-      this._list[tail] = item;
-      this._tail = tail + 1 & this._capacityMask;
-      if (this._tail === this._head) {
-        this._growArray();
-      }
-      if (this._capacity && this.size() > this._capacity) {
-        this.shift();
-      }
-      if (this._head < this._tail) return this._tail - this._head;
-      else return this._capacityMask + 1 - (this._head - this._tail);
-    };
-    Denque.prototype.pop = function pop() {
-      var tail = this._tail;
-      if (tail === this._head) return void 0;
-      var len = this._list.length;
-      this._tail = tail - 1 + len & this._capacityMask;
-      var item = this._list[this._tail];
-      this._list[this._tail] = void 0;
-      if (this._head < 2 && tail > 1e4 && tail <= len >>> 2) this._shrinkArray();
-      return item;
-    };
-    Denque.prototype.removeOne = function removeOne(index) {
-      var i = index;
-      if (i !== (i | 0)) {
-        return void 0;
-      }
-      if (this._head === this._tail) return void 0;
-      var size = this.size();
-      var len = this._list.length;
-      if (i >= size || i < -size) return void 0;
-      if (i < 0) i += size;
-      i = this._head + i & this._capacityMask;
-      var item = this._list[i];
-      var k;
-      if (index < size / 2) {
-        for (k = index; k > 0; k--) {
-          this._list[i] = this._list[i = i - 1 + len & this._capacityMask];
-        }
-        this._list[i] = void 0;
-        this._head = this._head + 1 + len & this._capacityMask;
-      } else {
-        for (k = size - 1 - index; k > 0; k--) {
-          this._list[i] = this._list[i = i + 1 + len & this._capacityMask];
-        }
-        this._list[i] = void 0;
-        this._tail = this._tail - 1 + len & this._capacityMask;
-      }
-      return item;
-    };
-    Denque.prototype.remove = function remove(index, count) {
-      var i = index;
-      var removed;
-      var del_count = count;
-      if (i !== (i | 0)) {
-        return void 0;
-      }
-      if (this._head === this._tail) return void 0;
-      var size = this.size();
-      var len = this._list.length;
-      if (i >= size || i < -size || count < 1) return void 0;
-      if (i < 0) i += size;
-      if (count === 1 || !count) {
-        removed = new Array(1);
-        removed[0] = this.removeOne(i);
-        return removed;
-      }
-      if (i === 0 && i + count >= size) {
-        removed = this.toArray();
-        this.clear();
-        return removed;
-      }
-      if (i + count > size) count = size - i;
-      var k;
-      removed = new Array(count);
-      for (k = 0; k < count; k++) {
-        removed[k] = this._list[this._head + i + k & this._capacityMask];
-      }
-      i = this._head + i & this._capacityMask;
-      if (index + count === size) {
-        this._tail = this._tail - count + len & this._capacityMask;
-        for (k = count; k > 0; k--) {
-          this._list[i = i + 1 + len & this._capacityMask] = void 0;
-        }
-        return removed;
-      }
-      if (index === 0) {
-        this._head = this._head + count + len & this._capacityMask;
-        for (k = count - 1; k > 0; k--) {
-          this._list[i = i + 1 + len & this._capacityMask] = void 0;
-        }
-        return removed;
-      }
-      if (i < size / 2) {
-        this._head = this._head + index + count + len & this._capacityMask;
-        for (k = index; k > 0; k--) {
-          this.unshift(this._list[i = i - 1 + len & this._capacityMask]);
-        }
-        i = this._head - 1 + len & this._capacityMask;
-        while (del_count > 0) {
-          this._list[i = i - 1 + len & this._capacityMask] = void 0;
-          del_count--;
-        }
-        if (index < 0) this._tail = i;
-      } else {
-        this._tail = i;
-        i = i + count + len & this._capacityMask;
-        for (k = size - (count + index); k > 0; k--) {
-          this.push(this._list[i++]);
-        }
-        i = this._tail;
-        while (del_count > 0) {
-          this._list[i = i + 1 + len & this._capacityMask] = void 0;
-          del_count--;
-        }
-      }
-      if (this._head < 2 && this._tail > 1e4 && this._tail <= len >>> 2) this._shrinkArray();
-      return removed;
-    };
-    Denque.prototype.splice = function splice(index, count) {
-      var i = index;
-      if (i !== (i | 0)) {
-        return void 0;
-      }
-      var size = this.size();
-      if (i < 0) i += size;
-      if (i > size) return void 0;
-      if (arguments.length > 2) {
-        var k;
-        var temp;
-        var removed;
-        var arg_len = arguments.length;
-        var len = this._list.length;
-        var arguments_index = 2;
-        if (!size || i < size / 2) {
-          temp = new Array(i);
-          for (k = 0; k < i; k++) {
-            temp[k] = this._list[this._head + k & this._capacityMask];
-          }
-          if (count === 0) {
-            removed = [];
-            if (i > 0) {
-              this._head = this._head + i + len & this._capacityMask;
-            }
-          } else {
-            removed = this.remove(i, count);
-            this._head = this._head + i + len & this._capacityMask;
-          }
-          while (arg_len > arguments_index) {
-            this.unshift(arguments[--arg_len]);
-          }
-          for (k = i; k > 0; k--) {
-            this.unshift(temp[k - 1]);
-          }
-        } else {
-          temp = new Array(size - (i + count));
-          var leng = temp.length;
-          for (k = 0; k < leng; k++) {
-            temp[k] = this._list[this._head + i + count + k & this._capacityMask];
-          }
-          if (count === 0) {
-            removed = [];
-            if (i != size) {
-              this._tail = this._head + i + len & this._capacityMask;
-            }
-          } else {
-            removed = this.remove(i, count);
-            this._tail = this._tail - leng + len & this._capacityMask;
-          }
-          while (arguments_index < arg_len) {
-            this.push(arguments[arguments_index++]);
-          }
-          for (k = 0; k < leng; k++) {
-            this.push(temp[k]);
-          }
-        }
-        return removed;
-      } else {
-        return this.remove(i, count);
-      }
-    };
-    Denque.prototype.clear = function clear() {
-      this._list = new Array(this._list.length);
-      this._head = 0;
-      this._tail = 0;
-    };
-    Denque.prototype.isEmpty = function isEmpty() {
-      return this._head === this._tail;
-    };
-    Denque.prototype.toArray = function toArray() {
-      return this._copyArray(false);
-    };
-    Denque.prototype._fromArray = function _fromArray(array) {
-      var length = array.length;
-      var capacity = this._nextPowerOf2(length);
-      this._list = new Array(capacity);
-      this._capacityMask = capacity - 1;
-      this._tail = length;
-      for (var i = 0; i < length; i++) this._list[i] = array[i];
-    };
-    Denque.prototype._copyArray = function _copyArray(fullCopy, size) {
-      var src = this._list;
-      var capacity = src.length;
-      var length = this.length;
-      size = size | length;
-      if (size == length && this._head < this._tail) {
-        return this._list.slice(this._head, this._tail);
-      }
-      var dest = new Array(size);
-      var k = 0;
-      var i;
-      if (fullCopy || this._head > this._tail) {
-        for (i = this._head; i < capacity; i++) dest[k++] = src[i];
-        for (i = 0; i < this._tail; i++) dest[k++] = src[i];
-      } else {
-        for (i = this._head; i < this._tail; i++) dest[k++] = src[i];
-      }
-      return dest;
-    };
-    Denque.prototype._growArray = function _growArray() {
-      if (this._head != 0) {
-        var newList = this._copyArray(true, this._list.length << 1);
-        this._tail = this._list.length;
-        this._head = 0;
-        this._list = newList;
-      } else {
-        this._tail = this._list.length;
-        this._list.length <<= 1;
-      }
-      this._capacityMask = this._capacityMask << 1 | 1;
-    };
-    Denque.prototype._shrinkArray = function _shrinkArray() {
-      this._list.length >>>= 1;
-      this._capacityMask >>>= 1;
-    };
-    Denque.prototype._nextPowerOf2 = function _nextPowerOf2(num) {
-      var log2 = Math.log(num) / Math.log(2);
-      var nextPow2 = 1 << log2 + 1;
-      return Math.max(nextPow2, 4);
-    };
-    module2.exports = Denque;
-  }
-});
-
-// node_modules/ioredis/built/cluster/DelayQueue.js
-var require_DelayQueue = __commonJS({
-  "node_modules/ioredis/built/cluster/DelayQueue.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var utils_1 = require_utils6();
-    var Deque = require_denque();
-    var debug8 = (0, utils_1.Debug)("delayqueue");
-    var DelayQueue = class {
-      constructor() {
-        this.queues = {};
-        this.timeouts = {};
-      }
-      /**
-       * Add a new item to the queue
-       *
-       * @param bucket bucket name
-       * @param item function that will run later
-       * @param options
-       */
-      push(bucket, item, options) {
-        const callback = options.callback || process.nextTick;
-        if (!this.queues[bucket]) {
-          this.queues[bucket] = new Deque();
-        }
-        const queue = this.queues[bucket];
-        queue.push(item);
-        if (!this.timeouts[bucket]) {
-          this.timeouts[bucket] = setTimeout(() => {
-            callback(() => {
-              this.timeouts[bucket] = null;
-              this.execute(bucket);
-            });
-          }, options.timeout);
-        }
-      }
-      execute(bucket) {
-        const queue = this.queues[bucket];
-        if (!queue) {
-          return;
-        }
-        const { length } = queue;
-        if (!length) {
-          return;
-        }
-        debug8("send %d commands in %s queue", length, bucket);
-        this.queues[bucket] = null;
-        while (queue.length > 0) {
-          queue.shift()();
-        }
-      }
-    };
-    exports2.default = DelayQueue;
-  }
-});
-
-// node_modules/ioredis/built/cluster/ClusterSubscriberGroup.js
-var require_ClusterSubscriberGroup = __commonJS({
-  "node_modules/ioredis/built/cluster/ClusterSubscriberGroup.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var utils_1 = require_utils6();
-    var ClusterSubscriber_1 = require_ClusterSubscriber();
-    var ConnectionPool_1 = require_ConnectionPool();
-    var util_1 = require_util8();
-    var calculateSlot = require_lib2();
-    var debug8 = (0, utils_1.Debug)("cluster:subscriberGroup");
-    var ClusterSubscriberGroup = class {
-      /**
-       * Register callbacks
-       *
-       * @param cluster
-       */
-      constructor(cluster) {
-        this.cluster = cluster;
-        this.shardedSubscribers = /* @__PURE__ */ new Map();
-        this.clusterSlots = [];
-        this.subscriberToSlotsIndex = /* @__PURE__ */ new Map();
-        this.channels = /* @__PURE__ */ new Map();
-        cluster.on("+node", (redis) => {
-          this._addSubscriber(redis);
-        });
-        cluster.on("-node", (redis) => {
-          this._removeSubscriber(redis);
-        });
-        cluster.on("refresh", () => {
-          this._refreshSlots(cluster);
-        });
-      }
-      /**
-       * Get the responsible subscriber.
-       *
-       * Returns null if no subscriber was found
-       *
-       * @param slot
-       */
-      getResponsibleSubscriber(slot) {
-        const nodeKey = this.clusterSlots[slot][0];
-        return this.shardedSubscribers.get(nodeKey);
-      }
-      /**
-       * Adds a channel for which this subscriber group is responsible
-       *
-       * @param channels
-       */
-      addChannels(channels) {
-        const slot = calculateSlot(channels[0]);
-        channels.forEach((c) => {
-          if (calculateSlot(c) != slot)
-            return -1;
-        });
-        const currChannels = this.channels.get(slot);
-        if (!currChannels) {
-          this.channels.set(slot, channels);
-        } else {
-          this.channels.set(slot, currChannels.concat(channels));
-        }
-        return [...this.channels.values()].flatMap((v) => v).length;
-      }
-      /**
-       * Removes channels for which the subscriber group is responsible by optionally unsubscribing
-       * @param channels
-       */
-      removeChannels(channels) {
-        const slot = calculateSlot(channels[0]);
-        channels.forEach((c) => {
-          if (calculateSlot(c) != slot)
-            return -1;
-        });
-        const slotChannels = this.channels.get(slot);
-        if (slotChannels) {
-          const updatedChannels = slotChannels.filter((c) => !channels.includes(c));
-          this.channels.set(slot, updatedChannels);
-        }
-        return [...this.channels.values()].flatMap((v) => v).length;
-      }
-      /**
-       * Disconnect all subscribers
-       */
-      stop() {
-        for (const s of this.shardedSubscribers.values()) {
-          s.stop();
-        }
-      }
-      /**
-       * Start all not yet started subscribers
-       */
-      start() {
-        for (const s of this.shardedSubscribers.values()) {
-          if (!s.isStarted()) {
-            s.start();
-          }
-        }
-      }
-      /**
-       * Add a subscriber to the group of subscribers
-       *
-       * @param redis
-       */
-      _addSubscriber(redis) {
-        const pool = new ConnectionPool_1.default(redis.options);
-        if (pool.addMasterNode(redis)) {
-          const sub = new ClusterSubscriber_1.default(pool, this.cluster, true);
-          const nodeKey = (0, util_1.getNodeKey)(redis.options);
-          this.shardedSubscribers.set(nodeKey, sub);
-          sub.start();
-          this._resubscribe();
-          this.cluster.emit("+subscriber");
-          return sub;
-        }
-        return null;
-      }
-      /**
-       * Removes a subscriber from the group
-       * @param redis
-       */
-      _removeSubscriber(redis) {
-        const nodeKey = (0, util_1.getNodeKey)(redis.options);
-        const sub = this.shardedSubscribers.get(nodeKey);
-        if (sub) {
-          sub.stop();
-          this.shardedSubscribers.delete(nodeKey);
-          this._resubscribe();
-          this.cluster.emit("-subscriber");
-        }
-        return this.shardedSubscribers;
-      }
-      /**
-       * Refreshes the subscriber-related slot ranges
-       *
-       * Returns false if no refresh was needed
-       *
-       * @param cluster
-       */
-      _refreshSlots(cluster) {
-        if (this._slotsAreEqual(cluster.slots)) {
-          debug8("Nothing to refresh because the new cluster map is equal to the previous one.");
-        } else {
-          debug8("Refreshing the slots of the subscriber group.");
-          this.subscriberToSlotsIndex = /* @__PURE__ */ new Map();
-          for (let slot = 0; slot < cluster.slots.length; slot++) {
-            const node = cluster.slots[slot][0];
-            if (!this.subscriberToSlotsIndex.has(node)) {
-              this.subscriberToSlotsIndex.set(node, []);
-            }
-            this.subscriberToSlotsIndex.get(node).push(Number(slot));
-          }
-          this._resubscribe();
-          this.clusterSlots = JSON.parse(JSON.stringify(cluster.slots));
-          this.cluster.emit("subscribersReady");
-          return true;
-        }
-        return false;
-      }
-      /**
-       * Resubscribes to the previous channels
-       *
-       * @private
-       */
-      _resubscribe() {
-        if (this.shardedSubscribers) {
-          this.shardedSubscribers.forEach((s, nodeKey) => {
-            const subscriberSlots = this.subscriberToSlotsIndex.get(nodeKey);
-            if (subscriberSlots) {
-              s.associateSlotRange(subscriberSlots);
-              subscriberSlots.forEach((ss) => {
-                const redis = s.getInstance();
-                const channels = this.channels.get(ss);
-                if (channels && channels.length > 0) {
-                  if (redis) {
-                    redis.ssubscribe(channels);
-                    redis.on("ready", () => {
-                      redis.ssubscribe(channels);
-                    });
-                  }
-                }
-              });
-            }
-          });
-        }
-      }
-      /**
-       * Deep equality of the cluster slots objects
-       *
-       * @param other
-       * @private
-       */
-      _slotsAreEqual(other) {
-        if (this.clusterSlots === void 0)
-          return false;
-        else
-          return JSON.stringify(this.clusterSlots) === JSON.stringify(other);
-      }
-    };
-    exports2.default = ClusterSubscriberGroup;
-  }
-});
-
-// node_modules/ioredis/built/cluster/index.js
-var require_cluster = __commonJS({
-  "node_modules/ioredis/built/cluster/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var commands_1 = require_built();
-    var events_1 = require("events");
-    var redis_errors_1 = require_redis_errors();
-    var standard_as_callback_1 = require_built2();
-    var Command_1 = require_Command();
-    var ClusterAllFailedError_1 = require_ClusterAllFailedError();
-    var Redis_1 = require_Redis();
-    var ScanStream_1 = require_ScanStream();
-    var transaction_1 = require_transaction();
-    var utils_1 = require_utils6();
-    var applyMixin_1 = require_applyMixin();
-    var Commander_1 = require_Commander();
-    var ClusterOptions_1 = require_ClusterOptions();
-    var ClusterSubscriber_1 = require_ClusterSubscriber();
-    var ConnectionPool_1 = require_ConnectionPool();
-    var DelayQueue_1 = require_DelayQueue();
-    var util_1 = require_util8();
-    var Deque = require_denque();
-    var ClusterSubscriberGroup_1 = require_ClusterSubscriberGroup();
-    var debug8 = (0, utils_1.Debug)("cluster");
-    var REJECT_OVERWRITTEN_COMMANDS = /* @__PURE__ */ new WeakSet();
-    var Cluster = class _Cluster extends Commander_1.default {
-      /**
-       * Creates an instance of Cluster.
-       */
-      //TODO: Add an option that enables or disables sharded PubSub
-      constructor(startupNodes, options = {}) {
-        super();
-        this.slots = [];
-        this._groupsIds = {};
-        this._groupsBySlot = Array(16384);
-        this.isCluster = true;
-        this.retryAttempts = 0;
-        this.delayQueue = new DelayQueue_1.default();
-        this.offlineQueue = new Deque();
-        this.isRefreshing = false;
-        this._refreshSlotsCacheCallbacks = [];
-        this._autoPipelines = /* @__PURE__ */ new Map();
-        this._runningAutoPipelines = /* @__PURE__ */ new Set();
-        this._readyDelayedCallbacks = [];
-        this.connectionEpoch = 0;
-        events_1.EventEmitter.call(this);
-        this.startupNodes = startupNodes;
-        this.options = (0, utils_1.defaults)({}, options, ClusterOptions_1.DEFAULT_CLUSTER_OPTIONS, this.options);
-        if (this.options.shardedSubscribers == true)
-          this.shardedSubscribers = new ClusterSubscriberGroup_1.default(this);
-        if (this.options.redisOptions && this.options.redisOptions.keyPrefix && !this.options.keyPrefix) {
-          this.options.keyPrefix = this.options.redisOptions.keyPrefix;
-        }
-        if (typeof this.options.scaleReads !== "function" && ["all", "master", "slave"].indexOf(this.options.scaleReads) === -1) {
-          throw new Error('Invalid option scaleReads "' + this.options.scaleReads + '". Expected "all", "master", "slave" or a custom function');
-        }
-        this.connectionPool = new ConnectionPool_1.default(this.options.redisOptions);
-        this.connectionPool.on("-node", (redis, key) => {
-          this.emit("-node", redis);
-        });
-        this.connectionPool.on("+node", (redis) => {
-          this.emit("+node", redis);
-        });
-        this.connectionPool.on("drain", () => {
-          this.setStatus("close");
-        });
-        this.connectionPool.on("nodeError", (error5, key) => {
-          this.emit("node error", error5, key);
-        });
-        this.subscriber = new ClusterSubscriber_1.default(this.connectionPool, this);
-        if (this.options.scripts) {
-          Object.entries(this.options.scripts).forEach(([name, definition]) => {
-            this.defineCommand(name, definition);
-          });
-        }
-        if (this.options.lazyConnect) {
-          this.setStatus("wait");
-        } else {
-          this.connect().catch((err) => {
-            debug8("connecting failed: %s", err);
-          });
-        }
-      }
-      /**
-       * Connect to a cluster
-       */
-      connect() {
-        return new Promise((resolve, reject) => {
-          if (this.status === "connecting" || this.status === "connect" || this.status === "ready") {
-            reject(new Error("Redis is already connecting/connected"));
-            return;
-          }
-          const epoch = ++this.connectionEpoch;
-          this.setStatus("connecting");
-          this.resolveStartupNodeHostnames().then((nodes) => {
-            if (this.connectionEpoch !== epoch) {
-              debug8("discard connecting after resolving startup nodes because epoch not match: %d != %d", epoch, this.connectionEpoch);
-              reject(new redis_errors_1.RedisError("Connection is discarded because a new connection is made"));
-              return;
-            }
-            if (this.status !== "connecting") {
-              debug8("discard connecting after resolving startup nodes because the status changed to %s", this.status);
-              reject(new redis_errors_1.RedisError("Connection is aborted"));
-              return;
-            }
-            this.connectionPool.reset(nodes);
-            const readyHandler = () => {
-              this.setStatus("ready");
-              this.retryAttempts = 0;
-              this.executeOfflineCommands();
-              this.resetNodesRefreshInterval();
-              resolve();
-            };
-            let closeListener = void 0;
-            const refreshListener = () => {
-              this.invokeReadyDelayedCallbacks(void 0);
-              this.removeListener("close", closeListener);
-              this.manuallyClosing = false;
-              this.setStatus("connect");
-              if (this.options.enableReadyCheck) {
-                this.readyCheck((err, fail) => {
-                  if (err || fail) {
-                    debug8("Ready check failed (%s). Reconnecting...", err || fail);
-                    if (this.status === "connect") {
-                      this.disconnect(true);
-                    }
-                  } else {
-                    readyHandler();
-                  }
-                });
-              } else {
-                readyHandler();
-              }
-            };
-            closeListener = () => {
-              const error5 = new Error("None of startup nodes is available");
-              this.removeListener("refresh", refreshListener);
-              this.invokeReadyDelayedCallbacks(error5);
-              reject(error5);
-            };
-            this.once("refresh", refreshListener);
-            this.once("close", closeListener);
-            this.once("close", this.handleCloseEvent.bind(this));
-            this.refreshSlotsCache((err) => {
-              if (err && err.message === ClusterAllFailedError_1.default.defaultMessage) {
-                Redis_1.default.prototype.silentEmit.call(this, "error", err);
-                this.connectionPool.reset([]);
-              }
-            });
-            this.subscriber.start();
-            if (this.options.shardedSubscribers) {
-              this.shardedSubscribers.start();
-            }
-          }).catch((err) => {
-            this.setStatus("close");
-            this.handleCloseEvent(err);
-            this.invokeReadyDelayedCallbacks(err);
-            reject(err);
-          });
-        });
-      }
-      /**
-       * Disconnect from every node in the cluster.
-       */
-      disconnect(reconnect = false) {
-        const status = this.status;
-        this.setStatus("disconnecting");
-        if (!reconnect) {
-          this.manuallyClosing = true;
-        }
-        if (this.reconnectTimeout && !reconnect) {
-          clearTimeout(this.reconnectTimeout);
-          this.reconnectTimeout = null;
-          debug8("Canceled reconnecting attempts");
-        }
-        this.clearNodesRefreshInterval();
-        this.subscriber.stop();
-        if (this.options.shardedSubscribers) {
-          this.shardedSubscribers.stop();
-        }
-        if (status === "wait") {
-          this.setStatus("close");
-          this.handleCloseEvent();
-        } else {
-          this.connectionPool.reset([]);
-        }
-      }
-      /**
-       * Quit the cluster gracefully.
-       */
-      quit(callback) {
-        const status = this.status;
-        this.setStatus("disconnecting");
-        this.manuallyClosing = true;
-        if (this.reconnectTimeout) {
-          clearTimeout(this.reconnectTimeout);
-          this.reconnectTimeout = null;
-        }
-        this.clearNodesRefreshInterval();
-        this.subscriber.stop();
-        if (this.options.shardedSubscribers) {
-          this.shardedSubscribers.stop();
-        }
-        if (status === "wait") {
-          const ret = (0, standard_as_callback_1.default)(Promise.resolve("OK"), callback);
-          setImmediate(function() {
-            this.setStatus("close");
-            this.handleCloseEvent();
-          }.bind(this));
-          return ret;
-        }
-        return (0, standard_as_callback_1.default)(Promise.all(this.nodes().map((node) => node.quit().catch((err) => {
-          if (err.message === utils_1.CONNECTION_CLOSED_ERROR_MSG) {
-            return "OK";
-          }
-          throw err;
-        }))).then(() => "OK"), callback);
-      }
-      /**
-       * Create a new instance with the same startup nodes and options as the current one.
-       *
-       * @example
-       * ```js
-       * var cluster = new Redis.Cluster([{ host: "127.0.0.1", port: "30001" }]);
-       * var anotherCluster = cluster.duplicate();
-       * ```
-       */
-      duplicate(overrideStartupNodes = [], overrideOptions = {}) {
-        const startupNodes = overrideStartupNodes.length > 0 ? overrideStartupNodes : this.startupNodes.slice(0);
-        const options = Object.assign({}, this.options, overrideOptions);
-        return new _Cluster(startupNodes, options);
-      }
-      /**
-       * Get nodes with the specified role
-       */
-      nodes(role = "all") {
-        if (role !== "all" && role !== "master" && role !== "slave") {
-          throw new Error('Invalid role "' + role + '". Expected "all", "master" or "slave"');
-        }
-        return this.connectionPool.getNodes(role);
-      }
-      /**
-       * This is needed in order not to install a listener for each auto pipeline
-       *
-       * @ignore
-       */
-      delayUntilReady(callback) {
-        this._readyDelayedCallbacks.push(callback);
-      }
-      /**
-       * Get the number of commands queued in automatic pipelines.
-       *
-       * This is not available (and returns 0) until the cluster is connected and slots information have been received.
-       */
-      get autoPipelineQueueSize() {
-        let queued = 0;
-        for (const pipeline of this._autoPipelines.values()) {
-          queued += pipeline.length;
-        }
-        return queued;
-      }
-      /**
-       * Refresh the slot cache
-       *
-       * @ignore
-       */
-      refreshSlotsCache(callback) {
-        if (callback) {
-          this._refreshSlotsCacheCallbacks.push(callback);
-        }
-        if (this.isRefreshing) {
-          return;
-        }
-        this.isRefreshing = true;
-        const _this = this;
-        const wrapper = (error5) => {
-          this.isRefreshing = false;
-          for (const callback2 of this._refreshSlotsCacheCallbacks) {
-            callback2(error5);
-          }
-          this._refreshSlotsCacheCallbacks = [];
-        };
-        const nodes = (0, utils_1.shuffle)(this.connectionPool.getNodes());
-        let lastNodeError = null;
-        function tryNode(index) {
-          if (index === nodes.length) {
-            const error5 = new ClusterAllFailedError_1.default(ClusterAllFailedError_1.default.defaultMessage, lastNodeError);
-            return wrapper(error5);
-          }
-          const node = nodes[index];
-          const key = `${node.options.host}:${node.options.port}`;
-          debug8("getting slot cache from %s", key);
-          _this.getInfoFromNode(node, function(err) {
-            switch (_this.status) {
-              case "close":
-              case "end":
-                return wrapper(new Error("Cluster is disconnected."));
-              case "disconnecting":
-                return wrapper(new Error("Cluster is disconnecting."));
-            }
-            if (err) {
-              _this.emit("node error", err, key);
-              lastNodeError = err;
-              tryNode(index + 1);
-            } else {
-              _this.emit("refresh");
-              wrapper();
-            }
-          });
-        }
-        tryNode(0);
-      }
-      /**
-       * @ignore
-       */
-      sendCommand(command, stream, node) {
-        if (this.status === "wait") {
-          this.connect().catch(utils_1.noop);
-        }
-        if (this.status === "end") {
-          command.reject(new Error(utils_1.CONNECTION_CLOSED_ERROR_MSG));
-          return command.promise;
-        }
-        let to = this.options.scaleReads;
-        if (to !== "master") {
-          const isCommandReadOnly = command.isReadOnly || (0, commands_1.exists)(command.name) && (0, commands_1.hasFlag)(command.name, "readonly");
-          if (!isCommandReadOnly) {
-            to = "master";
-          }
-        }
-        let targetSlot = node ? node.slot : command.getSlot();
-        const ttl = {};
-        const _this = this;
-        if (!node && !REJECT_OVERWRITTEN_COMMANDS.has(command)) {
-          REJECT_OVERWRITTEN_COMMANDS.add(command);
-          const reject = command.reject;
-          command.reject = function(err) {
-            const partialTry = tryConnection.bind(null, true);
-            _this.handleError(err, ttl, {
-              moved: function(slot, key) {
-                debug8("command %s is moved to %s", command.name, key);
-                targetSlot = Number(slot);
-                if (_this.slots[slot]) {
-                  _this.slots[slot][0] = key;
-                } else {
-                  _this.slots[slot] = [key];
-                }
-                _this._groupsBySlot[slot] = _this._groupsIds[_this.slots[slot].join(";")];
-                _this.connectionPool.findOrCreate(_this.natMapper(key));
-                tryConnection();
-                debug8("refreshing slot caches... (triggered by MOVED error)");
-                _this.refreshSlotsCache();
-              },
-              ask: function(slot, key) {
-                debug8("command %s is required to ask %s:%s", command.name, key);
-                const mapped = _this.natMapper(key);
-                _this.connectionPool.findOrCreate(mapped);
-                tryConnection(false, `${mapped.host}:${mapped.port}`);
-              },
-              tryagain: partialTry,
-              clusterDown: partialTry,
-              connectionClosed: partialTry,
-              maxRedirections: function(redirectionError) {
-                reject.call(command, redirectionError);
-              },
-              defaults: function() {
-                reject.call(command, err);
-              }
-            });
-          };
-        }
-        tryConnection();
-        function tryConnection(random, asking) {
-          if (_this.status === "end") {
-            command.reject(new redis_errors_1.AbortError("Cluster is ended."));
-            return;
-          }
-          let redis;
-          if (_this.status === "ready" || command.name === "cluster") {
-            if (node && node.redis) {
-              redis = node.redis;
-            } else if (Command_1.default.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) || Command_1.default.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)) {
-              if (_this.options.shardedSubscribers == true && (command.name == "ssubscribe" || command.name == "sunsubscribe")) {
-                const sub = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
-                let status = -1;
-                if (command.name == "ssubscribe")
-                  status = _this.shardedSubscribers.addChannels(command.getKeys());
-                if (command.name == "sunsubscribe")
-                  status = _this.shardedSubscribers.removeChannels(command.getKeys());
-                if (status !== -1) {
-                  redis = sub.getInstance();
-                } else {
-                  command.reject(new redis_errors_1.AbortError("Can't add or remove the given channels. Are they in the same slot?"));
-                }
-              } else {
-                redis = _this.subscriber.getInstance();
-              }
-              if (!redis) {
-                command.reject(new redis_errors_1.AbortError("No subscriber for the cluster"));
-                return;
-              }
-            } else {
-              if (!random) {
-                if (typeof targetSlot === "number" && _this.slots[targetSlot]) {
-                  const nodeKeys = _this.slots[targetSlot];
-                  if (typeof to === "function") {
-                    const nodes = nodeKeys.map(function(key) {
-                      return _this.connectionPool.getInstanceByKey(key);
-                    });
-                    redis = to(nodes, command);
-                    if (Array.isArray(redis)) {
-                      redis = (0, utils_1.sample)(redis);
-                    }
-                    if (!redis) {
-                      redis = nodes[0];
-                    }
-                  } else {
-                    let key;
-                    if (to === "all") {
-                      key = (0, utils_1.sample)(nodeKeys);
-                    } else if (to === "slave" && nodeKeys.length > 1) {
-                      key = (0, utils_1.sample)(nodeKeys, 1);
-                    } else {
-                      key = nodeKeys[0];
-                    }
-                    redis = _this.connectionPool.getInstanceByKey(key);
-                  }
-                }
-                if (asking) {
-                  redis = _this.connectionPool.getInstanceByKey(asking);
-                  redis.asking();
-                }
-              }
-              if (!redis) {
-                redis = (typeof to === "function" ? null : _this.connectionPool.getSampleInstance(to)) || _this.connectionPool.getSampleInstance("all");
-              }
-            }
-            if (node && !node.redis) {
-              node.redis = redis;
-            }
-          }
-          if (redis) {
-            redis.sendCommand(command, stream);
-          } else if (_this.options.enableOfflineQueue) {
-            _this.offlineQueue.push({
-              command,
-              stream,
-              node
-            });
-          } else {
-            command.reject(new Error("Cluster isn't ready and enableOfflineQueue options is false"));
-          }
-        }
-        return command.promise;
-      }
-      sscanStream(key, options) {
-        return this.createScanStream("sscan", { key, options });
-      }
-      sscanBufferStream(key, options) {
-        return this.createScanStream("sscanBuffer", { key, options });
-      }
-      hscanStream(key, options) {
-        return this.createScanStream("hscan", { key, options });
-      }
-      hscanBufferStream(key, options) {
-        return this.createScanStream("hscanBuffer", { key, options });
-      }
-      zscanStream(key, options) {
-        return this.createScanStream("zscan", { key, options });
-      }
-      zscanBufferStream(key, options) {
-        return this.createScanStream("zscanBuffer", { key, options });
-      }
-      /**
-       * @ignore
-       */
-      handleError(error5, ttl, handlers) {
-        if (typeof ttl.value === "undefined") {
-          ttl.value = this.options.maxRedirections;
-        } else {
-          ttl.value -= 1;
-        }
-        if (ttl.value <= 0) {
-          handlers.maxRedirections(new Error("Too many Cluster redirections. Last error: " + error5));
-          return;
-        }
-        const errv = error5.message.split(" ");
-        if (errv[0] === "MOVED") {
-          const timeout = this.options.retryDelayOnMoved;
-          if (timeout && typeof timeout === "number") {
-            this.delayQueue.push("moved", handlers.moved.bind(null, errv[1], errv[2]), { timeout });
-          } else {
-            handlers.moved(errv[1], errv[2]);
-          }
-        } else if (errv[0] === "ASK") {
-          handlers.ask(errv[1], errv[2]);
-        } else if (errv[0] === "TRYAGAIN") {
-          this.delayQueue.push("tryagain", handlers.tryagain, {
-            timeout: this.options.retryDelayOnTryAgain
-          });
-        } else if (errv[0] === "CLUSTERDOWN" && this.options.retryDelayOnClusterDown > 0) {
-          this.delayQueue.push("clusterdown", handlers.connectionClosed, {
-            timeout: this.options.retryDelayOnClusterDown,
-            callback: this.refreshSlotsCache.bind(this)
-          });
-        } else if (error5.message === utils_1.CONNECTION_CLOSED_ERROR_MSG && this.options.retryDelayOnFailover > 0 && this.status === "ready") {
-          this.delayQueue.push("failover", handlers.connectionClosed, {
-            timeout: this.options.retryDelayOnFailover,
-            callback: this.refreshSlotsCache.bind(this)
-          });
-        } else {
-          handlers.defaults();
-        }
-      }
-      resetOfflineQueue() {
-        this.offlineQueue = new Deque();
-      }
-      clearNodesRefreshInterval() {
-        if (this.slotsTimer) {
-          clearTimeout(this.slotsTimer);
-          this.slotsTimer = null;
-        }
-      }
-      resetNodesRefreshInterval() {
-        if (this.slotsTimer || !this.options.slotsRefreshInterval) {
-          return;
-        }
-        const nextRound = () => {
-          this.slotsTimer = setTimeout(() => {
-            debug8('refreshing slot caches... (triggered by "slotsRefreshInterval" option)');
-            this.refreshSlotsCache(() => {
-              nextRound();
-            });
-          }, this.options.slotsRefreshInterval);
-        };
-        nextRound();
-      }
-      /**
-       * Change cluster instance's status
-       */
-      setStatus(status) {
-        debug8("status: %s -> %s", this.status || "[empty]", status);
-        this.status = status;
-        process.nextTick(() => {
-          this.emit(status);
-        });
-      }
-      /**
-       * Called when closed to check whether a reconnection should be made
-       */
-      handleCloseEvent(reason) {
-        if (reason) {
-          debug8("closed because %s", reason);
-        }
-        let retryDelay;
-        if (!this.manuallyClosing && typeof this.options.clusterRetryStrategy === "function") {
-          retryDelay = this.options.clusterRetryStrategy.call(this, ++this.retryAttempts, reason);
-        }
-        if (typeof retryDelay === "number") {
-          this.setStatus("reconnecting");
-          this.reconnectTimeout = setTimeout(() => {
-            this.reconnectTimeout = null;
-            debug8("Cluster is disconnected. Retrying after %dms", retryDelay);
-            this.connect().catch(function(err) {
-              debug8("Got error %s when reconnecting. Ignoring...", err);
-            });
-          }, retryDelay);
-        } else {
-          this.setStatus("end");
-          this.flushQueue(new Error("None of startup nodes is available"));
-        }
-      }
-      /**
-       * Flush offline queue with error.
-       */
-      flushQueue(error5) {
-        let item;
-        while (item = this.offlineQueue.shift()) {
-          item.command.reject(error5);
-        }
-      }
-      executeOfflineCommands() {
-        if (this.offlineQueue.length) {
-          debug8("send %d commands in offline queue", this.offlineQueue.length);
-          const offlineQueue = this.offlineQueue;
-          this.resetOfflineQueue();
-          let item;
-          while (item = offlineQueue.shift()) {
-            this.sendCommand(item.command, item.stream, item.node);
-          }
-        }
-      }
-      natMapper(nodeKey) {
-        const key = typeof nodeKey === "string" ? nodeKey : `${nodeKey.host}:${nodeKey.port}`;
-        let mapped = null;
-        if (this.options.natMap && typeof this.options.natMap === "function") {
-          mapped = this.options.natMap(key);
-        } else if (this.options.natMap && typeof this.options.natMap === "object") {
-          mapped = this.options.natMap[key];
-        }
-        if (mapped) {
-          debug8("NAT mapping %s -> %O", key, mapped);
-          return Object.assign({}, mapped);
-        }
-        return typeof nodeKey === "string" ? (0, util_1.nodeKeyToRedisOptions)(nodeKey) : nodeKey;
-      }
-      getInfoFromNode(redis, callback) {
-        if (!redis) {
-          return callback(new Error("Node is disconnected"));
-        }
-        const duplicatedConnection = redis.duplicate({
-          enableOfflineQueue: true,
-          enableReadyCheck: false,
-          retryStrategy: null,
-          connectionName: (0, util_1.getConnectionName)("refresher", this.options.redisOptions && this.options.redisOptions.connectionName)
-        });
-        duplicatedConnection.on("error", utils_1.noop);
-        duplicatedConnection.cluster("SLOTS", (0, utils_1.timeout)((err, result) => {
-          duplicatedConnection.disconnect();
-          if (err) {
-            debug8("error encountered running CLUSTER.SLOTS: %s", err);
-            return callback(err);
-          }
-          if (this.status === "disconnecting" || this.status === "close" || this.status === "end") {
-            debug8("ignore CLUSTER.SLOTS results (count: %d) since cluster status is %s", result.length, this.status);
-            callback();
-            return;
-          }
-          const nodes = [];
-          debug8("cluster slots result count: %d", result.length);
-          for (let i = 0; i < result.length; ++i) {
-            const items = result[i];
-            const slotRangeStart = items[0];
-            const slotRangeEnd = items[1];
-            const keys = [];
-            for (let j2 = 2; j2 < items.length; j2++) {
-              if (!items[j2][0]) {
-                continue;
-              }
-              const node = this.natMapper({
-                host: items[j2][0],
-                port: items[j2][1]
-              });
-              node.readOnly = j2 !== 2;
-              nodes.push(node);
-              keys.push(node.host + ":" + node.port);
-            }
-            debug8("cluster slots result [%d]: slots %d~%d served by %s", i, slotRangeStart, slotRangeEnd, keys);
-            for (let slot = slotRangeStart; slot <= slotRangeEnd; slot++) {
-              this.slots[slot] = keys;
-            }
-          }
-          this._groupsIds = /* @__PURE__ */ Object.create(null);
-          let j = 0;
-          for (let i = 0; i < 16384; i++) {
-            const target = (this.slots[i] || []).join(";");
-            if (!target.length) {
-              this._groupsBySlot[i] = void 0;
-              continue;
-            }
-            if (!this._groupsIds[target]) {
-              this._groupsIds[target] = ++j;
-            }
-            this._groupsBySlot[i] = this._groupsIds[target];
-          }
-          this.connectionPool.reset(nodes);
-          callback();
-        }, this.options.slotsRefreshTimeout));
-      }
-      invokeReadyDelayedCallbacks(err) {
-        for (const c of this._readyDelayedCallbacks) {
-          process.nextTick(c, err);
-        }
-        this._readyDelayedCallbacks = [];
-      }
-      /**
-       * Check whether Cluster is able to process commands
-       */
-      readyCheck(callback) {
-        this.cluster("INFO", (err, res) => {
-          if (err) {
-            return callback(err);
-          }
-          if (typeof res !== "string") {
-            return callback();
-          }
-          let state;
-          const lines = res.split("\r\n");
-          for (let i = 0; i < lines.length; ++i) {
-            const parts = lines[i].split(":");
-            if (parts[0] === "cluster_state") {
-              state = parts[1];
-              break;
-            }
-          }
-          if (state === "fail") {
-            debug8("cluster state not ok (%s)", state);
-            callback(null, state);
-          } else {
-            callback();
-          }
-        });
-      }
-      resolveSrv(hostname) {
-        return new Promise((resolve, reject) => {
-          this.options.resolveSrv(hostname, (err, records) => {
-            if (err) {
-              return reject(err);
-            }
-            const self = this, groupedRecords = (0, util_1.groupSrvRecords)(records), sortedKeys = Object.keys(groupedRecords).sort((a, b) => parseInt(a) - parseInt(b));
-            function tryFirstOne(err2) {
-              if (!sortedKeys.length) {
-                return reject(err2);
-              }
-              const key = sortedKeys[0], group = groupedRecords[key], record = (0, util_1.weightSrvRecords)(group);
-              if (!group.records.length) {
-                sortedKeys.shift();
-              }
-              self.dnsLookup(record.name).then((host) => resolve({
-                host,
-                port: record.port
-              }), tryFirstOne);
-            }
-            tryFirstOne();
-          });
-        });
-      }
-      dnsLookup(hostname) {
-        return new Promise((resolve, reject) => {
-          this.options.dnsLookup(hostname, (err, address) => {
-            if (err) {
-              debug8("failed to resolve hostname %s to IP: %s", hostname, err.message);
-              reject(err);
-            } else {
-              debug8("resolved hostname %s to IP %s", hostname, address);
-              resolve(address);
-            }
-          });
-        });
-      }
-      /**
-       * Normalize startup nodes, and resolving hostnames to IPs.
-       *
-       * This process happens every time when #connect() is called since
-       * #startupNodes and DNS records may chanage.
-       */
-      async resolveStartupNodeHostnames() {
-        if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
-          throw new Error("`startupNodes` should contain at least one node.");
-        }
-        const startupNodes = (0, util_1.normalizeNodeOptions)(this.startupNodes);
-        const hostnames = (0, util_1.getUniqueHostnamesFromOptions)(startupNodes);
-        if (hostnames.length === 0) {
-          return startupNodes;
-        }
-        const configs = await Promise.all(hostnames.map((this.options.useSRVRecords ? this.resolveSrv : this.dnsLookup).bind(this)));
-        const hostnameToConfig = (0, utils_1.zipMap)(hostnames, configs);
-        return startupNodes.map((node) => {
-          const config2 = hostnameToConfig.get(node.host);
-          if (!config2) {
-            return node;
-          }
-          if (this.options.useSRVRecords) {
-            return Object.assign({}, node, config2);
-          }
-          return Object.assign({}, node, { host: config2 });
-        });
-      }
-      createScanStream(command, { key, options = {} }) {
-        return new ScanStream_1.default({
-          objectMode: true,
-          key,
-          redis: this,
-          command,
-          ...options
-        });
-      }
-    };
-    (0, applyMixin_1.default)(Cluster, events_1.EventEmitter);
-    (0, transaction_1.addTransactionSupport)(Cluster.prototype);
-    exports2.default = Cluster;
-  }
-});
-
-// node_modules/ioredis/built/connectors/AbstractConnector.js
-var require_AbstractConnector = __commonJS({
-  "node_modules/ioredis/built/connectors/AbstractConnector.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var utils_1 = require_utils6();
-    var debug8 = (0, utils_1.Debug)("AbstractConnector");
-    var AbstractConnector = class {
-      constructor(disconnectTimeout) {
-        this.connecting = false;
-        this.disconnectTimeout = disconnectTimeout;
-      }
-      check(info9) {
-        return true;
-      }
-      disconnect() {
-        this.connecting = false;
-        if (this.stream) {
-          const stream = this.stream;
-          const timeout = setTimeout(() => {
-            debug8("stream %s:%s still open, destroying it", stream.remoteAddress, stream.remotePort);
-            stream.destroy();
-          }, this.disconnectTimeout);
-          stream.on("close", () => clearTimeout(timeout));
-          stream.end();
-        }
-      }
-    };
-    exports2.default = AbstractConnector;
-  }
-});
-
-// node_modules/ioredis/built/connectors/StandaloneConnector.js
-var require_StandaloneConnector = __commonJS({
-  "node_modules/ioredis/built/connectors/StandaloneConnector.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var net_1 = require("net");
-    var tls_1 = require("tls");
-    var utils_1 = require_utils6();
-    var AbstractConnector_1 = require_AbstractConnector();
-    var StandaloneConnector = class extends AbstractConnector_1.default {
-      constructor(options) {
-        super(options.disconnectTimeout);
-        this.options = options;
-      }
-      connect(_) {
-        const { options } = this;
-        this.connecting = true;
-        let connectionOptions;
-        if ("path" in options && options.path) {
-          connectionOptions = {
-            path: options.path
-          };
-        } else {
-          connectionOptions = {};
-          if ("port" in options && options.port != null) {
-            connectionOptions.port = options.port;
-          }
-          if ("host" in options && options.host != null) {
-            connectionOptions.host = options.host;
-          }
-          if ("family" in options && options.family != null) {
-            connectionOptions.family = options.family;
-          }
-        }
-        if (options.tls) {
-          Object.assign(connectionOptions, options.tls);
-        }
-        return new Promise((resolve, reject) => {
-          process.nextTick(() => {
-            if (!this.connecting) {
-              reject(new Error(utils_1.CONNECTION_CLOSED_ERROR_MSG));
-              return;
-            }
-            try {
-              if (options.tls) {
-                this.stream = (0, tls_1.connect)(connectionOptions);
-              } else {
-                this.stream = (0, net_1.createConnection)(connectionOptions);
-              }
-            } catch (err) {
-              reject(err);
-              return;
-            }
-            this.stream.once("error", (err) => {
-              this.firstError = err;
-            });
-            resolve(this.stream);
-          });
-        });
-      }
-    };
-    exports2.default = StandaloneConnector;
-  }
-});
-
-// node_modules/ioredis/built/connectors/SentinelConnector/SentinelIterator.js
-var require_SentinelIterator = __commonJS({
-  "node_modules/ioredis/built/connectors/SentinelConnector/SentinelIterator.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    function isSentinelEql(a, b) {
-      return (a.host || "127.0.0.1") === (b.host || "127.0.0.1") && (a.port || 26379) === (b.port || 26379);
-    }
-    var SentinelIterator = class {
-      constructor(sentinels) {
-        this.cursor = 0;
-        this.sentinels = sentinels.slice(0);
-      }
-      next() {
-        const done = this.cursor >= this.sentinels.length;
-        return { done, value: done ? void 0 : this.sentinels[this.cursor++] };
-      }
-      reset(moveCurrentEndpointToFirst) {
-        if (moveCurrentEndpointToFirst && this.sentinels.length > 1 && this.cursor !== 1) {
-          this.sentinels.unshift(...this.sentinels.splice(this.cursor - 1));
-        }
-        this.cursor = 0;
-      }
-      add(sentinel) {
-        for (let i = 0; i < this.sentinels.length; i++) {
-          if (isSentinelEql(sentinel, this.sentinels[i])) {
-            return false;
-          }
-        }
-        this.sentinels.push(sentinel);
-        return true;
-      }
-      toString() {
-        return `${JSON.stringify(this.sentinels)} @${this.cursor}`;
-      }
-    };
-    exports2.default = SentinelIterator;
-  }
-});
-
-// node_modules/ioredis/built/connectors/SentinelConnector/FailoverDetector.js
-var require_FailoverDetector = __commonJS({
-  "node_modules/ioredis/built/connectors/SentinelConnector/FailoverDetector.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.FailoverDetector = void 0;
-    var utils_1 = require_utils6();
-    var debug8 = (0, utils_1.Debug)("FailoverDetector");
-    var CHANNEL_NAME = "+switch-master";
-    var FailoverDetector = class {
-      // sentinels can't be used for regular commands after this
-      constructor(connector, sentinels) {
-        this.isDisconnected = false;
-        this.connector = connector;
-        this.sentinels = sentinels;
-      }
-      cleanup() {
-        this.isDisconnected = true;
-        for (const sentinel of this.sentinels) {
-          sentinel.client.disconnect();
-        }
-      }
-      async subscribe() {
-        debug8("Starting FailoverDetector");
-        const promises = [];
-        for (const sentinel of this.sentinels) {
-          const promise = sentinel.client.subscribe(CHANNEL_NAME).catch((err) => {
-            debug8("Failed to subscribe to failover messages on sentinel %s:%s (%s)", sentinel.address.host || "127.0.0.1", sentinel.address.port || 26739, err.message);
-          });
-          promises.push(promise);
-          sentinel.client.on("message", (channel) => {
-            if (!this.isDisconnected && channel === CHANNEL_NAME) {
-              this.disconnect();
-            }
-          });
-        }
-        await Promise.all(promises);
-      }
-      disconnect() {
-        this.isDisconnected = true;
-        debug8("Failover detected, disconnecting");
-        this.connector.disconnect();
-      }
-    };
-    exports2.FailoverDetector = FailoverDetector;
-  }
-});
-
-// node_modules/ioredis/built/connectors/SentinelConnector/index.js
-var require_SentinelConnector = __commonJS({
-  "node_modules/ioredis/built/connectors/SentinelConnector/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.SentinelIterator = void 0;
-    var net_1 = require("net");
-    var utils_1 = require_utils6();
-    var tls_1 = require("tls");
-    var SentinelIterator_1 = require_SentinelIterator();
-    exports2.SentinelIterator = SentinelIterator_1.default;
-    var AbstractConnector_1 = require_AbstractConnector();
-    var Redis_1 = require_Redis();
-    var FailoverDetector_1 = require_FailoverDetector();
-    var debug8 = (0, utils_1.Debug)("SentinelConnector");
-    var SentinelConnector = class extends AbstractConnector_1.default {
-      constructor(options) {
-        super(options.disconnectTimeout);
-        this.options = options;
-        this.emitter = null;
-        this.failoverDetector = null;
-        if (!this.options.sentinels.length) {
-          throw new Error("Requires at least one sentinel to connect to.");
-        }
-        if (!this.options.name) {
-          throw new Error("Requires the name of master.");
-        }
-        this.sentinelIterator = new SentinelIterator_1.default(this.options.sentinels);
-      }
-      check(info9) {
-        const roleMatches = !info9.role || this.options.role === info9.role;
-        if (!roleMatches) {
-          debug8("role invalid, expected %s, but got %s", this.options.role, info9.role);
-          this.sentinelIterator.next();
-          this.sentinelIterator.next();
-          this.sentinelIterator.reset(true);
-        }
-        return roleMatches;
-      }
-      disconnect() {
-        super.disconnect();
-        if (this.failoverDetector) {
-          this.failoverDetector.cleanup();
-        }
-      }
-      connect(eventEmitter) {
-        this.connecting = true;
-        this.retryAttempts = 0;
-        let lastError;
-        const connectToNext = async () => {
-          const endpoint = this.sentinelIterator.next();
-          if (endpoint.done) {
-            this.sentinelIterator.reset(false);
-            const retryDelay = typeof this.options.sentinelRetryStrategy === "function" ? this.options.sentinelRetryStrategy(++this.retryAttempts) : null;
-            let errorMsg = typeof retryDelay !== "number" ? "All sentinels are unreachable and retry is disabled." : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`;
-            if (lastError) {
-              errorMsg += ` Last error: ${lastError.message}`;
-            }
-            debug8(errorMsg);
-            const error5 = new Error(errorMsg);
-            if (typeof retryDelay === "number") {
-              eventEmitter("error", error5);
-              await new Promise((resolve) => setTimeout(resolve, retryDelay));
-              return connectToNext();
-            } else {
-              throw error5;
-            }
-          }
-          let resolved = null;
-          let err = null;
-          try {
-            resolved = await this.resolve(endpoint.value);
-          } catch (error5) {
-            err = error5;
-          }
-          if (!this.connecting) {
-            throw new Error(utils_1.CONNECTION_CLOSED_ERROR_MSG);
-          }
-          const endpointAddress = endpoint.value.host + ":" + endpoint.value.port;
-          if (resolved) {
-            debug8("resolved: %s:%s from sentinel %s", resolved.host, resolved.port, endpointAddress);
-            if (this.options.enableTLSForSentinelMode && this.options.tls) {
-              Object.assign(resolved, this.options.tls);
-              this.stream = (0, tls_1.connect)(resolved);
-              this.stream.once("secureConnect", this.initFailoverDetector.bind(this));
-            } else {
-              this.stream = (0, net_1.createConnection)(resolved);
-              this.stream.once("connect", this.initFailoverDetector.bind(this));
-            }
-            this.stream.once("error", (err2) => {
-              this.firstError = err2;
-            });
-            return this.stream;
-          } else {
-            const errorMsg = err ? "failed to connect to sentinel " + endpointAddress + " because " + err.message : "connected to sentinel " + endpointAddress + " successfully, but got an invalid reply: " + resolved;
-            debug8(errorMsg);
-            eventEmitter("sentinelError", new Error(errorMsg));
-            if (err) {
-              lastError = err;
-            }
-            return connectToNext();
-          }
-        };
-        return connectToNext();
-      }
-      async updateSentinels(client) {
-        if (!this.options.updateSentinels) {
-          return;
-        }
-        const result = await client.sentinel("sentinels", this.options.name);
-        if (!Array.isArray(result)) {
-          return;
-        }
-        result.map(utils_1.packObject).forEach((sentinel) => {
-          const flags = sentinel.flags ? sentinel.flags.split(",") : [];
-          if (flags.indexOf("disconnected") === -1 && sentinel.ip && sentinel.port) {
-            const endpoint = this.sentinelNatResolve(addressResponseToAddress(sentinel));
-            if (this.sentinelIterator.add(endpoint)) {
-              debug8("adding sentinel %s:%s", endpoint.host, endpoint.port);
-            }
-          }
-        });
-        debug8("Updated internal sentinels: %s", this.sentinelIterator);
-      }
-      async resolveMaster(client) {
-        const result = await client.sentinel("get-master-addr-by-name", this.options.name);
-        await this.updateSentinels(client);
-        return this.sentinelNatResolve(Array.isArray(result) ? { host: result[0], port: Number(result[1]) } : null);
-      }
-      async resolveSlave(client) {
-        const result = await client.sentinel("slaves", this.options.name);
-        if (!Array.isArray(result)) {
-          return null;
-        }
-        const availableSlaves = result.map(utils_1.packObject).filter((slave) => slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/));
-        return this.sentinelNatResolve(selectPreferredSentinel(availableSlaves, this.options.preferredSlaves));
-      }
-      sentinelNatResolve(item) {
-        if (!item || !this.options.natMap)
-          return item;
-        const key = `${item.host}:${item.port}`;
-        let result = item;
-        if (typeof this.options.natMap === "function") {
-          result = this.options.natMap(key) || item;
-        } else if (typeof this.options.natMap === "object") {
-          result = this.options.natMap[key] || item;
-        }
-        return result;
-      }
-      connectToSentinel(endpoint, options) {
-        const redis = new Redis_1.default({
-          port: endpoint.port || 26379,
-          host: endpoint.host,
-          username: this.options.sentinelUsername || null,
-          password: this.options.sentinelPassword || null,
-          family: endpoint.family || // @ts-expect-error
-          ("path" in this.options && this.options.path ? void 0 : (
-            // @ts-expect-error
-            this.options.family
-          )),
-          tls: this.options.sentinelTLS,
-          retryStrategy: null,
-          enableReadyCheck: false,
-          connectTimeout: this.options.connectTimeout,
-          commandTimeout: this.options.sentinelCommandTimeout,
-          ...options
-        });
-        return redis;
-      }
-      async resolve(endpoint) {
-        const client = this.connectToSentinel(endpoint);
-        client.on("error", noop);
-        try {
-          if (this.options.role === "slave") {
-            return await this.resolveSlave(client);
-          } else {
-            return await this.resolveMaster(client);
-          }
-        } finally {
-          client.disconnect();
-        }
-      }
-      async initFailoverDetector() {
-        var _a;
-        if (!this.options.failoverDetector) {
-          return;
-        }
-        this.sentinelIterator.reset(true);
-        const sentinels = [];
-        while (sentinels.length < this.options.sentinelMaxConnections) {
-          const { done, value } = this.sentinelIterator.next();
-          if (done) {
-            break;
-          }
-          const client = this.connectToSentinel(value, {
-            lazyConnect: true,
-            retryStrategy: this.options.sentinelReconnectStrategy
-          });
-          client.on("reconnecting", () => {
-            var _a2;
-            (_a2 = this.emitter) === null || _a2 === void 0 ? void 0 : _a2.emit("sentinelReconnecting");
-          });
-          sentinels.push({ address: value, client });
-        }
-        this.sentinelIterator.reset(false);
-        if (this.failoverDetector) {
-          this.failoverDetector.cleanup();
-        }
-        this.failoverDetector = new FailoverDetector_1.FailoverDetector(this, sentinels);
-        await this.failoverDetector.subscribe();
-        (_a = this.emitter) === null || _a === void 0 ? void 0 : _a.emit("failoverSubscribed");
-      }
-    };
-    exports2.default = SentinelConnector;
-    function selectPreferredSentinel(availableSlaves, preferredSlaves) {
-      if (availableSlaves.length === 0) {
-        return null;
-      }
-      let selectedSlave;
-      if (typeof preferredSlaves === "function") {
-        selectedSlave = preferredSlaves(availableSlaves);
-      } else if (preferredSlaves !== null && typeof preferredSlaves === "object") {
-        const preferredSlavesArray = Array.isArray(preferredSlaves) ? preferredSlaves : [preferredSlaves];
-        preferredSlavesArray.sort((a, b) => {
-          if (!a.prio) {
-            a.prio = 1;
-          }
-          if (!b.prio) {
-            b.prio = 1;
-          }
-          if (a.prio < b.prio) {
-            return -1;
-          }
-          if (a.prio > b.prio) {
-            return 1;
-          }
-          return 0;
-        });
-        for (let p = 0; p < preferredSlavesArray.length; p++) {
-          for (let a = 0; a < availableSlaves.length; a++) {
-            const slave = availableSlaves[a];
-            if (slave.ip === preferredSlavesArray[p].ip) {
-              if (slave.port === preferredSlavesArray[p].port) {
-                selectedSlave = slave;
-                break;
-              }
-            }
-          }
-          if (selectedSlave) {
-            break;
-          }
-        }
-      }
-      if (!selectedSlave) {
-        selectedSlave = (0, utils_1.sample)(availableSlaves);
-      }
-      return addressResponseToAddress(selectedSlave);
-    }
-    function addressResponseToAddress(input) {
-      return { host: input.ip, port: Number(input.port) };
-    }
-    function noop() {
-    }
-  }
-});
-
-// node_modules/ioredis/built/connectors/index.js
-var require_connectors = __commonJS({
-  "node_modules/ioredis/built/connectors/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.SentinelConnector = exports2.StandaloneConnector = void 0;
-    var StandaloneConnector_1 = require_StandaloneConnector();
-    exports2.StandaloneConnector = StandaloneConnector_1.default;
-    var SentinelConnector_1 = require_SentinelConnector();
-    exports2.SentinelConnector = SentinelConnector_1.default;
-  }
-});
-
-// node_modules/ioredis/built/errors/MaxRetriesPerRequestError.js
-var require_MaxRetriesPerRequestError = __commonJS({
-  "node_modules/ioredis/built/errors/MaxRetriesPerRequestError.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var redis_errors_1 = require_redis_errors();
-    var MaxRetriesPerRequestError = class extends redis_errors_1.AbortError {
-      constructor(maxRetriesPerRequest) {
-        const message = `Reached the max retries per request limit (which is ${maxRetriesPerRequest}). Refer to "maxRetriesPerRequest" option for details.`;
-        super(message);
-        Error.captureStackTrace(this, this.constructor);
-      }
-      get name() {
-        return this.constructor.name;
-      }
-    };
-    exports2.default = MaxRetriesPerRequestError;
-  }
-});
-
-// node_modules/ioredis/built/errors/index.js
-var require_errors2 = __commonJS({
-  "node_modules/ioredis/built/errors/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.MaxRetriesPerRequestError = void 0;
-    var MaxRetriesPerRequestError_1 = require_MaxRetriesPerRequestError();
-    exports2.MaxRetriesPerRequestError = MaxRetriesPerRequestError_1.default;
-  }
-});
-
-// node_modules/redis-parser/lib/parser.js
-var require_parser = __commonJS({
-  "node_modules/redis-parser/lib/parser.js"(exports2, module2) {
-    "use strict";
-    var Buffer2 = require("buffer").Buffer;
-    var StringDecoder = require("string_decoder").StringDecoder;
-    var decoder = new StringDecoder();
-    var errors = require_redis_errors();
-    var ReplyError = errors.ReplyError;
-    var ParserError = errors.ParserError;
-    var bufferPool = Buffer2.allocUnsafe(32 * 1024);
-    var bufferOffset = 0;
-    var interval = null;
-    var counter = 0;
-    var notDecreased = 0;
-    function parseSimpleNumbers(parser) {
-      const length = parser.buffer.length - 1;
-      var offset = parser.offset;
-      var number = 0;
-      var sign = 1;
-      if (parser.buffer[offset] === 45) {
-        sign = -1;
-        offset++;
-      }
-      while (offset < length) {
-        const c1 = parser.buffer[offset++];
-        if (c1 === 13) {
-          parser.offset = offset + 1;
-          return sign * number;
-        }
-        number = number * 10 + (c1 - 48);
-      }
-    }
-    function parseStringNumbers(parser) {
-      const length = parser.buffer.length - 1;
-      var offset = parser.offset;
-      var number = 0;
-      var res = "";
-      if (parser.buffer[offset] === 45) {
-        res += "-";
-        offset++;
-      }
-      while (offset < length) {
-        var c1 = parser.buffer[offset++];
-        if (c1 === 13) {
-          parser.offset = offset + 1;
-          if (number !== 0) {
-            res += number;
-          }
-          return res;
-        } else if (number > 429496728) {
-          res += number * 10 + (c1 - 48);
-          number = 0;
-        } else if (c1 === 48 && number === 0) {
-          res += 0;
-        } else {
-          number = number * 10 + (c1 - 48);
-        }
-      }
-    }
-    function parseSimpleString(parser) {
-      const start = parser.offset;
-      const buffer = parser.buffer;
-      const length = buffer.length - 1;
-      var offset = start;
-      while (offset < length) {
-        if (buffer[offset++] === 13) {
-          parser.offset = offset + 1;
-          if (parser.optionReturnBuffers === true) {
-            return parser.buffer.slice(start, offset - 1);
-          }
-          return parser.buffer.toString("utf8", start, offset - 1);
-        }
-      }
-    }
-    function parseLength(parser) {
-      const length = parser.buffer.length - 1;
-      var offset = parser.offset;
-      var number = 0;
-      while (offset < length) {
-        const c1 = parser.buffer[offset++];
-        if (c1 === 13) {
-          parser.offset = offset + 1;
-          return number;
-        }
-        number = number * 10 + (c1 - 48);
-      }
-    }
-    function parseInteger(parser) {
-      if (parser.optionStringNumbers === true) {
-        return parseStringNumbers(parser);
-      }
-      return parseSimpleNumbers(parser);
-    }
-    function parseBulkString(parser) {
-      const length = parseLength(parser);
-      if (length === void 0) {
-        return;
-      }
-      if (length < 0) {
-        return null;
-      }
-      const offset = parser.offset + length;
-      if (offset + 2 > parser.buffer.length) {
-        parser.bigStrSize = offset + 2;
-        parser.totalChunkSize = parser.buffer.length;
-        parser.bufferCache.push(parser.buffer);
-        return;
-      }
-      const start = parser.offset;
-      parser.offset = offset + 2;
-      if (parser.optionReturnBuffers === true) {
-        return parser.buffer.slice(start, offset);
-      }
-      return parser.buffer.toString("utf8", start, offset);
-    }
-    function parseError(parser) {
-      var string = parseSimpleString(parser);
-      if (string !== void 0) {
-        if (parser.optionReturnBuffers === true) {
-          string = string.toString();
-        }
-        return new ReplyError(string);
-      }
-    }
-    function handleError(parser, type) {
-      const err = new ParserError(
-        "Protocol error, got " + JSON.stringify(String.fromCharCode(type)) + " as reply type byte",
-        JSON.stringify(parser.buffer),
-        parser.offset
-      );
-      parser.buffer = null;
-      parser.returnFatalError(err);
-    }
-    function parseArray(parser) {
-      const length = parseLength(parser);
-      if (length === void 0) {
-        return;
-      }
-      if (length < 0) {
-        return null;
-      }
-      const responses = new Array(length);
-      return parseArrayElements(parser, responses, 0);
-    }
-    function pushArrayCache(parser, array, pos) {
-      parser.arrayCache.push(array);
-      parser.arrayPos.push(pos);
-    }
-    function parseArrayChunks(parser) {
-      const tmp = parser.arrayCache.pop();
-      var pos = parser.arrayPos.pop();
-      if (parser.arrayCache.length) {
-        const res = parseArrayChunks(parser);
-        if (res === void 0) {
-          pushArrayCache(parser, tmp, pos);
-          return;
-        }
-        tmp[pos++] = res;
-      }
-      return parseArrayElements(parser, tmp, pos);
-    }
-    function parseArrayElements(parser, responses, i) {
-      const bufferLength = parser.buffer.length;
-      while (i < responses.length) {
-        const offset = parser.offset;
-        if (parser.offset >= bufferLength) {
-          pushArrayCache(parser, responses, i);
-          return;
-        }
-        const response = parseType(parser, parser.buffer[parser.offset++]);
-        if (response === void 0) {
-          if (!(parser.arrayCache.length || parser.bufferCache.length)) {
-            parser.offset = offset;
-          }
-          pushArrayCache(parser, responses, i);
-          return;
-        }
-        responses[i] = response;
-        i++;
-      }
-      return responses;
-    }
-    function parseType(parser, type) {
-      switch (type) {
-        case 36:
-          return parseBulkString(parser);
-        case 43:
-          return parseSimpleString(parser);
-        case 42:
-          return parseArray(parser);
-        case 58:
-          return parseInteger(parser);
-        case 45:
-          return parseError(parser);
-        default:
-          return handleError(parser, type);
-      }
-    }
-    function decreaseBufferPool() {
-      if (bufferPool.length > 50 * 1024) {
-        if (counter === 1 || notDecreased > counter * 2) {
-          const minSliceLen = Math.floor(bufferPool.length / 10);
-          const sliceLength = minSliceLen < bufferOffset ? bufferOffset : minSliceLen;
-          bufferOffset = 0;
-          bufferPool = bufferPool.slice(sliceLength, bufferPool.length);
-        } else {
-          notDecreased++;
-          counter--;
-        }
-      } else {
-        clearInterval(interval);
-        counter = 0;
-        notDecreased = 0;
-        interval = null;
-      }
-    }
-    function resizeBuffer(length) {
-      if (bufferPool.length < length + bufferOffset) {
-        const multiplier = length > 1024 * 1024 * 75 ? 2 : 3;
-        if (bufferOffset > 1024 * 1024 * 111) {
-          bufferOffset = 1024 * 1024 * 50;
-        }
-        bufferPool = Buffer2.allocUnsafe(length * multiplier + bufferOffset);
-        bufferOffset = 0;
-        counter++;
-        if (interval === null) {
-          interval = setInterval(decreaseBufferPool, 50);
-        }
-      }
-    }
-    function concatBulkString(parser) {
-      const list = parser.bufferCache;
-      const oldOffset = parser.offset;
-      var chunks = list.length;
-      var offset = parser.bigStrSize - parser.totalChunkSize;
-      parser.offset = offset;
-      if (offset <= 2) {
-        if (chunks === 2) {
-          return list[0].toString("utf8", oldOffset, list[0].length + offset - 2);
-        }
-        chunks--;
-        offset = list[list.length - 2].length + offset;
-      }
-      var res = decoder.write(list[0].slice(oldOffset));
-      for (var i = 1; i < chunks - 1; i++) {
-        res += decoder.write(list[i]);
-      }
-      res += decoder.end(list[i].slice(0, offset - 2));
-      return res;
-    }
-    function concatBulkBuffer(parser) {
-      const list = parser.bufferCache;
-      const oldOffset = parser.offset;
-      const length = parser.bigStrSize - oldOffset - 2;
-      var chunks = list.length;
-      var offset = parser.bigStrSize - parser.totalChunkSize;
-      parser.offset = offset;
-      if (offset <= 2) {
-        if (chunks === 2) {
-          return list[0].slice(oldOffset, list[0].length + offset - 2);
-        }
-        chunks--;
-        offset = list[list.length - 2].length + offset;
-      }
-      resizeBuffer(length);
-      const start = bufferOffset;
-      list[0].copy(bufferPool, start, oldOffset, list[0].length);
-      bufferOffset += list[0].length - oldOffset;
-      for (var i = 1; i < chunks - 1; i++) {
-        list[i].copy(bufferPool, bufferOffset);
-        bufferOffset += list[i].length;
-      }
-      list[i].copy(bufferPool, bufferOffset, 0, offset - 2);
-      bufferOffset += offset - 2;
-      return bufferPool.slice(start, bufferOffset);
-    }
-    var JavascriptRedisParser = class {
-      /**
-       * Javascript Redis Parser constructor
-       * @param {{returnError: Function, returnReply: Function, returnFatalError?: Function, returnBuffers: boolean, stringNumbers: boolean }} options
-       * @constructor
-       */
-      constructor(options) {
-        if (!options) {
-          throw new TypeError("Options are mandatory.");
-        }
-        if (typeof options.returnError !== "function" || typeof options.returnReply !== "function") {
-          throw new TypeError("The returnReply and returnError options have to be functions.");
-        }
-        this.setReturnBuffers(!!options.returnBuffers);
-        this.setStringNumbers(!!options.stringNumbers);
-        this.returnError = options.returnError;
-        this.returnFatalError = options.returnFatalError || options.returnError;
-        this.returnReply = options.returnReply;
-        this.reset();
-      }
-      /**
-       * Reset the parser values to the initial state
-       *
-       * @returns {undefined}
-       */
-      reset() {
-        this.offset = 0;
-        this.buffer = null;
-        this.bigStrSize = 0;
-        this.totalChunkSize = 0;
-        this.bufferCache = [];
-        this.arrayCache = [];
-        this.arrayPos = [];
-      }
-      /**
-       * Set the returnBuffers option
-       *
-       * @param {boolean} returnBuffers
-       * @returns {undefined}
-       */
-      setReturnBuffers(returnBuffers) {
-        if (typeof returnBuffers !== "boolean") {
-          throw new TypeError("The returnBuffers argument has to be a boolean");
-        }
-        this.optionReturnBuffers = returnBuffers;
-      }
-      /**
-       * Set the stringNumbers option
-       *
-       * @param {boolean} stringNumbers
-       * @returns {undefined}
-       */
-      setStringNumbers(stringNumbers) {
-        if (typeof stringNumbers !== "boolean") {
-          throw new TypeError("The stringNumbers argument has to be a boolean");
-        }
-        this.optionStringNumbers = stringNumbers;
-      }
-      /**
-       * Parse the redis buffer
-       * @param {Buffer} buffer
-       * @returns {undefined}
-       */
-      execute(buffer) {
-        if (this.buffer === null) {
-          this.buffer = buffer;
-          this.offset = 0;
-        } else if (this.bigStrSize === 0) {
-          const oldLength = this.buffer.length;
-          const remainingLength = oldLength - this.offset;
-          const newBuffer = Buffer2.allocUnsafe(remainingLength + buffer.length);
-          this.buffer.copy(newBuffer, 0, this.offset, oldLength);
-          buffer.copy(newBuffer, remainingLength, 0, buffer.length);
-          this.buffer = newBuffer;
-          this.offset = 0;
-          if (this.arrayCache.length) {
-            const arr = parseArrayChunks(this);
-            if (arr === void 0) {
-              return;
-            }
-            this.returnReply(arr);
-          }
-        } else if (this.totalChunkSize + buffer.length >= this.bigStrSize) {
-          this.bufferCache.push(buffer);
-          var tmp = this.optionReturnBuffers ? concatBulkBuffer(this) : concatBulkString(this);
-          this.bigStrSize = 0;
-          this.bufferCache = [];
-          this.buffer = buffer;
-          if (this.arrayCache.length) {
-            this.arrayCache[0][this.arrayPos[0]++] = tmp;
-            tmp = parseArrayChunks(this);
-            if (tmp === void 0) {
-              return;
-            }
-          }
-          this.returnReply(tmp);
-        } else {
-          this.bufferCache.push(buffer);
-          this.totalChunkSize += buffer.length;
-          return;
-        }
-        while (this.offset < this.buffer.length) {
-          const offset = this.offset;
-          const type = this.buffer[this.offset++];
-          const response = parseType(this, type);
-          if (response === void 0) {
-            if (!(this.arrayCache.length || this.bufferCache.length)) {
-              this.offset = offset;
-            }
-            return;
-          }
-          if (type === 45) {
-            this.returnError(response);
-          } else {
-            this.returnReply(response);
-          }
-        }
-        this.buffer = null;
-      }
-    };
-    module2.exports = JavascriptRedisParser;
-  }
-});
-
-// node_modules/redis-parser/index.js
-var require_redis_parser = __commonJS({
-  "node_modules/redis-parser/index.js"(exports2, module2) {
-    "use strict";
-    module2.exports = require_parser();
-  }
-});
-
-// node_modules/ioredis/built/SubscriptionSet.js
-var require_SubscriptionSet = __commonJS({
-  "node_modules/ioredis/built/SubscriptionSet.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var SubscriptionSet = class {
-      constructor() {
-        this.set = {
-          subscribe: {},
-          psubscribe: {},
-          ssubscribe: {}
-        };
-      }
-      add(set, channel) {
-        this.set[mapSet(set)][channel] = true;
-      }
-      del(set, channel) {
-        delete this.set[mapSet(set)][channel];
-      }
-      channels(set) {
-        return Object.keys(this.set[mapSet(set)]);
-      }
-      isEmpty() {
-        return this.channels("subscribe").length === 0 && this.channels("psubscribe").length === 0 && this.channels("ssubscribe").length === 0;
-      }
-    };
-    exports2.default = SubscriptionSet;
-    function mapSet(set) {
-      if (set === "unsubscribe") {
-        return "subscribe";
-      }
-      if (set === "punsubscribe") {
-        return "psubscribe";
-      }
-      if (set === "sunsubscribe") {
-        return "ssubscribe";
-      }
-      return set;
-    }
-  }
-});
-
-// node_modules/ioredis/built/DataHandler.js
-var require_DataHandler = __commonJS({
-  "node_modules/ioredis/built/DataHandler.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var Command_1 = require_Command();
-    var utils_1 = require_utils6();
-    var RedisParser = require_redis_parser();
-    var SubscriptionSet_1 = require_SubscriptionSet();
-    var debug8 = (0, utils_1.Debug)("dataHandler");
-    var DataHandler = class {
-      constructor(redis, parserOptions) {
-        this.redis = redis;
-        const parser = new RedisParser({
-          stringNumbers: parserOptions.stringNumbers,
-          returnBuffers: true,
-          returnError: (err) => {
-            this.returnError(err);
-          },
-          returnFatalError: (err) => {
-            this.returnFatalError(err);
-          },
-          returnReply: (reply) => {
-            this.returnReply(reply);
-          }
-        });
-        redis.stream.prependListener("data", (data) => {
-          parser.execute(data);
-        });
-        redis.stream.resume();
-      }
-      returnFatalError(err) {
-        err.message += ". Please report this.";
-        this.redis.recoverFromFatalError(err, err, { offlineQueue: false });
-      }
-      returnError(err) {
-        const item = this.shiftCommand(err);
-        if (!item) {
-          return;
-        }
-        err.command = {
-          name: item.command.name,
-          args: item.command.args
-        };
-        this.redis.handleReconnection(err, item);
-      }
-      returnReply(reply) {
-        if (this.handleMonitorReply(reply)) {
-          return;
-        }
-        if (this.handleSubscriberReply(reply)) {
-          return;
-        }
-        const item = this.shiftCommand(reply);
-        if (!item) {
-          return;
-        }
-        if (Command_1.default.checkFlag("ENTER_SUBSCRIBER_MODE", item.command.name)) {
-          this.redis.condition.subscriber = new SubscriptionSet_1.default();
-          this.redis.condition.subscriber.add(item.command.name, reply[1].toString());
-          if (!fillSubCommand(item.command, reply[2])) {
-            this.redis.commandQueue.unshift(item);
-          }
-        } else if (Command_1.default.checkFlag("EXIT_SUBSCRIBER_MODE", item.command.name)) {
-          if (!fillUnsubCommand(item.command, reply[2])) {
-            this.redis.commandQueue.unshift(item);
-          }
-        } else {
-          item.command.resolve(reply);
-        }
-      }
-      handleSubscriberReply(reply) {
-        if (!this.redis.condition.subscriber) {
-          return false;
-        }
-        const replyType = Array.isArray(reply) ? reply[0].toString() : null;
-        debug8('receive reply "%s" in subscriber mode', replyType);
-        switch (replyType) {
-          case "message":
-            if (this.redis.listeners("message").length > 0) {
-              this.redis.emit("message", reply[1].toString(), reply[2] ? reply[2].toString() : "");
-            }
-            this.redis.emit("messageBuffer", reply[1], reply[2]);
-            break;
-          case "pmessage": {
-            const pattern = reply[1].toString();
-            if (this.redis.listeners("pmessage").length > 0) {
-              this.redis.emit("pmessage", pattern, reply[2].toString(), reply[3].toString());
-            }
-            this.redis.emit("pmessageBuffer", pattern, reply[2], reply[3]);
-            break;
-          }
-          case "smessage": {
-            if (this.redis.listeners("smessage").length > 0) {
-              this.redis.emit("smessage", reply[1].toString(), reply[2] ? reply[2].toString() : "");
-            }
-            this.redis.emit("smessageBuffer", reply[1], reply[2]);
-            break;
-          }
-          case "ssubscribe":
-          case "subscribe":
-          case "psubscribe": {
-            const channel = reply[1].toString();
-            this.redis.condition.subscriber.add(replyType, channel);
-            const item = this.shiftCommand(reply);
-            if (!item) {
-              return;
-            }
-            if (!fillSubCommand(item.command, reply[2])) {
-              this.redis.commandQueue.unshift(item);
-            }
-            break;
-          }
-          case "sunsubscribe":
-          case "unsubscribe":
-          case "punsubscribe": {
-            const channel = reply[1] ? reply[1].toString() : null;
-            if (channel) {
-              this.redis.condition.subscriber.del(replyType, channel);
-            }
-            const count = reply[2];
-            if (Number(count) === 0) {
-              this.redis.condition.subscriber = false;
-            }
-            const item = this.shiftCommand(reply);
-            if (!item) {
-              return;
-            }
-            if (!fillUnsubCommand(item.command, count)) {
-              this.redis.commandQueue.unshift(item);
-            }
-            break;
-          }
-          default: {
-            const item = this.shiftCommand(reply);
-            if (!item) {
-              return;
-            }
-            item.command.resolve(reply);
-          }
-        }
-        return true;
-      }
-      handleMonitorReply(reply) {
-        if (this.redis.status !== "monitoring") {
-          return false;
-        }
-        const replyStr = reply.toString();
-        if (replyStr === "OK") {
-          return false;
-        }
-        const len = replyStr.indexOf(" ");
-        const timestamp = replyStr.slice(0, len);
-        const argIndex = replyStr.indexOf('"');
-        const args = replyStr.slice(argIndex + 1, -1).split('" "').map((elem) => elem.replace(/\\"/g, '"'));
-        const dbAndSource = replyStr.slice(len + 2, argIndex - 2).split(" ");
-        this.redis.emit("monitor", timestamp, args, dbAndSource[1], dbAndSource[0]);
-        return true;
-      }
-      shiftCommand(reply) {
-        const item = this.redis.commandQueue.shift();
-        if (!item) {
-          const message = "Command queue state error. If you can reproduce this, please report it.";
-          const error5 = new Error(message + (reply instanceof Error ? ` Last error: ${reply.message}` : ` Last reply: ${reply.toString()}`));
-          this.redis.emit("error", error5);
-          return null;
-        }
-        return item;
-      }
-    };
-    exports2.default = DataHandler;
-    var remainingRepliesMap = /* @__PURE__ */ new WeakMap();
-    function fillSubCommand(command, count) {
-      let remainingReplies = remainingRepliesMap.has(command) ? remainingRepliesMap.get(command) : command.args.length;
-      remainingReplies -= 1;
-      if (remainingReplies <= 0) {
-        command.resolve(count);
-        remainingRepliesMap.delete(command);
-        return true;
-      }
-      remainingRepliesMap.set(command, remainingReplies);
-      return false;
-    }
-    function fillUnsubCommand(command, count) {
-      let remainingReplies = remainingRepliesMap.has(command) ? remainingRepliesMap.get(command) : command.args.length;
-      if (remainingReplies === 0) {
-        if (Number(count) === 0) {
-          remainingRepliesMap.delete(command);
-          command.resolve(count);
-          return true;
-        }
-        return false;
-      }
-      remainingReplies -= 1;
-      if (remainingReplies <= 0) {
-        command.resolve(count);
-        return true;
-      }
-      remainingRepliesMap.set(command, remainingReplies);
-      return false;
-    }
-  }
-});
-
-// node_modules/ioredis/built/redis/event_handler.js
-var require_event_handler = __commonJS({
-  "node_modules/ioredis/built/redis/event_handler.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.readyHandler = exports2.errorHandler = exports2.closeHandler = exports2.connectHandler = void 0;
-    var redis_errors_1 = require_redis_errors();
-    var Command_1 = require_Command();
-    var errors_1 = require_errors2();
-    var utils_1 = require_utils6();
-    var DataHandler_1 = require_DataHandler();
-    var debug8 = (0, utils_1.Debug)("connection");
-    function connectHandler(self) {
-      return function() {
-        self.setStatus("connect");
-        self.resetCommandQueue();
-        let flushed = false;
-        const { connectionEpoch } = self;
-        if (self.condition.auth) {
-          self.auth(self.condition.auth, function(err) {
-            if (connectionEpoch !== self.connectionEpoch) {
-              return;
-            }
-            if (err) {
-              if (err.message.indexOf("no password is set") !== -1) {
-                console.warn("[WARN] Redis server does not require a password, but a password was supplied.");
-              } else if (err.message.indexOf("without any password configured for the default user") !== -1) {
-                console.warn("[WARN] This Redis server's `default` user does not require a password, but a password was supplied");
-              } else if (err.message.indexOf("wrong number of arguments for 'auth' command") !== -1) {
-                console.warn(`[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`);
-              } else {
-                flushed = true;
-                self.recoverFromFatalError(err, err);
-              }
-            }
-          });
-        }
-        if (self.condition.select) {
-          self.select(self.condition.select).catch((err) => {
-            self.silentEmit("error", err);
-          });
-        }
-        if (!self.options.enableReadyCheck) {
-          exports2.readyHandler(self)();
-        }
-        new DataHandler_1.default(self, {
-          stringNumbers: self.options.stringNumbers
-        });
-        if (self.options.enableReadyCheck) {
-          self._readyCheck(function(err, info9) {
-            if (connectionEpoch !== self.connectionEpoch) {
-              return;
-            }
-            if (err) {
-              if (!flushed) {
-                self.recoverFromFatalError(new Error("Ready check failed: " + err.message), err);
-              }
-            } else {
-              if (self.connector.check(info9)) {
-                exports2.readyHandler(self)();
-              } else {
-                self.disconnect(true);
-              }
-            }
-          });
-        }
-      };
-    }
-    exports2.connectHandler = connectHandler;
-    function abortError(command) {
-      const err = new redis_errors_1.AbortError("Command aborted due to connection close");
-      err.command = {
-        name: command.name,
-        args: command.args
-      };
-      return err;
-    }
-    function abortIncompletePipelines(commandQueue) {
-      var _a;
-      let expectedIndex = 0;
-      for (let i = 0; i < commandQueue.length; ) {
-        const command = (_a = commandQueue.peekAt(i)) === null || _a === void 0 ? void 0 : _a.command;
-        const pipelineIndex = command.pipelineIndex;
-        if (pipelineIndex === void 0 || pipelineIndex === 0) {
-          expectedIndex = 0;
-        }
-        if (pipelineIndex !== void 0 && pipelineIndex !== expectedIndex++) {
-          commandQueue.remove(i, 1);
-          command.reject(abortError(command));
-          continue;
-        }
-        i++;
-      }
-    }
-    function abortTransactionFragments(commandQueue) {
-      var _a;
-      for (let i = 0; i < commandQueue.length; ) {
-        const command = (_a = commandQueue.peekAt(i)) === null || _a === void 0 ? void 0 : _a.command;
-        if (command.name === "multi") {
-          break;
-        }
-        if (command.name === "exec") {
-          commandQueue.remove(i, 1);
-          command.reject(abortError(command));
-          break;
-        }
-        if (command.inTransaction) {
-          commandQueue.remove(i, 1);
-          command.reject(abortError(command));
-        } else {
-          i++;
-        }
-      }
-    }
-    function closeHandler(self) {
-      return function() {
-        const prevStatus = self.status;
-        self.setStatus("close");
-        if (self.commandQueue.length) {
-          abortIncompletePipelines(self.commandQueue);
-        }
-        if (self.offlineQueue.length) {
-          abortTransactionFragments(self.offlineQueue);
-        }
-        if (prevStatus === "ready") {
-          if (!self.prevCondition) {
-            self.prevCondition = self.condition;
-          }
-          if (self.commandQueue.length) {
-            self.prevCommandQueue = self.commandQueue;
-          }
-        }
-        if (self.manuallyClosing) {
-          self.manuallyClosing = false;
-          debug8("skip reconnecting since the connection is manually closed.");
-          return close();
-        }
-        if (typeof self.options.retryStrategy !== "function") {
-          debug8("skip reconnecting because `retryStrategy` is not a function");
-          return close();
-        }
-        const retryDelay = self.options.retryStrategy(++self.retryAttempts);
-        if (typeof retryDelay !== "number") {
-          debug8("skip reconnecting because `retryStrategy` doesn't return a number");
-          return close();
-        }
-        debug8("reconnect in %sms", retryDelay);
-        self.setStatus("reconnecting", retryDelay);
-        self.reconnectTimeout = setTimeout(function() {
-          self.reconnectTimeout = null;
-          self.connect().catch(utils_1.noop);
-        }, retryDelay);
-        const { maxRetriesPerRequest } = self.options;
-        if (typeof maxRetriesPerRequest === "number") {
-          if (maxRetriesPerRequest < 0) {
-            debug8("maxRetriesPerRequest is negative, ignoring...");
-          } else {
-            const remainder = self.retryAttempts % (maxRetriesPerRequest + 1);
-            if (remainder === 0) {
-              debug8("reach maxRetriesPerRequest limitation, flushing command queue...");
-              self.flushQueue(new errors_1.MaxRetriesPerRequestError(maxRetriesPerRequest));
-            }
-          }
-        }
-      };
-      function close() {
-        self.setStatus("end");
-        self.flushQueue(new Error(utils_1.CONNECTION_CLOSED_ERROR_MSG));
-      }
-    }
-    exports2.closeHandler = closeHandler;
-    function errorHandler2(self) {
-      return function(error5) {
-        debug8("error: %s", error5);
-        self.silentEmit("error", error5);
-      };
-    }
-    exports2.errorHandler = errorHandler2;
-    function readyHandler(self) {
-      return function() {
-        self.setStatus("ready");
-        self.retryAttempts = 0;
-        if (self.options.monitor) {
-          self.call("monitor").then(() => self.setStatus("monitoring"), (error5) => self.emit("error", error5));
-          const { sendCommand } = self;
-          self.sendCommand = function(command) {
-            if (Command_1.default.checkFlag("VALID_IN_MONITOR_MODE", command.name)) {
-              return sendCommand.call(self, command);
-            }
-            command.reject(new Error("Connection is in monitoring mode, can't process commands."));
-            return command.promise;
-          };
-          self.once("close", function() {
-            delete self.sendCommand;
-          });
-          return;
-        }
-        const finalSelect = self.prevCondition ? self.prevCondition.select : self.condition.select;
-        if (self.options.connectionName) {
-          debug8("set the connection name [%s]", self.options.connectionName);
-          self.client("setname", self.options.connectionName).catch(utils_1.noop);
-        }
-        if (self.options.readOnly) {
-          debug8("set the connection to readonly mode");
-          self.readonly().catch(utils_1.noop);
-        }
-        if (self.prevCondition) {
-          const condition = self.prevCondition;
-          self.prevCondition = null;
-          if (condition.subscriber && self.options.autoResubscribe) {
-            if (self.condition.select !== finalSelect) {
-              debug8("connect to db [%d]", finalSelect);
-              self.select(finalSelect);
-            }
-            const subscribeChannels = condition.subscriber.channels("subscribe");
-            if (subscribeChannels.length) {
-              debug8("subscribe %d channels", subscribeChannels.length);
-              self.subscribe(subscribeChannels);
-            }
-            const psubscribeChannels = condition.subscriber.channels("psubscribe");
-            if (psubscribeChannels.length) {
-              debug8("psubscribe %d channels", psubscribeChannels.length);
-              self.psubscribe(psubscribeChannels);
-            }
-            const ssubscribeChannels = condition.subscriber.channels("ssubscribe");
-            if (ssubscribeChannels.length) {
-              debug8("ssubscribe %d channels", ssubscribeChannels.length);
-              self.ssubscribe(ssubscribeChannels);
-            }
-          }
-        }
-        if (self.prevCommandQueue) {
-          if (self.options.autoResendUnfulfilledCommands) {
-            debug8("resend %d unfulfilled commands", self.prevCommandQueue.length);
-            while (self.prevCommandQueue.length > 0) {
-              const item = self.prevCommandQueue.shift();
-              if (item.select !== self.condition.select && item.command.name !== "select") {
-                self.select(item.select);
-              }
-              self.sendCommand(item.command, item.stream);
-            }
-          } else {
-            self.prevCommandQueue = null;
-          }
-        }
-        if (self.offlineQueue.length) {
-          debug8("send %d commands in offline queue", self.offlineQueue.length);
-          const offlineQueue = self.offlineQueue;
-          self.resetOfflineQueue();
-          while (offlineQueue.length > 0) {
-            const item = offlineQueue.shift();
-            if (item.select !== self.condition.select && item.command.name !== "select") {
-              self.select(item.select);
-            }
-            self.sendCommand(item.command, item.stream);
-          }
-        }
-        if (self.condition.select !== finalSelect) {
-          debug8("connect to db [%d]", finalSelect);
-          self.select(finalSelect);
-        }
-      };
-    }
-    exports2.readyHandler = readyHandler;
-  }
-});
-
-// node_modules/ioredis/built/redis/RedisOptions.js
-var require_RedisOptions = __commonJS({
-  "node_modules/ioredis/built/redis/RedisOptions.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.DEFAULT_REDIS_OPTIONS = void 0;
-    exports2.DEFAULT_REDIS_OPTIONS = {
-      // Connection
-      port: 6379,
-      host: "localhost",
-      family: 4,
-      connectTimeout: 1e4,
-      disconnectTimeout: 2e3,
-      retryStrategy: function(times) {
-        return Math.min(times * 50, 2e3);
-      },
-      keepAlive: 0,
-      noDelay: true,
-      connectionName: null,
-      // Sentinel
-      sentinels: null,
-      name: null,
-      role: "master",
-      sentinelRetryStrategy: function(times) {
-        return Math.min(times * 10, 1e3);
-      },
-      sentinelReconnectStrategy: function() {
-        return 6e4;
-      },
-      natMap: null,
-      enableTLSForSentinelMode: false,
-      updateSentinels: true,
-      failoverDetector: false,
-      // Status
-      username: null,
-      password: null,
-      db: 0,
-      // Others
-      enableOfflineQueue: true,
-      enableReadyCheck: true,
-      autoResubscribe: true,
-      autoResendUnfulfilledCommands: true,
-      lazyConnect: false,
-      keyPrefix: "",
-      reconnectOnError: null,
-      readOnly: false,
-      stringNumbers: false,
-      maxRetriesPerRequest: 20,
-      maxLoadingRetryTime: 1e4,
-      enableAutoPipelining: false,
-      autoPipeliningIgnoredCommands: [],
-      sentinelMaxConnections: 10
-    };
-  }
-});
-
-// node_modules/ioredis/built/Redis.js
-var require_Redis = __commonJS({
-  "node_modules/ioredis/built/Redis.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    var commands_1 = require_built();
-    var events_1 = require("events");
-    var standard_as_callback_1 = require_built2();
-    var cluster_1 = require_cluster();
-    var Command_1 = require_Command();
-    var connectors_1 = require_connectors();
-    var SentinelConnector_1 = require_SentinelConnector();
-    var eventHandler = require_event_handler();
-    var RedisOptions_1 = require_RedisOptions();
-    var ScanStream_1 = require_ScanStream();
-    var transaction_1 = require_transaction();
-    var utils_1 = require_utils6();
-    var applyMixin_1 = require_applyMixin();
-    var Commander_1 = require_Commander();
-    var lodash_1 = require_lodash3();
-    var Deque = require_denque();
-    var debug8 = (0, utils_1.Debug)("redis");
-    var Redis2 = class _Redis extends Commander_1.default {
-      constructor(arg1, arg2, arg3) {
-        super();
-        this.status = "wait";
-        this.isCluster = false;
-        this.reconnectTimeout = null;
-        this.connectionEpoch = 0;
-        this.retryAttempts = 0;
-        this.manuallyClosing = false;
-        this._autoPipelines = /* @__PURE__ */ new Map();
-        this._runningAutoPipelines = /* @__PURE__ */ new Set();
-        this.parseOptions(arg1, arg2, arg3);
-        events_1.EventEmitter.call(this);
-        this.resetCommandQueue();
-        this.resetOfflineQueue();
-        if (this.options.Connector) {
-          this.connector = new this.options.Connector(this.options);
-        } else if (this.options.sentinels) {
-          const sentinelConnector = new SentinelConnector_1.default(this.options);
-          sentinelConnector.emitter = this;
-          this.connector = sentinelConnector;
-        } else {
-          this.connector = new connectors_1.StandaloneConnector(this.options);
-        }
-        if (this.options.scripts) {
-          Object.entries(this.options.scripts).forEach(([name, definition]) => {
-            this.defineCommand(name, definition);
-          });
-        }
-        if (this.options.lazyConnect) {
-          this.setStatus("wait");
-        } else {
-          this.connect().catch(lodash_1.noop);
-        }
-      }
-      /**
-       * Create a Redis instance.
-       * This is the same as `new Redis()` but is included for compatibility with node-redis.
-       */
-      static createClient(...args) {
-        return new _Redis(...args);
-      }
-      get autoPipelineQueueSize() {
-        let queued = 0;
-        for (const pipeline of this._autoPipelines.values()) {
-          queued += pipeline.length;
-        }
-        return queued;
-      }
-      /**
-       * Create a connection to Redis.
-       * This method will be invoked automatically when creating a new Redis instance
-       * unless `lazyConnect: true` is passed.
-       *
-       * When calling this method manually, a Promise is returned, which will
-       * be resolved when the connection status is ready.
-       */
-      connect(callback) {
-        const promise = new Promise((resolve, reject) => {
-          if (this.status === "connecting" || this.status === "connect" || this.status === "ready") {
-            reject(new Error("Redis is already connecting/connected"));
-            return;
-          }
-          this.connectionEpoch += 1;
-          this.setStatus("connecting");
-          const { options } = this;
-          this.condition = {
-            select: options.db,
-            auth: options.username ? [options.username, options.password] : options.password,
-            subscriber: false
-          };
-          const _this = this;
-          (0, standard_as_callback_1.default)(this.connector.connect(function(type, err) {
-            _this.silentEmit(type, err);
-          }), function(err, stream) {
-            if (err) {
-              _this.flushQueue(err);
-              _this.silentEmit("error", err);
-              reject(err);
-              _this.setStatus("end");
-              return;
-            }
-            let CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
-            if ("sentinels" in options && options.sentinels && !options.enableTLSForSentinelMode) {
-              CONNECT_EVENT = "connect";
-            }
-            _this.stream = stream;
-            if (options.noDelay) {
-              stream.setNoDelay(true);
-            }
-            if (typeof options.keepAlive === "number") {
-              if (stream.connecting) {
-                stream.once(CONNECT_EVENT, () => {
-                  stream.setKeepAlive(true, options.keepAlive);
-                });
-              } else {
-                stream.setKeepAlive(true, options.keepAlive);
-              }
-            }
-            if (stream.connecting) {
-              stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
-              if (options.connectTimeout) {
-                let connectTimeoutCleared = false;
-                stream.setTimeout(options.connectTimeout, function() {
-                  if (connectTimeoutCleared) {
-                    return;
-                  }
-                  stream.setTimeout(0);
-                  stream.destroy();
-                  const err2 = new Error("connect ETIMEDOUT");
-                  err2.errorno = "ETIMEDOUT";
-                  err2.code = "ETIMEDOUT";
-                  err2.syscall = "connect";
-                  eventHandler.errorHandler(_this)(err2);
-                });
-                stream.once(CONNECT_EVENT, function() {
-                  connectTimeoutCleared = true;
-                  stream.setTimeout(0);
-                });
-              }
-            } else if (stream.destroyed) {
-              const firstError = _this.connector.firstError;
-              if (firstError) {
-                process.nextTick(() => {
-                  eventHandler.errorHandler(_this)(firstError);
-                });
-              }
-              process.nextTick(eventHandler.closeHandler(_this));
-            } else {
-              process.nextTick(eventHandler.connectHandler(_this));
-            }
-            if (!stream.destroyed) {
-              stream.once("error", eventHandler.errorHandler(_this));
-              stream.once("close", eventHandler.closeHandler(_this));
-            }
-            const connectionReadyHandler = function() {
-              _this.removeListener("close", connectionCloseHandler);
-              resolve();
-            };
-            var connectionCloseHandler = function() {
-              _this.removeListener("ready", connectionReadyHandler);
-              reject(new Error(utils_1.CONNECTION_CLOSED_ERROR_MSG));
-            };
-            _this.once("ready", connectionReadyHandler);
-            _this.once("close", connectionCloseHandler);
-          });
-        });
-        return (0, standard_as_callback_1.default)(promise, callback);
-      }
-      /**
-       * Disconnect from Redis.
-       *
-       * This method closes the connection immediately,
-       * and may lose some pending replies that haven't written to client.
-       * If you want to wait for the pending replies, use Redis#quit instead.
-       */
-      disconnect(reconnect = false) {
-        if (!reconnect) {
-          this.manuallyClosing = true;
-        }
-        if (this.reconnectTimeout && !reconnect) {
-          clearTimeout(this.reconnectTimeout);
-          this.reconnectTimeout = null;
-        }
-        if (this.status === "wait") {
-          eventHandler.closeHandler(this)();
-        } else {
-          this.connector.disconnect();
-        }
-      }
-      /**
-       * Disconnect from Redis.
-       *
-       * @deprecated
-       */
-      end() {
-        this.disconnect();
-      }
-      /**
-       * Create a new instance with the same options as the current one.
-       *
-       * @example
-       * ```js
-       * var redis = new Redis(6380);
-       * var anotherRedis = redis.duplicate();
-       * ```
-       */
-      duplicate(override) {
-        return new _Redis({ ...this.options, ...override });
-      }
-      /**
-       * Mode of the connection.
-       *
-       * One of `"normal"`, `"subscriber"`, or `"monitor"`. When the connection is
-       * not in `"normal"` mode, certain commands are not allowed.
-       */
-      get mode() {
-        var _a;
-        return this.options.monitor ? "monitor" : ((_a = this.condition) === null || _a === void 0 ? void 0 : _a.subscriber) ? "subscriber" : "normal";
-      }
-      /**
-       * Listen for all requests received by the server in real time.
-       *
-       * This command will create a new connection to Redis and send a
-       * MONITOR command via the new connection in order to avoid disturbing
-       * the current connection.
-       *
-       * @param callback The callback function. If omit, a promise will be returned.
-       * @example
-       * ```js
-       * var redis = new Redis();
-       * redis.monitor(function (err, monitor) {
-       *   // Entering monitoring mode.
-       *   monitor.on('monitor', function (time, args, source, database) {
-       *     console.log(time + ": " + util.inspect(args));
-       *   });
-       * });
-       *
-       * // supports promise as well as other commands
-       * redis.monitor().then(function (monitor) {
-       *   monitor.on('monitor', function (time, args, source, database) {
-       *     console.log(time + ": " + util.inspect(args));
-       *   });
-       * });
-       * ```
-       */
-      monitor(callback) {
-        const monitorInstance = this.duplicate({
-          monitor: true,
-          lazyConnect: false
-        });
-        return (0, standard_as_callback_1.default)(new Promise(function(resolve, reject) {
-          monitorInstance.once("error", reject);
-          monitorInstance.once("monitoring", function() {
-            resolve(monitorInstance);
-          });
-        }), callback);
-      }
-      /**
-       * Send a command to Redis
-       *
-       * This method is used internally and in most cases you should not
-       * use it directly. If you need to send a command that is not supported
-       * by the library, you can use the `call` method:
-       *
-       * ```js
-       * const redis = new Redis();
-       *
-       * redis.call('set', 'foo', 'bar');
-       * // or
-       * redis.call(['set', 'foo', 'bar']);
-       * ```
-       *
-       * @ignore
-       */
-      sendCommand(command, stream) {
-        var _a, _b;
-        if (this.status === "wait") {
-          this.connect().catch(lodash_1.noop);
-        }
-        if (this.status === "end") {
-          command.reject(new Error(utils_1.CONNECTION_CLOSED_ERROR_MSG));
-          return command.promise;
-        }
-        if (((_a = this.condition) === null || _a === void 0 ? void 0 : _a.subscriber) && !Command_1.default.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)) {
-          command.reject(new Error("Connection in subscriber mode, only subscriber commands may be used"));
-          return command.promise;
-        }
-        if (typeof this.options.commandTimeout === "number") {
-          command.setTimeout(this.options.commandTimeout);
-        }
-        let writable = this.status === "ready" || !stream && this.status === "connect" && (0, commands_1.exists)(command.name) && (0, commands_1.hasFlag)(command.name, "loading");
-        if (!this.stream) {
-          writable = false;
-        } else if (!this.stream.writable) {
-          writable = false;
-        } else if (this.stream._writableState && this.stream._writableState.ended) {
-          writable = false;
-        }
-        if (!writable) {
-          if (!this.options.enableOfflineQueue) {
-            command.reject(new Error("Stream isn't writeable and enableOfflineQueue options is false"));
-            return command.promise;
-          }
-          if (command.name === "quit" && this.offlineQueue.length === 0) {
-            this.disconnect();
-            command.resolve(Buffer.from("OK"));
-            return command.promise;
-          }
-          if (debug8.enabled) {
-            debug8("queue command[%s]: %d -> %s(%o)", this._getDescription(), this.condition.select, command.name, command.args);
-          }
-          this.offlineQueue.push({
-            command,
-            stream,
-            select: this.condition.select
-          });
-        } else {
-          if (debug8.enabled) {
-            debug8("write command[%s]: %d -> %s(%o)", this._getDescription(), (_b = this.condition) === null || _b === void 0 ? void 0 : _b.select, command.name, command.args);
-          }
-          if (stream) {
-            if ("isPipeline" in stream && stream.isPipeline) {
-              stream.write(command.toWritable(stream.destination.redis.stream));
-            } else {
-              stream.write(command.toWritable(stream));
-            }
-          } else {
-            this.stream.write(command.toWritable(this.stream));
-          }
-          this.commandQueue.push({
-            command,
-            stream,
-            select: this.condition.select
-          });
-          if (Command_1.default.checkFlag("WILL_DISCONNECT", command.name)) {
-            this.manuallyClosing = true;
-          }
-          if (this.options.socketTimeout !== void 0 && this.socketTimeoutTimer === void 0) {
-            this.setSocketTimeout();
-          }
-        }
-        if (command.name === "select" && (0, utils_1.isInt)(command.args[0])) {
-          const db = parseInt(command.args[0], 10);
-          if (this.condition.select !== db) {
-            this.condition.select = db;
-            this.emit("select", db);
-            debug8("switch to db [%d]", this.condition.select);
-          }
-        }
-        return command.promise;
-      }
-      setSocketTimeout() {
-        this.socketTimeoutTimer = setTimeout(() => {
-          this.stream.destroy(new Error(`Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`));
-          this.socketTimeoutTimer = void 0;
-        }, this.options.socketTimeout);
-        this.stream.once("data", () => {
-          clearTimeout(this.socketTimeoutTimer);
-          this.socketTimeoutTimer = void 0;
-          if (this.commandQueue.length === 0)
-            return;
-          this.setSocketTimeout();
-        });
-      }
-      scanStream(options) {
-        return this.createScanStream("scan", { options });
-      }
-      scanBufferStream(options) {
-        return this.createScanStream("scanBuffer", { options });
-      }
-      sscanStream(key, options) {
-        return this.createScanStream("sscan", { key, options });
-      }
-      sscanBufferStream(key, options) {
-        return this.createScanStream("sscanBuffer", { key, options });
-      }
-      hscanStream(key, options) {
-        return this.createScanStream("hscan", { key, options });
-      }
-      hscanBufferStream(key, options) {
-        return this.createScanStream("hscanBuffer", { key, options });
-      }
-      zscanStream(key, options) {
-        return this.createScanStream("zscan", { key, options });
-      }
-      zscanBufferStream(key, options) {
-        return this.createScanStream("zscanBuffer", { key, options });
-      }
-      /**
-       * Emit only when there's at least one listener.
-       *
-       * @ignore
-       */
-      silentEmit(eventName, arg) {
-        let error5;
-        if (eventName === "error") {
-          error5 = arg;
-          if (this.status === "end") {
-            return;
-          }
-          if (this.manuallyClosing) {
-            if (error5 instanceof Error && (error5.message === utils_1.CONNECTION_CLOSED_ERROR_MSG || // @ts-expect-error
-            error5.syscall === "connect" || // @ts-expect-error
-            error5.syscall === "read")) {
-              return;
-            }
-          }
-        }
-        if (this.listeners(eventName).length > 0) {
-          return this.emit.apply(this, arguments);
-        }
-        if (error5 && error5 instanceof Error) {
-          console.error("[ioredis] Unhandled error event:", error5.stack);
-        }
-        return false;
-      }
-      /**
-       * @ignore
-       */
-      recoverFromFatalError(_commandError, err, options) {
-        this.flushQueue(err, options);
-        this.silentEmit("error", err);
-        this.disconnect(true);
-      }
-      /**
-       * @ignore
-       */
-      handleReconnection(err, item) {
-        var _a;
-        let needReconnect = false;
-        if (this.options.reconnectOnError) {
-          needReconnect = this.options.reconnectOnError(err);
-        }
-        switch (needReconnect) {
-          case 1:
-          case true:
-            if (this.status !== "reconnecting") {
-              this.disconnect(true);
-            }
-            item.command.reject(err);
-            break;
-          case 2:
-            if (this.status !== "reconnecting") {
-              this.disconnect(true);
-            }
-            if (((_a = this.condition) === null || _a === void 0 ? void 0 : _a.select) !== item.select && item.command.name !== "select") {
-              this.select(item.select);
-            }
-            this.sendCommand(item.command);
-            break;
-          default:
-            item.command.reject(err);
-        }
-      }
-      /**
-       * Get description of the connection. Used for debugging.
-       */
-      _getDescription() {
-        let description;
-        if ("path" in this.options && this.options.path) {
-          description = this.options.path;
-        } else if (this.stream && this.stream.remoteAddress && this.stream.remotePort) {
-          description = this.stream.remoteAddress + ":" + this.stream.remotePort;
-        } else if ("host" in this.options && this.options.host) {
-          description = this.options.host + ":" + this.options.port;
-        } else {
-          description = "";
-        }
-        if (this.options.connectionName) {
-          description += ` (${this.options.connectionName})`;
-        }
-        return description;
-      }
-      resetCommandQueue() {
-        this.commandQueue = new Deque();
-      }
-      resetOfflineQueue() {
-        this.offlineQueue = new Deque();
-      }
-      parseOptions(...args) {
-        const options = {};
-        let isTls = false;
-        for (let i = 0; i < args.length; ++i) {
-          const arg = args[i];
-          if (arg === null || typeof arg === "undefined") {
-            continue;
-          }
-          if (typeof arg === "object") {
-            (0, lodash_1.defaults)(options, arg);
-          } else if (typeof arg === "string") {
-            (0, lodash_1.defaults)(options, (0, utils_1.parseURL)(arg));
-            if (arg.startsWith("rediss://")) {
-              isTls = true;
-            }
-          } else if (typeof arg === "number") {
-            options.port = arg;
-          } else {
-            throw new Error("Invalid argument " + arg);
-          }
-        }
-        if (isTls) {
-          (0, lodash_1.defaults)(options, { tls: true });
-        }
-        (0, lodash_1.defaults)(options, _Redis.defaultOptions);
-        if (typeof options.port === "string") {
-          options.port = parseInt(options.port, 10);
-        }
-        if (typeof options.db === "string") {
-          options.db = parseInt(options.db, 10);
-        }
-        this.options = (0, utils_1.resolveTLSProfile)(options);
-      }
-      /**
-       * Change instance's status
-       */
-      setStatus(status, arg) {
-        if (debug8.enabled) {
-          debug8("status[%s]: %s -> %s", this._getDescription(), this.status || "[empty]", status);
-        }
-        this.status = status;
-        process.nextTick(this.emit.bind(this, status, arg));
-      }
-      createScanStream(command, { key, options = {} }) {
-        return new ScanStream_1.default({
-          objectMode: true,
-          key,
-          redis: this,
-          command,
-          ...options
-        });
-      }
-      /**
-       * Flush offline queue and command queue with error.
-       *
-       * @param error The error object to send to the commands
-       * @param options options
-       */
-      flushQueue(error5, options) {
-        options = (0, lodash_1.defaults)({}, options, {
-          offlineQueue: true,
-          commandQueue: true
-        });
-        let item;
-        if (options.offlineQueue) {
-          while (item = this.offlineQueue.shift()) {
-            item.command.reject(error5);
-          }
-        }
-        if (options.commandQueue) {
-          if (this.commandQueue.length > 0) {
-            if (this.stream) {
-              this.stream.removeAllListeners("data");
-            }
-            while (item = this.commandQueue.shift()) {
-              item.command.reject(error5);
-            }
-          }
-        }
-      }
-      /**
-       * Check whether Redis has finished loading the persistent data and is able to
-       * process commands.
-       */
-      _readyCheck(callback) {
-        const _this = this;
-        this.info(function(err, res) {
-          if (err) {
-            if (err.message && err.message.includes("NOPERM")) {
-              console.warn(`Skipping the ready check because INFO command fails: "${err.message}". You can disable ready check with "enableReadyCheck". More: https://github.com/luin/ioredis/wiki/Disable-ready-check.`);
-              return callback(null, {});
-            }
-            return callback(err);
-          }
-          if (typeof res !== "string") {
-            return callback(null, res);
-          }
-          const info9 = {};
-          const lines = res.split("\r\n");
-          for (let i = 0; i < lines.length; ++i) {
-            const [fieldName, ...fieldValueParts] = lines[i].split(":");
-            const fieldValue = fieldValueParts.join(":");
-            if (fieldValue) {
-              info9[fieldName] = fieldValue;
-            }
-          }
-          if (!info9.loading || info9.loading === "0") {
-            callback(null, info9);
-          } else {
-            const loadingEtaMs = (info9.loading_eta_seconds || 1) * 1e3;
-            const retryTime = _this.options.maxLoadingRetryTime && _this.options.maxLoadingRetryTime < loadingEtaMs ? _this.options.maxLoadingRetryTime : loadingEtaMs;
-            debug8("Redis server still loading, trying again in " + retryTime + "ms");
-            setTimeout(function() {
-              _this._readyCheck(callback);
-            }, retryTime);
-          }
-        }).catch(lodash_1.noop);
-      }
-    };
-    Redis2.Cluster = cluster_1.default;
-    Redis2.Command = Command_1.default;
-    Redis2.defaultOptions = RedisOptions_1.DEFAULT_REDIS_OPTIONS;
-    (0, applyMixin_1.default)(Redis2, events_1.EventEmitter);
-    (0, transaction_1.addTransactionSupport)(Redis2.prototype);
-    exports2.default = Redis2;
-  }
-});
-
-// node_modules/ioredis/built/index.js
-var require_built3 = __commonJS({
-  "node_modules/ioredis/built/index.js"(exports2, module2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.print = exports2.ReplyError = exports2.SentinelIterator = exports2.SentinelConnector = exports2.AbstractConnector = exports2.Pipeline = exports2.ScanStream = exports2.Command = exports2.Cluster = exports2.Redis = exports2.default = void 0;
-    exports2 = module2.exports = require_Redis().default;
-    var Redis_1 = require_Redis();
-    Object.defineProperty(exports2, "default", { enumerable: true, get: function() {
-      return Redis_1.default;
-    } });
-    var Redis_2 = require_Redis();
-    Object.defineProperty(exports2, "Redis", { enumerable: true, get: function() {
-      return Redis_2.default;
-    } });
-    var cluster_1 = require_cluster();
-    Object.defineProperty(exports2, "Cluster", { enumerable: true, get: function() {
-      return cluster_1.default;
-    } });
-    var Command_1 = require_Command();
-    Object.defineProperty(exports2, "Command", { enumerable: true, get: function() {
-      return Command_1.default;
-    } });
-    var ScanStream_1 = require_ScanStream();
-    Object.defineProperty(exports2, "ScanStream", { enumerable: true, get: function() {
-      return ScanStream_1.default;
-    } });
-    var Pipeline_1 = require_Pipeline();
-    Object.defineProperty(exports2, "Pipeline", { enumerable: true, get: function() {
-      return Pipeline_1.default;
-    } });
-    var AbstractConnector_1 = require_AbstractConnector();
-    Object.defineProperty(exports2, "AbstractConnector", { enumerable: true, get: function() {
-      return AbstractConnector_1.default;
-    } });
-    var SentinelConnector_1 = require_SentinelConnector();
-    Object.defineProperty(exports2, "SentinelConnector", { enumerable: true, get: function() {
-      return SentinelConnector_1.default;
-    } });
-    Object.defineProperty(exports2, "SentinelIterator", { enumerable: true, get: function() {
-      return SentinelConnector_1.SentinelIterator;
-    } });
-    exports2.ReplyError = require_redis_errors().ReplyError;
-    Object.defineProperty(exports2, "Promise", {
-      get() {
-        console.warn("ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used.");
-        return Promise;
-      },
-      set(_lib) {
-        console.warn("ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used.");
-      }
-    });
-    function print(err, reply) {
-      if (err) {
-        console.log("Error: " + err);
-      } else {
-        console.log("Reply: " + reply);
-      }
-    }
-    exports2.print = print;
-  }
-});
-
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  run: () => run
-});
-module.exports = __toCommonJS(index_exports);
-var core11 = __toESM(require_core());
-var import_fs = require("fs");
-var import_path = __toESM(require("path"));
-var import_os = __toESM(require("os"));
-
-// src/core/screenshot/BrowserScreenshotCapture.ts
-var core = __toESM(require_core());
-var import_browser = require("@yofix/browser");
-
-// src/core/hooks/ConfigurationHook.ts
-var GitHubActionsConfigurationHook = class {
-  constructor(core12) {
-    this.core = core12;
-  }
-  getInput(name) {
-    return this.core.getInput(name);
-  }
-  getBooleanInput(name) {
-    return this.core.getBooleanInput(name);
-  }
-  getMultilineInput(name) {
-    return this.core.getMultilineInput(name);
-  }
-  getRequiredInput(name) {
-    const value = this.core.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return !!process.env.GITHUB_ACTIONS;
-  }
-};
-var EnvironmentConfigurationHook = class {
-  getInput(name) {
-    const inputKey = `INPUT_${name.toUpperCase().replace(/-/g, "_")}`;
-    return process.env[inputKey] || process.env[name] || "";
-  }
-  getBooleanInput(name) {
-    const value = this.getInput(name).toLowerCase();
-    return value === "true" || value === "1";
-  }
-  getMultilineInput(name) {
-    const value = this.getInput(name);
-    return value ? value.split("\n").map((line) => line.trim()) : [];
-  }
-  getRequiredInput(name) {
-    const value = this.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return !!process.env.GITHUB_ACTIONS;
-  }
-};
-var MockConfigurationHook = class {
-  constructor(mockValues = {}) {
-    this.mockValues = mockValues;
-  }
-  setMockValue(name, value) {
-    this.mockValues[name] = value;
-  }
-  getInput(name) {
-    return this.mockValues[name] || "";
-  }
-  getBooleanInput(name) {
-    const value = this.getInput(name).toLowerCase();
-    return value === "true" || value === "1";
-  }
-  getMultilineInput(name) {
-    const value = this.getInput(name);
-    return value ? value.split("\n").map((line) => line.trim()) : [];
-  }
-  getRequiredInput(name) {
-    const value = this.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return false;
-  }
-};
-var ConfigurationFactory = class {
-  /**
-   * Get configuration hook instance
-   */
-  static getConfiguration() {
-    if (!this.instance) {
-      if (process.env.NODE_ENV === "test") {
-        this.instance = new MockConfigurationHook();
-      } else if (process.env.GITHUB_ACTIONS) {
-        const core12 = require_core();
-        this.instance = new GitHubActionsConfigurationHook(core12);
-      } else {
-        this.instance = new EnvironmentConfigurationHook();
-      }
-    }
-    return this.instance;
-  }
-  /**
-   * Set configuration instance (for testing)
-   */
-  static setConfiguration(config2) {
-    this.instance = config2;
-  }
-  /**
-   * Reset configuration instance
-   */
-  static reset() {
-    this.instance = null;
-  }
-};
-ConfigurationFactory.instance = null;
-function getConfiguration() {
-  return ConfigurationFactory.getConfiguration();
-}
-
-// src/core/screenshot/BrowserScreenshotCapture.ts
-async function captureScreenshotsWithBrowser(options) {
-  const configuration = getConfiguration();
-  const claudeApiKey = configuration.getInput("claude-api-key");
-  const claudeModel = configuration.getInput("claude-model");
-  if (!claudeApiKey) {
-    throw new Error(
-      "Claude API key is required for route-impact-browser integration."
-    );
-  }
-  if (!claudeModel) {
-    throw new Error(
-      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
-    );
-  }
-  core.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
-  core.info(`  - Routes: ${options.routes.length}`);
-  core.info(`  - Base URL: ${options.baseUrl}`);
-  core.info(`  - Viewports: ${options.viewports.length}`);
-  const startTime = Date.now();
-  const result = await (0, import_browser.captureRouteScreenshots)({
-    codebase: { path: process.cwd() },
-    routes: options.routes,
-    baseUrl: options.baseUrl,
-    credentials: options.credentials,
-    loginUrl: options.loginUrl,
-    options: {
-      viewports: options.viewports.map((vp) => ({
-        width: vp.width,
-        height: vp.height,
-        name: vp.name || `${vp.width}x${vp.height}`
-      })),
-      llm: {
-        provider: "anthropic",
-        apiKey: claudeApiKey,
-        model: claudeModel
-      },
-      auth: options.credentials ? {
-        enabled: true,
-        skipLoginIfAuthenticated: false,
-        cache: {
-          enabled: true,
-          provider: "file-system",
-          ttl: 30 * 24 * 60 * 60 * 1e3
-          // 30 days
-        }
-      } : {
-        enabled: false
-      },
-      browser: {
-        headless: true,
-        timeout: 6e4,
-        waitUntil: "networkidle"
-      },
-      storage: {
-        provider: "local"
-        // Always use local storage
-      },
-      verbose: options.verbose ?? false
-    }
-  });
-  const totalDuration = Date.now() - startTime;
-  core.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
-  core.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
-  core.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
-  core.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
-  core.info(`  - Output directory: ${result.metadata.outputDirectory}`);
-  return {
-    success: result.success,
-    screenshots: result.screenshots,
-    outputDirectory: result.metadata.outputDirectory,
-    totalDuration,
-    errors: result.errors
-  };
-}
-
-// src/github/PRReporter.ts
-var core7 = __toESM(require_core());
-
-// src/core/github/GitHubCommentEngine.ts
-var core2 = __toESM(require_core());
+module.exports = __toCommonJS(analyze_routes_step_exports);
+var core8 = __toESM(require_core());
+var import_path2 = __toESM(require("path"));
 
 // src/config/env-loader.ts
 var fs = __toESM(require("fs"));
@@ -33806,8 +23937,8 @@ function loadEnvLocal(rootDir) {
   try {
     const content = fs.readFileSync(envLocalPath, "utf8");
     return parseEnvFile(content);
-  } catch (error5) {
-    console.warn(`Warning: Could not load .env.local file: ${error5}`);
+  } catch (error6) {
+    console.warn(`Warning: Could not load .env.local file: ${error6}`);
     return {};
   }
 }
@@ -34185,10 +24316,10 @@ var RetryHelper = class {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error5) {
-        lastError = error5;
-        if (error5.status && error5.status >= 400 && error5.status < 500) {
-          throw error5;
+      } catch (error6) {
+        lastError = error6;
+        if (error6.status && error6.status >= 400 && error6.status < 500) {
+          throw error6;
         }
         if (attempt === maxRetries) {
           break;
@@ -34241,8 +24372,8 @@ var MockGitHubService = class {
   setMockComments(issueNumber, comments) {
     this.mockData.comments.set(`${issueNumber}`, comments);
   }
-  setMockFileContent(path4, content) {
-    this.mockData.fileContents.set(path4, content);
+  setMockFileContent(path5, content) {
+    this.mockData.fileContents.set(path5, content);
   }
   setMockContext(context) {
     this.mockData.context = { ...this.mockData.context, ...context };
@@ -34278,11 +24409,11 @@ var MockGitHubService = class {
   async addReaction(commentId, reaction) {
     console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
   }
-  async getFileContent(path4, ref) {
-    return this.mockData.fileContents.get(path4) || null;
+  async getFileContent(path5, ref) {
+    return this.mockData.fileContents.get(path5) || null;
   }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
+  async getContent(path5, ref) {
+    return this.getFileContent(path5, ref);
   }
   async listCheckRuns(ref) {
     const context = this.getContext();
@@ -34464,16 +24595,16 @@ var EnhancedGitHubService = class {
       });
     }, false);
   }
-  async getFileContent(path4, ref) {
+  async getFileContent(path5, ref) {
     this.ensureConfigured();
     const context = this.getContext();
-    const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path4, ref);
+    const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path5, ref);
     return this.withCacheAndRateLimit(cacheKey, async () => {
       try {
         const { data } = await this.octokit.rest.repos.getContent({
           owner: context.owner,
           repo: context.repo,
-          path: path4,
+          path: path5,
           ref
         });
         if ("content" in data && !Array.isArray(data)) {
@@ -34485,16 +24616,16 @@ var EnhancedGitHubService = class {
           };
         }
         return null;
-      } catch (error5) {
-        if (error5.status === 404) {
+      } catch (error6) {
+        if (error6.status === 404) {
           return null;
         }
-        throw error5;
+        throw error6;
       }
     });
   }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
+  async getContent(path5, ref) {
+    return this.getFileContent(path5, ref);
   }
   async listCheckRuns(ref) {
     this.ensureConfigured();
@@ -34578,8 +24709,8 @@ var EnhancedGitHubService = class {
           eventName: context.eventName,
           payload: context.payload
         };
-      } catch (error5) {
-        console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error5);
+      } catch (error6) {
+        console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error6);
         console.log("[EnhancedGitHubService] Falling back to environment variables");
       }
       const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
@@ -34592,8 +24723,8 @@ var EnhancedGitHubService = class {
           const fs4 = require("fs");
           payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
         }
-      } catch (error5) {
-        console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error5);
+      } catch (error6) {
+        console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error6);
       }
       const prNumber = ((_c = payload == null ? void 0 : payload.pull_request) == null ? void 0 : _c.number) || ((_d = payload == null ? void 0 : payload.issue) == null ? void 0 : _d.number);
       return {
@@ -34728,14 +24859,14 @@ var OctokitGitHubService = class {
       content: reaction
     });
   }
-  async getFileContent(path4, ref) {
+  async getFileContent(path5, ref) {
     this.ensureConfigured();
     const context = this.getContext();
     try {
       const { data } = await this.octokit.rest.repos.getContent({
         owner: context.owner,
         repo: context.repo,
-        path: path4,
+        path: path5,
         ref
       });
       if ("content" in data && !Array.isArray(data)) {
@@ -34747,15 +24878,15 @@ var OctokitGitHubService = class {
         };
       }
       return null;
-    } catch (error5) {
-      if (error5.status === 404) {
+    } catch (error6) {
+      if (error6.status === 404) {
         return null;
       }
-      throw error5;
+      throw error6;
     }
   }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
+  async getContent(path5, ref) {
+    return this.getFileContent(path5, ref);
   }
   async listCheckRuns(ref) {
     this.ensureConfigured();
@@ -34826,8 +24957,8 @@ var OctokitGitHubService = class {
           eventName: context.eventName,
           payload: context.payload
         };
-      } catch (error5) {
-        console.error("[OctokitGitHubService] Failed to use @actions/github context:", error5);
+      } catch (error6) {
+        console.error("[OctokitGitHubService] Failed to use @actions/github context:", error6);
         console.log("[OctokitGitHubService] Falling back to environment variables");
       }
       const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
@@ -34840,8 +24971,8 @@ var OctokitGitHubService = class {
           const fs4 = require("fs");
           payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
         }
-      } catch (error5) {
-        console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error5);
+      } catch (error6) {
+        console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error6);
       }
       const prNumber = ((_c = payload == null ? void 0 : payload.pull_request) == null ? void 0 : _c.number) || ((_d = payload == null ? void 0 : payload.issue) == null ? void 0 : _d.number);
       return {
@@ -34909,13 +25040,13 @@ var LazyGitHubService = class {
     const service = await this.ensureService();
     return service.addReaction(commentId, reaction);
   }
-  async getFileContent(path4, ref) {
+  async getFileContent(path5, ref) {
     const service = await this.ensureService();
-    return service.getFileContent(path4, ref);
+    return service.getFileContent(path5, ref);
   }
-  async getContent(path4, ref) {
+  async getContent(path5, ref) {
     const service = await this.ensureService();
-    return service.getContent(path4, ref);
+    return service.getContent(path5, ref);
   }
   async listCheckRuns(ref) {
     const service = await this.ensureService();
@@ -34952,8 +25083,8 @@ var LazyGitHubService = class {
           eventName: context.eventName,
           payload: context.payload
         };
-      } catch (error5) {
-        console.error("[LazyGitHubService] Failed to use @actions/github context:", error5);
+      } catch (error6) {
+        console.error("[LazyGitHubService] Failed to use @actions/github context:", error6);
       }
     }
     const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
@@ -34966,8 +25097,8 @@ var LazyGitHubService = class {
         const fs4 = require("fs");
         payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
       }
-    } catch (error5) {
-      console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error5);
+    } catch (error6) {
+      console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error6);
     }
     const prNumber = ((_b = payload == null ? void 0 : payload.pull_request) == null ? void 0 : _b.number) || ((_c = payload == null ? void 0 : payload.issue) == null ? void 0 : _c.number);
     return {
@@ -35043,7 +25174,571 @@ var GitHubServiceFactory = class {
   }
 };
 
+// src/core/analysis/ThirdPartyRouteImpactAnalyzer.ts
+var core = __toESM(require_core());
+var import_analyzer = require("@yofix/analyzer");
+
+// src/core/hooks/ConfigurationHook.ts
+var GitHubActionsConfigurationHook = class {
+  constructor(core9) {
+    this.core = core9;
+  }
+  getInput(name) {
+    return this.core.getInput(name);
+  }
+  getBooleanInput(name) {
+    return this.core.getBooleanInput(name);
+  }
+  getMultilineInput(name) {
+    return this.core.getMultilineInput(name);
+  }
+  getRequiredInput(name) {
+    const value = this.core.getInput(name);
+    if (!value) {
+      throw new Error(`Required input '${name}' not provided`);
+    }
+    return value;
+  }
+  isInGitHubActions() {
+    return !!process.env.GITHUB_ACTIONS;
+  }
+};
+var EnvironmentConfigurationHook = class {
+  getInput(name) {
+    const inputKey = `INPUT_${name.toUpperCase().replace(/-/g, "_")}`;
+    return process.env[inputKey] || process.env[name] || "";
+  }
+  getBooleanInput(name) {
+    const value = this.getInput(name).toLowerCase();
+    return value === "true" || value === "1";
+  }
+  getMultilineInput(name) {
+    const value = this.getInput(name);
+    return value ? value.split("\n").map((line) => line.trim()) : [];
+  }
+  getRequiredInput(name) {
+    const value = this.getInput(name);
+    if (!value) {
+      throw new Error(`Required input '${name}' not provided`);
+    }
+    return value;
+  }
+  isInGitHubActions() {
+    return !!process.env.GITHUB_ACTIONS;
+  }
+};
+var MockConfigurationHook = class {
+  constructor(mockValues = {}) {
+    this.mockValues = mockValues;
+  }
+  setMockValue(name, value) {
+    this.mockValues[name] = value;
+  }
+  getInput(name) {
+    return this.mockValues[name] || "";
+  }
+  getBooleanInput(name) {
+    const value = this.getInput(name).toLowerCase();
+    return value === "true" || value === "1";
+  }
+  getMultilineInput(name) {
+    const value = this.getInput(name);
+    return value ? value.split("\n").map((line) => line.trim()) : [];
+  }
+  getRequiredInput(name) {
+    const value = this.getInput(name);
+    if (!value) {
+      throw new Error(`Required input '${name}' not provided`);
+    }
+    return value;
+  }
+  isInGitHubActions() {
+    return false;
+  }
+};
+var ConfigurationFactory = class {
+  /**
+   * Get configuration hook instance
+   */
+  static getConfiguration() {
+    if (!this.instance) {
+      if (process.env.NODE_ENV === "test") {
+        this.instance = new MockConfigurationHook();
+      } else if (process.env.GITHUB_ACTIONS) {
+        const core9 = require_core();
+        this.instance = new GitHubActionsConfigurationHook(core9);
+      } else {
+        this.instance = new EnvironmentConfigurationHook();
+      }
+    }
+    return this.instance;
+  }
+  /**
+   * Set configuration instance (for testing)
+   */
+  static setConfiguration(config2) {
+    this.instance = config2;
+  }
+  /**
+   * Reset configuration instance
+   */
+  static reset() {
+    this.instance = null;
+  }
+};
+ConfigurationFactory.instance = null;
+function getConfiguration() {
+  return ConfigurationFactory.getConfiguration();
+}
+
+// src/core/analysis/ThirdPartyRouteImpactAnalyzer.ts
+function createEmptyImpactTree(totalFilesChanged) {
+  return {
+    affectedRoutes: [],
+    sharedComponents: /* @__PURE__ */ new Map(),
+    totalFilesChanged,
+    totalRoutesAffected: 0,
+    componentRouteMapping: /* @__PURE__ */ new Map()
+  };
+}
+async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
+  var _a, _b, _c;
+  const configuration = getConfiguration();
+  const claudeApiKey = configuration.getInput("claude-api-key");
+  if (!claudeApiKey) {
+    throw new Error(
+      "Claude API key is required for route-impact-analyzer integration."
+    );
+  }
+  const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
+  core.info(
+    `\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`
+  );
+  if (changedFiles.length === 0) {
+    core.info(
+      "No changed files detected, skipping external route impact analysis."
+    );
+    const emptyTree = createEmptyImpactTree(0);
+    return {
+      routes: [],
+      impactTree: emptyTree,
+      routesToTest: emptyTree,
+      commentBody: ""
+    };
+  }
+  const modelFromConfig = configuration.getInput("claude-model");
+  if (!modelFromConfig) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
+    );
+  }
+  const forceRefreshInput = configuration.getInput(
+    "route-impact-force-refresh"
+  );
+  const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
+  core.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
+  core.info(`  - Codebase path: ${process.cwd()}`);
+  core.info(`  - Changed files count: ${changedFiles.length}`);
+  core.info(`  - Base URL: ${previewUrl}`);
+  core.info(`  - Model: ${modelFromConfig}`);
+  core.info(`  - Force refresh: ${forceRefresh}`);
+  const result = await (0, import_analyzer.analyzeRouteImpact)({
+    codebase: { path: process.cwd() },
+    changedFiles,
+    options: {
+      baseUrl: previewUrl,
+      llm: {
+        provider: "anthropic",
+        apiKey: claudeApiKey,
+        model: modelFromConfig
+      },
+      cache: {
+        enabled: true,
+        provider: "file-system",
+        forceRefresh
+      },
+      analysis: {
+        includeLayouts: true,
+        maxDepth: 10,
+        verbose: true
+      }
+    }
+  });
+  core.info(`\u{1F4CA} Route analysis result: success=${result.success}`);
+  if (!result.success) {
+    const messages = ((_a = result.errors) == null ? void 0 : _a.map((err) => `${err.code}: ${err.message}`)) || [];
+    const errorMessage = messages.length > 0 ? messages.join("\n") : "route-impact-analyzer failed with unknown error";
+    core.error(`\u274C Route impact analysis failed: ${errorMessage}`);
+    throw new Error(errorMessage);
+  }
+  const uniqueRoutes = /* @__PURE__ */ new Set();
+  const componentRouteMapping = /* @__PURE__ */ new Map();
+  const routeImpactMap = /* @__PURE__ */ new Map();
+  const impactReasons = /* @__PURE__ */ new Map();
+  result.impacts.forEach((impact) => {
+    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
+    if (impactedRoutes.length === 0) {
+      return;
+    }
+    componentRouteMapping.set(
+      impact.changedFile,
+      impactedRoutes.map((route) => ({
+        routePath: route,
+        routeFile: impact.changedFile
+      }))
+    );
+    impactedRoutes.forEach((route) => {
+      uniqueRoutes.add(route);
+      if (!routeImpactMap.has(route)) {
+        routeImpactMap.set(route, {
+          route,
+          changedFiles: [],
+          reason: impact.reason,
+          confidence: impact.confidence
+        });
+      }
+      const impactEntry = routeImpactMap.get(route);
+      if (!impactEntry.changedFiles.includes(impact.changedFile)) {
+        impactEntry.changedFiles.push(impact.changedFile);
+      }
+      if (!impactReasons.has(route) || impact.reason === "direct") {
+        impactReasons.set(route, {
+          reason: impact.reason,
+          confidence: impact.confidence
+        });
+      }
+    });
+  });
+  const sharedComponents = /* @__PURE__ */ new Map();
+  componentRouteMapping.forEach((routes, componentFile) => {
+    const uniqueRoutePaths = Array.from(
+      new Set(
+        routes.map((route) => route.routePath).filter((routePath) => !!routePath)
+      )
+    );
+    if (uniqueRoutePaths.length > 1) {
+      sharedComponents.set(componentFile, uniqueRoutePaths);
+    }
+  });
+  const impactTree = {
+    affectedRoutes: Array.from(routeImpactMap.values()),
+    sharedComponents,
+    totalFilesChanged: changedFiles.length,
+    totalRoutesAffected: uniqueRoutes.size,
+    componentRouteMapping
+  };
+  const routesToTestMap = /* @__PURE__ */ new Map();
+  const routesToTestComponentMapping = /* @__PURE__ */ new Map();
+  result.impacts.forEach((impact) => {
+    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
+    if (impactedRoutes.length === 0) {
+      return;
+    }
+    const routesToInclude = impact.reason === "layout" ? impactedRoutes.slice(0, 1) : impactedRoutes;
+    if (routesToInclude.length > 0) {
+      const newRoutes = [];
+      routesToInclude.forEach((route) => {
+        if (!routesToTestMap.has(route)) {
+          routesToTestMap.set(route, {
+            route,
+            changedFiles: [impact.changedFile],
+            reason: impact.reason,
+            confidence: impact.confidence
+          });
+          newRoutes.push({
+            routePath: route,
+            routeFile: impact.changedFile
+          });
+        } else {
+          const existing = routesToTestMap.get(route);
+          if (!existing.changedFiles.includes(impact.changedFile)) {
+            existing.changedFiles.push(impact.changedFile);
+          }
+        }
+      });
+      if (newRoutes.length > 0) {
+        routesToTestComponentMapping.set(impact.changedFile, newRoutes);
+      }
+    }
+    if (impact.reason === "layout" && impactedRoutes.length > 1) {
+      core.info(
+        `\u{1F4CA} Layout impact for ${impact.changedFile}: Testing 1 of ${impactedRoutes.length} routes (${routesToInclude[0]})`
+      );
+    }
+  });
+  const routesToTest = {
+    affectedRoutes: Array.from(routesToTestMap.values()),
+    sharedComponents,
+    totalFilesChanged: changedFiles.length,
+    totalRoutesAffected: routesToTestMap.size,
+    componentRouteMapping: routesToTestComponentMapping
+  };
+  core.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
+  const basePreviewUrl = previewUrl.replace(/\/$/, "");
+  const header = "## \u{1F310} Route Impact (route-impact-analyzer)\n";
+  const summaryLines = [
+    `- Files analyzed: **${((_b = result.metadata) == null ? void 0 : _b.totalFiles) ?? changedFiles.length}**`,
+    `- Routes impacted: **${uniqueRoutes.size}**`,
+    `- Routes to test: **${routesToTestMap.size}**`,
+    `- Framework: **${((_c = result.metadata) == null ? void 0 : _c.framework) ?? "unknown"}**`,
+    `- Preview URL: **${basePreviewUrl}**`,
+    ""
+  ];
+  const routeLines = [];
+  let lineCount = 0;
+  componentRouteMapping.forEach((routes, file) => {
+    var _a2;
+    const fileImpact = result.impacts.find((i) => i.changedFile === file);
+    const reason = (fileImpact == null ? void 0 : fileImpact.reason) || "unknown";
+    const routeCount = routes.length;
+    const testCount = ((_a2 = routesToTestComponentMapping.get(file)) == null ? void 0 : _a2.length) || 0;
+    routeLines.push(`- \`${file}\` (${reason}: ${testCount} to test / ${routeCount} affected)`);
+    const routesToShow = routesToTestComponentMapping.get(file) || routes.slice(0, 5);
+    routesToShow.forEach((routeInfo, idx) => {
+      if (lineCount < 20 && idx < 5) {
+        const fullUrl = `${basePreviewUrl}${routeInfo.routePath}`;
+        routeLines.push(`  - [${routeInfo.routePath}](${fullUrl})`);
+        lineCount++;
+      }
+    });
+    if (routes.length > 5) {
+      routeLines.push(`  - \u2026and ${routes.length - 5} more routes`);
+    }
+  });
+  const commentBody = uniqueRoutes.size > 0 ? [header, ...summaryLines, ...routeLines].join("\n") : `${header}
+No impacted routes detected.`;
+  return {
+    routes: Array.from(uniqueRoutes),
+    impactTree,
+    routesToTest,
+    commentBody
+  };
+}
+
+// src/steps/shared/StepDataManager.ts
+var import_fs = require("fs");
+var import_path = __toESM(require("path"));
+var core2 = __toESM(require_core());
+var _StepDataManager = class _StepDataManager {
+  constructor(workspacePath) {
+    this.workspacePath = workspacePath || process.env.GITHUB_WORKSPACE || process.cwd();
+    this.dataDir = import_path.default.join(this.workspacePath, _StepDataManager.DATA_DIR);
+  }
+  /**
+   * Initialize the data directory
+   */
+  async initialize() {
+    try {
+      await import_fs.promises.mkdir(this.dataDir, { recursive: true });
+      core2.info(`\u{1F4C1} Initialized step data directory: ${this.dataDir}`);
+    } catch (error6) {
+      core2.error(`Failed to initialize step data directory: ${error6}`);
+      throw error6;
+    }
+  }
+  /**
+   * Save step data to disk
+   */
+  async save(data) {
+    try {
+      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
+      await import_fs.promises.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
+      core2.info(`\u{1F4BE} Saved step data to ${dataPath}`);
+      this.setOutputs(data);
+    } catch (error6) {
+      core2.error(`Failed to save step data: ${error6}`);
+      throw error6;
+    }
+  }
+  /**
+   * Load step data from disk
+   */
+  async load() {
+    try {
+      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
+      const content = await import_fs.promises.readFile(dataPath, "utf-8");
+      const data = JSON.parse(content);
+      core2.info(`\u{1F4E5} Loaded step data from ${dataPath}`);
+      return data;
+    } catch (error6) {
+      core2.error(`Failed to load step data: ${error6}`);
+      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error6}`);
+    }
+  }
+  /**
+   * Update specific fields in step data (partial update)
+   */
+  async update(updates) {
+    try {
+      const data = await this.load();
+      const updatedData = { ...data, ...updates };
+      await this.save(updatedData);
+      core2.info(`\u{1F504} Updated step data with: ${Object.keys(updates).join(", ")}`);
+    } catch (error6) {
+      core2.error(`Failed to update step data: ${error6}`);
+      throw error6;
+    }
+  }
+  /**
+   * Check if step data exists
+   */
+  async exists() {
+    try {
+      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
+      await import_fs.promises.access(dataPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * Cleanup step data
+   */
+  async cleanup() {
+    try {
+      await import_fs.promises.rm(this.dataDir, { recursive: true, force: true });
+      core2.info(`\u{1F9F9} Cleaned up step data directory`);
+    } catch (error6) {
+      core2.warning(`Failed to cleanup step data: ${error6}`);
+    }
+  }
+  /**
+   * Record step timing
+   */
+  async recordStepTiming(stepName, start, end) {
+    try {
+      const data = await this.load();
+      data.metadata.stepTimings[stepName] = {
+        start,
+        end,
+        duration: end - start
+      };
+      await this.save(data);
+      core2.info(`\u23F1\uFE0F Recorded timing for ${stepName}: ${end - start}ms`);
+    } catch (error6) {
+      core2.warning(`Failed to record step timing: ${error6}`);
+    }
+  }
+  /**
+   * Get step timing summary
+   */
+  async getTimingSummary() {
+    try {
+      const data = await this.load();
+      const timings = data.metadata.stepTimings;
+      const totalDuration = Date.now() - data.metadata.startTime;
+      let summary = `## \u23F1\uFE0F Step Timings
+
+`;
+      summary += `**Total Duration:** ${(totalDuration / 1e3).toFixed(2)}s
+
+`;
+      for (const [step, timing] of Object.entries(timings)) {
+        const durationSeconds = (timing.duration / 1e3).toFixed(2);
+        const percentage = (timing.duration / totalDuration * 100).toFixed(1);
+        summary += `- **${step}:** ${durationSeconds}s (${percentage}%)
+`;
+      }
+      return summary;
+    } catch (error6) {
+      core2.warning(`Failed to generate timing summary: ${error6}`);
+      return "";
+    }
+  }
+  /**
+   * Set GitHub Action outputs for easy access in workflow
+   */
+  setOutputs(data) {
+    try {
+      core2.setOutput("pr-number", data.prNumber.toString());
+      core2.setOutput("preview-url", data.previewUrl);
+      core2.setOutput("data-dir", _StepDataManager.DATA_DIR);
+      if (data.routes) {
+        core2.setOutput("routes-count", data.routes.affectedRoutes.length.toString());
+        core2.setOutput("has-routes", data.routes.affectedRoutes.length > 0 ? "true" : "false");
+      }
+      if (data.comparison) {
+        core2.setOutput("has-changes", data.comparison.hasChanges ? "true" : "false");
+        core2.setOutput("diff-count", data.comparison.diffCount.toString());
+      }
+    } catch (error6) {
+      core2.warning(`Failed to set GitHub outputs: ${error6}`);
+    }
+  }
+  /**
+   * Get data directory path
+   */
+  getDataDir() {
+    return this.dataDir;
+  }
+  /**
+   * Get full path for a file within data directory
+   */
+  getFilePath(filename) {
+    return import_path.default.join(this.dataDir, filename);
+  }
+  /**
+   * Save arbitrary file to data directory
+   */
+  async saveFile(filename, content) {
+    try {
+      const filePath = this.getFilePath(filename);
+      await import_fs.promises.writeFile(filePath, content);
+      core2.info(`\u{1F4BE} Saved file: ${filename}`);
+      return filePath;
+    } catch (error6) {
+      core2.error(`Failed to save file ${filename}: ${error6}`);
+      throw error6;
+    }
+  }
+  /**
+   * Load arbitrary file from data directory
+   */
+  async loadFile(filename) {
+    try {
+      const filePath = this.getFilePath(filename);
+      const content = await import_fs.promises.readFile(filePath, "utf-8");
+      return content;
+    } catch (error6) {
+      core2.error(`Failed to load file ${filename}: ${error6}`);
+      throw error6;
+    }
+  }
+};
+_StepDataManager.DATA_DIR = ".yofix-step-data";
+_StepDataManager.DATA_FILE = "step-data.json";
+_StepDataManager.METADATA_FILE = "metadata.json";
+var StepDataManager = _StepDataManager;
+var instance = null;
+function getStepDataManager(workspacePath) {
+  if (!instance) {
+    instance = new StepDataManager(workspacePath);
+  }
+  return instance;
+}
+async function executeStep(stepName, stepFunction) {
+  const start = Date.now();
+  core2.startGroup(`\u{1F680} ${stepName}`);
+  try {
+    const result = await stepFunction();
+    const end = Date.now();
+    core2.info(`\u2705 ${stepName} completed in ${end - start}ms`);
+    core2.endGroup();
+    const manager = getStepDataManager();
+    if (await manager.exists()) {
+      await manager.recordStepTiming(stepName, start, end);
+    }
+    return result;
+  } catch (error6) {
+    const end = Date.now();
+    core2.error(`\u274C ${stepName} failed after ${end - start}ms: ${error6}`);
+    core2.endGroup();
+    throw error6;
+  }
+}
+
 // src/core/github/GitHubCommentEngine.ts
+var core3 = __toESM(require_core());
 var GitHubCommentEngine = class {
   constructor() {
     // Cache for comment threads
@@ -35063,7 +25758,7 @@ var GitHubCommentEngine = class {
   async postComment(message, options = {}) {
     try {
       if (this.prNumber === 0) {
-        core2.warning("No PR number found, cannot post comment");
+        core3.warning("No PR number found, cannot post comment");
         return null;
       }
       let body = message;
@@ -35102,16 +25797,16 @@ ${body}`;
             body
           );
           commentId = existingComment.id;
-          core2.info(`Updated existing comment #${commentId}`);
+          core3.info(`Updated existing comment #${commentId}`);
         } else {
           const result = await this.github.createComment(body);
           commentId = result.id;
-          core2.info(`Created new comment #${commentId}`);
+          core3.info(`Created new comment #${commentId}`);
         }
       } else {
         const result = await this.github.createComment(body);
         commentId = result.id;
-        core2.info(`Created comment #${commentId}`);
+        core3.info(`Created comment #${commentId}`);
       }
       if (options.threadId && !this.threadCache.has(options.threadId)) {
         this.threadCache.set(options.threadId, commentId);
@@ -35122,8 +25817,8 @@ ${body}`;
         }
       }
       return commentId;
-    } catch (error5) {
-      core2.error(`Failed to post comment: ${error5}`);
+    } catch (error6) {
+      core3.error(`Failed to post comment: ${error6}`);
       return null;
     }
   }
@@ -35178,12 +25873,12 @@ ${body}`;
 <summary>Error Details</summary>
 
 `;
-        for (const error5 of this.errorSummary) {
-          message += `- **${error5.timestamp.toISOString()}**`;
-          if (error5.location) {
-            message += ` at \`${error5.location}\``;
+        for (const error6 of this.errorSummary) {
+          message += `- **${error6.timestamp.toISOString()}**`;
+          if (error6.location) {
+            message += ` at \`${error6.location}\``;
           }
-          message += `: ${error5.error}
+          message += `: ${error6.error}
 `;
         }
         message += `
@@ -35205,9 +25900,9 @@ ${body}`;
         commentId,
         reaction
       );
-      core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
-    } catch (error5) {
-      core2.warning(`Failed to add reaction: ${error5}`);
+      core3.debug(`Added ${reaction} reaction to comment #${commentId}`);
+    } catch (error6) {
+      core3.warning(`Failed to add reaction: ${error6}`);
     }
   }
   /**
@@ -35219,8 +25914,8 @@ ${body}`;
       if (triggeringCommentId) {
         await this.addReaction(triggeringCommentId, reaction);
       }
-    } catch (error5) {
-      core2.warning(`Failed to post reaction: ${error5}`);
+    } catch (error6) {
+      core3.warning(`Failed to post reaction: ${error6}`);
     }
   }
   /**
@@ -35229,8 +25924,8 @@ ${body}`;
   async reactToComment(commentId, reaction) {
     try {
       await this.addReaction(commentId, reaction);
-    } catch (error5) {
-      core2.warning(`Failed to react to comment: ${error5}`);
+    } catch (error6) {
+      core3.warning(`Failed to react to comment: ${error6}`);
     }
   }
   /**
@@ -35286,8 +25981,8 @@ ${body}`;
         (comment) => comment.body.includes(signaturePattern)
       );
       return existingComment || null;
-    } catch (error5) {
-      core2.warning(`Failed to find comment by signature: ${error5}`);
+    } catch (error6) {
+      core3.warning(`Failed to find comment by signature: ${error6}`);
       return null;
     }
   }
@@ -35300,9 +25995,9 @@ ${body}`;
       const botComments = comments.filter(
         (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
       );
-      core2.info(`Found ${botComments.length} bot comments`);
-    } catch (error5) {
-      core2.warning(`Failed to list comments: ${error5}`);
+      core3.info(`Found ${botComments.length} bot comments`);
+    } catch (error6) {
+      core3.warning(`Failed to list comments: ${error6}`);
     }
   }
   /**
@@ -35327,7 +26022,7 @@ function getGitHubCommentEngine() {
 }
 
 // src/core/error/CentralizedErrorHandler.ts
-var core3 = __toESM(require_core());
+var core4 = __toESM(require_core());
 var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity5) => {
   ErrorSeverity5["LOW"] = "low";
   ErrorSeverity5["MEDIUM"] = "medium";
@@ -35387,9 +26082,9 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
       this.owner = context.owner;
       this.repo = context.repo;
       this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-      core3.info("Centralized error handler initialized with GitHub integration");
-    } catch (error5) {
-      core3.warning("Failed to initialize GitHub service, errors will only be logged");
+      core4.info("Centralized error handler initialized with GitHub integration");
+    } catch (error6) {
+      core4.warning("Failed to initialize GitHub service, errors will only be logged");
       this.github = null;
     }
   }
@@ -35402,46 +26097,46 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
   /**
    * Handle an error with centralized logic
    */
-  async handleError(error5, options = {}) {
+  async handleError(error6, options = {}) {
     this.updateErrorStats(options);
     const errorEntry = {
-      error: error5,
+      error: error6,
       context: options,
       timestamp: /* @__PURE__ */ new Date()
     };
     this.errorBuffer.push(errorEntry);
-    this.logError(error5, options);
+    this.logError(error6, options);
     if (!options.recoverable) {
-      if (error5 instanceof Error) {
-        throw error5;
+      if (error6 instanceof Error) {
+        throw error6;
       } else {
-        throw new YoFixError(error5, options);
+        throw new YoFixError(error6, options);
       }
     }
   }
   /**
    * Log error to console/GitHub Actions
    */
-  logError(error5, options) {
+  logError(error6, options) {
     if (options.silent) return;
-    const errorMessage = error5 instanceof Error ? error5.message : error5;
+    const errorMessage = error6 instanceof Error ? error6.message : error6;
     const location = options.location ? `[${options.location}]` : "";
     const logMessage = `${location} ${errorMessage}`.trim();
     switch (options.severity) {
       case "critical" /* CRITICAL */:
-        core3.error(logMessage);
+        core4.error(logMessage);
         if (!this.isTestMode) {
-          core3.setFailed(logMessage);
+          core4.setFailed(logMessage);
         }
         break;
       case "high" /* HIGH */:
-        core3.error(logMessage);
+        core4.error(logMessage);
         break;
       case "medium" /* MEDIUM */:
-        core3.warning(logMessage);
+        core4.warning(logMessage);
         break;
       case "low" /* LOW */:
-        core3.info(logMessage);
+        core4.info(logMessage);
         break;
     }
   }
@@ -35467,15 +26162,15 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     if (this.isTestMode) {
       return;
     }
-    process.on("uncaughtException", (error5) => {
-      core3.error(`Uncaught Exception: ${error5.message}`);
-      if (error5.stack) {
-        core3.debug(error5.stack);
+    process.on("uncaughtException", (error6) => {
+      core4.error(`Uncaught Exception: ${error6.message}`);
+      if (error6.stack) {
+        core4.debug(error6.stack);
       }
       process.exit(1);
     });
     process.on("unhandledRejection", (reason, promise) => {
-      core3.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+      core4.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
       process.exit(1);
     });
   }
@@ -35558,15 +26253,15 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
 `;
     try {
       await this.github.createComment(message);
-    } catch (error5) {
-      core3.warning(`Failed to post error summary: ${error5}`);
+    } catch (error6) {
+      core4.warning(`Failed to post error summary: ${error6}`);
     }
   }
 };
 var errorHandler = CentralizedErrorHandler.getInstance();
 
 // src/core/bot/BotActivityHandler.ts
-var core4 = __toESM(require_core());
+var core5 = __toESM(require_core());
 var BotActivityHandler = class {
   constructor() {
     this.activities = /* @__PURE__ */ new Map();
@@ -35599,7 +26294,7 @@ var BotActivityHandler = class {
    */
   async addStep(stepName, status = "pending", message) {
     if (!this.currentActivity) {
-      core4.warning("No active bot activity");
+      core5.warning("No active bot activity");
       return;
     }
     const step = {
@@ -35618,7 +26313,7 @@ var BotActivityHandler = class {
     if (!this.currentActivity) return;
     const step = this.currentActivity.steps.find((s) => s.name === stepName);
     if (!step) {
-      core4.warning(`Step ${stepName} not found`);
+      core5.warning(`Step ${stepName} not found`);
       return;
     }
     const previousStatus = step.status;
@@ -35656,11 +26351,11 @@ var BotActivityHandler = class {
   /**
    * Fail current activity
    */
-  async failActivity(error5, context) {
+  async failActivity(error6, context) {
     if (!this.currentActivity) return;
     this.currentActivity.status = "failed";
     this.currentActivity.endTime = /* @__PURE__ */ new Date();
-    this.currentActivity.error = error5 instanceof Error ? error5 : new Error(error5);
+    this.currentActivity.error = error6 instanceof Error ? error6 : new Error(error6);
     await errorHandler.handleError(this.currentActivity.error, {
       category: "unknown" /* UNKNOWN */,
       severity: "high" /* HIGH */,
@@ -35737,9 +26432,9 @@ var BotActivityHandler = class {
       const result = await handler();
       await this.completeActivity(result);
       return result;
-    } catch (error5) {
-      await this.failActivity(error5);
-      throw error5;
+    } catch (error6) {
+      await this.failActivity(error6);
+      throw error6;
     }
   }
   /**
@@ -35823,7 +26518,7 @@ var BotActivityHandler = class {
     const seconds = Math.floor(ms % 6e4 / 1e3);
     return `${minutes}m ${seconds}s`;
   }
-  getBotCommandTips(command, error5) {
+  getBotCommandTips(command, error6) {
     const tips = [];
     if (command.includes("scan")) {
       tips.push("Ensure the preview URL is accessible");
@@ -35839,11 +26534,11 @@ var BotActivityHandler = class {
       tips.push("Check the login URL is correct");
       tips.push("Try a different auth mode");
     }
-    if (error5.includes("timeout")) {
+    if (error6.includes("timeout")) {
       tips.push("The operation took too long - try again");
       tips.push("Check if the site is responding slowly");
     }
-    if (error5.includes("not found")) {
+    if (error6.includes("not found")) {
       tips.push("Check the spelling of your command");
       tips.push("Use `@yofix help` to see available options");
     }
@@ -35853,32 +26548,32 @@ var BotActivityHandler = class {
 var botActivity = new BotActivityHandler();
 
 // src/core/error/ErrorHandlerFactory.ts
-var core5 = __toESM(require_core());
+var core6 = __toESM(require_core());
 function createModuleLogger(options) {
-  const { module: module2, debug: debug8 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
+  const { module: module2, debug: debug5 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
   return {
     debug: (message, ...args) => {
-      if (debug8 || core5.isDebug()) {
-        core5.debug(`[${module2}] ${message}`);
+      if (debug5 || core6.isDebug()) {
+        core6.debug(`[${module2}] ${message}`);
         if (args.length > 0) {
-          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+          core6.debug(`[${module2}] ${JSON.stringify(args)}`);
         }
       }
     },
     info: (message, ...args) => {
-      core5.info(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug8 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      core6.info(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug5 || core6.isDebug())) {
+        core6.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
     warn: (message, ...args) => {
-      core5.warning(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug8 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      core6.warning(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug5 || core6.isDebug())) {
+        core6.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
-    error: async (error5, context) => {
-      const errorObj = error5 instanceof Error ? error5 : new Error(error5);
+    error: async (error6, context) => {
+      const errorObj = error6 instanceof Error ? error6 : new Error(error6);
       await errorHandler.handleError(errorObj, {
         severity: (context == null ? void 0 : context.severity) || defaultSeverity,
         category: (context == null ? void 0 : context.category) || defaultCategory,
@@ -35895,7 +26590,7 @@ function createModuleLogger(options) {
 }
 
 // src/core/patterns/ConsistencyPatterns.ts
-var core6 = __toESM(require_core());
+var core7 = __toESM(require_core());
 async function executeOperation(operation, context) {
   const startTime = Date.now();
   try {
@@ -35908,8 +26603,8 @@ async function executeOperation(operation, context) {
         ...context.metadata
       }
     };
-  } catch (error5) {
-    await errorHandler.handleError(error5, {
+  } catch (error6) {
+    await errorHandler.handleError(error6, {
       severity: context.severity || "medium" /* MEDIUM */,
       category: context.category || "unknown" /* UNKNOWN */,
       userAction: context.name,
@@ -35921,7 +26616,7 @@ async function executeOperation(operation, context) {
     });
     return {
       success: false,
-      error: error5 instanceof Error ? error5.message : "Unknown error",
+      error: error6 instanceof Error ? error6.message : "Unknown error",
       data: context.fallback,
       metadata: {
         duration: Date.now() - startTime,
@@ -35941,7 +26636,7 @@ var GitHubOperations = class {
     var _a;
     this.ensureInitialized();
     if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core6.warning("No PR context available, skipping progress comment");
+      core7.warning("No PR context available, skipping progress comment");
       return;
     }
     const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
@@ -35963,15 +26658,15 @@ var GitHubOperations = class {
           body
         );
       }
-    } catch (error5) {
-      core6.warning(`Failed to post progress comment: ${error5}`);
+    } catch (error6) {
+      core7.warning(`Failed to post progress comment: ${error6}`);
     }
   }
   static async postResult(result, operation) {
     var _a;
     this.ensureInitialized();
     if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core6.warning("No PR context available, skipping result comment");
+      core7.warning("No PR context available, skipping result comment");
       return;
     }
     const emoji = result.success ? "\u2705" : "\u274C";
@@ -36000,8 +26695,8 @@ var GitHubOperations = class {
       await this.github.createComment(
         message
       );
-    } catch (error5) {
-      core6.warning(`Failed to post result comment: ${error5}`);
+    } catch (error6) {
+      core7.warning(`Failed to post result comment: ${error6}`);
     }
   }
   static async addReaction(reaction) {
@@ -36018,8 +26713,8 @@ var GitHubOperations = class {
           reaction
         );
       }
-    } catch (error5) {
-      core6.debug(`Failed to add reaction: ${error5}`);
+    } catch (error6) {
+      core7.debug(`Failed to add reaction: ${error6}`);
     }
   }
   static getTriggeringCommentId() {
@@ -36068,8 +26763,8 @@ async function retryOperation(operation, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await operation();
-    } catch (error5) {
-      lastError = error5;
+    } catch (error6) {
+      lastError = error6;
       if (attempt < maxAttempts) {
         if (options.onRetry) {
           options.onRetry(attempt, lastError);
@@ -36121,8 +26816,8 @@ var CircuitBreaker = class {
       const result = await this.executeWithTimeout(operation);
       this.onSuccess();
       return result;
-    } catch (error5) {
-      return this.onFailure(error5);
+    } catch (error6) {
+      return this.onFailure(error6);
     }
   }
   /**
@@ -36137,9 +26832,9 @@ var CircuitBreaker = class {
         const result = await operation();
         clearTimeout(timeoutId);
         resolve(result);
-      } catch (error5) {
+      } catch (error6) {
         clearTimeout(timeoutId);
-        reject(error5);
+        reject(error6);
       }
     });
   }
@@ -36167,15 +26862,15 @@ var CircuitBreaker = class {
   /**
    * Handle failed operation
    */
-  onFailure(error5) {
+  onFailure(error6) {
     this.failures++;
     this.totalFailures++;
     this.lastFailureTime = Date.now();
-    const shouldTrigger = this.config.isFailure ? this.config.isFailure(error5) : true;
+    const shouldTrigger = this.config.isFailure ? this.config.isFailure(error6) : true;
     if (!shouldTrigger) {
-      throw error5;
+      throw error6;
     }
-    errorHandler.handleError(error5, {
+    errorHandler.handleError(error6, {
       severity: "medium" /* MEDIUM */,
       category: ErrorCategory.NETWORK,
       userAction: `${this.config.serviceName} operation`,
@@ -36196,7 +26891,7 @@ var CircuitBreaker = class {
       this.logger.info(`Using fallback for ${this.config.serviceName}`);
       return this.config.fallback();
     }
-    throw error5;
+    throw error6;
   }
   /**
    * Open the circuit
@@ -36221,7 +26916,7 @@ var CircuitBreaker = class {
    * Handle open circuit
    */
   handleOpen() {
-    const error5 = new CircuitBreakerError(
+    const error6 = new CircuitBreakerError(
       `Circuit breaker is OPEN for ${this.config.serviceName}`,
       this.config.serviceName,
       this.state
@@ -36230,7 +26925,7 @@ var CircuitBreaker = class {
       this.logger.debug(`Circuit open, using fallback for ${this.config.serviceName}`);
       return this.config.fallback();
     }
-    throw error5;
+    throw error6;
   }
   /**
    * Get circuit breaker statistics
@@ -36356,7 +27051,7 @@ var ConfigurationManager = class _ConfigurationManager {
       if (value) {
         this.logger.debug(`Found ${key} in GitHub inputs`);
       }
-    } catch (error5) {
+    } catch (error6) {
     }
     if (!value) {
       const envKey = this.toEnvKey(key);
@@ -36370,23 +27065,23 @@ var ConfigurationManager = class _ConfigurationManager {
       this.logger.debug(`Using default value for ${key}`);
     }
     if (!value && options.required) {
-      const error5 = new Error(`Required configuration '${key}' is not set`);
-      errorHandler.handleError(error5, {
+      const error6 = new Error(`Required configuration '${key}' is not set`);
+      errorHandler.handleError(error6, {
         severity: "high" /* HIGH */,
         category: "configuration" /* CONFIGURATION */,
         userAction: `Set configuration value for ${key}`,
         metadata: { key, options }
       });
-      throw error5;
+      throw error6;
     }
     if (value && options.validate && !options.validate(value)) {
-      const error5 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
-      errorHandler.handleError(error5, {
+      const error6 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
+      errorHandler.handleError(error6, {
         severity: "high" /* HIGH */,
         category: "configuration" /* CONFIGURATION */,
         metadata: { key }
       });
-      throw error5;
+      throw error6;
     }
     if (value && this.validators.has(key)) {
       const rules = this.validators.get(key);
@@ -36399,9 +27094,9 @@ var ConfigurationManager = class _ConfigurationManager {
     if (value && options.transform) {
       try {
         value = options.transform(value);
-      } catch (error5) {
-        this.logger.error(`Failed to transform ${key}: ${error5}`);
-        throw error5;
+      } catch (error6) {
+        this.logger.error(`Failed to transform ${key}: ${error6}`);
+        throw error6;
       }
     }
     if (value && !options.sensitive) {
@@ -36439,8 +27134,8 @@ var ConfigurationManager = class _ConfigurationManager {
       transform: (v) => {
         try {
           return JSON.parse(v);
-        } catch (error5) {
-          throw new Error(`Invalid JSON in ${key}: ${error5}`);
+        } catch (error6) {
+          throw new Error(`Invalid JSON in ${key}: ${error6}`);
         }
       }
     });
@@ -36557,12 +27252,6 @@ var ConfigurationManager = class _ConfigurationManager {
   }
 };
 var config = ConfigurationManager.getInstance();
-function getRequiredConfig(key) {
-  return config.get(key, { required: true });
-}
-function getBooleanConfig(key, defaultValue = false) {
-  return config.getBoolean(key, defaultValue);
-}
 
 // src/core/utils/JSONParser.ts
 var logger = createModuleLogger({
@@ -36571,9 +27260,9 @@ var logger = createModuleLogger({
 });
 
 // src/core/utils/FileSystemWrapper.ts
-var fs2 = __toESM(require("fs/promises"));
+var fs3 = __toESM(require("fs/promises"));
 var fsSync = __toESM(require("fs"));
-var path2 = __toESM(require("path"));
+var path3 = __toESM(require("path"));
 var logger2 = createModuleLogger({
   module: "FileSystem",
   defaultCategory: ErrorCategory.FILE_SYSTEM
@@ -36586,14 +27275,14 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         try {
-          await fs2.access(filePath, fsSync.constants.F_OK);
+          await fs3.access(filePath, fsSync.constants.F_OK);
           return true;
         } catch {
           return false;
         }
       },
       {
-        name: `Check file exists: ${path2.basename(filePath)}`,
+        name: `Check file exists: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         fallback: false
@@ -36608,26 +27297,26 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         if (options.maxSize) {
-          const stats = await fs2.stat(filePath);
+          const stats = await fs3.stat(filePath);
           if (stats.size > options.maxSize) {
             throw new Error(`File size ${stats.size} exceeds maximum ${options.maxSize}`);
           }
         }
-        const content = await fs2.readFile(filePath, {
+        const content = await fs3.readFile(filePath, {
           encoding: options.encoding || "utf-8",
           flag: options.flag
         });
         if (options.json) {
           try {
             return JSON.parse(content.toString());
-          } catch (error5) {
-            throw new Error(`Failed to parse JSON from ${filePath}: ${error5}`);
+          } catch (error6) {
+            throw new Error(`Failed to parse JSON from ${filePath}: ${error6}`);
           }
         }
         return content.toString();
       },
       {
-        name: `Read file: ${path2.basename(filePath)}`,
+        name: `Read file: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
@@ -36643,7 +27332,7 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         if (options.createDirectories) {
-          await this.ensureDirectory(path2.dirname(filePath));
+          await this.ensureDirectory(path3.dirname(filePath));
         }
         let data;
         if (typeof content === "object" && !Buffer.isBuffer(content)) {
@@ -36653,19 +27342,19 @@ var FileSystem = class {
         }
         if (options.backup && await this.exists(filePath)) {
           const backupPath = `${filePath}.backup`;
-          await fs2.copyFile(filePath, backupPath);
+          await fs3.copyFile(filePath, backupPath);
           logger2.debug(`Created backup: ${backupPath}`);
         }
         if (options.atomic) {
           const tempPath = `${filePath}.tmp`;
-          await fs2.writeFile(tempPath, data, {
+          await fs3.writeFile(tempPath, data, {
             encoding: options.encoding || "utf-8",
             mode: options.mode,
             flag: options.flag || "w"
           });
-          await fs2.rename(tempPath, filePath);
+          await fs3.rename(tempPath, filePath);
         } else {
-          await fs2.writeFile(filePath, data, {
+          await fs3.writeFile(filePath, data, {
             encoding: options.encoding || "utf-8",
             mode: options.mode,
             flag: options.flag || "w"
@@ -36674,7 +27363,7 @@ var FileSystem = class {
         return true;
       },
       {
-        name: `Write file: ${path2.basename(filePath)}`,
+        name: `Write file: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
@@ -36690,22 +27379,22 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         try {
-          const stats = await fs2.stat(filePath);
+          const stats = await fs3.stat(filePath);
           if (stats.isDirectory()) {
-            await fs2.rm(filePath, { recursive: true, force: true });
+            await fs3.rm(filePath, { recursive: true, force: true });
           } else {
-            await fs2.unlink(filePath);
+            await fs3.unlink(filePath);
           }
           return true;
-        } catch (error5) {
-          if (error5.code === "ENOENT") {
+        } catch (error6) {
+          if (error6.code === "ENOENT") {
             return true;
           }
-          throw error5;
+          throw error6;
         }
       },
       {
-        name: `Delete: ${path2.basename(filePath)}`,
+        name: `Delete: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { filePath },
@@ -36720,11 +27409,11 @@ var FileSystem = class {
   static async ensureDirectory(dirPath) {
     const result = await executeOperation(
       async () => {
-        await fs2.mkdir(dirPath, { recursive: true });
+        await fs3.mkdir(dirPath, { recursive: true });
         return true;
       },
       {
-        name: `Create directory: ${path2.basename(dirPath)}`,
+        name: `Create directory: ${path3.basename(dirPath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { dirPath },
@@ -36739,10 +27428,10 @@ var FileSystem = class {
   static async listDirectory(dirPath, options = {}) {
     const result = await executeOperation(
       async () => {
-        const entries = await fs2.readdir(dirPath, { withFileTypes: true });
+        const entries = await fs3.readdir(dirPath, { withFileTypes: true });
         const files = [];
         for (const entry of entries) {
-          const fullPath = path2.join(dirPath, entry.name);
+          const fullPath = path3.join(dirPath, entry.name);
           if (!options.includeHidden && entry.name.startsWith(".")) {
             continue;
           }
@@ -36759,7 +27448,7 @@ var FileSystem = class {
         return files;
       },
       {
-        name: `List directory: ${path2.basename(dirPath)}`,
+        name: `List directory: ${path3.basename(dirPath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { dirPath, options },
@@ -36777,16 +27466,16 @@ var FileSystem = class {
         if (!options.overwrite && await this.exists(destination)) {
           throw new Error(`Destination file already exists: ${destination}`);
         }
-        await this.ensureDirectory(path2.dirname(destination));
-        await fs2.copyFile(source, destination);
+        await this.ensureDirectory(path3.dirname(destination));
+        await fs3.copyFile(source, destination);
         return true;
       },
       {
         maxAttempts: 3,
         delay: 1e3,
         backoff: 2,
-        onRetry: (attempt, error5) => {
-          logger2.debug(`Copy retry ${attempt}: ${error5.message}`);
+        onRetry: (attempt, error6) => {
+          logger2.debug(`Copy retry ${attempt}: ${error6.message}`);
         }
       }
     );
@@ -36798,19 +27487,19 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         try {
-          await fs2.rename(source, destination);
-        } catch (error5) {
-          if (error5.code === "EXDEV") {
+          await fs3.rename(source, destination);
+        } catch (error6) {
+          if (error6.code === "EXDEV") {
             await this.copy(source, destination);
             await this.delete(source);
           } else {
-            throw error5;
+            throw error6;
           }
         }
         return true;
       },
       {
-        name: `Move file: ${path2.basename(source)} to ${path2.basename(destination)}`,
+        name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { source, destination },
@@ -36824,9 +27513,9 @@ var FileSystem = class {
    */
   static async getStats(filePath) {
     const result = await executeOperation(
-      async () => await fs2.stat(filePath),
+      async () => await fs3.stat(filePath),
       {
-        name: `Get file stats: ${path2.basename(filePath)}`,
+        name: `Get file stats: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { filePath },
@@ -36844,8 +27533,8 @@ var FileSystem = class {
         logger2.debug(`File ${event}: ${filename}`);
         callback(event, filename);
       });
-    } catch (error5) {
-      logger2.error(`Failed to watch file ${filePath}: ${error5}`);
+    } catch (error6) {
+      logger2.error(`Failed to watch file ${filePath}: ${error6}`);
       return null;
     }
   }
@@ -36856,7 +27545,7 @@ var FileSystem = class {
     const tempDir = process.env.TMPDIR || "/tmp";
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    const tempPath = path2.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
+    const tempPath = path3.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
     await this.write(tempPath, "", { createDirectories: true });
     return tempPath;
   }
@@ -36869,7 +27558,7 @@ var FileSystem = class {
     try {
       const files = await this.listDirectory(directory);
       for (const file of files) {
-        if (pattern && !pattern.test(path2.basename(file))) {
+        if (pattern && !pattern.test(path3.basename(file))) {
           continue;
         }
         const stats = await this.getStats(file);
@@ -36880,8 +27569,8 @@ var FileSystem = class {
           }
         }
       }
-    } catch (error5) {
-      logger2.error(`Cleanup failed: ${error5}`);
+    } catch (error6) {
+      logger2.error(`Cleanup failed: ${error6}`);
     }
     return deletedCount;
   }
@@ -36906,194 +27595,6 @@ var logger3 = createModuleLogger({
   module: "ValidationPatterns",
   defaultCategory: ErrorCategory.VALIDATION
 });
-var Validators = class {
-  /**
-   * URL validation
-   */
-  static isURL(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "URL is required" };
-    }
-    try {
-      const url = new URL(value);
-      const allowedProtocols = options.protocols || ["http:", "https:"];
-      if (!allowedProtocols.includes(url.protocol)) {
-        return {
-          valid: false,
-          error: `Protocol ${url.protocol} not allowed. Use: ${allowedProtocols.join(", ")}`
-        };
-      }
-      return { valid: true };
-    } catch (error5) {
-      return { valid: false, error: "Invalid URL format" };
-    }
-  }
-  /**
-   * Email validation
-   */
-  static isEmail(value) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!value) {
-      return { valid: false, error: "Email is required" };
-    }
-    if (!emailRegex.test(value)) {
-      return { valid: false, error: "Invalid email format" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Selector validation (CSS/XPath)
-   */
-  static isSelector(value, type = "css") {
-    if (!value) {
-      return { valid: false, error: "Selector is required" };
-    }
-    if (type === "css") {
-      try {
-        document.createDocumentFragment().querySelector(value);
-        return { valid: true };
-      } catch {
-        return { valid: false, error: "Invalid CSS selector" };
-      }
-    } else {
-      if (!value.startsWith("/") && !value.startsWith("//")) {
-        return { valid: false, error: "XPath must start with / or //" };
-      }
-      return { valid: true };
-    }
-  }
-  /**
-   * GitHub token validation
-   */
-  static isGitHubToken(value) {
-    if (!value) {
-      return { valid: false, error: "GitHub token is required" };
-    }
-    const validPrefixes = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"];
-    const hasValidPrefix = validPrefixes.some((prefix) => value.startsWith(prefix));
-    if (!hasValidPrefix && !value.match(/^[a-f0-9]{40}$/)) {
-      return {
-        valid: false,
-        error: "Invalid GitHub token format",
-        details: {
-          hint: "Token should start with ghp_, gho_, etc. or be a 40-character hex string"
-        }
-      };
-    }
-    return { valid: true };
-  }
-  /**
-   * API key validation (generic)
-   */
-  static isAPIKey(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "API key is required" };
-    }
-    const { minLength = 20, maxLength = 200, pattern, prefix } = options;
-    if (value.length < minLength) {
-      return { valid: false, error: `API key must be at least ${minLength} characters` };
-    }
-    if (value.length > maxLength) {
-      return { valid: false, error: `API key must not exceed ${maxLength} characters` };
-    }
-    if (prefix && !value.startsWith(prefix)) {
-      return { valid: false, error: `API key must start with ${prefix}` };
-    }
-    if (pattern && !pattern.test(value)) {
-      return { valid: false, error: "API key format is invalid" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Port number validation
-   */
-  static isPort(value) {
-    const port = typeof value === "string" ? parseInt(value, 10) : value;
-    if (isNaN(port)) {
-      return { valid: false, error: "Port must be a number" };
-    }
-    if (port < 1 || port > 65535) {
-      return { valid: false, error: "Port must be between 1 and 65535" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Timeout validation (e.g., "30s", "5m", "1000ms")
-   */
-  static isTimeout(value) {
-    const match = value.match(/^(\d+)(ms|s|m|h)?$/);
-    if (!match) {
-      return {
-        valid: false,
-        error: "Invalid timeout format",
-        details: { example: "30s, 5m, 1000ms" }
-      };
-    }
-    const [, amount, unit = "ms"] = match;
-    const num = parseInt(amount, 10);
-    if (num <= 0) {
-      return { valid: false, error: "Timeout must be positive" };
-    }
-    const multipliers = { ms: 1, s: 1e3, m: 6e4, h: 36e5 };
-    const ms = num * multipliers[unit];
-    if (ms > 36e5) {
-      return { valid: false, error: "Timeout cannot exceed 1 hour" };
-    }
-    return { valid: true, details: { milliseconds: ms } };
-  }
-  /**
-   * File path validation
-   */
-  static isFilePath(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "File path is required" };
-    }
-    if (value.includes("..") && !options.allowRelative) {
-      return { valid: false, error: "Relative paths with .. are not allowed" };
-    }
-    if (options.extensions && options.extensions.length > 0) {
-      const hasValidExt = options.extensions.some(
-        (ext) => value.toLowerCase().endsWith(ext.toLowerCase())
-      );
-      if (!hasValidExt) {
-        return {
-          valid: false,
-          error: `File must have one of these extensions: ${options.extensions.join(", ")}`
-        };
-      }
-    }
-    return { valid: true };
-  }
-  /**
-   * JSON string validation
-   */
-  static isJSON(value) {
-    try {
-      JSON.parse(value);
-      return { valid: true };
-    } catch (error5) {
-      return {
-        valid: false,
-        error: "Invalid JSON format",
-        details: { parseError: error5 instanceof Error ? error5.message : String(error5) }
-      };
-    }
-  }
-  /**
-   * Semantic version validation
-   */
-  static isSemVer(value) {
-    const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-    if (!semverRegex.test(value)) {
-      return {
-        valid: false,
-        error: "Invalid semantic version",
-        details: { example: "1.2.3, 1.0.0-alpha, 2.1.0+build123" }
-      };
-    }
-    return { valid: true };
-  }
-};
 
 // src/core/utils/AsyncUtilities.ts
 var logger4 = createModuleLogger({
@@ -37101,1597 +27602,84 @@ var logger4 = createModuleLogger({
   defaultCategory: ErrorCategory.PROCESSING
 });
 
-// src/core/index.ts
-function initializeCoreServices() {
-  console.log("\u2705 YoFix core services initialized");
-}
-async function finalizeCoreServices() {
-  await errorHandler.postErrorSummary();
-  errorHandler.clearErrorBuffer();
-}
-
-// src/github/PRReporter.ts
-var PRReporter = class {
-  constructor() {
-    this.commentEngine = getGitHubCommentEngine();
-    const githubService = GitHubServiceFactory.getService();
-    const context = githubService.getContext();
-    this.prNumber = context.prNumber;
-    if (!this.prNumber) {
-      core7.warning("No PR number found, cannot post comment");
-    }
-  }
-  /**
-   * Post comprehensive verification results to PR
-   */
-  async postResults(result, storageConsoleUrl) {
-    if (!this.prNumber) {
-      core7.warning("No PR number found, cannot post comment");
-      return;
-    }
-    try {
-      core7.info(`Posting verification results to PR #${this.prNumber}...`);
-      const comment = this.generateCommentBody(result, storageConsoleUrl);
-      await this.commentEngine.postComment(comment, {
-        updateExisting: true,
-        signature: "yofix-verification-results"
-      });
-      core7.info("Posted verification results to PR");
-    } catch (error5) {
-      await errorHandler.handleError(error5, {
-        severity: "high" /* HIGH */,
-        category: "github" /* GITHUB */,
-        location: "pr-reporter"
-      });
-      throw error5;
-    }
-  }
-  /**
-   * Post a simple status update (for early failures)
-   */
-  async postStatusUpdate(status, message) {
-    if (!this.prNumber) {
-      core7.warning("No PR number found, cannot post status update");
-      return;
-    }
-    try {
-      const statusEmoji = {
-        running: "\u{1F504}",
-        failed: "\u274C",
-        skipped: "\u23ED\uFE0F"
+// src/steps/1-analyze-routes.step.ts
+async function analyzeRoutes(stepData) {
+  return executeStep("Analyze Routes", async () => {
+    const { previewUrl, prNumber, githubContext } = stepData;
+    if (prNumber === 0) {
+      core8.warning("\u26A0\uFE0F No PR number detected. Skipping route analysis and defaulting to homepage.");
+      return {
+        ...stepData,
+        routes: {
+          affectedRoutes: ["/"],
+          impactTree: null,
+          routesToTest: null,
+          components: ["App"],
+          impactCommentBody: null
+        }
       };
-      const comment = `## ${statusEmoji[status]} Runtime PR Verification
-
-**Status**: ${status.charAt(0).toUpperCase() + status.slice(1)}
-
-${message}
-
----
-*Generated by [YoFix](https://github.com/yofix/yofix) \u2022 ${(/* @__PURE__ */ new Date()).toLocaleString()}*`;
-      await this.commentEngine.postComment(comment, {
-        updateExisting: true,
-        signature: "yofix-status-update"
-      });
-    } catch (error5) {
-      await errorHandler.handleError(error5, {
-        severity: "medium" /* MEDIUM */,
-        category: "github" /* GITHUB */,
-        location: "pr-reporter",
-        recoverable: true
-      });
     }
-  }
-  /**
-   * Generate comprehensive comment body with React-specific results
-   */
-  generateCommentBody(result, storageConsoleUrl) {
-    var _a;
-    const statusEmoji = result.status === "success" ? "\u2705" : result.status === "partial" ? "\u26A0\uFE0F" : "\u274C";
-    const firebaseEmoji = "\u{1F525}";
-    const reactEmoji = "\u269B\uFE0F";
-    let comment = `## ${statusEmoji} Runtime PR Verification - React SPA
-
-**Status**: ${result.status.charAt(0).toUpperCase() + result.status.slice(1)} | `;
-    comment += `${reactEmoji} React ${result.firebaseConfig.buildSystem === "vite" ? "Vite" : "CRA"} | `;
-    comment += `${firebaseEmoji} Firebase ${result.firebaseConfig.target}
-
-`;
-    comment += `**Test Results**: ${result.passedTests}/${result.totalTests} passed`;
-    if (result.failedTests > 0) {
-      comment += ` \u2022 ${result.failedTests} failed`;
-    }
-    if (result.skippedTests > 0) {
-      comment += ` \u2022 ${result.skippedTests} skipped`;
-    }
-    comment += ` \u2022 ${this.formatDuration(result.duration)}
-
-`;
-    const screenshots = result.testResults.flatMap((t) => t.screenshots);
-    const videos = result.testResults.flatMap((t) => t.videos);
-    if (screenshots.length > 0 || videos.length > 0) {
-      comment += `**Visual Evidence**: `;
-      comment += `\u{1F4F8} ${screenshots.length} screenshot${screenshots.length !== 1 ? "s" : ""}`;
-      if (videos.length > 0) {
-        comment += ` \u2022 \u{1F3A5} ${videos.length} video${videos.length !== 1 ? "s" : ""}`;
-      }
-      if (storageConsoleUrl) {
-        comment += ` \u2022 [Firebase Console](${storageConsoleUrl})`;
-      }
-      comment += "\n\n";
-    }
-    if (screenshots.length > 0) {
-      core7.info(`Embedding ${screenshots.length} screenshots in PR comment`);
-      const screenshotsWithUrls = screenshots.filter((s) => s.firebaseUrl);
-      core7.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
-      const hasBaselineData = screenshots.some((s) => s.comparison || s.baseline);
-      if (hasBaselineData) {
-        comment += this.generateVisualComparisonTable(screenshots, result);
-      } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result);
-      }
-    }
-    if (videos.length > 0) {
-      core7.info(`Embedding ${videos.length} videos in PR comment`);
-      const videosWithUrls = videos.filter((v) => v.firebaseUrl);
-      core7.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
-      comment += this.generateEmbeddedVideos(videos);
-    }
-    comment += "<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n";
-    if (result.summary.componentsVerified.length > 0 || result.summary.routesTested.length > 0) {
-      comment += "### \u2705 React App Verification\n\n";
-      if (result.summary.componentsVerified.length > 0) {
-        comment += `**Components Tested**: ${result.summary.componentsVerified.join(", ")}
-
-`;
-      }
-      if (result.summary.routesTested.length > 0) {
-        const routeLinks = result.summary.routesTested.map(
-          (route) => this.createRouteLink(route, result)
-        );
-        comment += `**Routes Verified**: ${routeLinks.join(", ")}
-
-`;
-      }
-    }
-    comment += "### \u{1F4CB} Test Results\n\n";
-    for (const test of result.testResults) {
-      const testEmoji = test.status === "passed" ? "\u2705" : test.status === "failed" ? "\u274C" : "\u23ED\uFE0F";
-      comment += `${testEmoji} **${test.testName}** (${this.formatDuration(test.duration)})
-`;
-      if (test.errors.length > 0) {
-        comment += `   - \u26A0\uFE0F Issues: ${test.errors.slice(0, 2).join(", ")}`;
-        if (test.errors.length > 2) {
-          comment += ` and ${test.errors.length - 2} more`;
-        }
-        comment += "\n";
-      }
-      if (test.screenshots.length > 0) {
-        comment += "   - \u{1F4F8} Screenshots captured for: ";
-        comment += test.screenshots.map((s) => s.viewport.name).join(", ") + "\n";
-      }
-      if (test.videos.length > 0 && ((_a = test.videos[0]) == null ? void 0 : _a.firebaseUrl)) {
-        comment += `   - \u{1F3A5} Video: [View Recording](${test.videos[0].firebaseUrl})
-`;
-      }
-      comment += "\n";
-    }
-    if (result.summary.issuesFound.length > 0) {
-      comment += "### \u26A0\uFE0F Issues Detected\n\n";
-      for (const issue of result.summary.issuesFound.slice(0, 5)) {
-        comment += `- ${issue}
-`;
-      }
-      if (result.summary.issuesFound.length > 5) {
-        comment += `- ...and ${result.summary.issuesFound.length - 5} more issues
-`;
-      }
-      comment += "\n";
-    }
-    comment += "### \u{1F525} Firebase Configuration\n\n";
-    comment += `- **Project**: \`${result.firebaseConfig.projectId}\`
-`;
-    comment += `- **Target**: \`${result.firebaseConfig.target}\`
-`;
-    comment += `- **Build System**: ${result.firebaseConfig.buildSystem === "vite" ? "Vite" : "Create React App"}
-`;
-    comment += `- **Preview URL**: [${result.firebaseConfig.previewUrl}](${result.firebaseConfig.previewUrl})
-
-`;
-    const consoleErrors = result.testResults.flatMap(
-      (t) => t.consoleMessages.filter((m) => m.type === "error")
-    );
-    if (consoleErrors.length > 0) {
-      comment += "### \u{1F41B} Console Errors\n\n";
-      comment += `Found ${consoleErrors.length} console error${consoleErrors.length !== 1 ? "s" : ""} during testing:
-
-`;
-      for (const error5 of consoleErrors.slice(0, 3)) {
-        comment += `- \`${error5.text.substring(0, 100)}${error5.text.length > 100 ? "..." : ""}\`
-`;
-      }
-      if (consoleErrors.length > 3) {
-        comment += `- ...and ${consoleErrors.length - 3} more errors
-`;
-      }
-      comment += "\n";
-    }
-    comment += "</details>\n\n";
-    const timestamp = (/* @__PURE__ */ new Date()).toLocaleString();
-    comment += `---
-*Generated by [YoFix](https://github.com/yofix/yofix) \u2022 ${timestamp}*`;
-    return comment;
-  }
-  /**
-   * Format duration in human-readable format
-   */
-  formatDuration(durationMs) {
-    if (durationMs < 1e3) {
-      return `${durationMs}ms`;
-    } else if (durationMs < 6e4) {
-      return `${(durationMs / 1e3).toFixed(1)}s`;
-    } else {
-      const minutes = Math.floor(durationMs / 6e4);
-      const seconds = (durationMs % 6e4 / 1e3).toFixed(0);
-      return `${minutes}m ${seconds}s`;
-    }
-  }
-  /**
-   * Generate visual comparison table with baseline vs current screenshots
-   */
-  generateVisualComparisonTable(screenshots, result) {
-    if (screenshots.length === 0) {
-      return "";
-    }
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || this.extractRouteFromScreenshotName(screenshot.name);
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {});
-    const totalRoutes = Object.keys(groupedByRoute).length;
-    const routesWithIssues = Object.values(groupedByRoute).filter(
-      (screenshots2) => screenshots2.some((s) => {
-        var _a, _b, _c;
-        return ((_a = s.comparison) == null ? void 0 : _a.hasDifference) || ((_c = (_b = s.comparison) == null ? void 0 : _b.issues) == null ? void 0 : _c.length) > 0;
-      })
-    ).length;
-    const newRoutes = Object.values(groupedByRoute).filter(
-      (screenshots2) => screenshots2.some((s) => {
-        var _a;
-        return ((_a = s.comparison) == null ? void 0 : _a.status) === "new";
-      })
-    ).length;
-    let content = `## \u{1F4F8} Visual Testing Results
-
-`;
-    content += `### \u{1F3AF} Summary: ${totalRoutes} route${totalRoutes !== 1 ? "s" : ""} tested`;
-    if (routesWithIssues > 0) {
-      content += ` \u2022 \u26A0\uFE0F ${routesWithIssues} with issues`;
-    }
-    if (newRoutes > 0) {
-      content += ` \u2022 \u{1F195} ${newRoutes} new`;
-    }
-    content += `
-
-`;
-    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      const routeHasIssues = routeScreenshots.some(
-        (s) => {
-          var _a, _b, _c;
-          return ((_a = s.comparison) == null ? void 0 : _a.hasDifference) || ((_c = (_b = s.comparison) == null ? void 0 : _b.issues) == null ? void 0 : _c.length) > 0;
-        }
-      );
-      const isNewRoute = routeScreenshots.some((s) => {
-        var _a;
-        return ((_a = s.comparison) == null ? void 0 : _a.status) === "new";
-      });
-      const statusIcon = isNewRoute ? "\u{1F195}" : routeHasIssues ? "\u26A0\uFE0F" : "\u2705";
-      const statusText = isNewRoute ? "New Route" : routeHasIssues ? "Issues Detected" : "No Issues";
-      content += `<details>
-`;
-      content += `<summary><strong>\u{1F4CD} ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>
-
-`;
-      content += `| Baseline (Last Updated) | Current Screenshot | Comparison |
-`;
-      content += `|------------------------|-------------------|------------|
-`;
-      const sortedScreenshots = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
-      for (const screenshot of sortedScreenshots) {
-        content += this.generateComparisonTableRow(screenshot);
-      }
-      const allIssues = routeScreenshots.flatMap((s) => {
-        var _a;
-        return ((_a = s.comparison) == null ? void 0 : _a.issues) || [];
-      });
-      if (allIssues.length > 0) {
-        content += `
-**Issues Found:**
-`;
-        for (const issue of allIssues) {
-          const severityIcon = issue.severity === "critical" ? "\u{1F6A8}" : issue.severity === "warning" ? "\u26A0\uFE0F" : "\u2139\uFE0F";
-          content += `- ${severityIcon} **${issue.type}**: ${issue.description}
-`;
-          if (issue.fix) {
-            content += `  - \u{1F527} **Fix**: ${issue.fix}
-`;
-          }
-        }
-      }
-      content += `
-</details>
-
-`;
-    }
-    return content;
-  }
-  /**
-   * Generate a single row for the comparison table
-   */
-  generateComparisonTableRow(screenshot) {
-    var _a, _b;
-    const viewport = `**${screenshot.viewport.width}\xD7${screenshot.viewport.height}**`;
-    let baselineCell = `${viewport}<br/>`;
-    if ((_a = screenshot.baseline) == null ? void 0 : _a.url) {
-      const updatedDate = screenshot.baseline.updatedDate || "Unknown";
-      baselineCell += `![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
-    } else if (((_b = screenshot.comparison) == null ? void 0 : _b.status) === "new") {
-      baselineCell += "\u{1F195} *New baseline created*";
-    } else {
-      baselineCell += "\u274C *No baseline*";
-    }
-    let currentCell = `${viewport}<br/>`;
-    if (screenshot.firebaseUrl) {
-      const captureDate = new Date(screenshot.timestamp).toLocaleDateString();
-      currentCell += `![Current](${screenshot.firebaseUrl})<br/>*Captured: ${captureDate}*`;
-    } else {
-      currentCell += "\u274C *Screenshot not available*";
-    }
-    let comparisonCell = "";
-    if (screenshot.comparison) {
-      const comp = screenshot.comparison;
-      switch (comp.status) {
-        case "new":
-          comparisonCell = `\u{1F195} **New Route**<br/>Baseline created from current`;
-          break;
-        case "unchanged":
-          comparisonCell = `\u2705 **${comp.diffPercentage.toFixed(2)}% diff**<br/>No issues detected`;
-          break;
-        case "changed":
-          const diffIcon = comp.diffPercentage > 5 ? "\u{1F6A8}" : comp.diffPercentage > 1 ? "\u26A0\uFE0F" : "\u2139\uFE0F";
-          comparisonCell = `${diffIcon} **${comp.diffPercentage.toFixed(2)}% diff**<br/>`;
-          if (comp.diffImageUrl) {
-            comparisonCell += `[View Diff](${comp.diffImageUrl})`;
-          } else {
-            comparisonCell += "Visual changes detected";
-          }
-          break;
-        case "error":
-          comparisonCell = `\u274C **Comparison Failed**<br/>Unable to compare images`;
-          break;
-        default:
-          comparisonCell = `\u2753 **Unknown Status**`;
-      }
-      if (comp.issues && comp.issues.length > 0) {
-        const criticalIssues = comp.issues.filter((i) => i.severity === "critical").length;
-        const warningIssues = comp.issues.filter((i) => i.severity === "warning").length;
-        if (criticalIssues > 0) {
-          comparisonCell += `<br/>\u{1F6A8} ${criticalIssues} critical issue${criticalIssues !== 1 ? "s" : ""}`;
-        }
-        if (warningIssues > 0) {
-          comparisonCell += `<br/>\u26A0\uFE0F ${warningIssues} warning${warningIssues !== 1 ? "s" : ""}`;
-        }
-      }
-    } else {
-      comparisonCell = "\u2139\uFE0F **No comparison data**";
-    }
-    return `| ${baselineCell} | ${currentCell} | ${comparisonCell} |
-`;
-  }
-  /**
-   * Extract route name from screenshot filename
-   */
-  extractRouteFromScreenshotName(screenshotName) {
-    let route = screenshotName.replace(/-\d+x\d+.*$/, "").replace(/\.(png|jpg|jpeg)$/, "");
-    route = route.replace(/_/g, "/");
-    if (!route.startsWith("/")) {
-      route = "/" + route;
-    }
-    if (route === "/root" || route === "/") {
-      return "/";
-    }
-    return route;
-  }
-  /**
-   * Get base preview URL without trailing slash
-   */
-  getBasePreviewUrl(result) {
-    return result.firebaseConfig.previewUrl.replace(/\/$/, "");
-  }
-  /**
-   * Create clickable route link with preview URL
-   */
-  createRouteLink(route, result) {
-    const baseUrl = this.getBasePreviewUrl(result);
-    return `[${route}](${baseUrl}${route})`;
-  }
-  /**
-   * Generate embedded screenshots for PR comment (legacy method)
-   */
-  generateEmbeddedScreenshots(screenshots, result) {
-    if (screenshots.length === 0) {
-      return "";
-    }
-    let gallery = "### \u{1F4F8} Screenshots\n\n";
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || "/";
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {});
-    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      const screenshotsWithUrls = routeScreenshots.filter((s) => s.firebaseUrl);
-      if (screenshotsWithUrls.length === 0) {
-        continue;
-      }
-      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
-      gallery += `<details>
-`;
-      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots)</summary>
-
-`;
-      gallery += "<table>\n<tr>\n";
-      const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
-      for (const screenshot of sorted) {
-        gallery += `<td align="center">
-`;
-        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}</strong><br>
-`;
-        gallery += `${screenshot.viewport.width}\xD7${screenshot.viewport.height}<br>
-`;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />
-`;
-        gallery += `</td>
-`;
-      }
-      gallery += "</tr>\n</table>\n\n";
-      gallery += `</details>
-
-`;
-    }
-    return gallery;
-  }
-  /**
-   * Generate embedded videos for PR comment
-   */
-  generateEmbeddedVideos(videos) {
-    if (videos.length === 0) {
-      return "";
-    }
-    let gallery = "### \u{1F3A5} Test Videos\n\n";
-    const videosWithUrls = videos.filter((v) => v.firebaseUrl);
-    if (videosWithUrls.length === 0) {
-      gallery += "_Videos captured but URLs not available_\n\n";
-      return gallery;
-    }
-    gallery += "<table>\n";
-    for (let i = 0; i < videosWithUrls.length; i += 3) {
-      gallery += "<tr>\n";
-      for (let j = i; j < Math.min(i + 3, videosWithUrls.length); j++) {
-        const video = videosWithUrls[j];
-        gallery += `<td align="center" width="33%">
-`;
-        gallery += `<a href="${video.firebaseUrl}">
-`;
-        gallery += `<div>\u{1F3AC}</div>
-`;
-        gallery += `<strong>${video.name.replace(/\.(webm|mp4)$/, "")}</strong><br>
-`;
-        gallery += `<em>${this.formatDuration(video.duration)}</em><br>
-`;
-        gallery += `<kbd>\u25B6\uFE0F Click to Play</kbd>
-`;
-        gallery += `</a>
-`;
-        gallery += `</td>
-`;
-      }
-      for (let k = videosWithUrls.length % 3; k < 3 && k > 0 && i + 3 > videosWithUrls.length; k++) {
-        gallery += `<td></td>
-`;
-      }
-      gallery += "</tr>\n";
-    }
-    gallery += "</table>\n\n";
-    gallery += "<details>\n<summary>Direct video links</summary>\n\n";
-    for (const video of videosWithUrls) {
-      gallery += `- [${video.name}](${video.firebaseUrl}) - ${this.formatDuration(video.duration)}
-`;
-    }
-    gallery += "\n</details>\n\n";
-    return gallery;
-  }
-  /**
-   * Generate compact status badge for quick overview
-   */
-  generateStatusBadge(result) {
-    const status = result.status;
-    const color = status === "success" ? "brightgreen" : status === "partial" ? "yellow" : "red";
-    const tests = `${result.passedTests}/${result.totalTests}`;
-    return `![Tests](https://img.shields.io/badge/tests-${tests}-${color}) ![Status](https://img.shields.io/badge/status-${status}-${color})`;
-  }
-};
-
-// src/github/GitHubCacheManager.ts
-var core9 = __toESM(require_core());
-
-// src/optimization/CacheManager.ts
-var core8 = __toESM(require_core());
-var import_ioredis = __toESM(require_built3());
-var crypto = __toESM(require("crypto"));
-var CacheManager = class {
-  constructor(options) {
-    this.redis = null;
-    this.memoryCache = /* @__PURE__ */ new Map();
-    this.currentMemorySize = 0;
-    this.ttl = (options == null ? void 0 : options.ttl) || 3600;
-    this.maxMemorySize = (options == null ? void 0 : options.maxMemorySize) || 100 * 1024 * 1024;
-    if (options == null ? void 0 : options.redisUrl) {
-      try {
-        this.redis = new import_ioredis.default(options.redisUrl, {
-          retryStrategy: (times) => {
-            if (times > 3) return null;
-            return Math.min(times * 100, 3e3);
-          },
-          maxRetriesPerRequest: 3,
-          enableOfflineQueue: false
-        });
-        this.redis.on("connect", () => {
-          core8.info("\u2705 Redis cache connected");
-        });
-        this.redis.on("error", (err) => {
-          core8.warning(`Redis error: ${err.message}`);
-          this.redis = null;
-        });
-      } catch (error5) {
-        core8.warning(`Failed to connect to Redis: ${error5.message}`);
-      }
-    }
-  }
-  /**
-   * Get cached value
-   */
-  async get(key) {
-    const cacheKey = this.generateKey(key);
-    if (this.redis) {
-      try {
-        const value = await this.redis.get(cacheKey);
-        if (value) {
-          core8.debug(`Cache hit (Redis): ${key}`);
-          return JSON.parse(value);
-        }
-      } catch (error5) {
-        core8.warning(`Redis get error: ${error5.message}`);
-      }
-    }
-    const entry = this.memoryCache.get(cacheKey);
-    if (entry && entry.expiresAt > Date.now()) {
-      core8.debug(`Cache hit (Memory): ${key}`);
-      return entry.value;
-    }
-    core8.debug(`Cache miss: ${key}`);
-    return null;
-  }
-  /**
-   * Set cached value
-   */
-  async set(key, value, ttl) {
-    const cacheKey = this.generateKey(key);
-    const cacheTTL = ttl || this.ttl;
-    if (this.redis) {
-      try {
-        await this.redis.setex(
-          cacheKey,
-          cacheTTL,
-          JSON.stringify(value)
-        );
-        core8.debug(`Cached to Redis: ${key}`);
-      } catch (error5) {
-        core8.warning(`Redis set error: ${error5.message}`);
-      }
-    }
-    const size = this.estimateSize(value);
-    this.ensureMemorySpace(size);
-    this.memoryCache.set(cacheKey, {
-      value,
-      size,
-      expiresAt: Date.now() + cacheTTL * 1e3
-    });
-    this.currentMemorySize += size;
-    core8.debug(`Cached to memory: ${key} (${size} bytes)`);
-  }
-  /**
-   * Delete cached value
-   */
-  async delete(key) {
-    const cacheKey = this.generateKey(key);
-    if (this.redis) {
-      try {
-        await this.redis.del(cacheKey);
-      } catch (error5) {
-        core8.warning(`Redis delete error: ${error5.message}`);
-      }
-    }
-    const entry = this.memoryCache.get(cacheKey);
-    if (entry) {
-      this.currentMemorySize -= entry.size;
-      this.memoryCache.delete(cacheKey);
-    }
-  }
-  /**
-   * Clear all cache
-   */
-  async clear() {
-    if (this.redis) {
-      try {
-        await this.redis.flushdb();
-      } catch (error5) {
-        core8.warning(`Redis clear error: ${error5.message}`);
-      }
-    }
-    this.memoryCache.clear();
-    this.currentMemorySize = 0;
-  }
-  /**
-   * Cache wrapper for async functions
-   */
-  async wrap(key, fn, options) {
-    if (!(options == null ? void 0 : options.force)) {
-      const cached = await this.get(key);
-      if (cached !== null) {
-        return cached;
-      }
-    }
-    const result = await fn();
-    await this.set(key, result, options == null ? void 0 : options.ttl);
-    return result;
-  }
-  /**
-   * Create cache key for AI responses
-   */
-  createAIResponseKey(params) {
-    return `ai:${params.model}:${crypto.createHash("sha256").update(JSON.stringify({
-      prompt: params.prompt,
-      temperature: params.temperature || 0,
-      maxTokens: params.maxTokens || 0
-    })).digest("hex")}`;
-  }
-  /**
-   * Create cache key for visual analysis
-   */
-  createVisualAnalysisKey(params) {
-    return `visual:${params.analysisType}:${params.imageHash}:${crypto.createHash("md5").update(JSON.stringify(params.options || {})).digest("hex")}`;
-  }
-  /**
-   * Create cache key for route analysis
-   */
-  createRouteAnalysisKey(params) {
-    return `routes:${params.repository}:pr${params.prNumber}:${params.commit}`;
-  }
-  /**
-   * Get cache statistics
-   */
-  async getStats() {
-    const memoryEntries = Array.from(this.memoryCache.values());
-    const now = Date.now();
-    return {
-      memorySize: this.currentMemorySize,
-      memoryEntries: this.memoryCache.size,
-      memoryHits: 0,
-      // Would need to track this
-      memoryMisses: 0,
-      // Would need to track this
-      expiredEntries: memoryEntries.filter((e) => e.expiresAt < now).length,
-      redisConnected: !!this.redis
-    };
-  }
-  /**
-   * Generate cache key
-   */
-  generateKey(key) {
-    return `yofix:${key}`;
-  }
-  /**
-   * Estimate size of value in bytes
-   */
-  estimateSize(value) {
-    const str = JSON.stringify(value);
-    return str.length * 2;
-  }
-  /**
-   * Ensure space in memory cache
-   */
-  ensureMemorySpace(requiredSize) {
-    if (this.currentMemorySize + requiredSize <= this.maxMemorySize) {
-      return;
-    }
-    const entries = Array.from(this.memoryCache.entries()).sort((a, b) => a[1].expiresAt - b[1].expiresAt);
-    while (this.currentMemorySize + requiredSize > this.maxMemorySize && entries.length > 0) {
-      const [key, entry] = entries.shift();
-      this.currentMemorySize -= entry.size;
-      this.memoryCache.delete(key);
-      core8.debug(`Evicted from cache: ${key}`);
-    }
-  }
-  /**
-   * Cleanup expired entries
-   */
-  async cleanup() {
-    const now = Date.now();
-    let cleaned = 0;
-    for (const [key, entry] of this.memoryCache.entries()) {
-      if (entry.expiresAt < now) {
-        this.currentMemorySize -= entry.size;
-        this.memoryCache.delete(key);
-        cleaned++;
-      }
-    }
-    if (cleaned > 0) {
-      core8.debug(`Cleaned up ${cleaned} expired cache entries`);
-    }
-  }
-  /**
-   * Close connections
-   */
-  async close() {
-    if (this.redis) {
-      await this.redis.quit();
-    }
-  }
-};
-
-// src/github/GitHubCacheManager.ts
-var CacheNamespaces = {
-  PR_URLS: {
-    name: "pr_urls",
-    ttl: 14 * 24 * 60 * 60,
-    // 2 weeks
-    description: "Preview URLs for pull requests"
-  },
-  ROUTE_ANALYSIS: {
-    name: "route_analysis",
-    ttl: 24 * 60 * 60,
-    // 24 hours
-    description: "Analyzed routes and impact trees"
-  },
-  AI_RESPONSES: {
-    name: "ai_responses",
-    ttl: 7 * 24 * 60 * 60,
-    // 1 week
-    description: "Claude AI analysis responses"
-  },
-  VISUAL_BASELINES: {
-    name: "visual_baselines",
-    ttl: 30 * 24 * 60 * 60,
-    // 30 days
-    description: "Visual regression baselines"
-  },
-  AUTH_SESSIONS: {
-    name: "auth_sessions",
-    ttl: 4 * 60 * 60,
-    // 4 hours
-    description: "Authentication session data"
-  },
-  TEST_RESULTS: {
-    name: "test_results",
-    ttl: 7 * 24 * 60 * 60,
-    // 1 week
-    description: "Test execution results"
-  }
-};
-var GitHubCacheManager = class _GitHubCacheManager {
-  constructor() {
-    this.namespaces = /* @__PURE__ */ new Map();
-    this.github = GitHubServiceFactory.getService();
-    const redisUrl = process.env.REDIS_URL || process.env.INPUT_REDIS_URL;
-    const cacheTtl = parseInt(process.env.CACHE_TTL || process.env.INPUT_CACHE_TTL || "3600");
-    this.cache = new CacheManager({
-      redisUrl,
-      ttl: cacheTtl,
-      maxMemorySize: 100 * 1024 * 1024
-      // 100MB default
-    });
-    Object.values(CacheNamespaces).forEach((ns) => {
-      this.registerNamespace(ns);
-    });
-  }
-  /**
-   * Get singleton instance
-   */
-  static getInstance() {
-    if (!_GitHubCacheManager.instance) {
-      _GitHubCacheManager.instance = new _GitHubCacheManager();
-    }
-    return _GitHubCacheManager.instance;
-  }
-  /**
-   * Register a new cache namespace
-   */
-  registerNamespace(namespace) {
-    this.namespaces.set(namespace.name, namespace);
-    core9.debug(`Registered cache namespace: ${namespace.name}`);
-  }
-  /**
-   * Set a value in the cache with GitHub context
-   */
-  async set(namespace, key, value, options) {
-    const ns = typeof namespace === "string" ? this.namespaces.get(namespace) : namespace;
-    if (!ns) {
-      throw new Error(`Unknown cache namespace: ${namespace}`);
-    }
-    const context = this.github.getContext();
-    const ttl = (options == null ? void 0 : options.ttl) || ns.ttl || 3600;
-    const entry = {
-      data: value,
-      metadata: {
-        repo: context.repo,
-        owner: context.owner,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + ttl * 1e3,
-        prNumber: (options == null ? void 0 : options.prNumber) || context.prNumber,
-        sha: (options == null ? void 0 : options.sha) || context.sha,
-        actor: context.actor
-      }
-    };
-    const cacheKey = this.buildKey(ns.name, key);
-    await this.cache.set(cacheKey, entry, ttl);
-    core9.debug(`Cached ${ns.name}:${key} with TTL ${ttl}s`);
-  }
-  /**
-   * Get a value from the cache
-   */
-  async get(namespace, key) {
-    const ns = typeof namespace === "string" ? this.namespaces.get(namespace) : namespace;
-    if (!ns) {
-      throw new Error(`Unknown cache namespace: ${namespace}`);
-    }
-    const cacheKey = this.buildKey(ns.name, key);
-    const entry = await this.cache.get(cacheKey);
-    if (entry) {
-      core9.debug(`Cache hit for ${ns.name}:${key}`);
-      return entry.data;
-    }
-    core9.debug(`Cache miss for ${ns.name}:${key}`);
-    return null;
-  }
-  /**
-   * Get a value with its metadata
-   */
-  async getWithMetadata(namespace, key) {
-    const ns = typeof namespace === "string" ? this.namespaces.get(namespace) : namespace;
-    if (!ns) {
-      throw new Error(`Unknown cache namespace: ${namespace}`);
-    }
-    const cacheKey = this.buildKey(ns.name, key);
-    return await this.cache.get(cacheKey);
-  }
-  /**
-   * Delete a value from the cache
-   */
-  async delete(namespace, key) {
-    const ns = typeof namespace === "string" ? this.namespaces.get(namespace) : namespace;
-    if (!ns) {
-      throw new Error(`Unknown cache namespace: ${namespace}`);
-    }
-    const cacheKey = this.buildKey(ns.name, key);
-    await this.cache.delete(cacheKey);
-    core9.debug(`Deleted ${ns.name}:${key} from cache`);
-  }
-  /**
-   * Clear an entire namespace
-   */
-  async clearNamespace(namespace) {
-    const ns = typeof namespace === "string" ? this.namespaces.get(namespace) : namespace;
-    if (!ns) {
-      throw new Error(`Unknown cache namespace: ${namespace}`);
-    }
-    core9.warning(`Namespace clearing not implemented for ${ns.name}`);
-  }
-  /**
-   * Wrap an async function with caching
-   */
-  async withCache(namespace, key, fn, options) {
-    if (!(options == null ? void 0 : options.force)) {
-      const cached = await this.get(namespace, key);
-      if (cached !== null) {
-        return cached;
-      }
-    }
-    const result = await fn();
-    await this.set(namespace, key, result, options);
-    return result;
-  }
-  /**
-   * GitHub context-aware cache key builders
-   */
-  /**
-   * Build a PR-specific cache key
-   */
-  buildPRKey(namespace, prNumber, ...parts) {
-    const ns = typeof namespace === "string" ? namespace : namespace.name;
-    const context = this.github.getContext();
-    return this.buildKey(ns, `${context.owner}:${context.repo}:pr:${prNumber}`, ...parts);
-  }
-  /**
-   * Build a repo-specific cache key
-   */
-  buildRepoKey(namespace, ...parts) {
-    const ns = typeof namespace === "string" ? namespace : namespace.name;
-    const context = this.github.getContext();
-    return this.buildKey(ns, `${context.owner}:${context.repo}`, ...parts);
-  }
-  /**
-   * Build a SHA-specific cache key
-   */
-  buildSHAKey(namespace, sha, ...parts) {
-    const ns = typeof namespace === "string" ? namespace : namespace.name;
-    const context = this.github.getContext();
-    return this.buildKey(ns, `${context.owner}:${context.repo}:sha:${sha}`, ...parts);
-  }
-  /**
-   * Get cache statistics
-   */
-  async getStats() {
-    const namespaces = Array.from(this.namespaces.values()).map((ns) => ({
-      name: ns.name,
-      description: ns.description,
-      ttl: ns.ttl
-    }));
-    const cacheStats = await this.cache.getStats();
-    return {
-      namespaces,
-      cacheStats
-    };
-  }
-  /**
-   * Build a cache key
-   */
-  buildKey(...parts) {
-    return parts.filter(Boolean).join(":");
-  }
-  /**
-   * Convenience methods for PR URL caching
-   */
-  /**
-   * Cache a preview URL for a PR
-   */
-  async setPRPreviewUrl(owner, repo, prNumber, previewUrl) {
-    const key = `${owner}:${repo}:${prNumber}`;
-    await this.set(
-      CacheNamespaces.PR_URLS,
-      key,
-      previewUrl,
-      { prNumber }
-    );
-  }
-  /**
-   * Get a cached preview URL for a PR
-   */
-  async getPRPreviewUrl(owner, repo, prNumber) {
-    const key = `${owner}:${repo}:${prNumber}`;
-    return await this.get(
-      CacheNamespaces.PR_URLS,
-      key
-    );
-  }
-};
-
-// src/core/analysis/ThirdPartyRouteImpactAnalyzer.ts
-var core10 = __toESM(require_core());
-var import_analyzer = require("@yofix/analyzer");
-function createEmptyImpactTree(totalFilesChanged) {
-  return {
-    affectedRoutes: [],
-    sharedComponents: /* @__PURE__ */ new Map(),
-    totalFilesChanged,
-    totalRoutesAffected: 0,
-    componentRouteMapping: /* @__PURE__ */ new Map()
-  };
-}
-async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
-  var _a, _b, _c;
-  const configuration = getConfiguration();
-  const claudeApiKey = configuration.getInput("claude-api-key");
-  if (!claudeApiKey) {
-    throw new Error(
-      "Claude API key is required for route-impact-analyzer integration."
-    );
-  }
-  const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
-  core10.info(
-    `\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`
-  );
-  if (changedFiles.length === 0) {
-    core10.info(
-      "No changed files detected, skipping external route impact analysis."
-    );
-    const emptyTree = createEmptyImpactTree(0);
-    return {
-      routes: [],
-      impactTree: emptyTree,
-      routesToTest: emptyTree,
-      commentBody: ""
-    };
-  }
-  const modelFromConfig = configuration.getInput("claude-model");
-  if (!modelFromConfig) {
-    throw new Error(
-      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
-    );
-  }
-  const forceRefreshInput = configuration.getInput(
-    "route-impact-force-refresh"
-  );
-  const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
-  core10.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
-  core10.info(`  - Codebase path: ${process.cwd()}`);
-  core10.info(`  - Changed files count: ${changedFiles.length}`);
-  core10.info(`  - Base URL: ${previewUrl}`);
-  core10.info(`  - Model: ${modelFromConfig}`);
-  core10.info(`  - Force refresh: ${forceRefresh}`);
-  const result = await (0, import_analyzer.analyzeRouteImpact)({
-    codebase: { path: process.cwd() },
-    changedFiles,
-    options: {
-      baseUrl: previewUrl,
-      llm: {
-        provider: "anthropic",
-        apiKey: claudeApiKey,
-        model: modelFromConfig
-      },
-      cache: {
-        enabled: true,
-        provider: "file-system",
-        forceRefresh
-      },
-      analysis: {
-        includeLayouts: true,
-        maxDepth: 10,
-        verbose: true
-      }
-    }
-  });
-  core10.info(`\u{1F4CA} Route analysis result: success=${result.success}`);
-  if (!result.success) {
-    const messages = ((_a = result.errors) == null ? void 0 : _a.map((err) => `${err.code}: ${err.message}`)) || [];
-    const errorMessage = messages.length > 0 ? messages.join("\n") : "route-impact-analyzer failed with unknown error";
-    core10.error(`\u274C Route impact analysis failed: ${errorMessage}`);
-    throw new Error(errorMessage);
-  }
-  const uniqueRoutes = /* @__PURE__ */ new Set();
-  const componentRouteMapping = /* @__PURE__ */ new Map();
-  const routeImpactMap = /* @__PURE__ */ new Map();
-  const impactReasons = /* @__PURE__ */ new Map();
-  result.impacts.forEach((impact) => {
-    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
-    if (impactedRoutes.length === 0) {
-      return;
-    }
-    componentRouteMapping.set(
-      impact.changedFile,
-      impactedRoutes.map((route) => ({
-        routePath: route,
-        routeFile: impact.changedFile
-      }))
-    );
-    impactedRoutes.forEach((route) => {
-      uniqueRoutes.add(route);
-      if (!routeImpactMap.has(route)) {
-        routeImpactMap.set(route, {
-          route,
-          changedFiles: [],
-          reason: impact.reason,
-          confidence: impact.confidence
-        });
-      }
-      const impactEntry = routeImpactMap.get(route);
-      if (!impactEntry.changedFiles.includes(impact.changedFile)) {
-        impactEntry.changedFiles.push(impact.changedFile);
-      }
-      if (!impactReasons.has(route) || impact.reason === "direct") {
-        impactReasons.set(route, {
-          reason: impact.reason,
-          confidence: impact.confidence
-        });
-      }
-    });
-  });
-  const sharedComponents = /* @__PURE__ */ new Map();
-  componentRouteMapping.forEach((routes, componentFile) => {
-    const uniqueRoutePaths = Array.from(
-      new Set(
-        routes.map((route) => route.routePath).filter((routePath) => !!routePath)
-      )
-    );
-    if (uniqueRoutePaths.length > 1) {
-      sharedComponents.set(componentFile, uniqueRoutePaths);
-    }
-  });
-  const impactTree = {
-    affectedRoutes: Array.from(routeImpactMap.values()),
-    sharedComponents,
-    totalFilesChanged: changedFiles.length,
-    totalRoutesAffected: uniqueRoutes.size,
-    componentRouteMapping
-  };
-  const routesToTestMap = /* @__PURE__ */ new Map();
-  const routesToTestComponentMapping = /* @__PURE__ */ new Map();
-  result.impacts.forEach((impact) => {
-    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
-    if (impactedRoutes.length === 0) {
-      return;
-    }
-    const routesToInclude = impact.reason === "layout" ? impactedRoutes.slice(0, 1) : impactedRoutes;
-    if (routesToInclude.length > 0) {
-      const newRoutes = [];
-      routesToInclude.forEach((route) => {
-        if (!routesToTestMap.has(route)) {
-          routesToTestMap.set(route, {
-            route,
-            changedFiles: [impact.changedFile],
-            reason: impact.reason,
-            confidence: impact.confidence
-          });
-          newRoutes.push({
-            routePath: route,
-            routeFile: impact.changedFile
-          });
-        } else {
-          const existing = routesToTestMap.get(route);
-          if (!existing.changedFiles.includes(impact.changedFile)) {
-            existing.changedFiles.push(impact.changedFile);
-          }
-        }
-      });
-      if (newRoutes.length > 0) {
-        routesToTestComponentMapping.set(impact.changedFile, newRoutes);
-      }
-    }
-    if (impact.reason === "layout" && impactedRoutes.length > 1) {
-      core10.info(
-        `\u{1F4CA} Layout impact for ${impact.changedFile}: Testing 1 of ${impactedRoutes.length} routes (${routesToInclude[0]})`
-      );
-    }
-  });
-  const routesToTest = {
-    affectedRoutes: Array.from(routesToTestMap.values()),
-    sharedComponents,
-    totalFilesChanged: changedFiles.length,
-    totalRoutesAffected: routesToTestMap.size,
-    componentRouteMapping: routesToTestComponentMapping
-  };
-  core10.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
-  const basePreviewUrl = previewUrl.replace(/\/$/, "");
-  const header = "## \u{1F310} Route Impact (route-impact-analyzer)\n";
-  const summaryLines = [
-    `- Files analyzed: **${((_b = result.metadata) == null ? void 0 : _b.totalFiles) ?? changedFiles.length}**`,
-    `- Routes impacted: **${uniqueRoutes.size}**`,
-    `- Routes to test: **${routesToTestMap.size}**`,
-    `- Framework: **${((_c = result.metadata) == null ? void 0 : _c.framework) ?? "unknown"}**`,
-    `- Preview URL: **${basePreviewUrl}**`,
-    ""
-  ];
-  const routeLines = [];
-  let lineCount = 0;
-  componentRouteMapping.forEach((routes, file) => {
-    var _a2;
-    const fileImpact = result.impacts.find((i) => i.changedFile === file);
-    const reason = (fileImpact == null ? void 0 : fileImpact.reason) || "unknown";
-    const routeCount = routes.length;
-    const testCount = ((_a2 = routesToTestComponentMapping.get(file)) == null ? void 0 : _a2.length) || 0;
-    routeLines.push(`- \`${file}\` (${reason}: ${testCount} to test / ${routeCount} affected)`);
-    const routesToShow = routesToTestComponentMapping.get(file) || routes.slice(0, 5);
-    routesToShow.forEach((routeInfo, idx) => {
-      if (lineCount < 20 && idx < 5) {
-        const fullUrl = `${basePreviewUrl}${routeInfo.routePath}`;
-        routeLines.push(`  - [${routeInfo.routePath}](${fullUrl})`);
-        lineCount++;
-      }
-    });
-    if (routes.length > 5) {
-      routeLines.push(`  - \u2026and ${routes.length - 5} more routes`);
-    }
-  });
-  const commentBody = uniqueRoutes.size > 0 ? [header, ...summaryLines, ...routeLines].join("\n") : `${header}
-No impacted routes detected.`;
-  return {
-    routes: Array.from(uniqueRoutes),
-    impactTree,
-    routesToTest,
-    commentBody
-  };
-}
-
-// src/index.ts
-process.on("unhandledRejection", (reason, promise) => {
-  console.warn(`\u26A0\uFE0F Unhandled promise rejection: ${(reason == null ? void 0 : reason.message) || String(reason)}`);
-  console.warn(`This error was caught by global handler and will not crash the workflow`);
-});
-async function run() {
-  try {
-    initializeCoreServices();
-    const githubToken = config.get("github-token");
-    if (githubToken) {
-      await GitHubServiceFactory.getService().configure({ token: githubToken });
-    }
-    await runVisualTesting();
-  } catch (error5) {
-    await errorHandler.handleError(error5, {
-      severity: "critical" /* CRITICAL */,
-      category: "orchestration" /* ORCHESTRATION */,
-      location: "orchestration"
-    });
-    throw error5;
-  } finally {
-    core11.info("\u{1F4CA} Finalizing core services...");
-    const finalizeStartTime = Date.now();
-    await finalizeCoreServices();
-    core11.info(`\u2705 Core services finalized in ${Date.now() - finalizeStartTime}ms`);
-  }
-}
-async function runVisualTesting() {
-  var _a, _b, _c, _d, _e, _f, _g;
-  const startTime = Date.now();
-  let outputDir = null;
-  let prNumber = 0;
-  let inputs = null;
-  try {
-    core11.info("\u{1F680} YoFix - Browser Agent Powered Visual Testing");
-    inputs = parseInputs();
-    if (inputs.productionUrl) {
-      process.env.PRODUCTION_URL = inputs.productionUrl;
-      core11.info(`\u{1F4CD} Production URL set for baseline creation: ${inputs.productionUrl}`);
-    }
-    const validationError = validateInputs(inputs);
-    if (validationError) {
-      throw new Error(validationError);
-    }
-    outputDir = await import_fs.promises.mkdtemp(import_path.default.join(import_os.default.tmpdir(), "yofix-"));
-    const firebaseConfig = {
-      projectId: "auto-detect",
-      // Will be replaced by FirebaseStorageManager
-      target: inputs.firebaseTarget || "default-target",
-      buildSystem: inputs.buildSystem || "vite",
-      previewUrl: inputs.previewUrl,
-      region: "us-central1"
-    };
-    core11.info(`\u{1F4F1} Testing preview URL: ${inputs.previewUrl}`);
-    const viewports = inputs.viewports.split(",").map((viewport) => {
-      const [width, height] = viewport.trim().split("x").map(Number);
-      return { width, height, name: `${width}x${height}` };
-    });
-    const githubService = GitHubServiceFactory.getService();
-    console.log(`Using GitHub service: ${githubService.constructor.name}`);
-    const context = githubService.getContext();
-    prNumber = githubService.getPRNumber();
-    core11.info("\u{1F4CB} GitHub Context:");
-    core11.info(`  Event Name: ${context.eventName}`);
-    core11.info(`  Repository: ${context.owner}/${context.repo}`);
-    core11.info(`  SHA: ${context.sha}`);
-    core11.info(`  Actor: ${context.actor}`);
-    core11.info(`  PR Number: ${prNumber}`);
-    if (!prNumber && context.eventName === "pull_request") {
-      throw new Error("\u274C No PR number found in pull_request event. Check GitHub event payload.");
-    }
-    if (context.eventName === "pull_request" && !prNumber) {
-      throw new Error("\u274C Pull request event detected but no PR number found. This action requires a valid pull_request event.");
-    }
-    if (prNumber > 0) {
-      core11.info(`\u2705 PR Number detected: ${prNumber}`);
-      const cache = GitHubCacheManager.getInstance();
-      await cache.setPRPreviewUrl(context.owner, context.repo, prNumber, inputs.previewUrl);
-      core11.info(`Cached preview URL for PR #${prNumber}: ${inputs.previewUrl}`);
-    } else {
-      core11.warning("\u26A0\uFE0F No PR number detected. Running in non-PR mode. Route analysis will be skipped.");
-    }
-    let affectedRoutes = [];
     let impactTree = null;
     let routesToTest = null;
     let impactCommentBody = null;
-    if (prNumber > 0) {
-      try {
-        core11.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
-        const github = GitHubServiceFactory.getService();
-        const prFiles = await github.listPullRequestFiles();
-        core11.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f) => f.filename).join(", ")}`);
-        const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, inputs.previewUrl);
-        core11.info(`\u{1F3AF} Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected, ${externalAnalysis.routesToTest.totalRoutesAffected} routes to test`);
-        impactTree = externalAnalysis.impactTree;
-        routesToTest = externalAnalysis.routesToTest;
-        impactCommentBody = externalAnalysis.commentBody;
-      } catch (externalError) {
-        const error5 = externalError;
-        core11.error(`\u274C Route impact analyzer error: ${error5.message}`);
-        if (error5.stack) {
-          core11.debug(`Stack trace: ${error5.stack}`);
+    let affectedRoutes = [];
+    let components = ["App"];
+    try {
+      core8.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
+      const github = GitHubServiceFactory.getService();
+      const prFiles = await github.listPullRequestFiles();
+      core8.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f) => f.filename).join(", ")}`);
+      const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, previewUrl);
+      core8.info(
+        `\u{1F3AF} Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected, ${externalAnalysis.routesToTest.totalRoutesAffected} routes to test`
+      );
+      impactTree = externalAnalysis.impactTree;
+      routesToTest = externalAnalysis.routesToTest;
+      impactCommentBody = externalAnalysis.commentBody;
+      affectedRoutes = extractRoutesFromImpactTree(routesToTest || impactTree);
+      components = extractComponentsFromImpactTree(routesToTest || impactTree);
+      logImpactTreeSummary(routesToTest || impactTree);
+      if (impactCommentBody) {
+        try {
+          await Promise.race([
+            github.createComment(impactCommentBody),
+            new Promise(
+              (_, reject) => setTimeout(() => reject(new Error("GitHub comment timeout")), 15e3)
+            )
+          ]);
+          core8.info("\u2705 Posted route impact summary to PR");
+        } catch (commentError) {
+          core8.warning(`Failed to post impact summary to PR: ${commentError}`);
         }
-        await errorHandler.handleError(error5, {
-          severity: "medium" /* MEDIUM */,
-          category: "package" /* PACKAGE */,
-          location: "@yofix/analyzer",
-          recoverable: true
-        });
-        core11.warning("Third-party route analyzer failed. Falling back to testing homepage only.");
-        affectedRoutes = ["/"];
       }
-    }
-    if (routesToTest) {
-      affectedRoutes = extractRoutesFromImpactTree(routesToTest);
-      logImpactTreeSummary(routesToTest);
-    } else if (impactTree) {
-      affectedRoutes = extractRoutesFromImpactTree(impactTree);
-      logImpactTreeSummary(impactTree);
-    }
-    if (prNumber > 0 && impactCommentBody) {
-      const githubServiceWithContext = GitHubServiceFactory.getService();
-      try {
-        await Promise.race([
-          githubServiceWithContext.createComment(impactCommentBody),
-          new Promise(
-            (_, reject) => setTimeout(() => reject(new Error("GitHub comment timeout")), 15e3)
-          )
-        ]);
-        core11.info("\u2705 Posted route impact summary to PR");
-      } catch (commentError) {
-        core11.warning(`Failed to post impact summary to PR: ${commentError}`);
-      }
-    }
-    if (affectedRoutes.length === 0) {
-      core11.info("\u2139\uFE0F No specific routes identified, defaulting to homepage");
+    } catch (error6) {
+      core8.error(`\u274C Route impact analyzer error: ${error6}`);
+      await errorHandler.handleError(error6, {
+        severity: "medium" /* MEDIUM */,
+        category: "package" /* PACKAGE */,
+        location: "@yofix/analyzer",
+        recoverable: true
+      });
+      core8.warning("Route analyzer failed. Falling back to testing homepage only.");
       affectedRoutes = ["/"];
     }
-    const routes = affectedRoutes;
-    let components = ["App"];
-    const treeToUse = routesToTest || impactTree;
-    if (treeToUse) {
-      const allComponents = /* @__PURE__ */ new Set();
-      if (treeToUse.affectedRoutes && treeToUse.affectedRoutes.length > 0) {
-        for (const route of treeToUse.affectedRoutes) {
-          if (route.changedFiles) {
-            route.changedFiles.forEach((file) => {
-              const componentName = import_path.default.basename(file, import_path.default.extname(file));
-              if (componentName && componentName !== "index") {
-                allComponents.add(componentName);
-              }
-            });
-          }
-        }
-      }
-      if (treeToUse.componentRouteMapping && treeToUse.componentRouteMapping.size > 0) {
-        for (const [componentFile] of treeToUse.componentRouteMapping) {
-          const componentName = import_path.default.basename(componentFile, import_path.default.extname(componentFile));
-          if (componentName && componentName !== "index") {
-            allComponents.add(componentName);
-          }
-        }
-      }
-      if (allComponents.size > 0) {
-        components = Array.from(allComponents).slice(0, 10);
-      }
+    if (affectedRoutes.length === 0) {
+      core8.info("\u2139\uFE0F No specific routes identified, defaulting to homepage");
+      affectedRoutes = ["/"];
     }
-    core11.info(`\u{1F4E6} Found ${components.length} components: ${components.join(", ")}`);
-    const analysis = {
-      hasUIChanges: (((_a = treeToUse == null ? void 0 : treeToUse.affectedRoutes) == null ? void 0 : _a.length) || 0) > 0 || (((_b = treeToUse == null ? void 0 : treeToUse.componentRouteMapping) == null ? void 0 : _b.size) || 0) > 0,
-      changedPaths: routes,
-      components,
-      routes,
-      testSuggestions: routes.map((r) => `Test route ${r} for visual regressions`),
-      riskLevel: (((_c = treeToUse == null ? void 0 : treeToUse.sharedComponents) == null ? void 0 : _c.size) || 0) > 0 ? "high" : "medium"
-    };
-    core11.info(`\u{1F50D} Found ${analysis.routes.length} routes to test`);
-    core11.info("\u{1F4F8} Capturing screenshots with @yofix/browser...");
-    const screenshotResult = await captureScreenshotsWithBrowser({
-      routes: analysis.routes,
-      baseUrl: inputs.previewUrl,
-      viewports,
-      credentials: inputs.authEmail && inputs.authPassword ? {
-        email: inputs.authEmail,
-        password: inputs.authPassword
-      } : void 0,
-      loginUrl: inputs.authLoginUrl,
-      verbose: true
-    });
-    if (!screenshotResult.success) {
-      throw new Error(`Screenshot capture failed: ${(_d = screenshotResult.errors) == null ? void 0 : _d.map((e) => e.message).join(", ")}`);
-    }
-    outputDir = screenshotResult.outputDirectory;
-    core11.info(`\u2705 Captured ${screenshotResult.screenshots.length} route screenshots`);
-    core11.info(`  Output directory: ${outputDir}`);
-    const screenshotMetadataMap = /* @__PURE__ */ new Map();
-    const filesForUpload = screenshotResult.screenshots.flatMap(
-      (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
-        screenshotMetadataMap.set(screenshot.path, {
-          route: routeScreenshot.route,
-          fullUrl: routeScreenshot.fullUrl,
-          viewport: {
-            width: screenshot.width,
-            height: screenshot.height,
-            name: screenshot.viewport
-            // e.g., "1920x1080"
-          },
-          metadata: screenshot.metadata
-        });
-        return {
-          path: screenshot.path,
-          destination: screenshot.destination,
-          contentType: screenshot.contentType,
-          metadata: screenshot.metadata
-        };
-      })
-    );
-    core11.info(`\u{1F4E6} Prepared ${filesForUpload.length} files for upload`);
-    let uploadedFiles = [];
-    let screenshotsUrl = "";
-    if (inputs.firebaseCredentials && inputs.storageBucket) {
-      try {
-        core11.info("\u{1F4E4} Uploading screenshots to Firebase Storage...");
-        core11.info(`  Storage Bucket: ${inputs.storageBucket}`);
-        core11.info(`  Number of screenshots: ${filesForUpload.length}`);
-        let credentialsBase64 = inputs.firebaseCredentials;
-        if (inputs.firebaseCredentials.endsWith(".json")) {
-          try {
-            const credentialsContent = await import_fs.promises.readFile(inputs.firebaseCredentials, "utf-8");
-            credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
-            core11.info("  Using Firebase credentials from file");
-          } catch (error5) {
-            core11.debug(`Not a file path, treating as base64: ${error5}`);
-          }
-        }
-        const { uploadFiles } = await import("@yofix/storage");
-        const uploadResult = await uploadFiles({
-          storage: {
-            provider: "firebase",
-            config: {
-              bucket: inputs.storageBucket,
-              credentials: credentialsBase64,
-              basePath: `pr-${prNumber}/screenshots`
-            }
-          },
-          files: filesForUpload,
-          verbose: true,
-          onProgress: (progress) => {
-            const percentage = (progress.filesUploaded / progress.totalFiles * 100).toFixed(1);
-            core11.info(`  Upload progress: ${progress.filesUploaded}/${progress.totalFiles} files (${percentage}%)`);
-          }
-        });
-        if (!uploadResult.success) {
-          throw new Error(`Upload failed: ${(_e = uploadResult.errors) == null ? void 0 : _e.map((e) => e.message).join(", ")}`);
-        }
-        uploadedFiles = uploadResult.files;
-        core11.info("\u2705 Screenshots uploaded successfully:");
-        uploadedFiles.forEach((file) => {
-          core11.info(`  \u{1F4F8} ${file.remotePath}: ${file.url || "pending"}`);
-        });
-        core11.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
-        const projectId = inputs.storageBucket.split(".")[0] || "unknown";
-        screenshotsUrl = `https://console.firebase.google.com/project/${projectId}/storage/${inputs.storageBucket}`;
-        core11.info(`
-\u{1F517} View all screenshots in Firebase Console: ${screenshotsUrl}`);
-      } catch (error5) {
-        core11.warning(`Failed to upload screenshots to Firebase: ${error5}`);
-        core11.warning("Screenshots are saved locally but not uploaded to cloud storage");
-        core11.debug(`Firebase credentials present: ${!!inputs.firebaseCredentials}`);
-        core11.debug(`Storage bucket: ${inputs.storageBucket}`);
-      }
-    } else {
-      core11.warning("Firebase storage not configured. Screenshots saved locally only.");
-      core11.warning(`Firebase credentials present: ${!!inputs.firebaseCredentials}`);
-      core11.warning(`Storage bucket configured: ${!!inputs.storageBucket}`);
-    }
-    const verificationResult = {
-      status: screenshotResult.success ? "success" : "failure",
-      firebaseConfig,
-      totalTests: screenshotResult.screenshots.length,
-      passedTests: screenshotResult.screenshots.filter((r) => r.success !== false).length,
-      failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
-      skippedTests: 0,
-      duration: Date.now() - startTime,
-      testResults: screenshotResult.screenshots.map((r) => {
-        let routePath = r.route;
-        if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
-          try {
-            const url = new URL(routePath);
-            routePath = url.pathname;
-          } catch (error5) {
-            core11.debug(`Failed to parse route URL: ${routePath}`);
-          }
-        }
-        const sanitizedRoute = routePath.replace(/^\//, "").replace(/\//g, "-").toLowerCase();
-        core11.debug(`Matching route "${r.route}" (sanitized: "${sanitizedRoute}") with uploaded files`);
-        return {
-          testId: `test-${r.route}`,
-          testName: `Route Test: ${r.route}`,
-          status: r.success !== false ? "passed" : "failed",
-          duration: screenshotResult.totalDuration,
-          screenshots: uploadedFiles.filter((f) => {
-            if (!f.remotePath) return false;
-            const match = f.remotePath.includes(sanitizedRoute);
-            core11.debug(`  Checking "${f.remotePath}" contains "${sanitizedRoute}": ${match}`);
-            return match;
-          }).map((f) => {
-            const metadata = screenshotMetadataMap.get(f.localPath);
-            const viewport = (metadata == null ? void 0 : metadata.viewport) || { width: 0, height: 0, name: "" };
-            const screenshotRoute = (metadata == null ? void 0 : metadata.route) || routePath;
-            const fullUrl = (metadata == null ? void 0 : metadata.fullUrl) || "";
-            return {
-              name: `${screenshotRoute}-${viewport.width}x${viewport.height}.png`,
-              path: f.localPath,
-              viewport,
-              timestamp: Date.now(),
-              firebaseUrl: f.url || "",
-              route: screenshotRoute,
-              fullUrl
-            };
-          }),
-          videos: [],
-          errors: r.error ? [r.error] : [],
-          consoleMessages: []
-        };
-      }),
-      screenshotsUrl,
-      summary: {
-        componentsVerified: analysis.components,
-        routesTested: analysis.routes,
-        issuesFound: ((_f = screenshotResult.errors) == null ? void 0 : _f.map((e) => e.message)) || []
+    core8.info(`\u{1F4CD} Total routes to test: ${affectedRoutes.length}`);
+    core8.info(`\u{1F4E6} Components found: ${components.length}`);
+    return {
+      ...stepData,
+      routes: {
+        affectedRoutes,
+        impactTree,
+        routesToTest,
+        components,
+        impactCommentBody
       }
     };
-    core11.info("\u{1F4DD} Posting results to PR...");
-    const reportStartTime = Date.now();
-    const reporter = new PRReporter();
-    try {
-      await Promise.race([
-        reporter.postResults(verificationResult, prNumber.toString()),
-        new Promise(
-          (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 3e4)
-        )
-      ]);
-      core11.info(`\u2705 PR report posted in ${Date.now() - reportStartTime}ms`);
-    } catch (error5) {
-      core11.warning(`Failed to post PR report: ${error5}`);
-    }
-    core11.setOutput("success", verificationResult.status === "success");
-    core11.setOutput("issues-found", ((_g = screenshotResult.errors) == null ? void 0 : _g.length) || 0);
-    core11.setOutput("critical-issues", 0);
-    core11.setOutput("warning-issues", 0);
-    if (verificationResult.status === "success") {
-      core11.info("\u2705 All screenshots captured successfully!");
-    } else {
-      core11.setFailed(`\u274C Screenshot capture had errors`);
-    }
-    core11.info(`\u23F1\uFE0F Total execution time: ${Date.now() - startTime}ms`);
-  } catch (error5) {
-    await errorHandler.handleError(error5, {
-      severity: "critical" /* CRITICAL */,
-      category: "orchestration" /* ORCHESTRATION */,
-      location: "visual-testing"
-    });
-    core11.setFailed(error5 instanceof Error ? error5.message : String(error5));
-  } finally {
-    if (outputDir) {
-      core11.info("\u{1F5D1}\uFE0F Cleaning up temporary directory...");
-      const cleanupStartTime = Date.now();
-      const deleted = await deleteFile(outputDir);
-      if (!deleted) {
-        core11.warning(`Failed to cleanup ${outputDir}`);
-      } else {
-        core11.info(`\u2705 Temp directory cleaned up in ${Date.now() - cleanupStartTime}ms`);
-      }
-    }
-  }
+  });
 }
 function extractRoutesFromImpactTree(impactTree) {
   const routes = /* @__PURE__ */ new Set();
@@ -38713,14 +27701,39 @@ function extractRoutesFromImpactTree(impactTree) {
   }
   return Array.from(routes);
 }
+function extractComponentsFromImpactTree(impactTree) {
+  const allComponents = /* @__PURE__ */ new Set();
+  if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+    for (const route of impactTree.affectedRoutes) {
+      if (route.changedFiles) {
+        route.changedFiles.forEach((file) => {
+          const componentName = import_path2.default.basename(file, import_path2.default.extname(file));
+          if (componentName && componentName !== "index") {
+            allComponents.add(componentName);
+          }
+        });
+      }
+    }
+  }
+  if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+    for (const [componentFile] of impactTree.componentRouteMapping) {
+      const componentName = import_path2.default.basename(componentFile, import_path2.default.extname(componentFile));
+      if (componentName && componentName !== "index") {
+        allComponents.add(componentName);
+      }
+    }
+  }
+  const components = Array.from(allComponents).slice(0, 10);
+  return components.length > 0 ? components : ["App"];
+}
 function logImpactTreeSummary(impactTree) {
   if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
-    core11.info("\u{1F3AF} Component mappings found:");
+    core8.info("\u{1F3AF} Component mappings found:");
     for (const [component, routes] of impactTree.componentRouteMapping) {
-      core11.info(`  ${component} affects ${routes.length} routes:`);
+      core8.info(`  ${component} affects ${routes.length} routes:`);
       for (const route of routes) {
         if (route.routePath) {
-          core11.info(`    - ${route.routePath} (in ${route.routeFile || "unknown"})`);
+          core8.info(`    - ${route.routePath} (in ${route.routeFile || "unknown"})`);
         }
       }
     }
@@ -38738,81 +27751,36 @@ function logImpactTreeSummary(impactTree) {
     }
     const additionalRoutes = impactTree.affectedRoutes.filter((impact) => impact.route && !mappedRoutes.has(impact.route)).map((impact) => impact.route);
     if (additionalRoutes.length > 0) {
-      core11.info(`\u{1F3AF} Found ${additionalRoutes.length} additional routes from direct changes`);
+      core8.info(`\u{1F3AF} Found ${additionalRoutes.length} additional routes from direct changes`);
     }
   }
   const allRoutes = extractRoutesFromImpactTree(impactTree);
-  core11.info(`\u{1F4CD} Total unique routes to test: ${allRoutes.length}`);
-  if (allRoutes.length > 0) {
-    core11.info(`\u{1F4CD} Affected routes: ${allRoutes.join(", ")}`);
+  core8.info(`\u{1F4CD} Total unique routes: ${allRoutes.length}`);
+  if (allRoutes.length > 0 && allRoutes.length <= 20) {
+    core8.info(`\u{1F4CD} Routes: ${allRoutes.join(", ")}`);
+  } else if (allRoutes.length > 20) {
+    core8.info(`\u{1F4CD} Routes: ${allRoutes.slice(0, 20).join(", ")} ... and ${allRoutes.length - 20} more`);
   }
 }
-function parseInputs() {
-  return {
-    previewUrl: getRequiredConfig("preview-url"),
-    firebaseCredentials: config.get("firebase-credentials"),
-    storageBucket: config.get("storage-bucket"),
-    claudeApiKey: config.getSecret("claude-api-key"),
-    claudeModel: getRequiredConfig("claude-model"),
-    productionUrl: config.get("production-url"),
-    firebaseTarget: config.get("firebase-target"),
-    buildSystem: config.get("build-system", { defaultValue: "vite" }),
-    testTimeout: config.get("test-timeout", { defaultValue: "30000" }),
-    cleanupDays: config.get("cleanup-days", { defaultValue: "7" }),
-    viewports: config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" }),
-    maxRoutes: config.get("max-routes", { defaultValue: "10" }),
-    authEmail: config.get("auth-email"),
-    authPassword: config.get("auth-password"),
-    authLoginUrl: config.get("auth-login-url"),
-    authMode: config.get("auth-mode", { defaultValue: "llm" }),
-    enableSmartAuth: getBooleanConfig("enable-smart-auth"),
-    mcpProvider: config.get("mcp-provider"),
-    mcpOptions: config.get("mcp-options"),
-    enableAINavigation: getBooleanConfig("enable-ai-navigation"),
-    enableAITestGeneration: getBooleanConfig("enable-ai-test-generation"),
-    testRoutes: config.get("test-routes")
-  };
-}
-function validateInputs(inputs) {
-  if (inputs.authEmail && !inputs.authPassword || !inputs.authEmail && inputs.authPassword) {
-    return "Authentication configuration incomplete: Both auth-email and auth-password must be provided together";
+async function main() {
+  try {
+    const manager = getStepDataManager();
+    const stepData = await manager.load();
+    const updatedData = await analyzeRoutes(stepData);
+    await manager.save(updatedData);
+    core8.info("\u2705 Step 1: Analyze Routes completed successfully");
+  } catch (error6) {
+    core8.setFailed(`Step 1 failed: ${error6}`);
+    throw error6;
   }
-  const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
-  if (storageProvider === "firebase") {
-    if (!inputs.firebaseCredentials && !config.get("s3-bucket")) {
-      core11.warning("No storage provider configured. Screenshots will not be persisted. Configure firebase-credentials or use S3 storage.");
-    }
-  }
-  const viewportParts = inputs.viewports.split(",");
-  for (const viewport of viewportParts) {
-    if (!viewport.match(/^\d+x\d+$/)) {
-      return `Invalid viewport format: "${viewport}". Expected format: "widthxheight" (e.g., "1920x1080")`;
-    }
-  }
-  if (inputs.authMode && !["llm", "selectors", "smart", "baseline"].includes(inputs.authMode)) {
-    return `Invalid auth-mode: "${inputs.authMode}". Must be one of: llm, selectors, smart, baseline`;
-  }
-  const timeoutResult = Validators.isTimeout(inputs.testTimeout);
-  if (!timeoutResult.valid) {
-    return `Invalid test-timeout: ${timeoutResult.error}`;
-  }
-  return null;
 }
 if (require.main === module) {
-  const mainStartTime = Date.now();
-  run().catch((error5) => {
-    core11.setFailed(error5.message);
-  }).finally(() => {
-    core11.info(`\u23F1\uFE0F Total workflow time: ${Date.now() - mainStartTime}ms`);
-    setTimeout(() => {
-      core11.info("\u{1F504} Force exiting to prevent hanging...");
-      process.exit(0);
-    }, 5e3);
-  });
+  main();
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  run
+  analyzeRoutes,
+  main
 });
 /*! Bundled license information:
 
@@ -38822,4 +27790,4 @@ undici/lib/fetch/body.js:
 undici/lib/websocket/frame.js:
   (*! ws. MIT License. Einar Otto Stangvik <einaros@gmail.com> *)
 */
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=1-analyze-routes.step.js.map

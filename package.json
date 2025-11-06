@@ -2,14 +2,14 @@
   "name": "yofix",
   "version": "1.1.0",
   "description": "AI-powered visual issue detection and auto-fix for web applications",
-  "main": "dist/index.js",
   "bin": {
     "yofix": "./dist/cli/yofix-cli.js"
   },
   "scripts": {
     "postinstall": "playwright install chromium",
     "build:ncc": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external firebase-admin --external @google-cloud/firestore --external @yofix/analyzer --external @yofix/browser --external @yofix/storage && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
-    "build": "rimraf dist && esbuild src/index.ts --bundle --platform=node --target=node16 --outfile=dist/index.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs --sourcemap",
+    "build": "npm run clean && npm run build:steps && npm run build:cli",
+    "build:steps": "mkdir -p dist/steps && esbuild src/steps/0-initialize.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/0-initialize.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/1-analyze-routes.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/1-analyze-routes.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/2-browse-routes.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/2-browse-routes.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/3-upload-storage.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/3-upload-storage.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/4-post-results.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/4-post-results.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs --sourcemap",
     "build:cli": "mkdir -p dist/cli && esbuild src/cli/yofix-cli.ts --bundle --platform=node --target=node16 --outfile=dist/cli/yofix-cli.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/storage --format=cjs && chmod +x dist/cli/yofix-cli.js",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",

@@ -109,7 +109,6 @@ npm test                    # ✅ Works with smart defaults
 
 # Build and run
 npm run build              # ✅ No environment setup needed
-npm run yofix-cli --help   # CLI usage
 
 # Override defaults when needed
 export GITHUB_TOKEN=ghp_your_token

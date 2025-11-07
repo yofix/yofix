@@ -136,13 +136,6 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           }
         };
 
-    // Parse viewport configurations for production capture if needed
-    const viewportsConfig = config.get('viewports', { defaultValue: '1920x1080,768x1024,375x667' });
-    const viewports = viewportsConfig.split(',').map(viewport => {
-      const [width, height] = viewport.trim().split('x').map(Number);
-      return { width, height, name: `${width}x${height}` };
-    });
-
     // Prepare comparisons
     const comparisonsToRun = [];
     const diffFilesInfo: DiffFileInfo[] = [];
@@ -174,10 +167,13 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
 
               try {
                 // Capture production screenshot for this specific route
-                const viewportConfig = viewports.find(v => v.name === viewport);
-                if (!viewportConfig) {
-                  throw new Error(`Viewport configuration not found for ${viewport}`);
-                }
+                // Use actual screenshot dimensions (not viewport config) to ensure dimension match
+                const [actualWidth, actualHeight] = viewport.split('x').map(Number);
+                const viewportConfig = {
+                  width: actualWidth,
+                  height: actualHeight,
+                  name: viewport
+                };
 
                 // Get fullPage config (same as used for PR screenshots)
                 const fullPage = config.getBoolean('full-page', true);

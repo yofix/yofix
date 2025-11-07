@@ -23,8 +23,7 @@ import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
  */
 export async function postResults(stepData: StepData): Promise<StepData> {
   return executeStep('Post Results to PR', async () => {
-    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata } = stepData;
-    const internal = (stepData as any)._internal;
+    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata, _internal: internal } = stepData;
 
     if (!routes || !screenshots) {
       throw new Error('Missing routes or screenshots data. Run previous steps first.');

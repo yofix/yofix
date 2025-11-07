@@ -69,12 +69,6 @@ export interface InternalStepData {
       phase?: 'login' | 'navigation' | 'screenshot' | 'storage';
       details?: unknown;
     }>;
-    artifactInfo?: {
-      uploaded: boolean;
-      artifactName: string;
-      artifactId?: number;
-      size: number;
-    };
   };
   diffFiles?: Array<{
     route: string;
@@ -92,10 +86,9 @@ export interface InternalStepData {
     };
     error?: string;
   }>;
-  diffOutputDir?: string;
-  outputDirectory?: string;
   uploadedFiles?: any[];
   storageUrl?: string;
+  screenshotMetadataMap?: Record<string, { route: string; viewport: any; metadata: any; duration?: number }>;
 }
 
 /**
@@ -165,7 +158,6 @@ export interface StepData {
 export class StepDataManager {
   private static readonly DATA_DIR = '.yofix-step-data';
   private static readonly DATA_FILE = 'step-data.json';
-  private static readonly METADATA_FILE = 'metadata.json';
 
   private workspacePath: string;
   private dataDir: string;
@@ -221,20 +213,6 @@ export class StepDataManager {
     }
   }
 
-  /**
-   * Update specific fields in step data (partial update)
-   */
-  async update(updates: Partial<StepData>): Promise<void> {
-    try {
-      const data = await this.load();
-      const updatedData = { ...data, ...updates };
-      await this.save(updatedData);
-      core.info(`🔄 Updated step data with: ${Object.keys(updates).join(', ')}`);
-    } catch (error) {
-      core.error(`Failed to update step data: ${error}`);
-      throw error;
-    }
-  }
 
   /**
    * Check if step data exists
@@ -249,17 +227,6 @@ export class StepDataManager {
     }
   }
 
-  /**
-   * Cleanup step data
-   */
-  async cleanup(): Promise<void> {
-    try {
-      await fs.rm(this.dataDir, { recursive: true, force: true });
-      core.info(`🧹 Cleaned up step data directory`);
-    } catch (error) {
-      core.warning(`Failed to cleanup step data: ${error}`);
-    }
-  }
 
   /**
    * Record step timing
@@ -278,6 +245,7 @@ export class StepDataManager {
       core.warning(`Failed to record step timing: ${error}`);
     }
   }
+
 
   /**
    * Get step timing summary
@@ -330,48 +298,6 @@ export class StepDataManager {
     }
   }
 
-  /**
-   * Get data directory path
-   */
-  getDataDir(): string {
-    return this.dataDir;
-  }
-
-  /**
-   * Get full path for a file within data directory
-   */
-  getFilePath(filename: string): string {
-    return path.join(this.dataDir, filename);
-  }
-
-  /**
-   * Save arbitrary file to data directory
-   */
-  async saveFile(filename: string, content: string | Buffer): Promise<string> {
-    try {
-      const filePath = this.getFilePath(filename);
-      await fs.writeFile(filePath, content);
-      core.info(`💾 Saved file: ${filename}`);
-      return filePath;
-    } catch (error) {
-      core.error(`Failed to save file ${filename}: ${error}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Load arbitrary file from data directory
-   */
-  async loadFile(filename: string): Promise<string> {
-    try {
-      const filePath = this.getFilePath(filename);
-      const content = await fs.readFile(filePath, 'utf-8');
-      return content;
-    } catch (error) {
-      core.error(`Failed to load file ${filename}: ${error}`);
-      throw error;
-    }
-  }
 }
 
 /**

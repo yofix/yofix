@@ -27339,9 +27339,6 @@ var StepDataManager = class _StepDataManager {
   static {
     this.DATA_FILE = "step-data.json";
   }
-  static {
-    this.METADATA_FILE = "metadata.json";
-  }
   constructor(workspacePath) {
     this.workspacePath = workspacePath || process.env.GITHUB_WORKSPACE || process.cwd();
     this.dataDir = import_path.default.join(this.workspacePath, _StepDataManager.DATA_DIR);
@@ -27388,20 +27385,6 @@ var StepDataManager = class _StepDataManager {
     }
   }
   /**
-   * Update specific fields in step data (partial update)
-   */
-  async update(updates) {
-    try {
-      const data = await this.load();
-      const updatedData = { ...data, ...updates };
-      await this.save(updatedData);
-      core.info(`\u{1F504} Updated step data with: ${Object.keys(updates).join(", ")}`);
-    } catch (error10) {
-      core.error(`Failed to update step data: ${error10}`);
-      throw error10;
-    }
-  }
-  /**
    * Check if step data exists
    */
   async exists() {
@@ -27411,17 +27394,6 @@ var StepDataManager = class _StepDataManager {
       return true;
     } catch {
       return false;
-    }
-  }
-  /**
-   * Cleanup step data
-   */
-  async cleanup() {
-    try {
-      await import_fs.promises.rm(this.dataDir, { recursive: true, force: true });
-      core.info(`\u{1F9F9} Cleaned up step data directory`);
-    } catch (error10) {
-      core.warning(`Failed to cleanup step data: ${error10}`);
     }
   }
   /**
@@ -27485,45 +27457,6 @@ var StepDataManager = class _StepDataManager {
       }
     } catch (error10) {
       core.warning(`Failed to set GitHub outputs: ${error10}`);
-    }
-  }
-  /**
-   * Get data directory path
-   */
-  getDataDir() {
-    return this.dataDir;
-  }
-  /**
-   * Get full path for a file within data directory
-   */
-  getFilePath(filename) {
-    return import_path.default.join(this.dataDir, filename);
-  }
-  /**
-   * Save arbitrary file to data directory
-   */
-  async saveFile(filename, content) {
-    try {
-      const filePath = this.getFilePath(filename);
-      await import_fs.promises.writeFile(filePath, content);
-      core.info(`\u{1F4BE} Saved file: ${filename}`);
-      return filePath;
-    } catch (error10) {
-      core.error(`Failed to save file ${filename}: ${error10}`);
-      throw error10;
-    }
-  }
-  /**
-   * Load arbitrary file from data directory
-   */
-  async loadFile(filename) {
-    try {
-      const filePath = this.getFilePath(filename);
-      const content = await import_fs.promises.readFile(filePath, "utf-8");
-      return content;
-    } catch (error10) {
-      core.error(`Failed to load file ${filename}: ${error10}`);
-      throw error10;
     }
   }
 };
@@ -28287,11 +28220,6 @@ async function compareWithBaselines(stepData) {
         basePath: storageDirectory
       }
     };
-    const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
-    const viewports = viewportsConfig.split(",").map((viewport) => {
-      const [width, height] = viewport.trim().split("x").map(Number);
-      return { width, height, name: `${width}x${height}` };
-    });
     const comparisonsToRun = [];
     const diffFilesInfo = [];
     const baselineUrlMap = /* @__PURE__ */ new Map();
@@ -28313,10 +28241,12 @@ async function compareWithBaselines(stepData) {
             if (productionUrl) {
               core13.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${routePath}`);
               try {
-                const viewportConfig = viewports.find((v) => v.name === viewport);
-                if (!viewportConfig) {
-                  throw new Error(`Viewport configuration not found for ${viewport}`);
-                }
+                const [actualWidth, actualHeight] = viewport.split("x").map(Number);
+                const viewportConfig = {
+                  width: actualWidth,
+                  height: actualHeight,
+                  name: viewport
+                };
                 const fullPage = config.getBoolean("full-page", true);
                 const productionCapture = await captureScreenshotsWithBrowser({
                   routes: [routePath],
@@ -29257,8 +29187,7 @@ init_core();
 init_GitHubServiceFactory();
 async function postResults(stepData) {
   return executeStep("Post Results to PR", async () => {
-    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata } = stepData;
-    const internal = stepData._internal;
+    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata, _internal: internal } = stepData;
     if (!routes || !screenshots) {
       throw new Error("Missing routes or screenshots data. Run previous steps first.");
     }
@@ -29428,8 +29357,7 @@ var import_fs5 = require("fs");
 init_core();
 async function updateBaselines(stepData) {
   return executeStep("Update Baselines (Post-Merge)", async () => {
-    const { prNumber, screenshots } = stepData;
-    const internal = stepData._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error("No screenshots available for baseline update. Run browse-routes step first.");
     }

@@ -24,8 +24,7 @@ import { config } from '../core';
  */
 export async function updateBaselines(stepData: StepData): Promise<StepData> {
   return executeStep('Update Baselines (Post-Merge)', async () => {
-    const { prNumber, screenshots } = stepData;
-    const internal = (stepData as any)._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
 
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error('No screenshots available for baseline update. Run browse-routes step first.');

@@ -126,7 +126,7 @@ export async function updateBaselines(stepData: StepData): Promise<StepData> {
               viewport,
               source: 'merged-pr',
               prNumber,
-              updatedAt: Date.now()
+              updatedAt: Date.now().toString()
             }
           });
 

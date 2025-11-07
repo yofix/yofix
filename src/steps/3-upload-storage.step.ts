@@ -56,7 +56,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
     core.info(`  Storage Bucket: ${storageBucket}`);
 
     // Prepare files for upload from screenshotResult
-    const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any }>();
+    const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any; duration?: number }>();
 
     const filesForUpload = internal.screenshotResult.screenshots.flatMap((routeScreenshot: any) =>
       routeScreenshot.screenshots.map((screenshot: any) => {

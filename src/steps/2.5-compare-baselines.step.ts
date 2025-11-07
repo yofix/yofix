@@ -184,7 +184,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                       route: routePath,
                       viewport,
                       source: 'production',
-                      createdAt: Date.now()
+                      createdAt: Date.now().toString()
                     }
                   }],
                   verbose: false

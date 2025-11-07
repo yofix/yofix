@@ -35,7 +35,8 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
           affectedRoutes: ['/'],
           impactTree: null,
           routesToTest: null,
-          components: ['App']
+          components: ['App'],
+          impactCommentBody: null
         }
       };
     }

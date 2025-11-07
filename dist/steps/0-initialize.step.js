@@ -25693,6 +25693,11 @@ var ErrorCategory = /* @__PURE__ */ ((ErrorCategory2) => {
   ErrorCategory2["GITHUB"] = "github";
   ErrorCategory2["CONFIGURATION"] = "configuration";
   ErrorCategory2["ORCHESTRATION"] = "orchestration";
+  ErrorCategory2["MODULE"] = "module";
+  ErrorCategory2["NETWORK"] = "network";
+  ErrorCategory2["PROCESSING"] = "processing";
+  ErrorCategory2["FILE_SYSTEM"] = "file_system";
+  ErrorCategory2["VALIDATION"] = "validation";
   ErrorCategory2["UNKNOWN"] = "unknown";
   return ErrorCategory2;
 })(ErrorCategory || {});
@@ -26240,7 +26245,7 @@ var botActivity = new BotActivityHandler();
 // src/core/error/ErrorHandlerFactory.ts
 var core5 = __toESM(require_core());
 function createModuleLogger(options) {
-  const { module: module2, debug: debug5 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
+  const { module: module2, debug: debug5 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
   return {
     debug: (message, ...args) => {
       if (debug5 || core5.isDebug()) {
@@ -26593,7 +26598,7 @@ var CircuitBreaker = class {
     this.halfOpenSuccesses = 0;
     this.logger = createModuleLogger({
       module: `CircuitBreaker.${this.config.serviceName}`,
-      defaultCategory: ErrorCategory.NETWORK
+      defaultCategory: "network" /* NETWORK */
     });
     this.failureThreshold = config2.failureThreshold ?? 5;
     this.resetTimeout = config2.resetTimeout ?? 6e4;
@@ -26675,7 +26680,7 @@ var CircuitBreaker = class {
     }
     errorHandler.handleError(error4, {
       severity: "medium" /* MEDIUM */,
-      category: ErrorCategory.NETWORK,
+      category: "network" /* NETWORK */,
       userAction: `${this.config.serviceName} operation`,
       metadata: {
         circuitState: this.state,
@@ -26708,7 +26713,7 @@ var CircuitBreaker = class {
         new Error(`Circuit breaker opened for ${this.config.serviceName}`),
         {
           severity: "high" /* HIGH */,
-          category: ErrorCategory.NETWORK,
+          category: "network" /* NETWORK */,
           userAction: "Circuit breaker activation",
           metadata: this.getStats()
         }
@@ -27065,7 +27070,7 @@ function getBooleanConfig(key, defaultValue = false) {
 // src/core/utils/JSONParser.ts
 var logger = createModuleLogger({
   module: "JSONParser",
-  defaultCategory: ErrorCategory.PROCESSING
+  defaultCategory: "processing" /* PROCESSING */
 });
 
 // src/core/utils/FileSystemWrapper.ts
@@ -27074,7 +27079,7 @@ var fsSync = __toESM(require("fs"));
 var path3 = __toESM(require("path"));
 var logger2 = createModuleLogger({
   module: "FileSystem",
-  defaultCategory: ErrorCategory.FILE_SYSTEM
+  defaultCategory: "file_system" /* FILE_SYSTEM */
 });
 var FileSystem = class {
   /**
@@ -27092,7 +27097,7 @@ var FileSystem = class {
       },
       {
         name: `Check file exists: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "low" /* LOW */,
         fallback: false
       }
@@ -27126,7 +27131,7 @@ var FileSystem = class {
       },
       {
         name: `Read file: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
         fallback: null
@@ -27173,7 +27178,7 @@ var FileSystem = class {
       },
       {
         name: `Write file: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
         fallback: false
@@ -27204,7 +27209,7 @@ var FileSystem = class {
       },
       {
         name: `Delete: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "low" /* LOW */,
         metadata: { filePath },
         fallback: false
@@ -27223,7 +27228,7 @@ var FileSystem = class {
       },
       {
         name: `Create directory: ${path3.basename(dirPath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "low" /* LOW */,
         metadata: { dirPath },
         fallback: false
@@ -27258,7 +27263,7 @@ var FileSystem = class {
       },
       {
         name: `List directory: ${path3.basename(dirPath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "low" /* LOW */,
         metadata: { dirPath, options },
         fallback: []
@@ -27309,7 +27314,7 @@ var FileSystem = class {
       },
       {
         name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "medium" /* MEDIUM */,
         metadata: { source, destination },
         fallback: false
@@ -27325,7 +27330,7 @@ var FileSystem = class {
       async () => await fs3.stat(filePath),
       {
         name: `Get file stats: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
+        category: "file_system" /* FILE_SYSTEM */,
         severity: "low" /* LOW */,
         metadata: { filePath },
         fallback: null
@@ -27402,7 +27407,7 @@ var {
 // src/core/utils/ValidationPatterns.ts
 var logger3 = createModuleLogger({
   module: "ValidationPatterns",
-  defaultCategory: ErrorCategory.VALIDATION
+  defaultCategory: "validation" /* VALIDATION */
 });
 var Validators = class {
   /**
@@ -27596,7 +27601,7 @@ var Validators = class {
 // src/core/utils/AsyncUtilities.ts
 var logger4 = createModuleLogger({
   module: "AsyncUtilities",
-  defaultCategory: ErrorCategory.PROCESSING
+  defaultCategory: "processing" /* PROCESSING */
 });
 
 // src/core/index.ts

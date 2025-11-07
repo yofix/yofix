@@ -46,7 +46,7 @@ export interface StepData {
     impactTree: ExternalRouteImpactTree | null;
     routesToTest: ExternalRouteImpactTree | null;
     components: string[];
-    impactCommentBody: string | null;
+    impactCommentBody?: string | null;
   };
 
   // Screenshot results

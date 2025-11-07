@@ -3107,10 +3107,10 @@
     typescript "^5.7.2"
     zod "^3.24.1"
 
-"@yofix/browser@^1.0.9":
-  version "1.0.9"
-  resolved "https://registry.npmjs.org/@yofix/browser/-/browser-1.0.9.tgz"
-  integrity sha512-dquKaQ4EYsBdVlqCyKOZt1oVSLBgl3NMvPRXsuQGcP1oMEo0PmvbuXuhCIbTCOx73S8yC8znImT077DecUtQBg==
+"@yofix/browser@^1.0.11":
+  version "1.0.11"
+  resolved "https://registry.npmjs.org/@yofix/browser/-/browser-1.0.11.tgz"
+  integrity sha512-OXZw6o7wDQecEQxCvK068FOow4krDfU0n3cvo5T6Fvkd1ZavhGAN1tptk/rw3RouY0WhGQZgHRZ6TRmJsZwl5Q==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"
@@ -3123,10 +3123,9 @@
     playwright "^1.49.0"
     zod "^3.24.1"
 
-"@yofix/comparator@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.npmjs.org/@yofix/comparator/-/comparator-1.0.0.tgz"
-  integrity sha512-iKq6vN+pnDAMA0IRanqeaLBGmcCkEt4oRVUug5SsW8HF+SrUyk69JRerE5OCG+PHG8q0UVssq622ljzh2L2R+A==
+"@yofix/comparator@file:../comparator":
+  version "1.0.1"
+  resolved "file:../comparator"
   dependencies:
     pixelmatch "^5.3.0"
     pngjs "^7.0.0"
@@ -5821,13 +5820,6 @@ pirates@^4.0.4:
   resolved "https://registry.npmjs.org/pirates/-/pirates-4.0.7.tgz"
   integrity sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==
 
-pixelmatch@^5.3.0:
-  version "5.3.0"
-  resolved "https://registry.npmjs.org/pixelmatch/-/pixelmatch-5.3.0.tgz"
-  integrity sha512-o8mkY4E/+LNUf6LzX96ht6k6CEDi65k9G2rjMtBe9Oo+VPKSvl+0GKHuH/AlG+GA5LPG/i5hrekkxUc3s2HU+Q==
-  dependencies:
-    pngjs "^6.0.0"
-
 pkg-dir@^4.2.0:
   version "4.2.0"
   resolved "https://registry.npmjs.org/pkg-dir/-/pkg-dir-4.2.0.tgz"
@@ -5848,16 +5840,6 @@ playwright@^1.41.2, playwright@^1.49.0, playwright@1.54.1:
     playwright-core "1.54.1"
   optionalDependencies:
     fsevents "2.3.2"
-
-pngjs@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.npmjs.org/pngjs/-/pngjs-6.0.0.tgz"
-  integrity sha512-TRzzuFRRmEoSW/p1KVAmiOgPco2Irlah+bGFCeNfJXxxYGwSw7YwAOAcd7X28K/m5bjBWKsC29KyoMfHbypayg==
-
-pngjs@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.npmjs.org/pngjs/-/pngjs-7.0.0.tgz"
-  integrity sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==
 
 prelude-ls@^1.2.1:
   version "1.2.1"

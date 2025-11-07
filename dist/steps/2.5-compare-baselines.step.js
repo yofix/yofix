@@ -27504,6 +27504,10 @@ async function compareWithBaselines(stepData) {
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
     const comparisonThreshold = parseFloat(config.get("comparison-threshold", { defaultValue: "0.01" }));
     const productionUrl = config.get("production-url");
+    const authEmail = config.get("auth-email");
+    const authPassword = config.get("auth-password");
+    const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
+    const credentials = authEmail && authPassword ? { email: authEmail, password: authPassword } : void 0;
     if (!firebaseCredentials || !storageBucket) {
       core8.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
       core8.warning('   All screenshots will be marked as "new"');
@@ -27573,6 +27577,8 @@ async function compareWithBaselines(stepData) {
                   routes: [route],
                   baseUrl: productionUrl,
                   viewports: [viewportConfig],
+                  credentials,
+                  loginUrl: authLoginUrl,
                   verbose: false
                 });
                 if (!productionCapture.success || productionCapture.screenshots.length === 0) {

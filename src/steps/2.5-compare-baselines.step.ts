@@ -52,6 +52,15 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     const comparisonThreshold = parseFloat(config.get('comparison-threshold', { defaultValue: '0.01' }));
     const productionUrl = config.get('production-url');
 
+    // Get authentication config for production screenshot capture
+    const authEmail = config.get('auth-email');
+    const authPassword = config.get('auth-password');
+    const authLoginUrl = config.get('auth-login-url', { defaultValue: '/login' });
+
+    const credentials = authEmail && authPassword
+      ? { email: authEmail, password: authPassword }
+      : undefined;
+
     // Skip comparison if storage not configured (no baselines available)
     if (!firebaseCredentials || !storageBucket) {
       core.warning('⚠️ Storage not configured - skipping baseline comparison');
@@ -143,6 +152,8 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                   routes: [route],
                   baseUrl: productionUrl,
                   viewports: [viewportConfig],
+                  credentials,
+                  loginUrl: authLoginUrl,
                   verbose: false
                 });
 

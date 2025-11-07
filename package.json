@@ -2,15 +2,11 @@
   "name": "yofix",
   "version": "1.1.0",
   "description": "AI-powered visual issue detection and auto-fix for web applications",
-  "bin": {
-    "yofix": "./dist/cli/yofix-cli.js"
-  },
   "scripts": {
     "postinstall": "playwright install chromium",
-    "build:ncc": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external firebase-admin --external @google-cloud/firestore --external @yofix/analyzer --external @yofix/browser --external @yofix/comparator --external @yofix/storage && cp -r dist-final/* dist/ && rm -rf dist-final && chmod +x dist/cli/yofix-cli.js",
-    "build": "npm run clean && npm run build:steps && npm run build:cli",
+    "build:ncc": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external firebase-admin --external @google-cloud/firestore --external @yofix/analyzer --external @yofix/browser --external @yofix/comparator --external @yofix/storage && cp -r dist-final/* dist/ && rm -rf dist-final",
+    "build": "npm run clean && npm run build:steps",
     "build:steps": "mkdir -p dist/steps && esbuild src/steps/0-initialize.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/0-initialize.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/1-analyze-routes.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/1-analyze-routes.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/2-browse-routes.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/2-browse-routes.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/2.5-compare-baselines.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/2.5-compare-baselines.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/3-upload-storage.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/3-upload-storage.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/4-post-results.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/4-post-results.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/5-update-baselines.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/5-update-baselines.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap",
-    "build:cli": "mkdir -p dist/cli && esbuild src/cli/yofix-cli.ts --bundle --platform=node --target=node16 --outfile=dist/cli/yofix-cli.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs && chmod +x dist/cli/yofix-cli.js",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "test:action": "act -j visual-test --secret-file .env.test",
@@ -71,12 +67,9 @@
     "@yofix/browser": "^1.0.8",
     "@yofix/comparator": "^1.0.0",
     "@yofix/storage": "^1.0.2",
-    "chalk": "^5.3.0",
-    "commander": "^11.1.0",
     "dotenv": "^16.3.1",
     "firebase-admin": "^12.0.0",
     "glob": "^11.0.3",
-    "ioredis": "^5.3.2",
     "js-yaml": "^4.1.0",
     "playwright": "^1.41.2",
     "sharp": "^0.33.0"

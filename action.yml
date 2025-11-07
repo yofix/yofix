@@ -211,28 +211,28 @@ runs:
         echo "🚀 Initializing YoFix step-based workflow..."
         node ${{ github.action_path }}/dist/steps/0-initialize.step.js
       env:
-        INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
-        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
-        INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
-        INPUT_CLAUDE_MODEL: ${{ inputs.claude-model }}
-        INPUT_PRODUCTION_URL: ${{ inputs.production-url }}
-        INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}
-        INPUT_FIREBASE_CREDENTIALS: ${{ inputs.firebase-credentials }}
-        INPUT_STORAGE_BUCKET: ${{ inputs.storage-bucket }}
-        INPUT_S3_BUCKET: ${{ inputs.s3-bucket }}
-        INPUT_AWS_REGION: ${{ inputs.aws-region }}
-        INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
-        INPUT_AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
-        INPUT_FIREBASE_TARGET: ${{ inputs.firebase-target }}
-        INPUT_BUILD_SYSTEM: ${{ inputs.build-system }}
-        INPUT_TEST_TIMEOUT: ${{ inputs.test-timeout }}
-        INPUT_CLEANUP_DAYS: ${{ inputs.cleanup-days }}
+        INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE-MODEL: ${{ inputs.claude-model }}
+        INPUT_PRODUCTION-URL: ${{ inputs.production-url }}
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_FIREBASE-TARGET: ${{ inputs.firebase-target }}
+        INPUT_BUILD-SYSTEM: ${{ inputs.build-system }}
+        INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}
+        INPUT_CLEANUP-DAYS: ${{ inputs.cleanup-days }}
         INPUT_VIEWPORTS: ${{ inputs.viewports }}
-        INPUT_MAX_ROUTES: ${{ inputs.max-routes }}
-        INPUT_AUTH_EMAIL: ${{ inputs.auth-email }}
-        INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
-        INPUT_AUTH_LOGIN_URL: ${{ inputs.auth-login-url }}
-        INPUT_CLEAR_CACHE: ${{ inputs.clear-cache }}
+        INPUT_MAX-ROUTES: ${{ inputs.max-routes }}
+        INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
+        INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
 
     # Step 5: Analyze Routes
     - name: 🔍 Find Impact Routes
@@ -242,11 +242,11 @@ runs:
         echo "🛰️ Analyzing route impacts using route-impact-analyzer..."
         node ${{ github.action_path }}/dist/steps/1-analyze-routes.step.js
       env:
-        INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
-        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
-        INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
-        INPUT_CLAUDE_MODEL: ${{ inputs.claude-model }}
-        INPUT_CLEAR_CACHE: ${{ inputs.clear-cache }}
+        INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+        INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE-MODEL: ${{ inputs.claude-model }}
+        INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
 
     # Step 6: Browse Routes
     - name: 🌐 Browse Impact Routes
@@ -256,14 +256,14 @@ runs:
         echo "📸 Capturing screenshots for affected routes..."
         node ${{ github.action_path }}/dist/steps/2-browse-routes.step.js
       env:
-        INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
-        INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
-        INPUT_CLAUDE_MODEL: ${{ inputs.claude-model }}
+        INPUT_PREVIEW-URL: ${{ inputs.preview-url }}
+        INPUT_CLAUDE-API-KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE-MODEL: ${{ inputs.claude-model }}
         INPUT_VIEWPORTS: ${{ inputs.viewports }}
-        INPUT_AUTH_EMAIL: ${{ inputs.auth-email }}
-        INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
-        INPUT_AUTH_LOGIN_URL: ${{ inputs.auth-login-url }}
-        INPUT_TEST_TIMEOUT: ${{ inputs.test-timeout }}
+        INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
+        INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}
 
     # Step 6.5: Compare with Baselines
     - name: 🔍 Compare Screenshots with Baselines
@@ -273,21 +273,21 @@ runs:
         echo "📊 Comparing screenshots with stored baselines..."
         node ${{ github.action_path }}/dist/steps/2.5-compare-baselines.step.js
       env:
-        INPUT_PRODUCTION_URL: ${{ inputs.production-url }}
-        INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}
-        INPUT_FIREBASE_CREDENTIALS: ${{ inputs.firebase-credentials }}
-        INPUT_STORAGE_BUCKET: ${{ inputs.storage-bucket }}
-        INPUT_STORAGE_DIRECTORY: ${{ inputs.storage-directory }}
-        INPUT_S3_BUCKET: ${{ inputs.s3-bucket }}
-        INPUT_AWS_REGION: ${{ inputs.aws-region }}
-        INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
-        INPUT_AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
-        INPUT_COMPARISON_THRESHOLD: ${{ inputs.comparison-threshold }}
+        INPUT_PRODUCTION-URL: ${{ inputs.production-url }}
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_STORAGE-DIRECTORY: ${{ inputs.storage-directory }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_COMPARISON-THRESHOLD: ${{ inputs.comparison-threshold }}
         INPUT_VIEWPORTS: ${{ inputs.viewports }}
-        INPUT_AUTH_EMAIL: ${{ inputs.auth-email }}
-        INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
-        INPUT_AUTH_LOGIN_URL: ${{ inputs.auth-login-url }}
-        INPUT_FULL_PAGE: ${{ inputs.full-page }}
+        INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
+        INPUT_FULL-PAGE: ${{ inputs.full-page }}
 
     # Step 7: Upload Screenshots
     - name: ☁️ Upload Screenshots to Storage
@@ -297,14 +297,14 @@ runs:
         echo "📤 Uploading screenshots to cloud storage..."
         node ${{ github.action_path }}/dist/steps/3-upload-storage.step.js
       env:
-        INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}
-        INPUT_FIREBASE_CREDENTIALS: ${{ inputs.firebase-credentials }}
-        INPUT_STORAGE_BUCKET: ${{ inputs.storage-bucket }}
-        INPUT_STORAGE_DIRECTORY: ${{ inputs.storage-directory }}
-        INPUT_S3_BUCKET: ${{ inputs.s3-bucket }}
-        INPUT_AWS_REGION: ${{ inputs.aws-region }}
-        INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
-        INPUT_AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_STORAGE-DIRECTORY: ${{ inputs.storage-directory }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
 
     # Step 8: Post Results
     - name: 💬 Post GitHub Comment
@@ -315,7 +315,7 @@ runs:
         echo "📝 Posting results to GitHub PR..."
         node ${{ github.action_path }}/dist/steps/4-post-results.step.js
       env:
-        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
 
     # Step 8.5: Update Baselines (Post-Merge Only)
     - name: 🔄 Update Baselines
@@ -326,15 +326,15 @@ runs:
         echo "🔄 Checking baseline update configuration..."
         node ${{ github.action_path }}/dist/steps/5-update-baselines.step.js
       env:
-        INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}
-        INPUT_FIREBASE_CREDENTIALS: ${{ inputs.firebase-credentials }}
-        INPUT_STORAGE_BUCKET: ${{ inputs.storage-bucket }}
-        INPUT_STORAGE_DIRECTORY: ${{ inputs.storage-directory }}
-        INPUT_S3_BUCKET: ${{ inputs.s3-bucket }}
-        INPUT_AWS_REGION: ${{ inputs.aws-region }}
-        INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
-        INPUT_AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
-        INPUT_UPDATE_BASELINES_ON_MERGE: ${{ inputs.update-baselines-on-merge }}
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_STORAGE-DIRECTORY: ${{ inputs.storage-directory }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_UPDATE-BASELINES-ON-MERGE: ${{ inputs.update-baselines-on-merge }}
 
     # Step 9: Generate Test Summary
     - name: 📊 Generate Test Summary

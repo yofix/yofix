@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import { analyzeRouteImpact } from "@yofix/analyzer";
-import { getConfiguration } from "../hooks/ConfigurationHook";
+import { config } from "../index";
 
 export interface ExternalRouteImpact {
   route: string;
@@ -50,12 +50,20 @@ export async function analyzeRoutesWithExternalTool(
   prFiles: Array<{ filename: string; status: string }>,
   previewUrl: string,
 ): Promise<ExternalImpactResult> {
-  const configuration = getConfiguration();
-  const claudeApiKey = configuration.getInput("claude-api-key");
+  // Get configuration using ConfigurationManager (proper way)
+  const claudeApiKey = config.get('claude-api-key', { required: true });
+  const modelFromConfig = config.get('claude-model', { required: true });
+  const forceRefreshInput = config.get('route-impact-force-refresh', { defaultValue: 'false' });
 
   if (!claudeApiKey) {
     throw new Error(
       "Claude API key is required for route-impact-analyzer integration.",
+    );
+  }
+
+  if (!modelFromConfig) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
     );
   }
 
@@ -80,15 +88,6 @@ export async function analyzeRoutesWithExternalTool(
     };
   }
 
-  const modelFromConfig = configuration.getInput("claude-model");
-  if (!modelFromConfig) {
-    throw new Error(
-      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
-    );
-  }
-  const forceRefreshInput = configuration.getInput(
-    "route-impact-force-refresh",
-  );
   const forceRefresh =
     forceRefreshInput === "true" ||
     forceRefreshInput === "True" ||

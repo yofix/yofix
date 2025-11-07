@@ -4,6 +4,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -19807,6 +19810,345 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
   }
 });
 
+// src/config/env-loader.ts
+function parseEnvFile(content) {
+  const result = {};
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const equalIndex = trimmed.indexOf("=");
+    if (equalIndex === -1) {
+      continue;
+    }
+    const key = trimmed.substring(0, equalIndex).trim();
+    let value = trimmed.substring(equalIndex + 1).trim();
+    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+      value = value.slice(1, -1);
+    }
+    result[key] = value;
+  }
+  return result;
+}
+function loadEnvLocal(rootDir) {
+  const projectRoot = rootDir || process.cwd();
+  const envLocalPath = path.join(projectRoot, ".env.local");
+  if (!fs.existsSync(envLocalPath)) {
+    return {};
+  }
+  try {
+    const content = fs.readFileSync(envLocalPath, "utf8");
+    return parseEnvFile(content);
+  } catch (error10) {
+    console.warn(`Warning: Could not load .env.local file: ${error10}`);
+    return {};
+  }
+}
+function loadEnvironmentConfig() {
+  const envLocal = loadEnvLocal();
+  const merged = {};
+  Object.assign(merged, envLocal);
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== void 0) {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+function initializeEnvironment() {
+  const envLocal = loadEnvLocal();
+  for (const [key, value] of Object.entries(envLocal)) {
+    if (process.env[key] === void 0) {
+      process.env[key] = value;
+    }
+  }
+}
+var fs, path;
+var init_env_loader = __esm({
+  "src/config/env-loader.ts"() {
+    fs = __toESM(require("fs"));
+    path = __toESM(require("path"));
+  }
+});
+
+// src/config/default.config.ts
+function getEnvWithDefaults(key) {
+  const envConfig = loadEnvironmentConfig();
+  if (envConfig[key] !== void 0) {
+    return envConfig[key];
+  }
+  return getEnvironmentDefault(key);
+}
+function getEnvironmentDefault(key) {
+  if (key === "GITHUB_TOKEN" || key === "INPUT_GITHUB_TOKEN") {
+    return environmentDefaults.github.token;
+  }
+  if (key === "GITHUB_REPOSITORY") {
+    return environmentDefaults.github.repository;
+  }
+  if (key === "GITHUB_SHA") {
+    return environmentDefaults.github.sha;
+  }
+  if (key === "GITHUB_ACTOR") {
+    return environmentDefaults.github.actor;
+  }
+  if (key === "GITHUB_EVENT_NAME") {
+    return environmentDefaults.github.eventName;
+  }
+  if (key === "GITHUB_ACTIONS") {
+    return environmentDefaults.github.actions;
+  }
+  if (key === "CLAUDE_API_KEY" || key === "CLAUDE_API_KEY") {
+    return environmentDefaults.ai.claudeApiKey;
+  }
+  if (key === "FIREBASE_PROJECT_ID") {
+    return environmentDefaults.storage.firebase.projectId;
+  }
+  if (key === "FIREBASE_CLIENT_EMAIL") {
+    return environmentDefaults.storage.firebase.clientEmail;
+  }
+  if (key === "FIREBASE_PRIVATE_KEY") {
+    return environmentDefaults.storage.firebase.privateKey;
+  }
+  if (key === "FIREBASE_STORAGE_BUCKET") {
+    return environmentDefaults.storage.firebase.storageBucket;
+  }
+  if (key === "AWS_ACCESS_KEY_ID") {
+    return environmentDefaults.storage.s3.accessKeyId;
+  }
+  if (key === "AWS_SECRET_ACCESS_KEY") {
+    return environmentDefaults.storage.s3.secretAccessKey;
+  }
+  if (key === "AWS_REGION") {
+    return environmentDefaults.storage.s3.region;
+  }
+  if (key === "S3_BUCKET") {
+    return environmentDefaults.storage.s3.bucket;
+  }
+  if (key === "NODE_ENV") {
+    return environmentDefaults.nodeEnv;
+  }
+  return void 0;
+}
+var environmentDefaults;
+var init_default_config = __esm({
+  "src/config/default.config.ts"() {
+    init_env_loader();
+    initializeEnvironment();
+    environmentDefaults = {
+      // GitHub Configuration (no real tokens, safe for testing)
+      github: {
+        token: "mock-github-token",
+        repository: "test-owner/test-repo",
+        sha: "mock-sha-123456",
+        actor: "yofix-bot",
+        eventName: "pull_request",
+        actions: "false"
+        // Not in GitHub Actions by default
+      },
+      // Storage Configuration (mock/test values)
+      storage: {
+        firebase: {
+          projectId: "yofix-test-project",
+          clientEmail: "test@yofix-test-project.iam.gserviceaccount.com",
+          privateKey: "-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY_FOR_TESTING\n-----END PRIVATE KEY-----\n",
+          storageBucket: "yofix-test-project.appspot.com"
+        },
+        s3: {
+          accessKeyId: "MOCK_ACCESS_KEY_ID",
+          secretAccessKey: "mock-secret-access-key",
+          region: "us-east-1",
+          bucket: "yofix-test-bucket"
+        }
+      },
+      // AI Configuration
+      ai: {
+        claudeApiKey: "mock-claude-api-key",
+        anthropicApiKey: "mock-anthropic-api-key"
+      },
+      // Environment
+      nodeEnv: "development"
+    };
+  }
+});
+
+// src/core/hooks/EnvironmentHook.ts
+function getEnvironment() {
+  return EnvironmentHookFactory.getHook();
+}
+var NodeEnvironmentHook, MockEnvironmentHook, EnvironmentHookFactory, env;
+var init_EnvironmentHook = __esm({
+  "src/core/hooks/EnvironmentHook.ts"() {
+    init_default_config();
+    NodeEnvironmentHook = class {
+      get(name, defaultValue) {
+        const value = process.env[name];
+        return value !== void 0 ? value : defaultValue;
+      }
+      getRequired(name) {
+        const value = process.env[name];
+        if (value === void 0) {
+          throw new Error(`Required environment variable ${name} is not set`);
+        }
+        return value;
+      }
+      has(name) {
+        return name in process.env;
+      }
+      getByPrefix(prefix) {
+        const result = {};
+        for (const [key, value] of Object.entries(process.env)) {
+          if (key.startsWith(prefix) && value !== void 0) {
+            result[key] = value;
+          }
+        }
+        return result;
+      }
+      set(name, value) {
+        process.env[name] = value;
+      }
+      unset(name) {
+        delete process.env[name];
+      }
+      getEnvironment() {
+        const nodeEnv = process.env.NODE_ENV?.toLowerCase();
+        switch (nodeEnv) {
+          case "production":
+            return "production";
+          case "development":
+            return "development";
+          case "test":
+            return "test";
+          default:
+            return "unknown";
+        }
+      }
+      getWithDefaults(name) {
+        return getEnvWithDefaults(name);
+      }
+    };
+    MockEnvironmentHook = class {
+      constructor(initialEnv = {}) {
+        this.env = /* @__PURE__ */ new Map();
+        for (const [key, value] of Object.entries(initialEnv)) {
+          this.env.set(key, value);
+        }
+      }
+      get(name, defaultValue) {
+        const value = this.env.get(name);
+        return value !== void 0 ? value : defaultValue;
+      }
+      getRequired(name) {
+        const value = this.env.get(name);
+        if (value === void 0) {
+          throw new Error(`Required environment variable ${name} is not set`);
+        }
+        return value;
+      }
+      has(name) {
+        return this.env.has(name);
+      }
+      getByPrefix(prefix) {
+        const result = {};
+        for (const [key, value] of this.env.entries()) {
+          if (key.startsWith(prefix)) {
+            result[key] = value;
+          }
+        }
+        return result;
+      }
+      set(name, value) {
+        this.env.set(name, value);
+      }
+      unset(name) {
+        this.env.delete(name);
+      }
+      getEnvironment() {
+        const nodeEnv = this.env.get("NODE_ENV")?.toLowerCase();
+        switch (nodeEnv) {
+          case "production":
+            return "production";
+          case "development":
+            return "development";
+          case "test":
+            return "test";
+          default:
+            return "unknown";
+        }
+      }
+      getWithDefaults(name) {
+        const mockValue = this.env.get(name);
+        if (mockValue !== void 0) {
+          return mockValue;
+        }
+        return getEnvWithDefaults(name);
+      }
+      /**
+       * Clear all environment variables (useful for testing)
+       */
+      clear() {
+        this.env.clear();
+      }
+      /**
+       * Load from object (useful for testing)
+       */
+      loadFromObject(env2) {
+        this.clear();
+        for (const [key, value] of Object.entries(env2)) {
+          this.env.set(key, value);
+        }
+      }
+    };
+    EnvironmentHookFactory = class {
+      /**
+       * Get or create environment hook instance
+       */
+      static getHook() {
+        if (!this.instance) {
+          this.instance = this.createDefaultHook();
+        }
+        return this.instance;
+      }
+      /**
+       * Set custom environment hook (useful for testing)
+       */
+      static setHook(hook) {
+        this.instance = hook;
+      }
+      /**
+       * Reset the factory (useful for testing)
+       */
+      static reset() {
+        this.instance = void 0;
+      }
+      /**
+       * Create default environment hook based on runtime
+       */
+      static createDefaultHook() {
+        if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+          return new MockEnvironmentHook(process.env);
+        }
+        if (typeof process !== "undefined" && process.env) {
+          return new NodeEnvironmentHook();
+        }
+        return new MockEnvironmentHook();
+      }
+    };
+    env = {
+      get: (name, defaultValue) => getEnvironment().get(name, defaultValue),
+      getRequired: (name) => getEnvironment().getRequired(name),
+      getWithDefaults: (name) => getEnvironment().getWithDefaults(name),
+      has: (name) => getEnvironment().has(name),
+      is: (name, value) => getEnvironment().get(name) === value,
+      isDevelopment: () => getEnvironment().getEnvironment() === "development",
+      isProduction: () => getEnvironment().getEnvironment() === "production",
+      isTest: () => getEnvironment().getEnvironment() === "test"
+    };
+  }
+});
+
 // node_modules/@actions/github/lib/context.js
 var require_context = __commonJS({
   "node_modules/@actions/github/lib/context.js"(exports2) {
@@ -23876,1271 +24218,3115 @@ var require_github = __commonJS({
   }
 });
 
+// src/core/github/GitHubServiceFactory.ts
+var LRUCache, RateLimiter, RetryHelper, MockGitHubService, EnhancedGitHubService, OctokitGitHubService, LazyGitHubService, GitHubServiceFactory;
+var init_GitHubServiceFactory = __esm({
+  "src/core/github/GitHubServiceFactory.ts"() {
+    init_EnvironmentHook();
+    LRUCache = class {
+      constructor(maxSize = 100) {
+        this.maxSize = maxSize;
+        this.cache = /* @__PURE__ */ new Map();
+        this.accessOrder = /* @__PURE__ */ new Map();
+        this.accessCounter = 0;
+      }
+      get(key) {
+        const entry = this.cache.get(key);
+        if (!entry) return void 0;
+        if (Date.now() > entry.timestamp + entry.ttl) {
+          this.delete(key);
+          return void 0;
+        }
+        this.accessOrder.set(key, ++this.accessCounter);
+        return entry.data;
+      }
+      set(key, data, ttlMs) {
+        if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+          this.evictOldest();
+        }
+        this.cache.set(key, {
+          data,
+          timestamp: Date.now(),
+          ttl: ttlMs
+        });
+        this.accessOrder.set(key, ++this.accessCounter);
+      }
+      delete(key) {
+        this.cache.delete(key);
+        this.accessOrder.delete(key);
+      }
+      clear() {
+        this.cache.clear();
+        this.accessOrder.clear();
+        this.accessCounter = 0;
+      }
+      evictOldest() {
+        let oldestKey = "";
+        let oldestAccess = Infinity;
+        for (const [key, access2] of this.accessOrder.entries()) {
+          if (access2 < oldestAccess) {
+            oldestAccess = access2;
+            oldestKey = key;
+          }
+        }
+        if (oldestKey) {
+          this.delete(oldestKey);
+        }
+      }
+    };
+    RateLimiter = class {
+      constructor(maxTokens, refillRate) {
+        this.maxTokens = maxTokens;
+        this.refillRate = refillRate;
+        this.tokens = maxTokens;
+        this.lastRefill = Date.now();
+      }
+      async waitForToken() {
+        this.refillTokens();
+        if (this.tokens >= 1) {
+          this.tokens--;
+          return;
+        }
+        const waitTime = (1 - this.tokens) / this.refillRate * 1e3;
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        this.tokens--;
+      }
+      refillTokens() {
+        const now = Date.now();
+        const timePassed = (now - this.lastRefill) / 1e3;
+        const tokensToAdd = timePassed * this.refillRate;
+        this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
+        this.lastRefill = now;
+      }
+      reset() {
+        this.tokens = this.maxTokens;
+        this.lastRefill = Date.now();
+      }
+    };
+    RetryHelper = class {
+      static async withExponentialBackoff(operation, maxRetries = 3, baseDelayMs = 1e3, maxDelayMs = 3e4) {
+        let lastError;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            return await operation();
+          } catch (error10) {
+            lastError = error10;
+            if (error10.status && error10.status >= 400 && error10.status < 500) {
+              throw error10;
+            }
+            if (attempt === maxRetries) {
+              break;
+            }
+            const delay2 = Math.min(
+              maxDelayMs,
+              baseDelayMs * Math.pow(2, attempt) + Math.random() * 1e3
+            );
+            await new Promise((resolve) => setTimeout(resolve, delay2));
+          }
+        }
+        throw lastError;
+      }
+    };
+    MockGitHubService = class {
+      constructor() {
+        this.configured = false;
+        this.config = {};
+        this.mockData = {
+          files: /* @__PURE__ */ new Map(),
+          comments: /* @__PURE__ */ new Map(),
+          fileContents: /* @__PURE__ */ new Map(),
+          checkRuns: /* @__PURE__ */ new Map(),
+          context: {
+            owner: "test-owner",
+            repo: "test-repo",
+            sha: "test-sha",
+            prNumber: 123,
+            actor: "test-actor",
+            eventName: "pull_request",
+            payload: {
+              pull_request: { number: 123, head: { sha: "test-sha" } },
+              issue: { number: 123, pull_request: {} },
+              comment: { id: 1, body: "test comment", user: { login: "test-user" } }
+            }
+          }
+        };
+      }
+      async configure(config2) {
+        this.config = config2;
+        this.configured = true;
+      }
+      isConfigured() {
+        return this.configured;
+      }
+      // Mock data setters for testing
+      setMockFiles(prNumber, files) {
+        this.mockData.files.set(`${prNumber}`, files);
+      }
+      setMockComments(issueNumber, comments) {
+        this.mockData.comments.set(`${issueNumber}`, comments);
+      }
+      setMockFileContent(path7, content) {
+        this.mockData.fileContents.set(path7, content);
+      }
+      setMockContext(context) {
+        this.mockData.context = { ...this.mockData.context, ...context };
+      }
+      // Implementation of interface methods
+      async listPullRequestFiles() {
+        const context = this.getContext();
+        return this.mockData.files.get(`${context.prNumber}`) || [];
+      }
+      async createComment(body) {
+        const context = this.getContext();
+        const comment = { id: Date.now(), body, user: { login: "test-bot" }, created_at: (/* @__PURE__ */ new Date()).toISOString() };
+        const comments = this.mockData.comments.get(`${context.prNumber}`) || [];
+        comments.push(comment);
+        this.mockData.comments.set(`${context.prNumber}`, comments);
+        return { id: comment.id, html_url: `https://github.com/${context.owner}/${context.repo}/pull/${context.prNumber}#comment-${comment.id}` };
+      }
+      async updateComment(commentId, body) {
+        for (const [issueNumber, comments] of this.mockData.comments.entries()) {
+          const commentIndex = comments.findIndex((c) => c.id === commentId);
+          if (commentIndex !== -1) {
+            comments[commentIndex].body = body;
+            this.mockData.comments.set(issueNumber, comments);
+            return;
+          }
+        }
+        console.log(`Mock: Updated comment ${commentId} with body: ${body}`);
+      }
+      async listComments() {
+        const context = this.getContext();
+        return this.mockData.comments.get(`${context.prNumber}`) || [];
+      }
+      async addReaction(commentId, reaction) {
+        console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
+      }
+      async getFileContent(path7, ref) {
+        return this.mockData.fileContents.get(path7) || null;
+      }
+      async getContent(path7, ref) {
+        return this.getFileContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        const context = this.getContext();
+        const finalRef = ref || context.sha || "main";
+        return this.mockData.checkRuns.get(finalRef) || [];
+      }
+      async createCheckRun(data) {
+        const context = this.getContext();
+        const checkRun = { ...data, id: Date.now() };
+        const runs = this.mockData.checkRuns.get(context.sha || "main") || [];
+        runs.push(checkRun);
+        this.mockData.checkRuns.set(context.sha || "main", runs);
+        return { id: checkRun.id };
+      }
+      async updateCheckRun(checkRunId, data) {
+        for (const [ref, checkRuns] of this.mockData.checkRuns.entries()) {
+          const checkRunIndex = checkRuns.findIndex((c) => c.id === checkRunId);
+          if (checkRunIndex !== -1) {
+            checkRuns[checkRunIndex] = { ...checkRuns[checkRunIndex], ...data };
+            this.mockData.checkRuns.set(ref, checkRuns);
+            return;
+          }
+        }
+        console.log(`Mock: Updated check run ${checkRunId}`);
+      }
+      async createIssue(title, body, labels) {
+        const context = this.getContext();
+        const issueNumber = Date.now();
+        return {
+          number: issueNumber,
+          html_url: `https://github.com/${context.owner}/${context.repo}/issues/${issueNumber}`
+        };
+      }
+      getContext() {
+        return this.mockData.context;
+      }
+      getPRNumber() {
+        return this.mockData.context.prNumber;
+      }
+      // Test helper methods
+      setMockPRFiles(owner, repo, prNumber, files) {
+        this.mockData.files.set(`${prNumber}`, files);
+      }
+    };
+    EnhancedGitHubService = class {
+      constructor() {
+        this.config = {};
+      }
+      async configure(config2) {
+        this.config = { ...config2 };
+        if (config2.cache?.enabled !== false) {
+          this.cache = new LRUCache(config2.cache?.maxSize || 100);
+        }
+        if (config2.rateLimit?.enabled !== false) {
+          const requestsPerHour = config2.rateLimit?.requestsPerHour || 5e3;
+          const requestsPerSecond = requestsPerHour / 3600;
+          this.rateLimiter = new RateLimiter(
+            config2.rateLimit?.burstLimit || 10,
+            requestsPerSecond
+          );
+        }
+        if (config2.token) {
+          const github = await Promise.resolve().then(() => __toESM(require_github()));
+          this.octokit = github.getOctokit(config2.token);
+        }
+      }
+      isConfigured() {
+        return !!this.octokit;
+      }
+      ensureConfigured() {
+        if (!this.octokit) {
+          throw new Error("GitHub service not configured. Call configure() first.");
+        }
+      }
+      getCacheKey(method, ...args) {
+        return `${method}:${JSON.stringify(args)}`;
+      }
+      async withCacheAndRateLimit(cacheKey, operation, cacheable = true) {
+        if (cacheable && this.cache) {
+          const cached = this.cache.get(cacheKey);
+          if (cached !== void 0) {
+            return cached;
+          }
+        }
+        if (this.rateLimiter) {
+          await this.rateLimiter.waitForToken();
+        }
+        const retryConfig = this.config.retry;
+        const result = await RetryHelper.withExponentialBackoff(
+          operation,
+          retryConfig?.enabled !== false ? retryConfig?.maxRetries || 3 : 0,
+          retryConfig?.baseDelayMs || 1e3,
+          retryConfig?.maxDelayMs || 3e4
+        );
+        if (cacheable && this.cache) {
+          const ttl = this.config.cache?.ttlMs || 3e5;
+          this.cache.set(cacheKey, result, ttl);
+        }
+        return result;
+      }
+      async listPullRequestFiles() {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const cacheKey = this.getCacheKey("listPullRequestFiles", context.owner, context.repo, context.prNumber);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          console.log(`[EnhancedGitHubService] Listing PR files for PR #${context.prNumber}`);
+          if (!context.prNumber) {
+            throw new Error("[EnhancedGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
+          }
+          const { data } = await this.octokit.rest.pulls.listFiles({
+            owner: context.owner,
+            repo: context.repo,
+            pull_number: context.prNumber,
+            per_page: 100
+          });
+          console.log(`[EnhancedGitHubService] Found ${data.length} files in PR #${context.prNumber}:`);
+          data.forEach((file, index) => {
+            console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
+          });
+          return data;
+        });
+      }
+      async createComment(body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          const { data } = await this.octokit.rest.issues.createComment({
+            owner: context.owner,
+            repo: context.repo,
+            issue_number: context.prNumber,
+            body
+          });
+          if (this.cache) {
+            const listCommentsKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
+            this.cache.delete(listCommentsKey);
+          }
+          return { id: data.id, html_url: data.html_url };
+        }, false);
+      }
+      async updateComment(commentId, body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          await this.octokit.rest.issues.updateComment({
+            owner: context.owner,
+            repo: context.repo,
+            comment_id: commentId,
+            body
+          });
+          if (this.cache) {
+          }
+        }, false);
+      }
+      async listComments() {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const cacheKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          const { data } = await this.octokit.rest.issues.listComments({
+            owner: context.owner,
+            repo: context.repo,
+            issue_number: context.prNumber,
+            per_page: 100
+          });
+          return data;
+        });
+      }
+      async addReaction(commentId, reaction) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          await this.octokit.rest.reactions.createForIssueComment({
+            owner: context.owner,
+            repo: context.repo,
+            comment_id: commentId,
+            content: reaction
+          });
+        }, false);
+      }
+      async getFileContent(path7, ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path7, ref);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          try {
+            const { data } = await this.octokit.rest.repos.getContent({
+              owner: context.owner,
+              repo: context.repo,
+              path: path7,
+              ref
+            });
+            if ("content" in data && !Array.isArray(data)) {
+              return {
+                path: data.path,
+                content: data.content,
+                encoding: data.encoding,
+                sha: data.sha
+              };
+            }
+            return null;
+          } catch (error10) {
+            if (error10.status === 404) {
+              return null;
+            }
+            throw error10;
+          }
+        });
+      }
+      async getContent(path7, ref) {
+        return this.getFileContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const finalRef = ref || context.sha || "main";
+        const cacheKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, finalRef);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          const { data } = await this.octokit.rest.checks.listForRef({
+            owner: context.owner,
+            repo: context.repo,
+            ref: finalRef
+          });
+          return data.check_runs;
+        });
+      }
+      async createCheckRun(data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          const { data: result } = await this.octokit.rest.checks.create({
+            owner: context.owner,
+            repo: context.repo,
+            head_sha: context.sha || "main",
+            ...data
+          });
+          if (this.cache) {
+            const listCheckRunsKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, context.sha);
+            this.cache.delete(listCheckRunsKey);
+          }
+          return { id: result.id };
+        }, false);
+      }
+      async updateCheckRun(checkRunId, data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          await this.octokit.rest.checks.update({
+            owner: context.owner,
+            repo: context.repo,
+            check_run_id: checkRunId,
+            ...data
+          });
+        }, false);
+      }
+      async createIssue(title, body, labels) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          const { data } = await this.octokit.rest.issues.create({
+            owner: context.owner,
+            repo: context.repo,
+            title,
+            body,
+            labels
+          });
+          return { number: data.number, html_url: data.html_url };
+        }, false);
+      }
+      getContext() {
+        if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
+          try {
+            const github = require_github();
+            const context = github.context;
+            console.log(`[EnhancedGitHubService] Using @actions/github context`);
+            console.log(`[EnhancedGitHubService] Event name: ${context.eventName}`);
+            console.log(`[EnhancedGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+            console.log(`[EnhancedGitHubService] SHA: ${context.sha}`);
+            console.log(`[EnhancedGitHubService] Actor: ${context.actor}`);
+            console.log(`[EnhancedGitHubService] Issue number: ${context.issue.number}`);
+            console.log(`[EnhancedGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+            console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
+            const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
+            console.log(`[EnhancedGitHubService] Final PR number: ${prNumber2}`);
+            return {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              prNumber: prNumber2,
+              actor: context.actor,
+              eventName: context.eventName,
+              payload: context.payload
+            };
+          } catch (error10) {
+            console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error10);
+            console.log("[EnhancedGitHubService] Falling back to environment variables");
+          }
+          const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
+          const [owner, repo] = repository.split("/");
+          let payload = {};
+          const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
+          try {
+            const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
+            if (eventPath) {
+              const fs8 = require("fs");
+              payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+            }
+          } catch (error10) {
+            console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error10);
+          }
+          const prNumber = payload?.pull_request?.number || payload?.issue?.number;
+          return {
+            owner,
+            repo,
+            sha: env.getWithDefaults("GITHUB_SHA"),
+            prNumber,
+            actor: env.getWithDefaults("GITHUB_ACTOR"),
+            eventName,
+            payload
+          };
+        }
+        return {
+          owner: this.config.owner || "",
+          repo: this.config.repo || "",
+          sha: void 0,
+          prNumber: void 0,
+          actor: void 0,
+          eventName: void 0,
+          payload: {}
+        };
+      }
+      getPRNumber() {
+        return this.getContext().prNumber;
+      }
+      /**
+       * Clear cache (useful for testing)
+       */
+      clearCache() {
+        if (this.cache) {
+          this.cache.clear();
+        }
+      }
+      /**
+       * Reset rate limiter (useful for testing)
+       */
+      resetRateLimit() {
+        if (this.rateLimiter) {
+          this.rateLimiter.reset();
+        }
+      }
+    };
+    OctokitGitHubService = class {
+      constructor() {
+        this.config = {};
+      }
+      async configure(config2) {
+        this.config = config2;
+        if (config2.token) {
+          const github = await Promise.resolve().then(() => __toESM(require_github()));
+          this.octokit = github.getOctokit(config2.token);
+        }
+      }
+      isConfigured() {
+        return !!this.octokit;
+      }
+      ensureConfigured() {
+        if (!this.octokit) {
+          throw new Error("GitHub service not configured. Call configure() first.");
+        }
+      }
+      async listPullRequestFiles(owner, repo, prNumber) {
+        this.ensureConfigured();
+        let finalOwner;
+        let finalRepo;
+        let finalPrNumber;
+        if (arguments.length === 0) {
+          const context = this.getContext();
+          finalOwner = context.owner;
+          finalRepo = context.repo;
+          finalPrNumber = context.prNumber;
+          console.log(`[OctokitGitHubService] Listing PR files for PR #${finalPrNumber}`);
+          if (!context.prNumber) {
+            throw new Error("[OctokitGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
+          }
+        } else {
+          finalOwner = owner;
+          finalRepo = repo;
+          finalPrNumber = prNumber;
+        }
+        const { data } = await this.octokit.rest.pulls.listFiles({
+          owner: finalOwner,
+          repo: finalRepo,
+          pull_number: finalPrNumber,
+          per_page: 100
+        });
+        console.log(`[OctokitGitHubService] Found ${data.length} files in PR #${finalPrNumber}:`);
+        data.forEach((file, index) => {
+          console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
+        });
+        return data;
+      }
+      async createComment(body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data } = await this.octokit.rest.issues.createComment({
+          owner: context.owner,
+          repo: context.repo,
+          issue_number: context.prNumber,
+          body
+        });
+        return { id: data.id, html_url: data.html_url };
+      }
+      async updateComment(commentId, body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        await this.octokit.rest.issues.updateComment({
+          owner: context.owner,
+          repo: context.repo,
+          comment_id: commentId,
+          body
+        });
+      }
+      async listComments() {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data } = await this.octokit.rest.issues.listComments({
+          owner: context.owner,
+          repo: context.repo,
+          issue_number: context.prNumber,
+          per_page: 100
+        });
+        return data;
+      }
+      async addReaction(commentId, reaction) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        await this.octokit.rest.reactions.createForIssueComment({
+          owner: context.owner,
+          repo: context.repo,
+          comment_id: commentId,
+          content: reaction
+        });
+      }
+      async getFileContent(path7, ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        try {
+          const { data } = await this.octokit.rest.repos.getContent({
+            owner: context.owner,
+            repo: context.repo,
+            path: path7,
+            ref
+          });
+          if ("content" in data && !Array.isArray(data)) {
+            return {
+              path: data.path,
+              content: data.content,
+              encoding: data.encoding,
+              sha: data.sha
+            };
+          }
+          return null;
+        } catch (error10) {
+          if (error10.status === 404) {
+            return null;
+          }
+          throw error10;
+        }
+      }
+      async getContent(path7, ref) {
+        return this.getFileContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const finalRef = ref || context.sha || "main";
+        const { data } = await this.octokit.rest.checks.listForRef({
+          owner: context.owner,
+          repo: context.repo,
+          ref: finalRef
+        });
+        return data.check_runs;
+      }
+      async createCheckRun(data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data: result } = await this.octokit.rest.checks.create({
+          owner: context.owner,
+          repo: context.repo,
+          head_sha: context.sha || "main",
+          ...data
+        });
+        return { id: result.id };
+      }
+      async updateCheckRun(checkRunId, data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        await this.octokit.rest.checks.update({
+          owner: context.owner,
+          repo: context.repo,
+          check_run_id: checkRunId,
+          ...data
+        });
+      }
+      async createIssue(title, body, labels) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data } = await this.octokit.rest.issues.create({
+          owner: context.owner,
+          repo: context.repo,
+          title,
+          body,
+          labels
+        });
+        return { number: data.number, html_url: data.html_url };
+      }
+      getContext() {
+        if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
+          try {
+            const github = require_github();
+            const context = github.context;
+            console.log(`[OctokitGitHubService] Using @actions/github context`);
+            console.log(`[OctokitGitHubService] Event name: ${context.eventName}`);
+            console.log(`[OctokitGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+            console.log(`[OctokitGitHubService] SHA: ${context.sha}`);
+            console.log(`[OctokitGitHubService] Actor: ${context.actor}`);
+            console.log(`[OctokitGitHubService] Issue number: ${context.issue.number}`);
+            console.log(`[OctokitGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+            console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
+            const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
+            console.log(`[OctokitGitHubService] Final PR number: ${prNumber2}`);
+            return {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              prNumber: prNumber2,
+              actor: context.actor,
+              eventName: context.eventName,
+              payload: context.payload
+            };
+          } catch (error10) {
+            console.error("[OctokitGitHubService] Failed to use @actions/github context:", error10);
+            console.log("[OctokitGitHubService] Falling back to environment variables");
+          }
+          const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
+          const [owner, repo] = repository.split("/");
+          let payload = {};
+          const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
+          try {
+            const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
+            if (eventPath) {
+              const fs8 = require("fs");
+              payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+            }
+          } catch (error10) {
+            console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error10);
+          }
+          const prNumber = payload?.pull_request?.number || payload?.issue?.number;
+          return {
+            owner,
+            repo,
+            sha: env.getWithDefaults("GITHUB_SHA"),
+            prNumber,
+            actor: env.getWithDefaults("GITHUB_ACTOR"),
+            eventName,
+            payload
+          };
+        }
+        return {
+          owner: this.config.owner || "",
+          repo: this.config.repo || "",
+          sha: void 0,
+          prNumber: void 0,
+          actor: void 0,
+          eventName: void 0,
+          payload: {}
+        };
+      }
+      getPRNumber() {
+        return this.getContext().prNumber;
+      }
+    };
+    LazyGitHubService = class {
+      async configure(config2) {
+        this.pendingConfig = { ...this.pendingConfig, ...config2 };
+      }
+      isConfigured() {
+        return !!this.service || !!this.pendingConfig?.token || !!env.getWithDefaults("GITHUB_TOKEN") || !!env.getWithDefaults("INPUT_GITHUB_TOKEN");
+      }
+      async ensureService() {
+        if (!this.service) {
+          const token = this.pendingConfig?.token || env.getWithDefaults("GITHUB_TOKEN") || env.getWithDefaults("INPUT_GITHUB_TOKEN");
+          if (!token && env.getWithDefaults("NODE_ENV") !== "test") {
+            throw new Error("GitHub token not available. Configure with token or set GITHUB_TOKEN environment variable.");
+          }
+          this.service = env.getWithDefaults("NODE_ENV") === "test" ? new MockGitHubService() : new EnhancedGitHubService();
+          await this.service.configure({ ...this.pendingConfig, token });
+        }
+        return this.service;
+      }
+      // Delegate all methods to the underlying service
+      async listPullRequestFiles() {
+        const service = await this.ensureService();
+        return service.listPullRequestFiles();
+      }
+      async createComment(body) {
+        const service = await this.ensureService();
+        return service.createComment(body);
+      }
+      async updateComment(commentId, body) {
+        const service = await this.ensureService();
+        return service.updateComment(commentId, body);
+      }
+      async listComments() {
+        const service = await this.ensureService();
+        return service.listComments();
+      }
+      async addReaction(commentId, reaction) {
+        const service = await this.ensureService();
+        return service.addReaction(commentId, reaction);
+      }
+      async getFileContent(path7, ref) {
+        const service = await this.ensureService();
+        return service.getFileContent(path7, ref);
+      }
+      async getContent(path7, ref) {
+        const service = await this.ensureService();
+        return service.getContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        const service = await this.ensureService();
+        return service.listCheckRuns(ref);
+      }
+      async createCheckRun(data) {
+        const service = await this.ensureService();
+        return service.createCheckRun(data);
+      }
+      async updateCheckRun(checkRunId, data) {
+        const service = await this.ensureService();
+        return service.updateCheckRun(checkRunId, data);
+      }
+      async createIssue(title, body, labels) {
+        const service = await this.ensureService();
+        return service.createIssue(title, body, labels);
+      }
+      getContext() {
+        if (this.service) {
+          return this.service.getContext();
+        }
+        if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
+          try {
+            const github = require_github();
+            const context = github.context;
+            const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
+            return {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              prNumber: prNumber2,
+              actor: context.actor,
+              eventName: context.eventName,
+              payload: context.payload
+            };
+          } catch (error10) {
+            console.error("[LazyGitHubService] Failed to use @actions/github context:", error10);
+          }
+        }
+        const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
+        const [owner, repo] = repository.split("/");
+        let payload = {};
+        const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
+        try {
+          const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
+          if (eventPath) {
+            const fs8 = require("fs");
+            payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+          }
+        } catch (error10) {
+          console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error10);
+        }
+        const prNumber = payload?.pull_request?.number || payload?.issue?.number;
+        return {
+          owner: this.pendingConfig?.owner || owner || "",
+          repo: this.pendingConfig?.repo || repo || "",
+          sha: env.getWithDefaults("GITHUB_SHA"),
+          prNumber,
+          actor: env.getWithDefaults("GITHUB_ACTOR"),
+          eventName,
+          payload
+        };
+      }
+      getPRNumber() {
+        const context = this.getContext();
+        return context.prNumber;
+      }
+    };
+    GitHubServiceFactory = class {
+      /**
+       * Get or create a GitHub service instance
+       * Uses lazy initialization - token not required until first API call
+       */
+      static getService() {
+        if (!this.instance) {
+          this.instance = new LazyGitHubService();
+        }
+        return this.instance;
+      }
+      /**
+       * Set a custom service instance (useful for testing)
+       */
+      static setService(service) {
+        this.instance = service;
+      }
+      /**
+       * Reset the factory (useful for testing)
+       */
+      static reset() {
+        this.instance = void 0;
+      }
+      /**
+       * Create a new instance without singleton pattern
+       */
+      static createService(options = {}) {
+        const { mock = false, enhanced = true, config: config2 } = options;
+        if (mock || env.getWithDefaults("NODE_ENV") === "test" && mock !== false) {
+          const service2 = new MockGitHubService();
+          if (config2) {
+            service2.configure(config2);
+          }
+          return service2;
+        }
+        if (enhanced) {
+          const service2 = new EnhancedGitHubService();
+          if (config2) {
+            service2.configure(config2);
+          }
+          return service2;
+        }
+        const service = new OctokitGitHubService();
+        if (config2) {
+          service.configure(config2);
+        }
+        return service;
+      }
+      /**
+       * Create enhanced service with custom configuration
+       */
+      static createEnhancedService(config2) {
+        const service = new EnhancedGitHubService();
+        service.configure(config2);
+        return service;
+      }
+    };
+  }
+});
+
+// src/core/github/GitHubCommentEngine.ts
+function getGitHubCommentEngine() {
+  if (!globalInstance) {
+    globalInstance = new GitHubCommentEngine();
+  }
+  return globalInstance;
+}
+var core2, GitHubCommentEngine, globalInstance;
+var init_GitHubCommentEngine = __esm({
+  "src/core/github/GitHubCommentEngine.ts"() {
+    core2 = __toESM(require_core());
+    init_GitHubServiceFactory();
+    GitHubCommentEngine = class {
+      constructor() {
+        // Cache for comment threads
+        this.threadCache = /* @__PURE__ */ new Map();
+        // Error tracking
+        this.errorCount = 0;
+        this.errorSummary = [];
+        this.github = GitHubServiceFactory.getService();
+        this.context = this.github.getContext();
+        this.owner = this.context.owner;
+        this.repo = this.context.repo;
+        this.prNumber = this.context.prNumber || parseInt(process.env.PR_NUMBER || "0");
+      }
+      /**
+       * Post a comment to the PR
+       */
+      async postComment(message, options = {}) {
+        try {
+          if (this.prNumber === 0) {
+            core2.warning("No PR number found, cannot post comment");
+            return null;
+          }
+          let body = message;
+          if (options.inReplyTo) {
+            const replyUrl = `https://github.com/${this.owner}/${this.repo}/pull/${this.prNumber}#issuecomment-${options.inReplyTo}`;
+            body = `> In reply to [this comment](${replyUrl})
+
+${message}`;
+          }
+          if (options.signature) {
+            body += `
+
+<!-- ${options.signature} -->`;
+          }
+          if (options.threadId) {
+            const existingThreadId = this.threadCache.get(options.threadId);
+            if (existingThreadId) {
+              options.inReplyTo = existingThreadId;
+            }
+          }
+          if (options.isError) {
+            body = `\u274C **Error**
+
+${body}`;
+            this.errorCount++;
+          }
+          if (options.isProgress) {
+            body = `\u23F3 ${body}`;
+          }
+          let commentId;
+          if (options.updateExisting && options.signature) {
+            const existingComment = await this.findCommentBySignature(options.signature);
+            if (existingComment) {
+              await this.github.updateComment(
+                existingComment.id,
+                body
+              );
+              commentId = existingComment.id;
+              core2.info(`Updated existing comment #${commentId}`);
+            } else {
+              const result = await this.github.createComment(body);
+              commentId = result.id;
+              core2.info(`Created new comment #${commentId}`);
+            }
+          } else {
+            const result = await this.github.createComment(body);
+            commentId = result.id;
+            core2.info(`Created comment #${commentId}`);
+          }
+          if (options.threadId && !this.threadCache.has(options.threadId)) {
+            this.threadCache.set(options.threadId, commentId);
+          }
+          if (options.reactions && options.reactions.length > 0) {
+            for (const reaction of options.reactions) {
+              await this.addReaction(commentId, reaction);
+            }
+          }
+          return commentId;
+        } catch (error10) {
+          core2.error(`Failed to post comment: ${error10}`);
+          return null;
+        }
+      }
+      // postError() method removed - duplicate logic with CentralizedErrorHandler
+      // Use CentralizedErrorHandler.handleError() for error handling instead
+      // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
+      /**
+       * Post a progress update
+       */
+      async postProgress(message, options = {}) {
+        const commentId = await this.postComment(message, {
+          isProgress: true,
+          threadId: options.threadId,
+          reactions: options.reaction ? [options.reaction] : void 0
+        });
+        if (commentId && options.reaction) {
+          await this.addReaction(commentId, options.reaction);
+        }
+      }
+      /**
+       * Post a summary comment (typically at the end of processing)
+       */
+      async postSummary(summary) {
+        let message = `## ${summary.title}
+
+`;
+        const statusEmoji = {
+          success: "\u2705",
+          warning: "\u26A0\uFE0F",
+          error: "\u274C"
+        };
+        if (summary.status) {
+          message = `${statusEmoji[summary.status]} ${message}`;
+        }
+        for (const section of summary.sections) {
+          message += `### ${section.heading}
+
+`;
+          message += `${section.content}
+
+`;
+        }
+        if (this.errorCount > 0) {
+          message += `### \u26A0\uFE0F Errors Encountered
+
+`;
+          message += `Total errors: ${this.errorCount}
+
+`;
+          if (this.errorSummary.length > 0) {
+            message += `<details>
+<summary>Error Details</summary>
+
+`;
+            for (const error10 of this.errorSummary) {
+              message += `- **${error10.timestamp.toISOString()}**`;
+              if (error10.location) {
+                message += ` at \`${error10.location}\``;
+              }
+              message += `: ${error10.error}
+`;
+            }
+            message += `
+</details>
+`;
+          }
+        }
+        await this.postComment(message, {
+          signature: "yofix-summary",
+          updateExisting: true
+        });
+      }
+      /**
+       * Add a reaction to a comment
+       */
+      async addReaction(commentId, reaction) {
+        try {
+          await this.github.addReaction(
+            commentId,
+            reaction
+          );
+          core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
+        } catch (error10) {
+          core2.warning(`Failed to add reaction: ${error10}`);
+        }
+      }
+      /**
+       * Post a quick reaction to the triggering comment
+       */
+      async postReaction(reaction) {
+        try {
+          const triggeringCommentId = this.getTriggeringCommentId();
+          if (triggeringCommentId) {
+            await this.addReaction(triggeringCommentId, reaction);
+          }
+        } catch (error10) {
+          core2.warning(`Failed to post reaction: ${error10}`);
+        }
+      }
+      /**
+       * React to a specific comment
+       */
+      async reactToComment(commentId, reaction) {
+        try {
+          await this.addReaction(commentId, reaction);
+        } catch (error10) {
+          core2.warning(`Failed to react to comment: ${error10}`);
+        }
+      }
+      /**
+       * Start a new thread
+       */
+      async startThread(threadId, message, options) {
+        const commentId = await this.postComment(message, {
+          threadId,
+          reactions: options?.reactions
+        });
+        return commentId;
+      }
+      /**
+       * Update a thread
+       */
+      async updateThread(threadId, message, options) {
+        await this.postComment(message, {
+          threadId,
+          updateExisting: true,
+          signature: `yofix-thread-${threadId}`,
+          reactions: options?.reactions
+        });
+      }
+      /**
+       * Reply to a thread
+       */
+      async replyToThread(threadId, message, options) {
+        const threadCommentId = this.threadCache.get(threadId);
+        await this.postComment(message, {
+          threadId,
+          inReplyTo: threadCommentId,
+          reactions: options?.reactions
+        });
+      }
+      /**
+       * Get the ID of the comment that triggered this action
+       */
+      getTriggeringCommentId() {
+        const commentId = parseInt(
+          process.env.GITHUB_EVENT_PATH ? JSON.parse(require("fs").readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"))?.comment?.id || "0" : "0"
+        );
+        return commentId || null;
+      }
+      /**
+       * Find a comment by its signature
+       */
+      async findCommentBySignature(signature) {
+        try {
+          const comments = await this.github.listComments();
+          const signaturePattern = `<!-- ${signature} -->`;
+          const existingComment = comments.find(
+            (comment) => comment.body.includes(signaturePattern)
+          );
+          return existingComment || null;
+        } catch (error10) {
+          core2.warning(`Failed to find comment by signature: ${error10}`);
+          return null;
+        }
+      }
+      /**
+       * Delete all bot comments (useful for cleanup)
+       */
+      async deleteAllBotComments() {
+        try {
+          const comments = await this.github.listComments();
+          const botComments = comments.filter(
+            (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
+          );
+          core2.info(`Found ${botComments.length} bot comments`);
+        } catch (error10) {
+          core2.warning(`Failed to list comments: ${error10}`);
+        }
+      }
+      /**
+       * Get the current PR number
+       */
+      getPRNumber() {
+        return this.prNumber;
+      }
+      /**
+       * Check if we're in a valid PR context
+       */
+      isValidContext() {
+        return this.prNumber > 0;
+      }
+    };
+    globalInstance = null;
+  }
+});
+
+// src/core/error/CentralizedErrorHandler.ts
+var core3, ErrorSeverity, ErrorCategory, YoFixError, CentralizedErrorHandler, errorHandler;
+var init_CentralizedErrorHandler = __esm({
+  "src/core/error/CentralizedErrorHandler.ts"() {
+    core3 = __toESM(require_core());
+    init_GitHubServiceFactory();
+    ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity6) => {
+      ErrorSeverity6["LOW"] = "low";
+      ErrorSeverity6["MEDIUM"] = "medium";
+      ErrorSeverity6["HIGH"] = "high";
+      ErrorSeverity6["CRITICAL"] = "critical";
+      return ErrorSeverity6;
+    })(ErrorSeverity || {});
+    ErrorCategory = /* @__PURE__ */ ((ErrorCategory3) => {
+      ErrorCategory3["PACKAGE"] = "package";
+      ErrorCategory3["GITHUB"] = "github";
+      ErrorCategory3["CONFIGURATION"] = "configuration";
+      ErrorCategory3["ORCHESTRATION"] = "orchestration";
+      ErrorCategory3["MODULE"] = "module";
+      ErrorCategory3["NETWORK"] = "network";
+      ErrorCategory3["PROCESSING"] = "processing";
+      ErrorCategory3["FILE_SYSTEM"] = "file_system";
+      ErrorCategory3["VALIDATION"] = "validation";
+      ErrorCategory3["UNKNOWN"] = "unknown";
+      return ErrorCategory3;
+    })(ErrorCategory || {});
+    YoFixError = class extends Error {
+      constructor(message, options = {}) {
+        super(message);
+        this.name = "YoFixError";
+        this.severity = options.severity || "medium" /* MEDIUM */;
+        this.category = options.category || "unknown" /* UNKNOWN */;
+        this.recoverable = options.recoverable ?? false;
+        this.context = options;
+      }
+    };
+    CentralizedErrorHandler = class _CentralizedErrorHandler {
+      constructor() {
+        this.github = null;
+        this.errorBuffer = [];
+        this.isTestMode = process.env.NODE_ENV === "test";
+        this.prNumber = 0;
+        this.owner = "";
+        this.repo = "";
+        // Error statistics
+        this.errorStats = {
+          total: 0,
+          byCategory: {},
+          bySeverity: {},
+          recovered: 0
+        };
+        this.initializeErrorStats();
+        this.setupGlobalHandlers();
+        this.initializeGitHub();
+      }
+      initializeErrorStats() {
+        Object.values(ErrorCategory).forEach((category) => {
+          this.errorStats.byCategory[category] = 0;
+        });
+        Object.values(ErrorSeverity).forEach((severity) => {
+          this.errorStats.bySeverity[severity] = 0;
+        });
+      }
+      initializeGitHub() {
+        try {
+          this.github = GitHubServiceFactory.getService();
+          const context = this.github.getContext();
+          this.owner = context.owner;
+          this.repo = context.repo;
+          this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
+          core3.info("Centralized error handler initialized with GitHub integration");
+        } catch (error10) {
+          core3.warning("Failed to initialize GitHub service, errors will only be logged");
+          this.github = null;
+        }
+      }
+      static getInstance() {
+        if (!_CentralizedErrorHandler.instance) {
+          _CentralizedErrorHandler.instance = new _CentralizedErrorHandler();
+        }
+        return _CentralizedErrorHandler.instance;
+      }
+      /**
+       * Handle an error with centralized logic
+       */
+      async handleError(error10, options = {}) {
+        this.updateErrorStats(options);
+        const errorEntry = {
+          error: error10,
+          context: options,
+          timestamp: /* @__PURE__ */ new Date()
+        };
+        this.errorBuffer.push(errorEntry);
+        this.logError(error10, options);
+        if (!options.recoverable) {
+          if (error10 instanceof Error) {
+            throw error10;
+          } else {
+            throw new YoFixError(error10, options);
+          }
+        }
+      }
+      /**
+       * Log error to console/GitHub Actions
+       */
+      logError(error10, options) {
+        if (options.silent) return;
+        const errorMessage = error10 instanceof Error ? error10.message : error10;
+        const location = options.location ? `[${options.location}]` : "";
+        const logMessage = `${location} ${errorMessage}`.trim();
+        switch (options.severity) {
+          case "critical" /* CRITICAL */:
+            core3.error(logMessage);
+            if (!this.isTestMode) {
+              core3.setFailed(logMessage);
+            }
+            break;
+          case "high" /* HIGH */:
+            core3.error(logMessage);
+            break;
+          case "medium" /* MEDIUM */:
+            core3.warning(logMessage);
+            break;
+          case "low" /* LOW */:
+            core3.info(logMessage);
+            break;
+        }
+      }
+      // Individual error posting removed - only post summary at end
+      // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
+      /**
+       * Update error statistics
+       */
+      updateErrorStats(options) {
+        this.errorStats.total++;
+        const category = options.category || "unknown" /* UNKNOWN */;
+        const severity = options.severity || "medium" /* MEDIUM */;
+        this.errorStats.byCategory[category]++;
+        this.errorStats.bySeverity[severity]++;
+        if (options.recoverable) {
+          this.errorStats.recovered++;
+        }
+      }
+      /**
+       * Set up global error handlers
+       */
+      setupGlobalHandlers() {
+        if (this.isTestMode) {
+          return;
+        }
+        process.on("uncaughtException", async (error10) => {
+          core3.error(`Uncaught Exception: ${error10.message}`);
+          if (error10.stack) {
+            core3.debug(error10.stack);
+          }
+          const errorEntry = {
+            error: error10,
+            context: {
+              severity: "critical" /* CRITICAL */,
+              category: "unknown" /* UNKNOWN */,
+              location: "uncaught-exception"
+            },
+            timestamp: /* @__PURE__ */ new Date()
+          };
+          this.errorBuffer.push(errorEntry);
+          this.updateErrorStats(errorEntry.context);
+          await this.postErrorSummary().catch(() => {
+          });
+          process.exit(1);
+        });
+        process.on("unhandledRejection", async (reason, promise) => {
+          const errorMessage = reason instanceof Error ? reason.message : String(reason);
+          core3.error(`Unhandled Rejection: ${errorMessage}`);
+          const errorEntry = {
+            error: new Error(errorMessage),
+            context: {
+              severity: "critical" /* CRITICAL */,
+              category: "unknown" /* UNKNOWN */,
+              location: "unhandled-rejection"
+            },
+            timestamp: /* @__PURE__ */ new Date()
+          };
+          this.errorBuffer.push(errorEntry);
+          this.updateErrorStats(errorEntry.context);
+          await this.postErrorSummary().catch(() => {
+          });
+          process.exit(1);
+        });
+      }
+      /**
+       * Get error statistics
+       */
+      getErrorStats() {
+        return { ...this.errorStats };
+      }
+      /**
+       * Get error buffer
+       */
+      getErrorBuffer() {
+        return [...this.errorBuffer];
+      }
+      /**
+       * Clear error buffer
+       */
+      clearErrorBuffer() {
+        this.errorBuffer = [];
+      }
+      /**
+       * Post a summary of all errors
+       */
+      async postErrorSummary() {
+        if (!this.github || this.prNumber === 0) {
+          core3.debug("Skipping error summary: No GitHub service or PR number");
+          return;
+        }
+        if (this.errorBuffer.length === 0) {
+          core3.info("\u2705 No errors to report");
+          return;
+        }
+        const byLocation = {};
+        for (const entry of this.errorBuffer) {
+          const location = entry.context?.location || "unknown";
+          byLocation[location] = (byLocation[location] || 0) + 1;
+        }
+        let message = `## \u26A0\uFE0F Error Summary
+
+`;
+        message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? "s" : ""} occurred`;
+        if (this.errorStats.recovered > 0) {
+          message += ` (${this.errorStats.recovered} recovered)`;
+        }
+        message += `
+
+`;
+        const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
+        if (severityCounts.length > 1) {
+          message += `**By Severity**: `;
+          message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(" \u2022 ");
+          message += `
+
+`;
+        }
+        const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
+        if (locationCounts.length > 0) {
+          message += `**By Source**: `;
+          message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(" \u2022 ");
+          message += `
+
+`;
+        }
+        message += `<details>
+<summary><strong>Error Details</strong></summary>
+
+`;
+        const recentErrors = this.errorBuffer.slice(-5);
+        for (const entry of recentErrors) {
+          const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
+          const time = entry.timestamp.toLocaleTimeString();
+          const location = entry.context?.location ? `[${entry.context.location}]` : "";
+          message += `- **${time}** ${location} ${errorMessage}
+`;
+        }
+        if (this.errorBuffer.length > 5) {
+          message += `
+...and ${this.errorBuffer.length - 5} more
+`;
+        }
+        message += `
+</details>
+`;
+        try {
+          await this.github.createComment(message);
+        } catch (error10) {
+          core3.warning(`Failed to post error summary: ${error10}`);
+        }
+      }
+    };
+    errorHandler = CentralizedErrorHandler.getInstance();
+  }
+});
+
+// src/core/bot/BotActivityHandler.ts
+var core4, BotActivityHandler, botActivity;
+var init_BotActivityHandler = __esm({
+  "src/core/bot/BotActivityHandler.ts"() {
+    core4 = __toESM(require_core());
+    init_GitHubCommentEngine();
+    init_CentralizedErrorHandler();
+    BotActivityHandler = class {
+      constructor() {
+        this.activities = /* @__PURE__ */ new Map();
+        this.currentActivity = null;
+        this.commentEngine = getGitHubCommentEngine();
+      }
+      /**
+       * Start a new bot activity
+       */
+      async startActivity(id, command, initialMessage) {
+        const activity = {
+          id,
+          command,
+          status: "pending",
+          startTime: /* @__PURE__ */ new Date(),
+          steps: []
+        };
+        this.activities.set(id, activity);
+        this.currentActivity = activity;
+        const message = initialMessage || `\u{1F916} **Processing \`${command}\`**
+
+\u23F3 Initializing...`;
+        await this.commentEngine.startThread(id, message, {
+          reactions: ["eyes"]
+        });
+        activity.status = "running";
+      }
+      /**
+       * Add a step to current activity
+       */
+      async addStep(stepName, status = "pending", message) {
+        if (!this.currentActivity) {
+          core4.warning("No active bot activity");
+          return;
+        }
+        const step = {
+          name: stepName,
+          status,
+          message,
+          timestamp: /* @__PURE__ */ new Date()
+        };
+        this.currentActivity.steps.push(step);
+        await this.updateProgress();
+      }
+      /**
+       * Update step status
+       */
+      async updateStep(stepName, status, message) {
+        if (!this.currentActivity) return;
+        const step = this.currentActivity.steps.find((s) => s.name === stepName);
+        if (!step) {
+          core4.warning(`Step ${stepName} not found`);
+          return;
+        }
+        const previousStatus = step.status;
+        step.status = status;
+        if (message) step.message = message;
+        if (status === "completed" || status === "failed") {
+          step.duration = Date.now() - step.timestamp.getTime();
+        }
+        await this.updateProgress();
+      }
+      /**
+       * Complete current activity
+       */
+      async completeActivity(result, finalMessage) {
+        if (!this.currentActivity) return;
+        this.currentActivity.status = "completed";
+        this.currentActivity.endTime = /* @__PURE__ */ new Date();
+        this.currentActivity.result = result;
+        const duration = this.currentActivity.endTime.getTime() - this.currentActivity.startTime.getTime();
+        const durationStr = this.formatDuration(duration);
+        let message = `\u2705 **Completed \`${this.currentActivity.command}\`**
+
+`;
+        if (finalMessage) {
+          message += finalMessage + "\n\n";
+        }
+        message += this.generateStepsSummary();
+        message += `
+\u23F1\uFE0F Total time: ${durationStr}`;
+        await this.commentEngine.updateThread(this.currentActivity.id, message, {
+          reactions: ["+1", "rocket"]
+        });
+        this.currentActivity = null;
+      }
+      /**
+       * Fail current activity
+       */
+      async failActivity(error10, context) {
+        if (!this.currentActivity) return;
+        this.currentActivity.status = "failed";
+        this.currentActivity.endTime = /* @__PURE__ */ new Date();
+        this.currentActivity.error = error10 instanceof Error ? error10 : new Error(error10);
+        await errorHandler.handleError(this.currentActivity.error, {
+          category: "unknown" /* UNKNOWN */,
+          severity: "high" /* HIGH */,
+          userAction: `Bot command: ${this.currentActivity.command}`,
+          metadata: context,
+          skipGitHubPost: true
+          // We'll post our own formatted message
+        });
+        let message = `\u274C **Failed \`${this.currentActivity.command}\`**
+
+`;
+        message += `**Error**: ${this.currentActivity.error.message}
+
+`;
+        message += this.generateStepsSummary();
+        const tips = this.getBotCommandTips(this.currentActivity.command, this.currentActivity.error.message);
+        if (tips.length > 0) {
+          message += "\n### \u{1F4A1} Suggestions:\n";
+          message += tips.map((tip) => `- ${tip}`).join("\n");
+        }
+        await this.commentEngine.updateThread(this.currentActivity.id, message, {
+          reactions: ["confused", "-1"]
+        });
+        this.currentActivity = null;
+      }
+      /**
+       * Post a simple bot response (for quick commands)
+       */
+      async postBotResponse(message, options) {
+        const formattedMessage = options?.success !== false ? `\u2705 ${message}` : `\u274C ${message}`;
+        if (options?.threadId) {
+          await this.commentEngine.replyToThread(options.threadId, formattedMessage, {
+            reactions: options.reactions
+          });
+        } else {
+          await this.commentEngine.postComment(formattedMessage, {
+            reactions: options.reactions
+          });
+        }
+      }
+      /**
+       * Post help message
+       */
+      async postHelpMessage(commands) {
+        let message = "## \u{1F527} YoFix Bot Commands\n\n";
+        for (const cmd of commands) {
+          message += `### \`${cmd.command}\`
+`;
+          message += `${cmd.description}
+`;
+          if (cmd.examples && cmd.examples.length > 0) {
+            message += "\n**Examples:**\n";
+            message += cmd.examples.map((ex) => `- \`${ex}\``).join("\n");
+            message += "\n";
+          }
+          message += "\n";
+        }
+        message += "---\n";
+        message += "\u{1F4A1} **Tips:**\n";
+        message += "- All commands start with `@yofix`\n";
+        message += "- Use `--help` with any command for more info\n";
+        message += "- Commands can be chained with `&&`\n";
+        await this.commentEngine.postComment(message, {
+          reactions: ["heart"]
+        });
+      }
+      /**
+       * Track an activity with automatic handling
+       */
+      async trackActivity(operation, handler) {
+        const activityId = `activity-${Date.now()}`;
+        try {
+          await this.startActivity(activityId, operation);
+          const result = await handler();
+          await this.completeActivity(result);
+          return result;
+        } catch (error10) {
+          await this.failActivity(error10);
+          throw error10;
+        }
+      }
+      /**
+       * Handle unknown command
+       */
+      async handleUnknownCommand(command, suggestions) {
+        let message = `\u2753 **Unknown command: \`${command}\`**
+
+`;
+        if (suggestions && suggestions.length > 0) {
+          message += "Did you mean:\n";
+          message += suggestions.map((s) => `- \`@yofix ${s}\``).join("\n");
+          message += "\n\n";
+        }
+        message += "Use `@yofix help` to see available commands.";
+        await this.commentEngine.postComment(message, {
+          reactions: ["confused"]
+        });
+      }
+      // Private methods
+      async updateProgress() {
+        if (!this.currentActivity) return;
+        const message = this.generateProgressMessage();
+        await this.commentEngine.updateThread(this.currentActivity.id, message);
+      }
+      generateProgressMessage() {
+        if (!this.currentActivity) return "";
+        let message = `\u{1F504} **Processing \`${this.currentActivity.command}\`**
+
+`;
+        for (const step of this.currentActivity.steps) {
+          const icon = this.getStepIcon(step.status);
+          const duration = step.duration ? ` (${this.formatDuration(step.duration)})` : "";
+          message += `${icon} ${step.name}${duration}
+`;
+          if (step.message) {
+            message += `   ${step.message}
+`;
+          }
+        }
+        const elapsed = Date.now() - this.currentActivity.startTime.getTime();
+        message += `
+\u23F1\uFE0F Elapsed: ${this.formatDuration(elapsed)}`;
+        return message;
+      }
+      generateStepsSummary() {
+        if (!this.currentActivity) return "";
+        let summary = "### Steps Summary\n";
+        const completed = this.currentActivity.steps.filter((s) => s.status === "completed").length;
+        const failed = this.currentActivity.steps.filter((s) => s.status === "failed").length;
+        const skipped = this.currentActivity.steps.filter((s) => s.status === "skipped").length;
+        const total = this.currentActivity.steps.length;
+        summary += `- \u2705 Completed: ${completed}/${total}
+`;
+        if (failed > 0) summary += `- \u274C Failed: ${failed}
+`;
+        if (skipped > 0) summary += `- \u23ED\uFE0F Skipped: ${skipped}
+`;
+        return summary + "\n";
+      }
+      getStepIcon(status) {
+        switch (status) {
+          case "pending":
+            return "\u23F3";
+          case "running":
+            return "\u{1F504}";
+          case "completed":
+            return "\u2705";
+          case "failed":
+            return "\u274C";
+          case "skipped":
+            return "\u23ED\uFE0F";
+          default:
+            return "\u2753";
+        }
+      }
+      formatDuration(ms) {
+        if (ms < 1e3) return `${ms}ms`;
+        if (ms < 6e4) return `${(ms / 1e3).toFixed(1)}s`;
+        const minutes = Math.floor(ms / 6e4);
+        const seconds = Math.floor(ms % 6e4 / 1e3);
+        return `${minutes}m ${seconds}s`;
+      }
+      getBotCommandTips(command, error10) {
+        const tips = [];
+        if (command.includes("scan")) {
+          tips.push("Ensure the preview URL is accessible");
+          tips.push("Check if authentication is required");
+          tips.push("Try specifying a specific route: `@yofix scan /dashboard`");
+        }
+        if (command.includes("fix")) {
+          tips.push("Run `@yofix scan` first to detect issues");
+          tips.push("Specify an issue number: `@yofix fix #3`");
+        }
+        if (command.includes("test")) {
+          tips.push("Ensure test credentials are configured");
+          tips.push("Check the login URL is correct");
+          tips.push("Try a different auth mode");
+        }
+        if (error10.includes("timeout")) {
+          tips.push("The operation took too long - try again");
+          tips.push("Check if the site is responding slowly");
+        }
+        if (error10.includes("not found")) {
+          tips.push("Check the spelling of your command");
+          tips.push("Use `@yofix help` to see available options");
+        }
+        return tips;
+      }
+    };
+    botActivity = new BotActivityHandler();
+  }
+});
+
+// src/core/error/ErrorHandlerFactory.ts
+function createModuleLogger(options) {
+  const { module: module2, debug: debug9 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
+  return {
+    debug: (message, ...args) => {
+      if (debug9 || core5.isDebug()) {
+        core5.debug(`[${module2}] ${message}`);
+        if (args.length > 0) {
+          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+        }
+      }
+    },
+    info: (message, ...args) => {
+      core5.info(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug9 || core5.isDebug())) {
+        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      }
+    },
+    warn: (message, ...args) => {
+      core5.warning(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug9 || core5.isDebug())) {
+        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      }
+    },
+    error: async (error10, context) => {
+      const errorObj = error10 instanceof Error ? error10 : new Error(error10);
+      await errorHandler.handleError(errorObj, {
+        severity: context?.severity || defaultSeverity,
+        category: context?.category || defaultCategory,
+        userAction: context?.userAction || `${module2} operation`,
+        metadata: {
+          module: module2,
+          ...context?.metadata
+        },
+        recoverable: context?.recoverable !== false,
+        skipGitHubPost: context?.skipGitHubPost !== void 0 ? context.skipGitHubPost : skipGitHubPost
+      });
+    }
+  };
+}
+var core5;
+var init_ErrorHandlerFactory = __esm({
+  "src/core/error/ErrorHandlerFactory.ts"() {
+    init_core();
+    core5 = __toESM(require_core());
+  }
+});
+
+// src/core/patterns/ConsistencyPatterns.ts
+async function executeOperation(operation, context) {
+  const startTime = Date.now();
+  try {
+    const data = await operation();
+    return {
+      success: true,
+      data,
+      metadata: {
+        duration: Date.now() - startTime,
+        ...context.metadata
+      }
+    };
+  } catch (error10) {
+    await errorHandler.handleError(error10, {
+      severity: context.severity || "medium" /* MEDIUM */,
+      category: context.category || "unknown" /* UNKNOWN */,
+      userAction: context.name,
+      metadata: {
+        ...context.metadata,
+        duration: Date.now() - startTime
+      },
+      recoverable: true
+    });
+    return {
+      success: false,
+      error: error10 instanceof Error ? error10.message : "Unknown error",
+      data: context.fallback,
+      metadata: {
+        duration: Date.now() - startTime,
+        ...context.metadata
+      }
+    };
+  }
+}
+async function retryOperation(operation, options = {}) {
+  const maxAttempts = options.maxAttempts || 3;
+  const delay2 = options.delay || 1e3;
+  const backoff = options.backoff || 2;
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error10) {
+      lastError = error10;
+      if (attempt < maxAttempts) {
+        if (options.onRetry) {
+          options.onRetry(attempt, lastError);
+        }
+        const waitTime = delay2 * Math.pow(backoff, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+  throw lastError;
+}
+var core6, GitHubOperations;
+var init_ConsistencyPatterns = __esm({
+  "src/core/patterns/ConsistencyPatterns.ts"() {
+    init_CentralizedErrorHandler();
+    init_GitHubServiceFactory();
+    init_BotActivityHandler();
+    core6 = __toESM(require_core());
+    GitHubOperations = class {
+      static {
+        this.github = null;
+      }
+      static {
+        this.context = null;
+      }
+      static ensureInitialized() {
+        if (!this.github) {
+          this.github = GitHubServiceFactory.getService();
+          this.context = this.github.getContext();
+        }
+      }
+      static async postProgress(message, threadId) {
+        this.ensureInitialized();
+        if (!this.context?.prNumber) {
+          core6.warning("No PR context available, skipping progress comment");
+          return;
+        }
+        const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
+        const body = `\u23F3 ${message}
+
+<!-- ${signature} -->`;
+        try {
+          const comments = await this.github.listComments();
+          const existingComment = comments.find(
+            (comment) => comment.body.includes(`<!-- ${signature} -->`)
+          );
+          if (existingComment) {
+            await this.github.updateComment(
+              existingComment.id,
+              body
+            );
+          } else {
+            await this.github.createComment(
+              body
+            );
+          }
+        } catch (error10) {
+          core6.warning(`Failed to post progress comment: ${error10}`);
+        }
+      }
+      static async postResult(result, operation) {
+        this.ensureInitialized();
+        if (!this.context?.prNumber) {
+          core6.warning("No PR context available, skipping result comment");
+          return;
+        }
+        const emoji = result.success ? "\u2705" : "\u274C";
+        const status = result.success ? "Success" : "Failed";
+        let message = `${emoji} **${operation}**: ${status}`;
+        if (result.error) {
+          message += `
+
+**Error**: ${result.error}`;
+        }
+        if (result.data && typeof result.data === "object") {
+          message += "\n\n**Details**:\n```json\n" + JSON.stringify(result.data, null, 2) + "\n```";
+        }
+        if (result.metadata && Object.keys(result.metadata).length > 0) {
+          message += "\n\n**Metadata**:\n";
+          for (const [key, value] of Object.entries(result.metadata)) {
+            message += `- ${key}: ${value}
+`;
+          }
+        }
+        const signature = `yofix-result-${operation.toLowerCase().replace(/\s+/g, "-")}`;
+        message += `
+
+<!-- ${signature} -->`;
+        try {
+          await this.github.createComment(
+            message
+          );
+        } catch (error10) {
+          core6.warning(`Failed to post result comment: ${error10}`);
+        }
+      }
+      static async addReaction(reaction) {
+        this.ensureInitialized();
+        if (!this.context?.prNumber) {
+          return;
+        }
+        try {
+          const triggeringCommentId = this.getTriggeringCommentId();
+          if (triggeringCommentId) {
+            await this.github.addReaction(
+              triggeringCommentId,
+              reaction
+            );
+          }
+        } catch (error10) {
+          core6.debug(`Failed to add reaction: ${error10}`);
+        }
+      }
+      static getTriggeringCommentId() {
+        try {
+          const eventPath = process.env.GITHUB_EVENT_PATH;
+          if (!eventPath) return null;
+          const event = JSON.parse(require("fs").readFileSync(eventPath, "utf8"));
+          return event?.comment?.id || null;
+        } catch {
+          return null;
+        }
+      }
+    };
+  }
+});
+
+// src/core/patterns/CircuitBreaker.ts
+var CircuitBreaker, CircuitBreakerError, CircuitBreakerFactory;
+var init_CircuitBreaker = __esm({
+  "src/core/patterns/CircuitBreaker.ts"() {
+    init_core();
+    init_ErrorHandlerFactory();
+    CircuitBreaker = class {
+      constructor(config2) {
+        this.config = config2;
+        this.state = "CLOSED" /* CLOSED */;
+        this.failures = 0;
+        this.successes = 0;
+        this.totalRequests = 0;
+        this.totalFailures = 0;
+        this.halfOpenRequests = 0;
+        this.halfOpenSuccesses = 0;
+        this.logger = createModuleLogger({
+          module: `CircuitBreaker.${this.config.serviceName}`,
+          defaultCategory: "network" /* NETWORK */
+        });
+        this.failureThreshold = config2.failureThreshold ?? 5;
+        this.resetTimeout = config2.resetTimeout ?? 6e4;
+        this.timeout = config2.timeout ?? 3e4;
+        this.successThreshold = config2.successThreshold ?? 0.5;
+        this.volumeThreshold = config2.volumeThreshold ?? 5;
+      }
+      /**
+       * Execute a function with circuit breaker protection
+       */
+      async execute(operation) {
+        this.totalRequests++;
+        if (this.state === "OPEN" /* OPEN */) {
+          if (Date.now() < this.nextAttempt) {
+            return this.handleOpen();
+          }
+          this.state = "HALF_OPEN" /* HALF_OPEN */;
+          this.halfOpenRequests = 0;
+          this.halfOpenSuccesses = 0;
+          this.logger.info(`Circuit moved to HALF_OPEN state for ${this.config.serviceName}`);
+        }
+        try {
+          const result = await this.executeWithTimeout(operation);
+          this.onSuccess();
+          return result;
+        } catch (error10) {
+          return this.onFailure(error10);
+        }
+      }
+      /**
+       * Execute operation with timeout
+       */
+      async executeWithTimeout(operation) {
+        return new Promise(async (resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error(`Operation timed out after ${this.timeout}ms`));
+          }, this.timeout);
+          try {
+            const result = await operation();
+            clearTimeout(timeoutId);
+            resolve(result);
+          } catch (error10) {
+            clearTimeout(timeoutId);
+            reject(error10);
+          }
+        });
+      }
+      /**
+       * Handle successful operation
+       */
+      onSuccess() {
+        this.failures = 0;
+        this.successes++;
+        this.lastSuccessTime = Date.now();
+        if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
+          this.halfOpenRequests++;
+          this.halfOpenSuccesses++;
+          if (this.halfOpenRequests >= this.volumeThreshold) {
+            const successRate = this.halfOpenSuccesses / this.halfOpenRequests;
+            if (successRate >= this.successThreshold) {
+              this.state = "CLOSED" /* CLOSED */;
+              this.logger.info(`Circuit CLOSED for ${this.config.serviceName} (success rate: ${(successRate * 100).toFixed(1)}%)`);
+            } else {
+              this.open();
+            }
+          }
+        }
+      }
+      /**
+       * Handle failed operation
+       */
+      onFailure(error10) {
+        this.failures++;
+        this.totalFailures++;
+        this.lastFailureTime = Date.now();
+        const shouldTrigger = this.config.isFailure ? this.config.isFailure(error10) : true;
+        if (!shouldTrigger) {
+          throw error10;
+        }
+        errorHandler.handleError(error10, {
+          severity: "medium" /* MEDIUM */,
+          category: "network" /* NETWORK */,
+          userAction: `${this.config.serviceName} operation`,
+          metadata: {
+            circuitState: this.state,
+            failures: this.failures,
+            totalFailures: this.totalFailures
+          },
+          skipGitHubPost: true
+        });
+        if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
+          this.halfOpenRequests++;
+          this.open();
+        } else if (this.state === "CLOSED" /* CLOSED */ && this.failures >= this.failureThreshold) {
+          this.open();
+        }
+        if (this.config.fallback) {
+          this.logger.info(`Using fallback for ${this.config.serviceName}`);
+          return this.config.fallback();
+        }
+        throw error10;
+      }
+      /**
+       * Open the circuit
+       */
+      open() {
+        this.state = "OPEN" /* OPEN */;
+        this.nextAttempt = Date.now() + this.resetTimeout;
+        this.logger.warn(`Circuit OPEN for ${this.config.serviceName} after ${this.failures} failures`);
+        if (this.failures >= this.failureThreshold * 2) {
+          errorHandler.handleError(
+            new Error(`Circuit breaker opened for ${this.config.serviceName}`),
+            {
+              severity: "high" /* HIGH */,
+              category: "network" /* NETWORK */,
+              userAction: "Circuit breaker activation",
+              metadata: this.getStats()
+            }
+          );
+        }
+      }
+      /**
+       * Handle open circuit
+       */
+      handleOpen() {
+        const error10 = new CircuitBreakerError(
+          `Circuit breaker is OPEN for ${this.config.serviceName}`,
+          this.config.serviceName,
+          this.state
+        );
+        if (this.config.fallback) {
+          this.logger.debug(`Circuit open, using fallback for ${this.config.serviceName}`);
+          return this.config.fallback();
+        }
+        throw error10;
+      }
+      /**
+       * Get circuit breaker statistics
+       */
+      getStats() {
+        const successRate = this.totalRequests > 0 ? (this.totalRequests - this.totalFailures) / this.totalRequests : 0;
+        return {
+          state: this.state,
+          failures: this.failures,
+          successes: this.successes,
+          lastFailureTime: this.lastFailureTime,
+          lastSuccessTime: this.lastSuccessTime,
+          totalRequests: this.totalRequests,
+          totalFailures: this.totalFailures,
+          consecutiveFailures: this.failures,
+          successRate
+        };
+      }
+      /**
+       * Reset the circuit breaker
+       */
+      reset() {
+        this.state = "CLOSED" /* CLOSED */;
+        this.failures = 0;
+        this.successes = 0;
+        this.halfOpenRequests = 0;
+        this.halfOpenSuccesses = 0;
+        this.nextAttempt = void 0;
+        this.logger.info(`Circuit reset for ${this.config.serviceName}`);
+      }
+      /**
+       * Force the circuit to open
+       */
+      forceOpen() {
+        this.open();
+      }
+      /**
+       * Force the circuit to close
+       */
+      forceClose() {
+        this.state = "CLOSED" /* CLOSED */;
+        this.failures = 0;
+        this.logger.info(`Circuit force closed for ${this.config.serviceName}`);
+      }
+    };
+    CircuitBreakerError = class extends Error {
+      constructor(message, serviceName, state) {
+        super(message);
+        this.serviceName = serviceName;
+        this.state = state;
+        this.name = "CircuitBreakerError";
+      }
+    };
+    CircuitBreakerFactory = class {
+      static {
+        this.breakers = /* @__PURE__ */ new Map();
+      }
+      /**
+       * Get or create a circuit breaker
+       */
+      static getBreaker(config2) {
+        const existing = this.breakers.get(config2.serviceName);
+        if (existing) {
+          return existing;
+        }
+        const breaker = new CircuitBreaker(config2);
+        this.breakers.set(config2.serviceName, breaker);
+        return breaker;
+      }
+      /**
+       * Get all circuit breakers
+       */
+      static getAllBreakers() {
+        return new Map(this.breakers);
+      }
+      /**
+       * Reset all circuit breakers
+       */
+      static resetAll() {
+        for (const breaker of this.breakers.values()) {
+          breaker.reset();
+        }
+      }
+      /**
+       * Get statistics for all breakers
+       */
+      static getAllStats() {
+        const stats = {};
+        for (const [name, breaker] of this.breakers) {
+          stats[name] = breaker.getStats();
+        }
+        return stats;
+      }
+    };
+  }
+});
+
+// src/core/config/ConfigurationManager.ts
+function getRequiredConfig(key) {
+  return config.get(key, { required: true });
+}
+function getBooleanConfig(key, defaultValue = false) {
+  return config.getBoolean(key, defaultValue);
+}
+var ConfigurationManager, config;
+var init_ConfigurationManager = __esm({
+  "src/core/config/ConfigurationManager.ts"() {
+    init_CentralizedErrorHandler();
+    init_ErrorHandlerFactory();
+    ConfigurationManager = class _ConfigurationManager {
+      constructor() {
+        this.cache = /* @__PURE__ */ new Map();
+        this.validators = /* @__PURE__ */ new Map();
+        this.logger = createModuleLogger({
+          module: "ConfigurationManager",
+          defaultCategory: "configuration" /* CONFIGURATION */
+        });
+        this.setupDefaultValidators();
+      }
+      static getInstance() {
+        if (!_ConfigurationManager.instance) {
+          _ConfigurationManager.instance = new _ConfigurationManager();
+        }
+        return _ConfigurationManager.instance;
+      }
+      /**
+       * Get configuration value with fallback chain
+       */
+      get(key, options = {}) {
+        const cacheKey = this.getCacheKey(key, options);
+        if (this.cache.has(cacheKey) && !options.sensitive) {
+          return this.cache.get(cacheKey);
+        }
+        let value;
+        const envKey = this.toEnvKey(key);
+        value = process.env[envKey];
+        if (value) {
+          this.logger.debug(`Found ${key} in environment`);
+        }
+        if (!value && options.defaultValue !== void 0) {
+          value = options.defaultValue;
+          this.logger.debug(`Using default value for ${key}`);
+        }
+        if (!value && options.required) {
+          const error10 = new Error(`Required configuration '${key}' is not set`);
+          errorHandler.handleError(error10, {
+            severity: "high" /* HIGH */,
+            category: "configuration" /* CONFIGURATION */,
+            userAction: `Set configuration value for ${key}`,
+            metadata: { key, options }
+          });
+          throw error10;
+        }
+        if (value && options.validate && !options.validate(value)) {
+          const error10 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
+          errorHandler.handleError(error10, {
+            severity: "high" /* HIGH */,
+            category: "configuration" /* CONFIGURATION */,
+            metadata: { key }
+          });
+          throw error10;
+        }
+        if (value && this.validators.has(key)) {
+          const rules = this.validators.get(key);
+          for (const rule of rules) {
+            if (!rule.test(value)) {
+              throw new Error(`Configuration '${key}' validation failed: ${rule.message}`);
+            }
+          }
+        }
+        if (value && options.transform) {
+          try {
+            value = options.transform(value);
+          } catch (error10) {
+            this.logger.error(`Failed to transform ${key}: ${error10}`);
+            throw error10;
+          }
+        }
+        if (value && !options.sensitive) {
+          this.cache.set(cacheKey, value);
+        }
+        return value || "";
+      }
+      /**
+       * Get boolean configuration value
+       */
+      getBoolean(key, defaultValue = false) {
+        const value = this.get(key, {
+          defaultValue: defaultValue.toString(),
+          transform: (v) => v.toLowerCase() === "true" || v === "1"
+        });
+        return typeof value === "boolean" ? value : value === "true";
+      }
+      /**
+       * Get number configuration value
+       */
+      getNumber(key, defaultValue) {
+        const value = this.get(key, {
+          defaultValue: defaultValue?.toString(),
+          validate: (v) => !isNaN(Number(v)),
+          transform: (v) => Number(v)
+        });
+        return Number(value);
+      }
+      /**
+       * Get JSON configuration value
+       */
+      getJSON(key, defaultValue) {
+        const value = this.get(key, {
+          defaultValue: defaultValue ? JSON.stringify(defaultValue) : void 0,
+          transform: (v) => {
+            try {
+              return JSON.parse(v);
+            } catch (error10) {
+              throw new Error(`Invalid JSON in ${key}: ${error10}`);
+            }
+          }
+        });
+        return value;
+      }
+      /**
+       * Get array configuration value (comma-separated)
+       */
+      getArray(key, defaultValue = []) {
+        const value = this.get(key, {
+          defaultValue: defaultValue.join(","),
+          transform: (v) => v.split(",").map((s) => s.trim()).filter(Boolean)
+        });
+        return Array.isArray(value) ? value : [];
+      }
+      /**
+       * Get sensitive configuration (no caching, no logging)
+       */
+      getSecret(key) {
+        return this.get(key, {
+          required: true,
+          sensitive: true
+        });
+      }
+      /**
+       * Set configuration value (for testing)
+       */
+      set(key, value) {
+        const envKey = this.toEnvKey(key);
+        process.env[envKey] = String(value);
+        this.cache.delete(key);
+      }
+      /**
+       * Clear cache
+       */
+      clearCache() {
+        this.cache.clear();
+      }
+      /**
+       * Register custom validator
+       */
+      addValidator(key, rule) {
+        if (!this.validators.has(key)) {
+          this.validators.set(key, []);
+        }
+        this.validators.get(key).push(rule);
+      }
+      /**
+       * Get all configuration keys
+       */
+      getAllKeys() {
+        const keys = /* @__PURE__ */ new Set();
+        Object.keys(process.env).forEach((key) => {
+          if (key.startsWith("INPUT_") || key.startsWith("YOFIX_")) {
+            keys.add(this.fromEnvKey(key));
+          }
+        });
+        return Array.from(keys);
+      }
+      /**
+       * Convert to GitHub input key format
+       */
+      toInputKey(key) {
+        return key.toLowerCase().replace(/_/g, "-");
+      }
+      /**
+       * Convert to environment variable key format
+       */
+      toEnvKey(key) {
+        return `INPUT_${key.toUpperCase().replace(/-/g, "_")}`;
+      }
+      /**
+       * Convert from environment variable key
+       */
+      fromEnvKey(envKey) {
+        return envKey.replace(/^INPUT_/, "").toLowerCase().replace(/_/g, "-");
+      }
+      /**
+       * Get cache key
+       */
+      getCacheKey(key, options) {
+        return `${key}:${JSON.stringify(options)}`;
+      }
+      /**
+       * Setup default validators
+       */
+      setupDefaultValidators() {
+        this.addValidator("preview-url", {
+          test: (value) => {
+            try {
+              new URL(value);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          message: "Must be a valid URL"
+        });
+        this.addValidator("test-timeout", {
+          test: (value) => {
+            const match = value.match(/^(\d+)(s|m|ms)?$/);
+            return !!match;
+          },
+          message: "Must be a valid timeout (e.g., 30s, 5m, 1000ms)"
+        });
+        this.addValidator("storage-provider", {
+          test: (value) => ["firebase", "s3", "github"].includes(value),
+          message: "Must be one of: firebase, s3, github"
+        });
+        this.addValidator("auth-mode", {
+          test: (value) => ["selectors", "ai", "llm", "smart", "none", "baseline"].includes(value),
+          message: "Must be one of: selectors, ai, llm, smart, none, baseline"
+        });
+      }
+    };
+    config = ConfigurationManager.getInstance();
+  }
+});
+
+// src/core/utils/JSONParser.ts
+var logger;
+var init_JSONParser = __esm({
+  "src/core/utils/JSONParser.ts"() {
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    logger = createModuleLogger({
+      module: "JSONParser",
+      defaultCategory: "processing" /* PROCESSING */
+    });
+  }
+});
+
+// src/core/utils/FileSystemWrapper.ts
+var fs3, fsSync, path3, logger2, FileSystem, exists, read, write, deleteFile, ensureDirectory, listDirectory, copy, move, getStats, watch2, createTempFile, cleanupOldFiles;
+var init_FileSystemWrapper = __esm({
+  "src/core/utils/FileSystemWrapper.ts"() {
+    fs3 = __toESM(require("fs/promises"));
+    fsSync = __toESM(require("fs"));
+    path3 = __toESM(require("path"));
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    init_ConsistencyPatterns();
+    logger2 = createModuleLogger({
+      module: "FileSystem",
+      defaultCategory: "file_system" /* FILE_SYSTEM */
+    });
+    FileSystem = class {
+      /**
+       * Check if file exists
+       */
+      static async exists(filePath) {
+        const result = await executeOperation(
+          async () => {
+            try {
+              await fs3.access(filePath, fsSync.constants.F_OK);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          {
+            name: `Check file exists: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Read file with error handling
+       */
+      static async read(filePath, options = {}) {
+        const result = await executeOperation(
+          async () => {
+            if (options.maxSize) {
+              const stats = await fs3.stat(filePath);
+              if (stats.size > options.maxSize) {
+                throw new Error(`File size ${stats.size} exceeds maximum ${options.maxSize}`);
+              }
+            }
+            const content = await fs3.readFile(filePath, {
+              encoding: options.encoding || "utf-8",
+              flag: options.flag
+            });
+            if (options.json) {
+              try {
+                return JSON.parse(content.toString());
+              } catch (error10) {
+                throw new Error(`Failed to parse JSON from ${filePath}: ${error10}`);
+              }
+            }
+            return content.toString();
+          },
+          {
+            name: `Read file: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "medium" /* MEDIUM */,
+            metadata: { filePath, options },
+            fallback: null
+          }
+        );
+        return result.data;
+      }
+      /**
+       * Write file with error handling
+       */
+      static async write(filePath, content, options = {}) {
+        const result = await executeOperation(
+          async () => {
+            if (options.createDirectories) {
+              await this.ensureDirectory(path3.dirname(filePath));
+            }
+            let data;
+            if (typeof content === "object" && !Buffer.isBuffer(content)) {
+              data = JSON.stringify(content, null, 2);
+            } else {
+              data = content;
+            }
+            if (options.backup && await this.exists(filePath)) {
+              const backupPath = `${filePath}.backup`;
+              await fs3.copyFile(filePath, backupPath);
+              logger2.debug(`Created backup: ${backupPath}`);
+            }
+            if (options.atomic) {
+              const tempPath = `${filePath}.tmp`;
+              await fs3.writeFile(tempPath, data, {
+                encoding: options.encoding || "utf-8",
+                mode: options.mode,
+                flag: options.flag || "w"
+              });
+              await fs3.rename(tempPath, filePath);
+            } else {
+              await fs3.writeFile(filePath, data, {
+                encoding: options.encoding || "utf-8",
+                mode: options.mode,
+                flag: options.flag || "w"
+              });
+            }
+            return true;
+          },
+          {
+            name: `Write file: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "medium" /* MEDIUM */,
+            metadata: { filePath, options },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Delete file or directory with error handling
+       */
+      static async delete(filePath) {
+        const result = await executeOperation(
+          async () => {
+            try {
+              const stats = await fs3.stat(filePath);
+              if (stats.isDirectory()) {
+                await fs3.rm(filePath, { recursive: true, force: true });
+              } else {
+                await fs3.unlink(filePath);
+              }
+              return true;
+            } catch (error10) {
+              if (error10.code === "ENOENT") {
+                return true;
+              }
+              throw error10;
+            }
+          },
+          {
+            name: `Delete: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { filePath },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Create directory with parents
+       */
+      static async ensureDirectory(dirPath) {
+        const result = await executeOperation(
+          async () => {
+            await fs3.mkdir(dirPath, { recursive: true });
+            return true;
+          },
+          {
+            name: `Create directory: ${path3.basename(dirPath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { dirPath },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * List directory contents
+       */
+      static async listDirectory(dirPath, options = {}) {
+        const result = await executeOperation(
+          async () => {
+            const entries = await fs3.readdir(dirPath, { withFileTypes: true });
+            const files = [];
+            for (const entry of entries) {
+              const fullPath = path3.join(dirPath, entry.name);
+              if (!options.includeHidden && entry.name.startsWith(".")) {
+                continue;
+              }
+              if (options.filter && !options.filter(entry.name)) {
+                continue;
+              }
+              if (entry.isDirectory() && options.recursive) {
+                const subFiles = await this.listDirectory(fullPath, options);
+                files.push(...subFiles);
+              } else if (entry.isFile()) {
+                files.push(fullPath);
+              }
+            }
+            return files;
+          },
+          {
+            name: `List directory: ${path3.basename(dirPath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { dirPath, options },
+            fallback: []
+          }
+        );
+        return result.data ?? [];
+      }
+      /**
+       * Copy file with retry
+       */
+      static async copy(source, destination, options = {}) {
+        return await retryOperation(
+          async () => {
+            if (!options.overwrite && await this.exists(destination)) {
+              throw new Error(`Destination file already exists: ${destination}`);
+            }
+            await this.ensureDirectory(path3.dirname(destination));
+            await fs3.copyFile(source, destination);
+            return true;
+          },
+          {
+            maxAttempts: 3,
+            delay: 1e3,
+            backoff: 2,
+            onRetry: (attempt, error10) => {
+              logger2.debug(`Copy retry ${attempt}: ${error10.message}`);
+            }
+          }
+        );
+      }
+      /**
+       * Move file (with cross-device support)
+       */
+      static async move(source, destination) {
+        const result = await executeOperation(
+          async () => {
+            try {
+              await fs3.rename(source, destination);
+            } catch (error10) {
+              if (error10.code === "EXDEV") {
+                await this.copy(source, destination);
+                await this.delete(source);
+              } else {
+                throw error10;
+              }
+            }
+            return true;
+          },
+          {
+            name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "medium" /* MEDIUM */,
+            metadata: { source, destination },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Get file stats
+       */
+      static async getStats(filePath) {
+        const result = await executeOperation(
+          async () => await fs3.stat(filePath),
+          {
+            name: `Get file stats: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { filePath },
+            fallback: null
+          }
+        );
+        return result.data;
+      }
+      /**
+       * Watch file for changes
+       */
+      static async watch(filePath, callback) {
+        try {
+          return fsSync.watch(filePath, (event, filename) => {
+            logger2.debug(`File ${event}: ${filename}`);
+            callback(event, filename);
+          });
+        } catch (error10) {
+          logger2.error(`Failed to watch file ${filePath}: ${error10}`);
+          return null;
+        }
+      }
+      /**
+       * Create temporary file
+       */
+      static async createTempFile(prefix = "yofix", extension = ".tmp") {
+        const tempDir = process.env.TMPDIR || "/tmp";
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 8);
+        const tempPath = path3.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
+        await this.write(tempPath, "", { createDirectories: true });
+        return tempPath;
+      }
+      /**
+       * Clean up old files
+       */
+      static async cleanupOldFiles(directory, maxAgeMs, pattern) {
+        let deletedCount = 0;
+        const now = Date.now();
+        try {
+          const files = await this.listDirectory(directory);
+          for (const file of files) {
+            if (pattern && !pattern.test(path3.basename(file))) {
+              continue;
+            }
+            const stats = await this.getStats(file);
+            if (stats && now - stats.mtime.getTime() > maxAgeMs) {
+              if (await this.delete(file)) {
+                deletedCount++;
+                logger2.debug(`Deleted old file: ${file}`);
+              }
+            }
+          }
+        } catch (error10) {
+          logger2.error(`Cleanup failed: ${error10}`);
+        }
+        return deletedCount;
+      }
+    };
+    ({
+      exists,
+      read,
+      write,
+      delete: deleteFile,
+      ensureDirectory,
+      listDirectory,
+      copy,
+      move,
+      getStats,
+      watch: watch2,
+      createTempFile,
+      cleanupOldFiles
+    } = FileSystem);
+  }
+});
+
+// src/core/utils/ValidationPatterns.ts
+var logger3, Validators;
+var init_ValidationPatterns = __esm({
+  "src/core/utils/ValidationPatterns.ts"() {
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    logger3 = createModuleLogger({
+      module: "ValidationPatterns",
+      defaultCategory: "validation" /* VALIDATION */
+    });
+    Validators = class {
+      /**
+       * URL validation
+       */
+      static isURL(value, options = {}) {
+        if (!value) {
+          return { valid: false, error: "URL is required" };
+        }
+        try {
+          const url = new URL(value);
+          const allowedProtocols = options.protocols || ["http:", "https:"];
+          if (!allowedProtocols.includes(url.protocol)) {
+            return {
+              valid: false,
+              error: `Protocol ${url.protocol} not allowed. Use: ${allowedProtocols.join(", ")}`
+            };
+          }
+          return { valid: true };
+        } catch (error10) {
+          return { valid: false, error: "Invalid URL format" };
+        }
+      }
+      /**
+       * Email validation
+       */
+      static isEmail(value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!value) {
+          return { valid: false, error: "Email is required" };
+        }
+        if (!emailRegex.test(value)) {
+          return { valid: false, error: "Invalid email format" };
+        }
+        return { valid: true };
+      }
+      /**
+       * Selector validation (CSS/XPath)
+       */
+      static isSelector(value, type = "css") {
+        if (!value) {
+          return { valid: false, error: "Selector is required" };
+        }
+        if (type === "css") {
+          try {
+            document.createDocumentFragment().querySelector(value);
+            return { valid: true };
+          } catch {
+            return { valid: false, error: "Invalid CSS selector" };
+          }
+        } else {
+          if (!value.startsWith("/") && !value.startsWith("//")) {
+            return { valid: false, error: "XPath must start with / or //" };
+          }
+          return { valid: true };
+        }
+      }
+      /**
+       * GitHub token validation
+       */
+      static isGitHubToken(value) {
+        if (!value) {
+          return { valid: false, error: "GitHub token is required" };
+        }
+        const validPrefixes = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"];
+        const hasValidPrefix = validPrefixes.some((prefix) => value.startsWith(prefix));
+        if (!hasValidPrefix && !value.match(/^[a-f0-9]{40}$/)) {
+          return {
+            valid: false,
+            error: "Invalid GitHub token format",
+            details: {
+              hint: "Token should start with ghp_, gho_, etc. or be a 40-character hex string"
+            }
+          };
+        }
+        return { valid: true };
+      }
+      /**
+       * API key validation (generic)
+       */
+      static isAPIKey(value, options = {}) {
+        if (!value) {
+          return { valid: false, error: "API key is required" };
+        }
+        const { minLength = 20, maxLength = 200, pattern, prefix } = options;
+        if (value.length < minLength) {
+          return { valid: false, error: `API key must be at least ${minLength} characters` };
+        }
+        if (value.length > maxLength) {
+          return { valid: false, error: `API key must not exceed ${maxLength} characters` };
+        }
+        if (prefix && !value.startsWith(prefix)) {
+          return { valid: false, error: `API key must start with ${prefix}` };
+        }
+        if (pattern && !pattern.test(value)) {
+          return { valid: false, error: "API key format is invalid" };
+        }
+        return { valid: true };
+      }
+      /**
+       * Port number validation
+       */
+      static isPort(value) {
+        const port = typeof value === "string" ? parseInt(value, 10) : value;
+        if (isNaN(port)) {
+          return { valid: false, error: "Port must be a number" };
+        }
+        if (port < 1 || port > 65535) {
+          return { valid: false, error: "Port must be between 1 and 65535" };
+        }
+        return { valid: true };
+      }
+      /**
+       * Timeout validation (e.g., "30s", "5m", "1000ms")
+       */
+      static isTimeout(value) {
+        const match = value.match(/^(\d+)(ms|s|m|h)?$/);
+        if (!match) {
+          return {
+            valid: false,
+            error: "Invalid timeout format",
+            details: { example: "30s, 5m, 1000ms" }
+          };
+        }
+        const [, amount, unit = "ms"] = match;
+        const num = parseInt(amount, 10);
+        if (num <= 0) {
+          return { valid: false, error: "Timeout must be positive" };
+        }
+        const multipliers = { ms: 1, s: 1e3, m: 6e4, h: 36e5 };
+        const ms = num * multipliers[unit];
+        if (ms > 36e5) {
+          return { valid: false, error: "Timeout cannot exceed 1 hour" };
+        }
+        return { valid: true, details: { milliseconds: ms } };
+      }
+      /**
+       * File path validation
+       */
+      static isFilePath(value, options = {}) {
+        if (!value) {
+          return { valid: false, error: "File path is required" };
+        }
+        if (value.includes("..") && !options.allowRelative) {
+          return { valid: false, error: "Relative paths with .. are not allowed" };
+        }
+        if (options.extensions && options.extensions.length > 0) {
+          const hasValidExt = options.extensions.some(
+            (ext) => value.toLowerCase().endsWith(ext.toLowerCase())
+          );
+          if (!hasValidExt) {
+            return {
+              valid: false,
+              error: `File must have one of these extensions: ${options.extensions.join(", ")}`
+            };
+          }
+        }
+        return { valid: true };
+      }
+      /**
+       * JSON string validation
+       */
+      static isJSON(value) {
+        try {
+          JSON.parse(value);
+          return { valid: true };
+        } catch (error10) {
+          return {
+            valid: false,
+            error: "Invalid JSON format",
+            details: { parseError: error10 instanceof Error ? error10.message : String(error10) }
+          };
+        }
+      }
+      /**
+       * Semantic version validation
+       */
+      static isSemVer(value) {
+        const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+        if (!semverRegex.test(value)) {
+          return {
+            valid: false,
+            error: "Invalid semantic version",
+            details: { example: "1.2.3, 1.0.0-alpha, 2.1.0+build123" }
+          };
+        }
+        return { valid: true };
+      }
+    };
+  }
+});
+
+// src/core/utils/AsyncUtilities.ts
+var logger4;
+var init_AsyncUtilities = __esm({
+  "src/core/utils/AsyncUtilities.ts"() {
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    logger4 = createModuleLogger({
+      module: "AsyncUtilities",
+      defaultCategory: "processing" /* PROCESSING */
+    });
+  }
+});
+
+// src/core/index.ts
+function initializeCoreServices() {
+  console.log("\u2705 YoFix core services initialized");
+}
+var init_core = __esm({
+  "src/core/index.ts"() {
+    init_GitHubCommentEngine();
+    init_CentralizedErrorHandler();
+    init_BotActivityHandler();
+    init_ErrorHandlerFactory();
+    init_ConsistencyPatterns();
+    init_CircuitBreaker();
+    init_ConfigurationManager();
+    init_JSONParser();
+    init_FileSystemWrapper();
+    init_ValidationPatterns();
+    init_AsyncUtilities();
+    init_CentralizedErrorHandler();
+  }
+});
+
 // src/index.ts
 var core18 = __toESM(require_core());
 
 // src/steps/0-initialize.step.ts
 var core7 = __toESM(require_core());
-
-// src/config/env-loader.ts
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
-function parseEnvFile(content) {
-  const result = {};
-  const lines = content.split("\n");
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const equalIndex = trimmed.indexOf("=");
-    if (equalIndex === -1) {
-      continue;
-    }
-    const key = trimmed.substring(0, equalIndex).trim();
-    let value = trimmed.substring(equalIndex + 1).trim();
-    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
-      value = value.slice(1, -1);
-    }
-    result[key] = value;
-  }
-  return result;
-}
-function loadEnvLocal(rootDir) {
-  const projectRoot = rootDir || process.cwd();
-  const envLocalPath = path.join(projectRoot, ".env.local");
-  if (!fs.existsSync(envLocalPath)) {
-    return {};
-  }
-  try {
-    const content = fs.readFileSync(envLocalPath, "utf8");
-    return parseEnvFile(content);
-  } catch (error10) {
-    console.warn(`Warning: Could not load .env.local file: ${error10}`);
-    return {};
-  }
-}
-function loadEnvironmentConfig() {
-  const envLocal = loadEnvLocal();
-  const merged = {};
-  Object.assign(merged, envLocal);
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== void 0) {
-      merged[key] = value;
-    }
-  }
-  return merged;
-}
-function initializeEnvironment() {
-  const envLocal = loadEnvLocal();
-  for (const [key, value] of Object.entries(envLocal)) {
-    if (process.env[key] === void 0) {
-      process.env[key] = value;
-    }
-  }
-}
-
-// src/config/default.config.ts
-initializeEnvironment();
-var environmentDefaults = {
-  // GitHub Configuration (no real tokens, safe for testing)
-  github: {
-    token: "mock-github-token",
-    repository: "test-owner/test-repo",
-    sha: "mock-sha-123456",
-    actor: "yofix-bot",
-    eventName: "pull_request",
-    actions: "false"
-    // Not in GitHub Actions by default
-  },
-  // Storage Configuration (mock/test values)
-  storage: {
-    firebase: {
-      projectId: "yofix-test-project",
-      clientEmail: "test@yofix-test-project.iam.gserviceaccount.com",
-      privateKey: "-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY_FOR_TESTING\n-----END PRIVATE KEY-----\n",
-      storageBucket: "yofix-test-project.appspot.com"
-    },
-    s3: {
-      accessKeyId: "MOCK_ACCESS_KEY_ID",
-      secretAccessKey: "mock-secret-access-key",
-      region: "us-east-1",
-      bucket: "yofix-test-bucket"
-    }
-  },
-  // AI Configuration
-  ai: {
-    claudeApiKey: "mock-claude-api-key",
-    anthropicApiKey: "mock-anthropic-api-key"
-  },
-  // Environment
-  nodeEnv: "development"
-};
-function getEnvWithDefaults(key) {
-  const envConfig = loadEnvironmentConfig();
-  if (envConfig[key] !== void 0) {
-    return envConfig[key];
-  }
-  return getEnvironmentDefault(key);
-}
-function getEnvironmentDefault(key) {
-  if (key === "GITHUB_TOKEN" || key === "INPUT_GITHUB_TOKEN") {
-    return environmentDefaults.github.token;
-  }
-  if (key === "GITHUB_REPOSITORY") {
-    return environmentDefaults.github.repository;
-  }
-  if (key === "GITHUB_SHA") {
-    return environmentDefaults.github.sha;
-  }
-  if (key === "GITHUB_ACTOR") {
-    return environmentDefaults.github.actor;
-  }
-  if (key === "GITHUB_EVENT_NAME") {
-    return environmentDefaults.github.eventName;
-  }
-  if (key === "GITHUB_ACTIONS") {
-    return environmentDefaults.github.actions;
-  }
-  if (key === "CLAUDE_API_KEY" || key === "CLAUDE_API_KEY") {
-    return environmentDefaults.ai.claudeApiKey;
-  }
-  if (key === "FIREBASE_PROJECT_ID") {
-    return environmentDefaults.storage.firebase.projectId;
-  }
-  if (key === "FIREBASE_CLIENT_EMAIL") {
-    return environmentDefaults.storage.firebase.clientEmail;
-  }
-  if (key === "FIREBASE_PRIVATE_KEY") {
-    return environmentDefaults.storage.firebase.privateKey;
-  }
-  if (key === "FIREBASE_STORAGE_BUCKET") {
-    return environmentDefaults.storage.firebase.storageBucket;
-  }
-  if (key === "AWS_ACCESS_KEY_ID") {
-    return environmentDefaults.storage.s3.accessKeyId;
-  }
-  if (key === "AWS_SECRET_ACCESS_KEY") {
-    return environmentDefaults.storage.s3.secretAccessKey;
-  }
-  if (key === "AWS_REGION") {
-    return environmentDefaults.storage.s3.region;
-  }
-  if (key === "S3_BUCKET") {
-    return environmentDefaults.storage.s3.bucket;
-  }
-  if (key === "NODE_ENV") {
-    return environmentDefaults.nodeEnv;
-  }
-  return void 0;
-}
-
-// src/core/hooks/EnvironmentHook.ts
-var NodeEnvironmentHook = class {
-  get(name, defaultValue) {
-    const value = process.env[name];
-    return value !== void 0 ? value : defaultValue;
-  }
-  getRequired(name) {
-    const value = process.env[name];
-    if (value === void 0) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    return value;
-  }
-  has(name) {
-    return name in process.env;
-  }
-  getByPrefix(prefix) {
-    const result = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (key.startsWith(prefix) && value !== void 0) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-  set(name, value) {
-    process.env[name] = value;
-  }
-  unset(name) {
-    delete process.env[name];
-  }
-  getEnvironment() {
-    const nodeEnv = process.env.NODE_ENV?.toLowerCase();
-    switch (nodeEnv) {
-      case "production":
-        return "production";
-      case "development":
-        return "development";
-      case "test":
-        return "test";
-      default:
-        return "unknown";
-    }
-  }
-  getWithDefaults(name) {
-    return getEnvWithDefaults(name);
-  }
-};
-var MockEnvironmentHook = class {
-  constructor(initialEnv = {}) {
-    this.env = /* @__PURE__ */ new Map();
-    for (const [key, value] of Object.entries(initialEnv)) {
-      this.env.set(key, value);
-    }
-  }
-  get(name, defaultValue) {
-    const value = this.env.get(name);
-    return value !== void 0 ? value : defaultValue;
-  }
-  getRequired(name) {
-    const value = this.env.get(name);
-    if (value === void 0) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    return value;
-  }
-  has(name) {
-    return this.env.has(name);
-  }
-  getByPrefix(prefix) {
-    const result = {};
-    for (const [key, value] of this.env.entries()) {
-      if (key.startsWith(prefix)) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-  set(name, value) {
-    this.env.set(name, value);
-  }
-  unset(name) {
-    this.env.delete(name);
-  }
-  getEnvironment() {
-    const nodeEnv = this.env.get("NODE_ENV")?.toLowerCase();
-    switch (nodeEnv) {
-      case "production":
-        return "production";
-      case "development":
-        return "development";
-      case "test":
-        return "test";
-      default:
-        return "unknown";
-    }
-  }
-  getWithDefaults(name) {
-    const mockValue = this.env.get(name);
-    if (mockValue !== void 0) {
-      return mockValue;
-    }
-    return getEnvWithDefaults(name);
-  }
-  /**
-   * Clear all environment variables (useful for testing)
-   */
-  clear() {
-    this.env.clear();
-  }
-  /**
-   * Load from object (useful for testing)
-   */
-  loadFromObject(env2) {
-    this.clear();
-    for (const [key, value] of Object.entries(env2)) {
-      this.env.set(key, value);
-    }
-  }
-};
-var EnvironmentHookFactory = class {
-  /**
-   * Get or create environment hook instance
-   */
-  static getHook() {
-    if (!this.instance) {
-      this.instance = this.createDefaultHook();
-    }
-    return this.instance;
-  }
-  /**
-   * Set custom environment hook (useful for testing)
-   */
-  static setHook(hook) {
-    this.instance = hook;
-  }
-  /**
-   * Reset the factory (useful for testing)
-   */
-  static reset() {
-    this.instance = void 0;
-  }
-  /**
-   * Create default environment hook based on runtime
-   */
-  static createDefaultHook() {
-    if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
-      return new MockEnvironmentHook(process.env);
-    }
-    if (typeof process !== "undefined" && process.env) {
-      return new NodeEnvironmentHook();
-    }
-    return new MockEnvironmentHook();
-  }
-};
-function getEnvironment() {
-  return EnvironmentHookFactory.getHook();
-}
-var env = {
-  get: (name, defaultValue) => getEnvironment().get(name, defaultValue),
-  getRequired: (name) => getEnvironment().getRequired(name),
-  getWithDefaults: (name) => getEnvironment().getWithDefaults(name),
-  has: (name) => getEnvironment().has(name),
-  is: (name, value) => getEnvironment().get(name) === value,
-  isDevelopment: () => getEnvironment().getEnvironment() === "development",
-  isProduction: () => getEnvironment().getEnvironment() === "production",
-  isTest: () => getEnvironment().getEnvironment() === "test"
-};
-
-// src/core/github/GitHubServiceFactory.ts
-var LRUCache = class {
-  constructor(maxSize = 100) {
-    this.maxSize = maxSize;
-    this.cache = /* @__PURE__ */ new Map();
-    this.accessOrder = /* @__PURE__ */ new Map();
-    this.accessCounter = 0;
-  }
-  get(key) {
-    const entry = this.cache.get(key);
-    if (!entry) return void 0;
-    if (Date.now() > entry.timestamp + entry.ttl) {
-      this.delete(key);
-      return void 0;
-    }
-    this.accessOrder.set(key, ++this.accessCounter);
-    return entry.data;
-  }
-  set(key, data, ttlMs) {
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      this.evictOldest();
-    }
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl: ttlMs
-    });
-    this.accessOrder.set(key, ++this.accessCounter);
-  }
-  delete(key) {
-    this.cache.delete(key);
-    this.accessOrder.delete(key);
-  }
-  clear() {
-    this.cache.clear();
-    this.accessOrder.clear();
-    this.accessCounter = 0;
-  }
-  evictOldest() {
-    let oldestKey = "";
-    let oldestAccess = Infinity;
-    for (const [key, access2] of this.accessOrder.entries()) {
-      if (access2 < oldestAccess) {
-        oldestAccess = access2;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey) {
-      this.delete(oldestKey);
-    }
-  }
-};
-var RateLimiter = class {
-  constructor(maxTokens, refillRate) {
-    this.maxTokens = maxTokens;
-    this.refillRate = refillRate;
-    this.tokens = maxTokens;
-    this.lastRefill = Date.now();
-  }
-  async waitForToken() {
-    this.refillTokens();
-    if (this.tokens >= 1) {
-      this.tokens--;
-      return;
-    }
-    const waitTime = (1 - this.tokens) / this.refillRate * 1e3;
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
-    this.tokens--;
-  }
-  refillTokens() {
-    const now = Date.now();
-    const timePassed = (now - this.lastRefill) / 1e3;
-    const tokensToAdd = timePassed * this.refillRate;
-    this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
-    this.lastRefill = now;
-  }
-  reset() {
-    this.tokens = this.maxTokens;
-    this.lastRefill = Date.now();
-  }
-};
-var RetryHelper = class {
-  static async withExponentialBackoff(operation, maxRetries = 3, baseDelayMs = 1e3, maxDelayMs = 3e4) {
-    let lastError;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error10) {
-        lastError = error10;
-        if (error10.status && error10.status >= 400 && error10.status < 500) {
-          throw error10;
-        }
-        if (attempt === maxRetries) {
-          break;
-        }
-        const delay2 = Math.min(
-          maxDelayMs,
-          baseDelayMs * Math.pow(2, attempt) + Math.random() * 1e3
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay2));
-      }
-    }
-    throw lastError;
-  }
-};
-var MockGitHubService = class {
-  constructor() {
-    this.configured = false;
-    this.config = {};
-    this.mockData = {
-      files: /* @__PURE__ */ new Map(),
-      comments: /* @__PURE__ */ new Map(),
-      fileContents: /* @__PURE__ */ new Map(),
-      checkRuns: /* @__PURE__ */ new Map(),
-      context: {
-        owner: "test-owner",
-        repo: "test-repo",
-        sha: "test-sha",
-        prNumber: 123,
-        actor: "test-actor",
-        eventName: "pull_request",
-        payload: {
-          pull_request: { number: 123, head: { sha: "test-sha" } },
-          issue: { number: 123, pull_request: {} },
-          comment: { id: 1, body: "test comment", user: { login: "test-user" } }
-        }
-      }
-    };
-  }
-  async configure(config2) {
-    this.config = config2;
-    this.configured = true;
-  }
-  isConfigured() {
-    return this.configured;
-  }
-  // Mock data setters for testing
-  setMockFiles(prNumber, files) {
-    this.mockData.files.set(`${prNumber}`, files);
-  }
-  setMockComments(issueNumber, comments) {
-    this.mockData.comments.set(`${issueNumber}`, comments);
-  }
-  setMockFileContent(path7, content) {
-    this.mockData.fileContents.set(path7, content);
-  }
-  setMockContext(context) {
-    this.mockData.context = { ...this.mockData.context, ...context };
-  }
-  // Implementation of interface methods
-  async listPullRequestFiles() {
-    const context = this.getContext();
-    return this.mockData.files.get(`${context.prNumber}`) || [];
-  }
-  async createComment(body) {
-    const context = this.getContext();
-    const comment = { id: Date.now(), body, user: { login: "test-bot" }, created_at: (/* @__PURE__ */ new Date()).toISOString() };
-    const comments = this.mockData.comments.get(`${context.prNumber}`) || [];
-    comments.push(comment);
-    this.mockData.comments.set(`${context.prNumber}`, comments);
-    return { id: comment.id, html_url: `https://github.com/${context.owner}/${context.repo}/pull/${context.prNumber}#comment-${comment.id}` };
-  }
-  async updateComment(commentId, body) {
-    for (const [issueNumber, comments] of this.mockData.comments.entries()) {
-      const commentIndex = comments.findIndex((c) => c.id === commentId);
-      if (commentIndex !== -1) {
-        comments[commentIndex].body = body;
-        this.mockData.comments.set(issueNumber, comments);
-        return;
-      }
-    }
-    console.log(`Mock: Updated comment ${commentId} with body: ${body}`);
-  }
-  async listComments() {
-    const context = this.getContext();
-    return this.mockData.comments.get(`${context.prNumber}`) || [];
-  }
-  async addReaction(commentId, reaction) {
-    console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
-  }
-  async getFileContent(path7, ref) {
-    return this.mockData.fileContents.get(path7) || null;
-  }
-  async getContent(path7, ref) {
-    return this.getFileContent(path7, ref);
-  }
-  async listCheckRuns(ref) {
-    const context = this.getContext();
-    const finalRef = ref || context.sha || "main";
-    return this.mockData.checkRuns.get(finalRef) || [];
-  }
-  async createCheckRun(data) {
-    const context = this.getContext();
-    const checkRun = { ...data, id: Date.now() };
-    const runs = this.mockData.checkRuns.get(context.sha || "main") || [];
-    runs.push(checkRun);
-    this.mockData.checkRuns.set(context.sha || "main", runs);
-    return { id: checkRun.id };
-  }
-  async updateCheckRun(checkRunId, data) {
-    for (const [ref, checkRuns] of this.mockData.checkRuns.entries()) {
-      const checkRunIndex = checkRuns.findIndex((c) => c.id === checkRunId);
-      if (checkRunIndex !== -1) {
-        checkRuns[checkRunIndex] = { ...checkRuns[checkRunIndex], ...data };
-        this.mockData.checkRuns.set(ref, checkRuns);
-        return;
-      }
-    }
-    console.log(`Mock: Updated check run ${checkRunId}`);
-  }
-  async createIssue(title, body, labels) {
-    const context = this.getContext();
-    const issueNumber = Date.now();
-    return {
-      number: issueNumber,
-      html_url: `https://github.com/${context.owner}/${context.repo}/issues/${issueNumber}`
-    };
-  }
-  getContext() {
-    return this.mockData.context;
-  }
-  getPRNumber() {
-    return this.mockData.context.prNumber;
-  }
-  // Test helper methods
-  setMockPRFiles(owner, repo, prNumber, files) {
-    this.mockData.files.set(`${prNumber}`, files);
-  }
-};
-var EnhancedGitHubService = class {
-  constructor() {
-    this.config = {};
-  }
-  async configure(config2) {
-    this.config = { ...config2 };
-    if (config2.cache?.enabled !== false) {
-      this.cache = new LRUCache(config2.cache?.maxSize || 100);
-    }
-    if (config2.rateLimit?.enabled !== false) {
-      const requestsPerHour = config2.rateLimit?.requestsPerHour || 5e3;
-      const requestsPerSecond = requestsPerHour / 3600;
-      this.rateLimiter = new RateLimiter(
-        config2.rateLimit?.burstLimit || 10,
-        requestsPerSecond
-      );
-    }
-    if (config2.token) {
-      const github = await Promise.resolve().then(() => __toESM(require_github()));
-      this.octokit = github.getOctokit(config2.token);
-    }
-  }
-  isConfigured() {
-    return !!this.octokit;
-  }
-  ensureConfigured() {
-    if (!this.octokit) {
-      throw new Error("GitHub service not configured. Call configure() first.");
-    }
-  }
-  getCacheKey(method, ...args) {
-    return `${method}:${JSON.stringify(args)}`;
-  }
-  async withCacheAndRateLimit(cacheKey, operation, cacheable = true) {
-    if (cacheable && this.cache) {
-      const cached = this.cache.get(cacheKey);
-      if (cached !== void 0) {
-        return cached;
-      }
-    }
-    if (this.rateLimiter) {
-      await this.rateLimiter.waitForToken();
-    }
-    const retryConfig = this.config.retry;
-    const result = await RetryHelper.withExponentialBackoff(
-      operation,
-      retryConfig?.enabled !== false ? retryConfig?.maxRetries || 3 : 0,
-      retryConfig?.baseDelayMs || 1e3,
-      retryConfig?.maxDelayMs || 3e4
-    );
-    if (cacheable && this.cache) {
-      const ttl = this.config.cache?.ttlMs || 3e5;
-      this.cache.set(cacheKey, result, ttl);
-    }
-    return result;
-  }
-  async listPullRequestFiles() {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const cacheKey = this.getCacheKey("listPullRequestFiles", context.owner, context.repo, context.prNumber);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      console.log(`[EnhancedGitHubService] Listing PR files for PR #${context.prNumber}`);
-      if (!context.prNumber) {
-        throw new Error("[EnhancedGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
-      }
-      const { data } = await this.octokit.rest.pulls.listFiles({
-        owner: context.owner,
-        repo: context.repo,
-        pull_number: context.prNumber,
-        per_page: 100
-      });
-      console.log(`[EnhancedGitHubService] Found ${data.length} files in PR #${context.prNumber}:`);
-      data.forEach((file, index) => {
-        console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
-      });
-      return data;
-    });
-  }
-  async createComment(body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      const { data } = await this.octokit.rest.issues.createComment({
-        owner: context.owner,
-        repo: context.repo,
-        issue_number: context.prNumber,
-        body
-      });
-      if (this.cache) {
-        const listCommentsKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
-        this.cache.delete(listCommentsKey);
-      }
-      return { id: data.id, html_url: data.html_url };
-    }, false);
-  }
-  async updateComment(commentId, body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      await this.octokit.rest.issues.updateComment({
-        owner: context.owner,
-        repo: context.repo,
-        comment_id: commentId,
-        body
-      });
-      if (this.cache) {
-      }
-    }, false);
-  }
-  async listComments() {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const cacheKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      const { data } = await this.octokit.rest.issues.listComments({
-        owner: context.owner,
-        repo: context.repo,
-        issue_number: context.prNumber,
-        per_page: 100
-      });
-      return data;
-    });
-  }
-  async addReaction(commentId, reaction) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      await this.octokit.rest.reactions.createForIssueComment({
-        owner: context.owner,
-        repo: context.repo,
-        comment_id: commentId,
-        content: reaction
-      });
-    }, false);
-  }
-  async getFileContent(path7, ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path7, ref);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      try {
-        const { data } = await this.octokit.rest.repos.getContent({
-          owner: context.owner,
-          repo: context.repo,
-          path: path7,
-          ref
-        });
-        if ("content" in data && !Array.isArray(data)) {
-          return {
-            path: data.path,
-            content: data.content,
-            encoding: data.encoding,
-            sha: data.sha
-          };
-        }
-        return null;
-      } catch (error10) {
-        if (error10.status === 404) {
-          return null;
-        }
-        throw error10;
-      }
-    });
-  }
-  async getContent(path7, ref) {
-    return this.getFileContent(path7, ref);
-  }
-  async listCheckRuns(ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const finalRef = ref || context.sha || "main";
-    const cacheKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, finalRef);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      const { data } = await this.octokit.rest.checks.listForRef({
-        owner: context.owner,
-        repo: context.repo,
-        ref: finalRef
-      });
-      return data.check_runs;
-    });
-  }
-  async createCheckRun(data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      const { data: result } = await this.octokit.rest.checks.create({
-        owner: context.owner,
-        repo: context.repo,
-        head_sha: context.sha || "main",
-        ...data
-      });
-      if (this.cache) {
-        const listCheckRunsKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, context.sha);
-        this.cache.delete(listCheckRunsKey);
-      }
-      return { id: result.id };
-    }, false);
-  }
-  async updateCheckRun(checkRunId, data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      await this.octokit.rest.checks.update({
-        owner: context.owner,
-        repo: context.repo,
-        check_run_id: checkRunId,
-        ...data
-      });
-    }, false);
-  }
-  async createIssue(title, body, labels) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      const { data } = await this.octokit.rest.issues.create({
-        owner: context.owner,
-        repo: context.repo,
-        title,
-        body,
-        labels
-      });
-      return { number: data.number, html_url: data.html_url };
-    }, false);
-  }
-  getContext() {
-    if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
-      try {
-        const github = require_github();
-        const context = github.context;
-        console.log(`[EnhancedGitHubService] Using @actions/github context`);
-        console.log(`[EnhancedGitHubService] Event name: ${context.eventName}`);
-        console.log(`[EnhancedGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[EnhancedGitHubService] SHA: ${context.sha}`);
-        console.log(`[EnhancedGitHubService] Actor: ${context.actor}`);
-        console.log(`[EnhancedGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[EnhancedGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
-        console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
-        const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
-        console.log(`[EnhancedGitHubService] Final PR number: ${prNumber2}`);
-        return {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          sha: context.sha,
-          prNumber: prNumber2,
-          actor: context.actor,
-          eventName: context.eventName,
-          payload: context.payload
-        };
-      } catch (error10) {
-        console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error10);
-        console.log("[EnhancedGitHubService] Falling back to environment variables");
-      }
-      const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
-      const [owner, repo] = repository.split("/");
-      let payload = {};
-      const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
-      try {
-        const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
-        if (eventPath) {
-          const fs8 = require("fs");
-          payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
-        }
-      } catch (error10) {
-        console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error10);
-      }
-      const prNumber = payload?.pull_request?.number || payload?.issue?.number;
-      return {
-        owner,
-        repo,
-        sha: env.getWithDefaults("GITHUB_SHA"),
-        prNumber,
-        actor: env.getWithDefaults("GITHUB_ACTOR"),
-        eventName,
-        payload
-      };
-    }
-    return {
-      owner: this.config.owner || "",
-      repo: this.config.repo || "",
-      sha: void 0,
-      prNumber: void 0,
-      actor: void 0,
-      eventName: void 0,
-      payload: {}
-    };
-  }
-  getPRNumber() {
-    return this.getContext().prNumber;
-  }
-  /**
-   * Clear cache (useful for testing)
-   */
-  clearCache() {
-    if (this.cache) {
-      this.cache.clear();
-    }
-  }
-  /**
-   * Reset rate limiter (useful for testing)
-   */
-  resetRateLimit() {
-    if (this.rateLimiter) {
-      this.rateLimiter.reset();
-    }
-  }
-};
-var OctokitGitHubService = class {
-  constructor() {
-    this.config = {};
-  }
-  async configure(config2) {
-    this.config = config2;
-    if (config2.token) {
-      const github = await Promise.resolve().then(() => __toESM(require_github()));
-      this.octokit = github.getOctokit(config2.token);
-    }
-  }
-  isConfigured() {
-    return !!this.octokit;
-  }
-  ensureConfigured() {
-    if (!this.octokit) {
-      throw new Error("GitHub service not configured. Call configure() first.");
-    }
-  }
-  async listPullRequestFiles(owner, repo, prNumber) {
-    this.ensureConfigured();
-    let finalOwner;
-    let finalRepo;
-    let finalPrNumber;
-    if (arguments.length === 0) {
-      const context = this.getContext();
-      finalOwner = context.owner;
-      finalRepo = context.repo;
-      finalPrNumber = context.prNumber;
-      console.log(`[OctokitGitHubService] Listing PR files for PR #${finalPrNumber}`);
-      if (!context.prNumber) {
-        throw new Error("[OctokitGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
-      }
-    } else {
-      finalOwner = owner;
-      finalRepo = repo;
-      finalPrNumber = prNumber;
-    }
-    const { data } = await this.octokit.rest.pulls.listFiles({
-      owner: finalOwner,
-      repo: finalRepo,
-      pull_number: finalPrNumber,
-      per_page: 100
-    });
-    console.log(`[OctokitGitHubService] Found ${data.length} files in PR #${finalPrNumber}:`);
-    data.forEach((file, index) => {
-      console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
-    });
-    return data;
-  }
-  async createComment(body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data } = await this.octokit.rest.issues.createComment({
-      owner: context.owner,
-      repo: context.repo,
-      issue_number: context.prNumber,
-      body
-    });
-    return { id: data.id, html_url: data.html_url };
-  }
-  async updateComment(commentId, body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    await this.octokit.rest.issues.updateComment({
-      owner: context.owner,
-      repo: context.repo,
-      comment_id: commentId,
-      body
-    });
-  }
-  async listComments() {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data } = await this.octokit.rest.issues.listComments({
-      owner: context.owner,
-      repo: context.repo,
-      issue_number: context.prNumber,
-      per_page: 100
-    });
-    return data;
-  }
-  async addReaction(commentId, reaction) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    await this.octokit.rest.reactions.createForIssueComment({
-      owner: context.owner,
-      repo: context.repo,
-      comment_id: commentId,
-      content: reaction
-    });
-  }
-  async getFileContent(path7, ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    try {
-      const { data } = await this.octokit.rest.repos.getContent({
-        owner: context.owner,
-        repo: context.repo,
-        path: path7,
-        ref
-      });
-      if ("content" in data && !Array.isArray(data)) {
-        return {
-          path: data.path,
-          content: data.content,
-          encoding: data.encoding,
-          sha: data.sha
-        };
-      }
-      return null;
-    } catch (error10) {
-      if (error10.status === 404) {
-        return null;
-      }
-      throw error10;
-    }
-  }
-  async getContent(path7, ref) {
-    return this.getFileContent(path7, ref);
-  }
-  async listCheckRuns(ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const finalRef = ref || context.sha || "main";
-    const { data } = await this.octokit.rest.checks.listForRef({
-      owner: context.owner,
-      repo: context.repo,
-      ref: finalRef
-    });
-    return data.check_runs;
-  }
-  async createCheckRun(data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data: result } = await this.octokit.rest.checks.create({
-      owner: context.owner,
-      repo: context.repo,
-      head_sha: context.sha || "main",
-      ...data
-    });
-    return { id: result.id };
-  }
-  async updateCheckRun(checkRunId, data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    await this.octokit.rest.checks.update({
-      owner: context.owner,
-      repo: context.repo,
-      check_run_id: checkRunId,
-      ...data
-    });
-  }
-  async createIssue(title, body, labels) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data } = await this.octokit.rest.issues.create({
-      owner: context.owner,
-      repo: context.repo,
-      title,
-      body,
-      labels
-    });
-    return { number: data.number, html_url: data.html_url };
-  }
-  getContext() {
-    if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
-      try {
-        const github = require_github();
-        const context = github.context;
-        console.log(`[OctokitGitHubService] Using @actions/github context`);
-        console.log(`[OctokitGitHubService] Event name: ${context.eventName}`);
-        console.log(`[OctokitGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[OctokitGitHubService] SHA: ${context.sha}`);
-        console.log(`[OctokitGitHubService] Actor: ${context.actor}`);
-        console.log(`[OctokitGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[OctokitGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
-        console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
-        const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
-        console.log(`[OctokitGitHubService] Final PR number: ${prNumber2}`);
-        return {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          sha: context.sha,
-          prNumber: prNumber2,
-          actor: context.actor,
-          eventName: context.eventName,
-          payload: context.payload
-        };
-      } catch (error10) {
-        console.error("[OctokitGitHubService] Failed to use @actions/github context:", error10);
-        console.log("[OctokitGitHubService] Falling back to environment variables");
-      }
-      const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
-      const [owner, repo] = repository.split("/");
-      let payload = {};
-      const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
-      try {
-        const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
-        if (eventPath) {
-          const fs8 = require("fs");
-          payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
-        }
-      } catch (error10) {
-        console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error10);
-      }
-      const prNumber = payload?.pull_request?.number || payload?.issue?.number;
-      return {
-        owner,
-        repo,
-        sha: env.getWithDefaults("GITHUB_SHA"),
-        prNumber,
-        actor: env.getWithDefaults("GITHUB_ACTOR"),
-        eventName,
-        payload
-      };
-    }
-    return {
-      owner: this.config.owner || "",
-      repo: this.config.repo || "",
-      sha: void 0,
-      prNumber: void 0,
-      actor: void 0,
-      eventName: void 0,
-      payload: {}
-    };
-  }
-  getPRNumber() {
-    return this.getContext().prNumber;
-  }
-};
-var LazyGitHubService = class {
-  async configure(config2) {
-    this.pendingConfig = { ...this.pendingConfig, ...config2 };
-  }
-  isConfigured() {
-    return !!this.service || !!this.pendingConfig?.token || !!env.getWithDefaults("GITHUB_TOKEN") || !!env.getWithDefaults("INPUT_GITHUB_TOKEN");
-  }
-  async ensureService() {
-    if (!this.service) {
-      const token = this.pendingConfig?.token || env.getWithDefaults("GITHUB_TOKEN") || env.getWithDefaults("INPUT_GITHUB_TOKEN");
-      if (!token && env.getWithDefaults("NODE_ENV") !== "test") {
-        throw new Error("GitHub token not available. Configure with token or set GITHUB_TOKEN environment variable.");
-      }
-      this.service = env.getWithDefaults("NODE_ENV") === "test" ? new MockGitHubService() : new EnhancedGitHubService();
-      await this.service.configure({ ...this.pendingConfig, token });
-    }
-    return this.service;
-  }
-  // Delegate all methods to the underlying service
-  async listPullRequestFiles() {
-    const service = await this.ensureService();
-    return service.listPullRequestFiles();
-  }
-  async createComment(body) {
-    const service = await this.ensureService();
-    return service.createComment(body);
-  }
-  async updateComment(commentId, body) {
-    const service = await this.ensureService();
-    return service.updateComment(commentId, body);
-  }
-  async listComments() {
-    const service = await this.ensureService();
-    return service.listComments();
-  }
-  async addReaction(commentId, reaction) {
-    const service = await this.ensureService();
-    return service.addReaction(commentId, reaction);
-  }
-  async getFileContent(path7, ref) {
-    const service = await this.ensureService();
-    return service.getFileContent(path7, ref);
-  }
-  async getContent(path7, ref) {
-    const service = await this.ensureService();
-    return service.getContent(path7, ref);
-  }
-  async listCheckRuns(ref) {
-    const service = await this.ensureService();
-    return service.listCheckRuns(ref);
-  }
-  async createCheckRun(data) {
-    const service = await this.ensureService();
-    return service.createCheckRun(data);
-  }
-  async updateCheckRun(checkRunId, data) {
-    const service = await this.ensureService();
-    return service.updateCheckRun(checkRunId, data);
-  }
-  async createIssue(title, body, labels) {
-    const service = await this.ensureService();
-    return service.createIssue(title, body, labels);
-  }
-  getContext() {
-    if (this.service) {
-      return this.service.getContext();
-    }
-    if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
-      try {
-        const github = require_github();
-        const context = github.context;
-        const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
-        return {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          sha: context.sha,
-          prNumber: prNumber2,
-          actor: context.actor,
-          eventName: context.eventName,
-          payload: context.payload
-        };
-      } catch (error10) {
-        console.error("[LazyGitHubService] Failed to use @actions/github context:", error10);
-      }
-    }
-    const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
-    const [owner, repo] = repository.split("/");
-    let payload = {};
-    const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
-    try {
-      const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
-      if (eventPath) {
-        const fs8 = require("fs");
-        payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
-      }
-    } catch (error10) {
-      console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error10);
-    }
-    const prNumber = payload?.pull_request?.number || payload?.issue?.number;
-    return {
-      owner: this.pendingConfig?.owner || owner || "",
-      repo: this.pendingConfig?.repo || repo || "",
-      sha: env.getWithDefaults("GITHUB_SHA"),
-      prNumber,
-      actor: env.getWithDefaults("GITHUB_ACTOR"),
-      eventName,
-      payload
-    };
-  }
-  getPRNumber() {
-    const context = this.getContext();
-    return context.prNumber;
-  }
-};
-var GitHubServiceFactory = class {
-  /**
-   * Get or create a GitHub service instance
-   * Uses lazy initialization - token not required until first API call
-   */
-  static getService() {
-    if (!this.instance) {
-      this.instance = new LazyGitHubService();
-    }
-    return this.instance;
-  }
-  /**
-   * Set a custom service instance (useful for testing)
-   */
-  static setService(service) {
-    this.instance = service;
-  }
-  /**
-   * Reset the factory (useful for testing)
-   */
-  static reset() {
-    this.instance = void 0;
-  }
-  /**
-   * Create a new instance without singleton pattern
-   */
-  static createService(options = {}) {
-    const { mock = false, enhanced = true, config: config2 } = options;
-    if (mock || env.getWithDefaults("NODE_ENV") === "test" && mock !== false) {
-      const service2 = new MockGitHubService();
-      if (config2) {
-        service2.configure(config2);
-      }
-      return service2;
-    }
-    if (enhanced) {
-      const service2 = new EnhancedGitHubService();
-      if (config2) {
-        service2.configure(config2);
-      }
-      return service2;
-    }
-    const service = new OctokitGitHubService();
-    if (config2) {
-      service.configure(config2);
-    }
-    return service;
-  }
-  /**
-   * Create enhanced service with custom configuration
-   */
-  static createEnhancedService(config2) {
-    const service = new EnhancedGitHubService();
-    service.configure(config2);
-    return service;
-  }
-};
+init_GitHubServiceFactory();
 
 // src/steps/shared/StepDataManager.ts
 var import_fs = require("fs");
@@ -25369,2225 +27555,8 @@ async function executeStep(stepName, stepFunction) {
   }
 }
 
-// src/core/github/GitHubCommentEngine.ts
-var core2 = __toESM(require_core());
-var GitHubCommentEngine = class {
-  constructor() {
-    // Cache for comment threads
-    this.threadCache = /* @__PURE__ */ new Map();
-    // Error tracking
-    this.errorCount = 0;
-    this.errorSummary = [];
-    this.github = GitHubServiceFactory.getService();
-    this.context = this.github.getContext();
-    this.owner = this.context.owner;
-    this.repo = this.context.repo;
-    this.prNumber = this.context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-  }
-  /**
-   * Post a comment to the PR
-   */
-  async postComment(message, options = {}) {
-    try {
-      if (this.prNumber === 0) {
-        core2.warning("No PR number found, cannot post comment");
-        return null;
-      }
-      let body = message;
-      if (options.inReplyTo) {
-        const replyUrl = `https://github.com/${this.owner}/${this.repo}/pull/${this.prNumber}#issuecomment-${options.inReplyTo}`;
-        body = `> In reply to [this comment](${replyUrl})
-
-${message}`;
-      }
-      if (options.signature) {
-        body += `
-
-<!-- ${options.signature} -->`;
-      }
-      if (options.threadId) {
-        const existingThreadId = this.threadCache.get(options.threadId);
-        if (existingThreadId) {
-          options.inReplyTo = existingThreadId;
-        }
-      }
-      if (options.isError) {
-        body = `\u274C **Error**
-
-${body}`;
-        this.errorCount++;
-      }
-      if (options.isProgress) {
-        body = `\u23F3 ${body}`;
-      }
-      let commentId;
-      if (options.updateExisting && options.signature) {
-        const existingComment = await this.findCommentBySignature(options.signature);
-        if (existingComment) {
-          await this.github.updateComment(
-            existingComment.id,
-            body
-          );
-          commentId = existingComment.id;
-          core2.info(`Updated existing comment #${commentId}`);
-        } else {
-          const result = await this.github.createComment(body);
-          commentId = result.id;
-          core2.info(`Created new comment #${commentId}`);
-        }
-      } else {
-        const result = await this.github.createComment(body);
-        commentId = result.id;
-        core2.info(`Created comment #${commentId}`);
-      }
-      if (options.threadId && !this.threadCache.has(options.threadId)) {
-        this.threadCache.set(options.threadId, commentId);
-      }
-      if (options.reactions && options.reactions.length > 0) {
-        for (const reaction of options.reactions) {
-          await this.addReaction(commentId, reaction);
-        }
-      }
-      return commentId;
-    } catch (error10) {
-      core2.error(`Failed to post comment: ${error10}`);
-      return null;
-    }
-  }
-  // postError() method removed - duplicate logic with CentralizedErrorHandler
-  // Use CentralizedErrorHandler.handleError() for error handling instead
-  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
-  /**
-   * Post a progress update
-   */
-  async postProgress(message, options = {}) {
-    const commentId = await this.postComment(message, {
-      isProgress: true,
-      threadId: options.threadId,
-      reactions: options.reaction ? [options.reaction] : void 0
-    });
-    if (commentId && options.reaction) {
-      await this.addReaction(commentId, options.reaction);
-    }
-  }
-  /**
-   * Post a summary comment (typically at the end of processing)
-   */
-  async postSummary(summary) {
-    let message = `## ${summary.title}
-
-`;
-    const statusEmoji = {
-      success: "\u2705",
-      warning: "\u26A0\uFE0F",
-      error: "\u274C"
-    };
-    if (summary.status) {
-      message = `${statusEmoji[summary.status]} ${message}`;
-    }
-    for (const section of summary.sections) {
-      message += `### ${section.heading}
-
-`;
-      message += `${section.content}
-
-`;
-    }
-    if (this.errorCount > 0) {
-      message += `### \u26A0\uFE0F Errors Encountered
-
-`;
-      message += `Total errors: ${this.errorCount}
-
-`;
-      if (this.errorSummary.length > 0) {
-        message += `<details>
-<summary>Error Details</summary>
-
-`;
-        for (const error10 of this.errorSummary) {
-          message += `- **${error10.timestamp.toISOString()}**`;
-          if (error10.location) {
-            message += ` at \`${error10.location}\``;
-          }
-          message += `: ${error10.error}
-`;
-        }
-        message += `
-</details>
-`;
-      }
-    }
-    await this.postComment(message, {
-      signature: "yofix-summary",
-      updateExisting: true
-    });
-  }
-  /**
-   * Add a reaction to a comment
-   */
-  async addReaction(commentId, reaction) {
-    try {
-      await this.github.addReaction(
-        commentId,
-        reaction
-      );
-      core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
-    } catch (error10) {
-      core2.warning(`Failed to add reaction: ${error10}`);
-    }
-  }
-  /**
-   * Post a quick reaction to the triggering comment
-   */
-  async postReaction(reaction) {
-    try {
-      const triggeringCommentId = this.getTriggeringCommentId();
-      if (triggeringCommentId) {
-        await this.addReaction(triggeringCommentId, reaction);
-      }
-    } catch (error10) {
-      core2.warning(`Failed to post reaction: ${error10}`);
-    }
-  }
-  /**
-   * React to a specific comment
-   */
-  async reactToComment(commentId, reaction) {
-    try {
-      await this.addReaction(commentId, reaction);
-    } catch (error10) {
-      core2.warning(`Failed to react to comment: ${error10}`);
-    }
-  }
-  /**
-   * Start a new thread
-   */
-  async startThread(threadId, message, options) {
-    const commentId = await this.postComment(message, {
-      threadId,
-      reactions: options?.reactions
-    });
-    return commentId;
-  }
-  /**
-   * Update a thread
-   */
-  async updateThread(threadId, message, options) {
-    await this.postComment(message, {
-      threadId,
-      updateExisting: true,
-      signature: `yofix-thread-${threadId}`,
-      reactions: options?.reactions
-    });
-  }
-  /**
-   * Reply to a thread
-   */
-  async replyToThread(threadId, message, options) {
-    const threadCommentId = this.threadCache.get(threadId);
-    await this.postComment(message, {
-      threadId,
-      inReplyTo: threadCommentId,
-      reactions: options?.reactions
-    });
-  }
-  /**
-   * Get the ID of the comment that triggered this action
-   */
-  getTriggeringCommentId() {
-    const commentId = parseInt(
-      process.env.GITHUB_EVENT_PATH ? JSON.parse(require("fs").readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"))?.comment?.id || "0" : "0"
-    );
-    return commentId || null;
-  }
-  /**
-   * Find a comment by its signature
-   */
-  async findCommentBySignature(signature) {
-    try {
-      const comments = await this.github.listComments();
-      const signaturePattern = `<!-- ${signature} -->`;
-      const existingComment = comments.find(
-        (comment) => comment.body.includes(signaturePattern)
-      );
-      return existingComment || null;
-    } catch (error10) {
-      core2.warning(`Failed to find comment by signature: ${error10}`);
-      return null;
-    }
-  }
-  /**
-   * Delete all bot comments (useful for cleanup)
-   */
-  async deleteAllBotComments() {
-    try {
-      const comments = await this.github.listComments();
-      const botComments = comments.filter(
-        (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
-      );
-      core2.info(`Found ${botComments.length} bot comments`);
-    } catch (error10) {
-      core2.warning(`Failed to list comments: ${error10}`);
-    }
-  }
-  /**
-   * Get the current PR number
-   */
-  getPRNumber() {
-    return this.prNumber;
-  }
-  /**
-   * Check if we're in a valid PR context
-   */
-  isValidContext() {
-    return this.prNumber > 0;
-  }
-};
-var globalInstance = null;
-function getGitHubCommentEngine() {
-  if (!globalInstance) {
-    globalInstance = new GitHubCommentEngine();
-  }
-  return globalInstance;
-}
-
-// src/core/error/CentralizedErrorHandler.ts
-var core3 = __toESM(require_core());
-var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity6) => {
-  ErrorSeverity6["LOW"] = "low";
-  ErrorSeverity6["MEDIUM"] = "medium";
-  ErrorSeverity6["HIGH"] = "high";
-  ErrorSeverity6["CRITICAL"] = "critical";
-  return ErrorSeverity6;
-})(ErrorSeverity || {});
-var ErrorCategory = /* @__PURE__ */ ((ErrorCategory3) => {
-  ErrorCategory3["PACKAGE"] = "package";
-  ErrorCategory3["GITHUB"] = "github";
-  ErrorCategory3["CONFIGURATION"] = "configuration";
-  ErrorCategory3["ORCHESTRATION"] = "orchestration";
-  ErrorCategory3["MODULE"] = "module";
-  ErrorCategory3["NETWORK"] = "network";
-  ErrorCategory3["PROCESSING"] = "processing";
-  ErrorCategory3["FILE_SYSTEM"] = "file_system";
-  ErrorCategory3["VALIDATION"] = "validation";
-  ErrorCategory3["UNKNOWN"] = "unknown";
-  return ErrorCategory3;
-})(ErrorCategory || {});
-var YoFixError = class extends Error {
-  constructor(message, options = {}) {
-    super(message);
-    this.name = "YoFixError";
-    this.severity = options.severity || "medium" /* MEDIUM */;
-    this.category = options.category || "unknown" /* UNKNOWN */;
-    this.recoverable = options.recoverable ?? false;
-    this.context = options;
-  }
-};
-var CentralizedErrorHandler = class _CentralizedErrorHandler {
-  constructor() {
-    this.github = null;
-    this.errorBuffer = [];
-    this.isTestMode = process.env.NODE_ENV === "test";
-    this.prNumber = 0;
-    this.owner = "";
-    this.repo = "";
-    // Error statistics
-    this.errorStats = {
-      total: 0,
-      byCategory: {},
-      bySeverity: {},
-      recovered: 0
-    };
-    this.initializeErrorStats();
-    this.setupGlobalHandlers();
-    this.initializeGitHub();
-  }
-  initializeErrorStats() {
-    Object.values(ErrorCategory).forEach((category) => {
-      this.errorStats.byCategory[category] = 0;
-    });
-    Object.values(ErrorSeverity).forEach((severity) => {
-      this.errorStats.bySeverity[severity] = 0;
-    });
-  }
-  initializeGitHub() {
-    try {
-      this.github = GitHubServiceFactory.getService();
-      const context = this.github.getContext();
-      this.owner = context.owner;
-      this.repo = context.repo;
-      this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-      core3.info("Centralized error handler initialized with GitHub integration");
-    } catch (error10) {
-      core3.warning("Failed to initialize GitHub service, errors will only be logged");
-      this.github = null;
-    }
-  }
-  static getInstance() {
-    if (!_CentralizedErrorHandler.instance) {
-      _CentralizedErrorHandler.instance = new _CentralizedErrorHandler();
-    }
-    return _CentralizedErrorHandler.instance;
-  }
-  /**
-   * Handle an error with centralized logic
-   */
-  async handleError(error10, options = {}) {
-    this.updateErrorStats(options);
-    const errorEntry = {
-      error: error10,
-      context: options,
-      timestamp: /* @__PURE__ */ new Date()
-    };
-    this.errorBuffer.push(errorEntry);
-    this.logError(error10, options);
-    if (!options.recoverable) {
-      if (error10 instanceof Error) {
-        throw error10;
-      } else {
-        throw new YoFixError(error10, options);
-      }
-    }
-  }
-  /**
-   * Log error to console/GitHub Actions
-   */
-  logError(error10, options) {
-    if (options.silent) return;
-    const errorMessage = error10 instanceof Error ? error10.message : error10;
-    const location = options.location ? `[${options.location}]` : "";
-    const logMessage = `${location} ${errorMessage}`.trim();
-    switch (options.severity) {
-      case "critical" /* CRITICAL */:
-        core3.error(logMessage);
-        if (!this.isTestMode) {
-          core3.setFailed(logMessage);
-        }
-        break;
-      case "high" /* HIGH */:
-        core3.error(logMessage);
-        break;
-      case "medium" /* MEDIUM */:
-        core3.warning(logMessage);
-        break;
-      case "low" /* LOW */:
-        core3.info(logMessage);
-        break;
-    }
-  }
-  // Individual error posting removed - only post summary at end
-  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
-  /**
-   * Update error statistics
-   */
-  updateErrorStats(options) {
-    this.errorStats.total++;
-    const category = options.category || "unknown" /* UNKNOWN */;
-    const severity = options.severity || "medium" /* MEDIUM */;
-    this.errorStats.byCategory[category]++;
-    this.errorStats.bySeverity[severity]++;
-    if (options.recoverable) {
-      this.errorStats.recovered++;
-    }
-  }
-  /**
-   * Set up global error handlers
-   */
-  setupGlobalHandlers() {
-    if (this.isTestMode) {
-      return;
-    }
-    process.on("uncaughtException", async (error10) => {
-      core3.error(`Uncaught Exception: ${error10.message}`);
-      if (error10.stack) {
-        core3.debug(error10.stack);
-      }
-      const errorEntry = {
-        error: error10,
-        context: {
-          severity: "critical" /* CRITICAL */,
-          category: "unknown" /* UNKNOWN */,
-          location: "uncaught-exception"
-        },
-        timestamp: /* @__PURE__ */ new Date()
-      };
-      this.errorBuffer.push(errorEntry);
-      this.updateErrorStats(errorEntry.context);
-      await this.postErrorSummary().catch(() => {
-      });
-      process.exit(1);
-    });
-    process.on("unhandledRejection", async (reason, promise) => {
-      const errorMessage = reason instanceof Error ? reason.message : String(reason);
-      core3.error(`Unhandled Rejection: ${errorMessage}`);
-      const errorEntry = {
-        error: new Error(errorMessage),
-        context: {
-          severity: "critical" /* CRITICAL */,
-          category: "unknown" /* UNKNOWN */,
-          location: "unhandled-rejection"
-        },
-        timestamp: /* @__PURE__ */ new Date()
-      };
-      this.errorBuffer.push(errorEntry);
-      this.updateErrorStats(errorEntry.context);
-      await this.postErrorSummary().catch(() => {
-      });
-      process.exit(1);
-    });
-  }
-  /**
-   * Get error statistics
-   */
-  getErrorStats() {
-    return { ...this.errorStats };
-  }
-  /**
-   * Get error buffer
-   */
-  getErrorBuffer() {
-    return [...this.errorBuffer];
-  }
-  /**
-   * Clear error buffer
-   */
-  clearErrorBuffer() {
-    this.errorBuffer = [];
-  }
-  /**
-   * Post a summary of all errors
-   */
-  async postErrorSummary() {
-    if (!this.github || this.prNumber === 0) {
-      core3.debug("Skipping error summary: No GitHub service or PR number");
-      return;
-    }
-    if (this.errorBuffer.length === 0) {
-      core3.info("\u2705 No errors to report");
-      return;
-    }
-    const byLocation = {};
-    for (const entry of this.errorBuffer) {
-      const location = entry.context?.location || "unknown";
-      byLocation[location] = (byLocation[location] || 0) + 1;
-    }
-    let message = `## \u26A0\uFE0F Error Summary
-
-`;
-    message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? "s" : ""} occurred`;
-    if (this.errorStats.recovered > 0) {
-      message += ` (${this.errorStats.recovered} recovered)`;
-    }
-    message += `
-
-`;
-    const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
-    if (severityCounts.length > 1) {
-      message += `**By Severity**: `;
-      message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(" \u2022 ");
-      message += `
-
-`;
-    }
-    const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
-    if (locationCounts.length > 0) {
-      message += `**By Source**: `;
-      message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(" \u2022 ");
-      message += `
-
-`;
-    }
-    message += `<details>
-<summary><strong>Error Details</strong></summary>
-
-`;
-    const recentErrors = this.errorBuffer.slice(-5);
-    for (const entry of recentErrors) {
-      const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
-      const time = entry.timestamp.toLocaleTimeString();
-      const location = entry.context?.location ? `[${entry.context.location}]` : "";
-      message += `- **${time}** ${location} ${errorMessage}
-`;
-    }
-    if (this.errorBuffer.length > 5) {
-      message += `
-...and ${this.errorBuffer.length - 5} more
-`;
-    }
-    message += `
-</details>
-`;
-    try {
-      await this.github.createComment(message);
-    } catch (error10) {
-      core3.warning(`Failed to post error summary: ${error10}`);
-    }
-  }
-};
-var errorHandler = CentralizedErrorHandler.getInstance();
-
-// src/core/bot/BotActivityHandler.ts
-var core4 = __toESM(require_core());
-var BotActivityHandler = class {
-  constructor() {
-    this.activities = /* @__PURE__ */ new Map();
-    this.currentActivity = null;
-    this.commentEngine = getGitHubCommentEngine();
-  }
-  /**
-   * Start a new bot activity
-   */
-  async startActivity(id, command, initialMessage) {
-    const activity = {
-      id,
-      command,
-      status: "pending",
-      startTime: /* @__PURE__ */ new Date(),
-      steps: []
-    };
-    this.activities.set(id, activity);
-    this.currentActivity = activity;
-    const message = initialMessage || `\u{1F916} **Processing \`${command}\`**
-
-\u23F3 Initializing...`;
-    await this.commentEngine.startThread(id, message, {
-      reactions: ["eyes"]
-    });
-    activity.status = "running";
-  }
-  /**
-   * Add a step to current activity
-   */
-  async addStep(stepName, status = "pending", message) {
-    if (!this.currentActivity) {
-      core4.warning("No active bot activity");
-      return;
-    }
-    const step = {
-      name: stepName,
-      status,
-      message,
-      timestamp: /* @__PURE__ */ new Date()
-    };
-    this.currentActivity.steps.push(step);
-    await this.updateProgress();
-  }
-  /**
-   * Update step status
-   */
-  async updateStep(stepName, status, message) {
-    if (!this.currentActivity) return;
-    const step = this.currentActivity.steps.find((s) => s.name === stepName);
-    if (!step) {
-      core4.warning(`Step ${stepName} not found`);
-      return;
-    }
-    const previousStatus = step.status;
-    step.status = status;
-    if (message) step.message = message;
-    if (status === "completed" || status === "failed") {
-      step.duration = Date.now() - step.timestamp.getTime();
-    }
-    await this.updateProgress();
-  }
-  /**
-   * Complete current activity
-   */
-  async completeActivity(result, finalMessage) {
-    if (!this.currentActivity) return;
-    this.currentActivity.status = "completed";
-    this.currentActivity.endTime = /* @__PURE__ */ new Date();
-    this.currentActivity.result = result;
-    const duration = this.currentActivity.endTime.getTime() - this.currentActivity.startTime.getTime();
-    const durationStr = this.formatDuration(duration);
-    let message = `\u2705 **Completed \`${this.currentActivity.command}\`**
-
-`;
-    if (finalMessage) {
-      message += finalMessage + "\n\n";
-    }
-    message += this.generateStepsSummary();
-    message += `
-\u23F1\uFE0F Total time: ${durationStr}`;
-    await this.commentEngine.updateThread(this.currentActivity.id, message, {
-      reactions: ["+1", "rocket"]
-    });
-    this.currentActivity = null;
-  }
-  /**
-   * Fail current activity
-   */
-  async failActivity(error10, context) {
-    if (!this.currentActivity) return;
-    this.currentActivity.status = "failed";
-    this.currentActivity.endTime = /* @__PURE__ */ new Date();
-    this.currentActivity.error = error10 instanceof Error ? error10 : new Error(error10);
-    await errorHandler.handleError(this.currentActivity.error, {
-      category: "unknown" /* UNKNOWN */,
-      severity: "high" /* HIGH */,
-      userAction: `Bot command: ${this.currentActivity.command}`,
-      metadata: context,
-      skipGitHubPost: true
-      // We'll post our own formatted message
-    });
-    let message = `\u274C **Failed \`${this.currentActivity.command}\`**
-
-`;
-    message += `**Error**: ${this.currentActivity.error.message}
-
-`;
-    message += this.generateStepsSummary();
-    const tips = this.getBotCommandTips(this.currentActivity.command, this.currentActivity.error.message);
-    if (tips.length > 0) {
-      message += "\n### \u{1F4A1} Suggestions:\n";
-      message += tips.map((tip) => `- ${tip}`).join("\n");
-    }
-    await this.commentEngine.updateThread(this.currentActivity.id, message, {
-      reactions: ["confused", "-1"]
-    });
-    this.currentActivity = null;
-  }
-  /**
-   * Post a simple bot response (for quick commands)
-   */
-  async postBotResponse(message, options) {
-    const formattedMessage = options?.success !== false ? `\u2705 ${message}` : `\u274C ${message}`;
-    if (options?.threadId) {
-      await this.commentEngine.replyToThread(options.threadId, formattedMessage, {
-        reactions: options.reactions
-      });
-    } else {
-      await this.commentEngine.postComment(formattedMessage, {
-        reactions: options.reactions
-      });
-    }
-  }
-  /**
-   * Post help message
-   */
-  async postHelpMessage(commands) {
-    let message = "## \u{1F527} YoFix Bot Commands\n\n";
-    for (const cmd of commands) {
-      message += `### \`${cmd.command}\`
-`;
-      message += `${cmd.description}
-`;
-      if (cmd.examples && cmd.examples.length > 0) {
-        message += "\n**Examples:**\n";
-        message += cmd.examples.map((ex) => `- \`${ex}\``).join("\n");
-        message += "\n";
-      }
-      message += "\n";
-    }
-    message += "---\n";
-    message += "\u{1F4A1} **Tips:**\n";
-    message += "- All commands start with `@yofix`\n";
-    message += "- Use `--help` with any command for more info\n";
-    message += "- Commands can be chained with `&&`\n";
-    await this.commentEngine.postComment(message, {
-      reactions: ["heart"]
-    });
-  }
-  /**
-   * Track an activity with automatic handling
-   */
-  async trackActivity(operation, handler) {
-    const activityId = `activity-${Date.now()}`;
-    try {
-      await this.startActivity(activityId, operation);
-      const result = await handler();
-      await this.completeActivity(result);
-      return result;
-    } catch (error10) {
-      await this.failActivity(error10);
-      throw error10;
-    }
-  }
-  /**
-   * Handle unknown command
-   */
-  async handleUnknownCommand(command, suggestions) {
-    let message = `\u2753 **Unknown command: \`${command}\`**
-
-`;
-    if (suggestions && suggestions.length > 0) {
-      message += "Did you mean:\n";
-      message += suggestions.map((s) => `- \`@yofix ${s}\``).join("\n");
-      message += "\n\n";
-    }
-    message += "Use `@yofix help` to see available commands.";
-    await this.commentEngine.postComment(message, {
-      reactions: ["confused"]
-    });
-  }
-  // Private methods
-  async updateProgress() {
-    if (!this.currentActivity) return;
-    const message = this.generateProgressMessage();
-    await this.commentEngine.updateThread(this.currentActivity.id, message);
-  }
-  generateProgressMessage() {
-    if (!this.currentActivity) return "";
-    let message = `\u{1F504} **Processing \`${this.currentActivity.command}\`**
-
-`;
-    for (const step of this.currentActivity.steps) {
-      const icon = this.getStepIcon(step.status);
-      const duration = step.duration ? ` (${this.formatDuration(step.duration)})` : "";
-      message += `${icon} ${step.name}${duration}
-`;
-      if (step.message) {
-        message += `   ${step.message}
-`;
-      }
-    }
-    const elapsed = Date.now() - this.currentActivity.startTime.getTime();
-    message += `
-\u23F1\uFE0F Elapsed: ${this.formatDuration(elapsed)}`;
-    return message;
-  }
-  generateStepsSummary() {
-    if (!this.currentActivity) return "";
-    let summary = "### Steps Summary\n";
-    const completed = this.currentActivity.steps.filter((s) => s.status === "completed").length;
-    const failed = this.currentActivity.steps.filter((s) => s.status === "failed").length;
-    const skipped = this.currentActivity.steps.filter((s) => s.status === "skipped").length;
-    const total = this.currentActivity.steps.length;
-    summary += `- \u2705 Completed: ${completed}/${total}
-`;
-    if (failed > 0) summary += `- \u274C Failed: ${failed}
-`;
-    if (skipped > 0) summary += `- \u23ED\uFE0F Skipped: ${skipped}
-`;
-    return summary + "\n";
-  }
-  getStepIcon(status) {
-    switch (status) {
-      case "pending":
-        return "\u23F3";
-      case "running":
-        return "\u{1F504}";
-      case "completed":
-        return "\u2705";
-      case "failed":
-        return "\u274C";
-      case "skipped":
-        return "\u23ED\uFE0F";
-      default:
-        return "\u2753";
-    }
-  }
-  formatDuration(ms) {
-    if (ms < 1e3) return `${ms}ms`;
-    if (ms < 6e4) return `${(ms / 1e3).toFixed(1)}s`;
-    const minutes = Math.floor(ms / 6e4);
-    const seconds = Math.floor(ms % 6e4 / 1e3);
-    return `${minutes}m ${seconds}s`;
-  }
-  getBotCommandTips(command, error10) {
-    const tips = [];
-    if (command.includes("scan")) {
-      tips.push("Ensure the preview URL is accessible");
-      tips.push("Check if authentication is required");
-      tips.push("Try specifying a specific route: `@yofix scan /dashboard`");
-    }
-    if (command.includes("fix")) {
-      tips.push("Run `@yofix scan` first to detect issues");
-      tips.push("Specify an issue number: `@yofix fix #3`");
-    }
-    if (command.includes("test")) {
-      tips.push("Ensure test credentials are configured");
-      tips.push("Check the login URL is correct");
-      tips.push("Try a different auth mode");
-    }
-    if (error10.includes("timeout")) {
-      tips.push("The operation took too long - try again");
-      tips.push("Check if the site is responding slowly");
-    }
-    if (error10.includes("not found")) {
-      tips.push("Check the spelling of your command");
-      tips.push("Use `@yofix help` to see available options");
-    }
-    return tips;
-  }
-};
-var botActivity = new BotActivityHandler();
-
-// src/core/error/ErrorHandlerFactory.ts
-var core5 = __toESM(require_core());
-function createModuleLogger(options) {
-  const { module: module2, debug: debug9 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
-  return {
-    debug: (message, ...args) => {
-      if (debug9 || core5.isDebug()) {
-        core5.debug(`[${module2}] ${message}`);
-        if (args.length > 0) {
-          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
-        }
-      }
-    },
-    info: (message, ...args) => {
-      core5.info(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug9 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
-      }
-    },
-    warn: (message, ...args) => {
-      core5.warning(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug9 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
-      }
-    },
-    error: async (error10, context) => {
-      const errorObj = error10 instanceof Error ? error10 : new Error(error10);
-      await errorHandler.handleError(errorObj, {
-        severity: context?.severity || defaultSeverity,
-        category: context?.category || defaultCategory,
-        userAction: context?.userAction || `${module2} operation`,
-        metadata: {
-          module: module2,
-          ...context?.metadata
-        },
-        recoverable: context?.recoverable !== false,
-        skipGitHubPost: context?.skipGitHubPost !== void 0 ? context.skipGitHubPost : skipGitHubPost
-      });
-    }
-  };
-}
-
-// src/core/hooks/ConfigurationHook.ts
-var GitHubActionsConfigurationHook = class {
-  constructor(core19) {
-    this.core = core19;
-  }
-  getInput(name) {
-    return this.core.getInput(name);
-  }
-  getBooleanInput(name) {
-    return this.core.getBooleanInput(name);
-  }
-  getMultilineInput(name) {
-    return this.core.getMultilineInput(name);
-  }
-  getRequiredInput(name) {
-    const value = this.core.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return !!process.env.GITHUB_ACTIONS;
-  }
-};
-var EnvironmentConfigurationHook = class {
-  getInput(name) {
-    const inputKey = `INPUT_${name.toUpperCase().replace(/-/g, "_")}`;
-    return process.env[inputKey] || process.env[name] || "";
-  }
-  getBooleanInput(name) {
-    const value = this.getInput(name).toLowerCase();
-    return value === "true" || value === "1";
-  }
-  getMultilineInput(name) {
-    const value = this.getInput(name);
-    return value ? value.split("\n").map((line) => line.trim()) : [];
-  }
-  getRequiredInput(name) {
-    const value = this.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return !!process.env.GITHUB_ACTIONS;
-  }
-};
-var MockConfigurationHook = class {
-  constructor(mockValues = {}) {
-    this.mockValues = mockValues;
-  }
-  setMockValue(name, value) {
-    this.mockValues[name] = value;
-  }
-  getInput(name) {
-    return this.mockValues[name] || "";
-  }
-  getBooleanInput(name) {
-    const value = this.getInput(name).toLowerCase();
-    return value === "true" || value === "1";
-  }
-  getMultilineInput(name) {
-    const value = this.getInput(name);
-    return value ? value.split("\n").map((line) => line.trim()) : [];
-  }
-  getRequiredInput(name) {
-    const value = this.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return false;
-  }
-};
-var ConfigurationFactory = class {
-  static {
-    this.instance = null;
-  }
-  /**
-   * Get configuration hook instance
-   */
-  static getConfiguration() {
-    if (!this.instance) {
-      if (process.env.NODE_ENV === "test") {
-        this.instance = new MockConfigurationHook();
-      } else if (process.env.GITHUB_ACTIONS) {
-        const core19 = require_core();
-        this.instance = new GitHubActionsConfigurationHook(core19);
-      } else {
-        this.instance = new EnvironmentConfigurationHook();
-      }
-    }
-    return this.instance;
-  }
-  /**
-   * Set configuration instance (for testing)
-   */
-  static setConfiguration(config2) {
-    this.instance = config2;
-  }
-  /**
-   * Reset configuration instance
-   */
-  static reset() {
-    this.instance = null;
-  }
-};
-function getConfiguration() {
-  return ConfigurationFactory.getConfiguration();
-}
-
-// src/core/patterns/ConsistencyPatterns.ts
-var core6 = __toESM(require_core());
-async function executeOperation(operation, context) {
-  const startTime = Date.now();
-  try {
-    const data = await operation();
-    return {
-      success: true,
-      data,
-      metadata: {
-        duration: Date.now() - startTime,
-        ...context.metadata
-      }
-    };
-  } catch (error10) {
-    await errorHandler.handleError(error10, {
-      severity: context.severity || "medium" /* MEDIUM */,
-      category: context.category || "unknown" /* UNKNOWN */,
-      userAction: context.name,
-      metadata: {
-        ...context.metadata,
-        duration: Date.now() - startTime
-      },
-      recoverable: true
-    });
-    return {
-      success: false,
-      error: error10 instanceof Error ? error10.message : "Unknown error",
-      data: context.fallback,
-      metadata: {
-        duration: Date.now() - startTime,
-        ...context.metadata
-      }
-    };
-  }
-}
-var GitHubOperations = class {
-  static {
-    this.github = null;
-  }
-  static {
-    this.context = null;
-  }
-  static ensureInitialized() {
-    if (!this.github) {
-      this.github = GitHubServiceFactory.getService();
-      this.context = this.github.getContext();
-    }
-  }
-  static async postProgress(message, threadId) {
-    this.ensureInitialized();
-    if (!this.context?.prNumber) {
-      core6.warning("No PR context available, skipping progress comment");
-      return;
-    }
-    const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
-    const body = `\u23F3 ${message}
-
-<!-- ${signature} -->`;
-    try {
-      const comments = await this.github.listComments();
-      const existingComment = comments.find(
-        (comment) => comment.body.includes(`<!-- ${signature} -->`)
-      );
-      if (existingComment) {
-        await this.github.updateComment(
-          existingComment.id,
-          body
-        );
-      } else {
-        await this.github.createComment(
-          body
-        );
-      }
-    } catch (error10) {
-      core6.warning(`Failed to post progress comment: ${error10}`);
-    }
-  }
-  static async postResult(result, operation) {
-    this.ensureInitialized();
-    if (!this.context?.prNumber) {
-      core6.warning("No PR context available, skipping result comment");
-      return;
-    }
-    const emoji = result.success ? "\u2705" : "\u274C";
-    const status = result.success ? "Success" : "Failed";
-    let message = `${emoji} **${operation}**: ${status}`;
-    if (result.error) {
-      message += `
-
-**Error**: ${result.error}`;
-    }
-    if (result.data && typeof result.data === "object") {
-      message += "\n\n**Details**:\n```json\n" + JSON.stringify(result.data, null, 2) + "\n```";
-    }
-    if (result.metadata && Object.keys(result.metadata).length > 0) {
-      message += "\n\n**Metadata**:\n";
-      for (const [key, value] of Object.entries(result.metadata)) {
-        message += `- ${key}: ${value}
-`;
-      }
-    }
-    const signature = `yofix-result-${operation.toLowerCase().replace(/\s+/g, "-")}`;
-    message += `
-
-<!-- ${signature} -->`;
-    try {
-      await this.github.createComment(
-        message
-      );
-    } catch (error10) {
-      core6.warning(`Failed to post result comment: ${error10}`);
-    }
-  }
-  static async addReaction(reaction) {
-    this.ensureInitialized();
-    if (!this.context?.prNumber) {
-      return;
-    }
-    try {
-      const triggeringCommentId = this.getTriggeringCommentId();
-      if (triggeringCommentId) {
-        await this.github.addReaction(
-          triggeringCommentId,
-          reaction
-        );
-      }
-    } catch (error10) {
-      core6.debug(`Failed to add reaction: ${error10}`);
-    }
-  }
-  static getTriggeringCommentId() {
-    try {
-      const eventPath = process.env.GITHUB_EVENT_PATH;
-      if (!eventPath) return null;
-      const event = JSON.parse(require("fs").readFileSync(eventPath, "utf8"));
-      return event?.comment?.id || null;
-    } catch {
-      return null;
-    }
-  }
-};
-var ConfigPattern = class {
-  static {
-    this.config = getConfiguration();
-  }
-  static get(key, defaultValue) {
-    return this.config.getInput(key) || defaultValue || "";
-  }
-  static getBoolean(key, defaultValue = false) {
-    return this.config.getBooleanInput(key) || defaultValue;
-  }
-  static getNumber(key, defaultValue = 0) {
-    const value = this.config.getInput(key);
-    if (!value) return defaultValue;
-    const num = parseInt(value, 10);
-    return isNaN(num) ? defaultValue : num;
-  }
-  static getJson(key, defaultValue) {
-    const value = this.config.getInput(key);
-    if (!value) return defaultValue;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return defaultValue;
-    }
-  }
-};
-async function retryOperation(operation, options = {}) {
-  const maxAttempts = options.maxAttempts || 3;
-  const delay2 = options.delay || 1e3;
-  const backoff = options.backoff || 2;
-  let lastError;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await operation();
-    } catch (error10) {
-      lastError = error10;
-      if (attempt < maxAttempts) {
-        if (options.onRetry) {
-          options.onRetry(attempt, lastError);
-        }
-        const waitTime = delay2 * Math.pow(backoff, attempt - 1);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      }
-    }
-  }
-  throw lastError;
-}
-
-// src/core/patterns/CircuitBreaker.ts
-var CircuitBreaker = class {
-  constructor(config2) {
-    this.config = config2;
-    this.state = "CLOSED" /* CLOSED */;
-    this.failures = 0;
-    this.successes = 0;
-    this.totalRequests = 0;
-    this.totalFailures = 0;
-    this.halfOpenRequests = 0;
-    this.halfOpenSuccesses = 0;
-    this.logger = createModuleLogger({
-      module: `CircuitBreaker.${this.config.serviceName}`,
-      defaultCategory: "network" /* NETWORK */
-    });
-    this.failureThreshold = config2.failureThreshold ?? 5;
-    this.resetTimeout = config2.resetTimeout ?? 6e4;
-    this.timeout = config2.timeout ?? 3e4;
-    this.successThreshold = config2.successThreshold ?? 0.5;
-    this.volumeThreshold = config2.volumeThreshold ?? 5;
-  }
-  /**
-   * Execute a function with circuit breaker protection
-   */
-  async execute(operation) {
-    this.totalRequests++;
-    if (this.state === "OPEN" /* OPEN */) {
-      if (Date.now() < this.nextAttempt) {
-        return this.handleOpen();
-      }
-      this.state = "HALF_OPEN" /* HALF_OPEN */;
-      this.halfOpenRequests = 0;
-      this.halfOpenSuccesses = 0;
-      this.logger.info(`Circuit moved to HALF_OPEN state for ${this.config.serviceName}`);
-    }
-    try {
-      const result = await this.executeWithTimeout(operation);
-      this.onSuccess();
-      return result;
-    } catch (error10) {
-      return this.onFailure(error10);
-    }
-  }
-  /**
-   * Execute operation with timeout
-   */
-  async executeWithTimeout(operation) {
-    return new Promise(async (resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(`Operation timed out after ${this.timeout}ms`));
-      }, this.timeout);
-      try {
-        const result = await operation();
-        clearTimeout(timeoutId);
-        resolve(result);
-      } catch (error10) {
-        clearTimeout(timeoutId);
-        reject(error10);
-      }
-    });
-  }
-  /**
-   * Handle successful operation
-   */
-  onSuccess() {
-    this.failures = 0;
-    this.successes++;
-    this.lastSuccessTime = Date.now();
-    if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
-      this.halfOpenRequests++;
-      this.halfOpenSuccesses++;
-      if (this.halfOpenRequests >= this.volumeThreshold) {
-        const successRate = this.halfOpenSuccesses / this.halfOpenRequests;
-        if (successRate >= this.successThreshold) {
-          this.state = "CLOSED" /* CLOSED */;
-          this.logger.info(`Circuit CLOSED for ${this.config.serviceName} (success rate: ${(successRate * 100).toFixed(1)}%)`);
-        } else {
-          this.open();
-        }
-      }
-    }
-  }
-  /**
-   * Handle failed operation
-   */
-  onFailure(error10) {
-    this.failures++;
-    this.totalFailures++;
-    this.lastFailureTime = Date.now();
-    const shouldTrigger = this.config.isFailure ? this.config.isFailure(error10) : true;
-    if (!shouldTrigger) {
-      throw error10;
-    }
-    errorHandler.handleError(error10, {
-      severity: "medium" /* MEDIUM */,
-      category: "network" /* NETWORK */,
-      userAction: `${this.config.serviceName} operation`,
-      metadata: {
-        circuitState: this.state,
-        failures: this.failures,
-        totalFailures: this.totalFailures
-      },
-      skipGitHubPost: true
-    });
-    if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
-      this.halfOpenRequests++;
-      this.open();
-    } else if (this.state === "CLOSED" /* CLOSED */ && this.failures >= this.failureThreshold) {
-      this.open();
-    }
-    if (this.config.fallback) {
-      this.logger.info(`Using fallback for ${this.config.serviceName}`);
-      return this.config.fallback();
-    }
-    throw error10;
-  }
-  /**
-   * Open the circuit
-   */
-  open() {
-    this.state = "OPEN" /* OPEN */;
-    this.nextAttempt = Date.now() + this.resetTimeout;
-    this.logger.warn(`Circuit OPEN for ${this.config.serviceName} after ${this.failures} failures`);
-    if (this.failures >= this.failureThreshold * 2) {
-      errorHandler.handleError(
-        new Error(`Circuit breaker opened for ${this.config.serviceName}`),
-        {
-          severity: "high" /* HIGH */,
-          category: "network" /* NETWORK */,
-          userAction: "Circuit breaker activation",
-          metadata: this.getStats()
-        }
-      );
-    }
-  }
-  /**
-   * Handle open circuit
-   */
-  handleOpen() {
-    const error10 = new CircuitBreakerError(
-      `Circuit breaker is OPEN for ${this.config.serviceName}`,
-      this.config.serviceName,
-      this.state
-    );
-    if (this.config.fallback) {
-      this.logger.debug(`Circuit open, using fallback for ${this.config.serviceName}`);
-      return this.config.fallback();
-    }
-    throw error10;
-  }
-  /**
-   * Get circuit breaker statistics
-   */
-  getStats() {
-    const successRate = this.totalRequests > 0 ? (this.totalRequests - this.totalFailures) / this.totalRequests : 0;
-    return {
-      state: this.state,
-      failures: this.failures,
-      successes: this.successes,
-      lastFailureTime: this.lastFailureTime,
-      lastSuccessTime: this.lastSuccessTime,
-      totalRequests: this.totalRequests,
-      totalFailures: this.totalFailures,
-      consecutiveFailures: this.failures,
-      successRate
-    };
-  }
-  /**
-   * Reset the circuit breaker
-   */
-  reset() {
-    this.state = "CLOSED" /* CLOSED */;
-    this.failures = 0;
-    this.successes = 0;
-    this.halfOpenRequests = 0;
-    this.halfOpenSuccesses = 0;
-    this.nextAttempt = void 0;
-    this.logger.info(`Circuit reset for ${this.config.serviceName}`);
-  }
-  /**
-   * Force the circuit to open
-   */
-  forceOpen() {
-    this.open();
-  }
-  /**
-   * Force the circuit to close
-   */
-  forceClose() {
-    this.state = "CLOSED" /* CLOSED */;
-    this.failures = 0;
-    this.logger.info(`Circuit force closed for ${this.config.serviceName}`);
-  }
-};
-var CircuitBreakerError = class extends Error {
-  constructor(message, serviceName, state) {
-    super(message);
-    this.serviceName = serviceName;
-    this.state = state;
-    this.name = "CircuitBreakerError";
-  }
-};
-var CircuitBreakerFactory = class {
-  static {
-    this.breakers = /* @__PURE__ */ new Map();
-  }
-  /**
-   * Get or create a circuit breaker
-   */
-  static getBreaker(config2) {
-    const existing = this.breakers.get(config2.serviceName);
-    if (existing) {
-      return existing;
-    }
-    const breaker = new CircuitBreaker(config2);
-    this.breakers.set(config2.serviceName, breaker);
-    return breaker;
-  }
-  /**
-   * Get all circuit breakers
-   */
-  static getAllBreakers() {
-    return new Map(this.breakers);
-  }
-  /**
-   * Reset all circuit breakers
-   */
-  static resetAll() {
-    for (const breaker of this.breakers.values()) {
-      breaker.reset();
-    }
-  }
-  /**
-   * Get statistics for all breakers
-   */
-  static getAllStats() {
-    const stats = {};
-    for (const [name, breaker] of this.breakers) {
-      stats[name] = breaker.getStats();
-    }
-    return stats;
-  }
-};
-
-// src/core/config/ConfigurationManager.ts
-var ConfigurationManager = class _ConfigurationManager {
-  constructor() {
-    this.cache = /* @__PURE__ */ new Map();
-    this.validators = /* @__PURE__ */ new Map();
-    this.logger = createModuleLogger({
-      module: "ConfigurationManager",
-      defaultCategory: "configuration" /* CONFIGURATION */
-    });
-    this.setupDefaultValidators();
-  }
-  static getInstance() {
-    if (!_ConfigurationManager.instance) {
-      _ConfigurationManager.instance = new _ConfigurationManager();
-    }
-    return _ConfigurationManager.instance;
-  }
-  /**
-   * Get configuration value with fallback chain
-   */
-  get(key, options = {}) {
-    const cacheKey = this.getCacheKey(key, options);
-    if (this.cache.has(cacheKey) && !options.sensitive) {
-      return this.cache.get(cacheKey);
-    }
-    let value;
-    try {
-      const inputKey = this.toInputKey(key);
-      value = getConfiguration().getInput(inputKey);
-      if (value) {
-        this.logger.debug(`Found ${key} in GitHub inputs`);
-      }
-    } catch (error10) {
-    }
-    if (!value) {
-      const envKey = this.toEnvKey(key);
-      value = process.env[envKey];
-      if (value) {
-        this.logger.debug(`Found ${key} in environment`);
-      }
-    }
-    if (!value && options.defaultValue !== void 0) {
-      value = options.defaultValue;
-      this.logger.debug(`Using default value for ${key}`);
-    }
-    if (!value && options.required) {
-      const error10 = new Error(`Required configuration '${key}' is not set`);
-      errorHandler.handleError(error10, {
-        severity: "high" /* HIGH */,
-        category: "configuration" /* CONFIGURATION */,
-        userAction: `Set configuration value for ${key}`,
-        metadata: { key, options }
-      });
-      throw error10;
-    }
-    if (value && options.validate && !options.validate(value)) {
-      const error10 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
-      errorHandler.handleError(error10, {
-        severity: "high" /* HIGH */,
-        category: "configuration" /* CONFIGURATION */,
-        metadata: { key }
-      });
-      throw error10;
-    }
-    if (value && this.validators.has(key)) {
-      const rules = this.validators.get(key);
-      for (const rule of rules) {
-        if (!rule.test(value)) {
-          throw new Error(`Configuration '${key}' validation failed: ${rule.message}`);
-        }
-      }
-    }
-    if (value && options.transform) {
-      try {
-        value = options.transform(value);
-      } catch (error10) {
-        this.logger.error(`Failed to transform ${key}: ${error10}`);
-        throw error10;
-      }
-    }
-    if (value && !options.sensitive) {
-      this.cache.set(cacheKey, value);
-    }
-    return value || "";
-  }
-  /**
-   * Get boolean configuration value
-   */
-  getBoolean(key, defaultValue = false) {
-    const value = this.get(key, {
-      defaultValue: defaultValue.toString(),
-      transform: (v) => v.toLowerCase() === "true" || v === "1"
-    });
-    return typeof value === "boolean" ? value : value === "true";
-  }
-  /**
-   * Get number configuration value
-   */
-  getNumber(key, defaultValue) {
-    const value = this.get(key, {
-      defaultValue: defaultValue?.toString(),
-      validate: (v) => !isNaN(Number(v)),
-      transform: (v) => Number(v)
-    });
-    return Number(value);
-  }
-  /**
-   * Get JSON configuration value
-   */
-  getJSON(key, defaultValue) {
-    const value = this.get(key, {
-      defaultValue: defaultValue ? JSON.stringify(defaultValue) : void 0,
-      transform: (v) => {
-        try {
-          return JSON.parse(v);
-        } catch (error10) {
-          throw new Error(`Invalid JSON in ${key}: ${error10}`);
-        }
-      }
-    });
-    return value;
-  }
-  /**
-   * Get array configuration value (comma-separated)
-   */
-  getArray(key, defaultValue = []) {
-    const value = this.get(key, {
-      defaultValue: defaultValue.join(","),
-      transform: (v) => v.split(",").map((s) => s.trim()).filter(Boolean)
-    });
-    return Array.isArray(value) ? value : [];
-  }
-  /**
-   * Get sensitive configuration (no caching, no logging)
-   */
-  getSecret(key) {
-    return this.get(key, {
-      required: true,
-      sensitive: true
-    });
-  }
-  /**
-   * Set configuration value (for testing)
-   */
-  set(key, value) {
-    const envKey = this.toEnvKey(key);
-    process.env[envKey] = String(value);
-    this.cache.delete(key);
-  }
-  /**
-   * Clear cache
-   */
-  clearCache() {
-    this.cache.clear();
-  }
-  /**
-   * Register custom validator
-   */
-  addValidator(key, rule) {
-    if (!this.validators.has(key)) {
-      this.validators.set(key, []);
-    }
-    this.validators.get(key).push(rule);
-  }
-  /**
-   * Get all configuration keys
-   */
-  getAllKeys() {
-    const keys = /* @__PURE__ */ new Set();
-    Object.keys(process.env).forEach((key) => {
-      if (key.startsWith("INPUT_") || key.startsWith("YOFIX_")) {
-        keys.add(this.fromEnvKey(key));
-      }
-    });
-    return Array.from(keys);
-  }
-  /**
-   * Convert to GitHub input key format
-   */
-  toInputKey(key) {
-    return key.toLowerCase().replace(/_/g, "-");
-  }
-  /**
-   * Convert to environment variable key format
-   */
-  toEnvKey(key) {
-    return `INPUT_${key.toUpperCase().replace(/-/g, "_")}`;
-  }
-  /**
-   * Convert from environment variable key
-   */
-  fromEnvKey(envKey) {
-    return envKey.replace(/^INPUT_/, "").toLowerCase().replace(/_/g, "-");
-  }
-  /**
-   * Get cache key
-   */
-  getCacheKey(key, options) {
-    return `${key}:${JSON.stringify(options)}`;
-  }
-  /**
-   * Setup default validators
-   */
-  setupDefaultValidators() {
-    this.addValidator("preview-url", {
-      test: (value) => {
-        try {
-          new URL(value);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      message: "Must be a valid URL"
-    });
-    this.addValidator("test-timeout", {
-      test: (value) => {
-        const match = value.match(/^(\d+)(s|m|ms)?$/);
-        return !!match;
-      },
-      message: "Must be a valid timeout (e.g., 30s, 5m, 1000ms)"
-    });
-    this.addValidator("storage-provider", {
-      test: (value) => ["firebase", "s3", "github"].includes(value),
-      message: "Must be one of: firebase, s3, github"
-    });
-    this.addValidator("auth-mode", {
-      test: (value) => ["selectors", "ai", "llm", "smart", "none", "baseline"].includes(value),
-      message: "Must be one of: selectors, ai, llm, smart, none, baseline"
-    });
-  }
-};
-var config = ConfigurationManager.getInstance();
-function getRequiredConfig(key) {
-  return config.get(key, { required: true });
-}
-function getBooleanConfig(key, defaultValue = false) {
-  return config.getBoolean(key, defaultValue);
-}
-
-// src/core/utils/JSONParser.ts
-var logger = createModuleLogger({
-  module: "JSONParser",
-  defaultCategory: "processing" /* PROCESSING */
-});
-
-// src/core/utils/FileSystemWrapper.ts
-var fs3 = __toESM(require("fs/promises"));
-var fsSync = __toESM(require("fs"));
-var path3 = __toESM(require("path"));
-var logger2 = createModuleLogger({
-  module: "FileSystem",
-  defaultCategory: "file_system" /* FILE_SYSTEM */
-});
-var FileSystem = class {
-  /**
-   * Check if file exists
-   */
-  static async exists(filePath) {
-    const result = await executeOperation(
-      async () => {
-        try {
-          await fs3.access(filePath, fsSync.constants.F_OK);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      {
-        name: `Check file exists: ${path3.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "low" /* LOW */,
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Read file with error handling
-   */
-  static async read(filePath, options = {}) {
-    const result = await executeOperation(
-      async () => {
-        if (options.maxSize) {
-          const stats = await fs3.stat(filePath);
-          if (stats.size > options.maxSize) {
-            throw new Error(`File size ${stats.size} exceeds maximum ${options.maxSize}`);
-          }
-        }
-        const content = await fs3.readFile(filePath, {
-          encoding: options.encoding || "utf-8",
-          flag: options.flag
-        });
-        if (options.json) {
-          try {
-            return JSON.parse(content.toString());
-          } catch (error10) {
-            throw new Error(`Failed to parse JSON from ${filePath}: ${error10}`);
-          }
-        }
-        return content.toString();
-      },
-      {
-        name: `Read file: ${path3.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "medium" /* MEDIUM */,
-        metadata: { filePath, options },
-        fallback: null
-      }
-    );
-    return result.data;
-  }
-  /**
-   * Write file with error handling
-   */
-  static async write(filePath, content, options = {}) {
-    const result = await executeOperation(
-      async () => {
-        if (options.createDirectories) {
-          await this.ensureDirectory(path3.dirname(filePath));
-        }
-        let data;
-        if (typeof content === "object" && !Buffer.isBuffer(content)) {
-          data = JSON.stringify(content, null, 2);
-        } else {
-          data = content;
-        }
-        if (options.backup && await this.exists(filePath)) {
-          const backupPath = `${filePath}.backup`;
-          await fs3.copyFile(filePath, backupPath);
-          logger2.debug(`Created backup: ${backupPath}`);
-        }
-        if (options.atomic) {
-          const tempPath = `${filePath}.tmp`;
-          await fs3.writeFile(tempPath, data, {
-            encoding: options.encoding || "utf-8",
-            mode: options.mode,
-            flag: options.flag || "w"
-          });
-          await fs3.rename(tempPath, filePath);
-        } else {
-          await fs3.writeFile(filePath, data, {
-            encoding: options.encoding || "utf-8",
-            mode: options.mode,
-            flag: options.flag || "w"
-          });
-        }
-        return true;
-      },
-      {
-        name: `Write file: ${path3.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "medium" /* MEDIUM */,
-        metadata: { filePath, options },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Delete file or directory with error handling
-   */
-  static async delete(filePath) {
-    const result = await executeOperation(
-      async () => {
-        try {
-          const stats = await fs3.stat(filePath);
-          if (stats.isDirectory()) {
-            await fs3.rm(filePath, { recursive: true, force: true });
-          } else {
-            await fs3.unlink(filePath);
-          }
-          return true;
-        } catch (error10) {
-          if (error10.code === "ENOENT") {
-            return true;
-          }
-          throw error10;
-        }
-      },
-      {
-        name: `Delete: ${path3.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "low" /* LOW */,
-        metadata: { filePath },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Create directory with parents
-   */
-  static async ensureDirectory(dirPath) {
-    const result = await executeOperation(
-      async () => {
-        await fs3.mkdir(dirPath, { recursive: true });
-        return true;
-      },
-      {
-        name: `Create directory: ${path3.basename(dirPath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "low" /* LOW */,
-        metadata: { dirPath },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * List directory contents
-   */
-  static async listDirectory(dirPath, options = {}) {
-    const result = await executeOperation(
-      async () => {
-        const entries = await fs3.readdir(dirPath, { withFileTypes: true });
-        const files = [];
-        for (const entry of entries) {
-          const fullPath = path3.join(dirPath, entry.name);
-          if (!options.includeHidden && entry.name.startsWith(".")) {
-            continue;
-          }
-          if (options.filter && !options.filter(entry.name)) {
-            continue;
-          }
-          if (entry.isDirectory() && options.recursive) {
-            const subFiles = await this.listDirectory(fullPath, options);
-            files.push(...subFiles);
-          } else if (entry.isFile()) {
-            files.push(fullPath);
-          }
-        }
-        return files;
-      },
-      {
-        name: `List directory: ${path3.basename(dirPath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "low" /* LOW */,
-        metadata: { dirPath, options },
-        fallback: []
-      }
-    );
-    return result.data ?? [];
-  }
-  /**
-   * Copy file with retry
-   */
-  static async copy(source, destination, options = {}) {
-    return await retryOperation(
-      async () => {
-        if (!options.overwrite && await this.exists(destination)) {
-          throw new Error(`Destination file already exists: ${destination}`);
-        }
-        await this.ensureDirectory(path3.dirname(destination));
-        await fs3.copyFile(source, destination);
-        return true;
-      },
-      {
-        maxAttempts: 3,
-        delay: 1e3,
-        backoff: 2,
-        onRetry: (attempt, error10) => {
-          logger2.debug(`Copy retry ${attempt}: ${error10.message}`);
-        }
-      }
-    );
-  }
-  /**
-   * Move file (with cross-device support)
-   */
-  static async move(source, destination) {
-    const result = await executeOperation(
-      async () => {
-        try {
-          await fs3.rename(source, destination);
-        } catch (error10) {
-          if (error10.code === "EXDEV") {
-            await this.copy(source, destination);
-            await this.delete(source);
-          } else {
-            throw error10;
-          }
-        }
-        return true;
-      },
-      {
-        name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "medium" /* MEDIUM */,
-        metadata: { source, destination },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Get file stats
-   */
-  static async getStats(filePath) {
-    const result = await executeOperation(
-      async () => await fs3.stat(filePath),
-      {
-        name: `Get file stats: ${path3.basename(filePath)}`,
-        category: "file_system" /* FILE_SYSTEM */,
-        severity: "low" /* LOW */,
-        metadata: { filePath },
-        fallback: null
-      }
-    );
-    return result.data;
-  }
-  /**
-   * Watch file for changes
-   */
-  static async watch(filePath, callback) {
-    try {
-      return fsSync.watch(filePath, (event, filename) => {
-        logger2.debug(`File ${event}: ${filename}`);
-        callback(event, filename);
-      });
-    } catch (error10) {
-      logger2.error(`Failed to watch file ${filePath}: ${error10}`);
-      return null;
-    }
-  }
-  /**
-   * Create temporary file
-   */
-  static async createTempFile(prefix = "yofix", extension = ".tmp") {
-    const tempDir = process.env.TMPDIR || "/tmp";
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    const tempPath = path3.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
-    await this.write(tempPath, "", { createDirectories: true });
-    return tempPath;
-  }
-  /**
-   * Clean up old files
-   */
-  static async cleanupOldFiles(directory, maxAgeMs, pattern) {
-    let deletedCount = 0;
-    const now = Date.now();
-    try {
-      const files = await this.listDirectory(directory);
-      for (const file of files) {
-        if (pattern && !pattern.test(path3.basename(file))) {
-          continue;
-        }
-        const stats = await this.getStats(file);
-        if (stats && now - stats.mtime.getTime() > maxAgeMs) {
-          if (await this.delete(file)) {
-            deletedCount++;
-            logger2.debug(`Deleted old file: ${file}`);
-          }
-        }
-      }
-    } catch (error10) {
-      logger2.error(`Cleanup failed: ${error10}`);
-    }
-    return deletedCount;
-  }
-};
-var {
-  exists,
-  read,
-  write,
-  delete: deleteFile,
-  ensureDirectory,
-  listDirectory,
-  copy,
-  move,
-  getStats,
-  watch: watch2,
-  createTempFile,
-  cleanupOldFiles
-} = FileSystem;
-
-// src/core/utils/ValidationPatterns.ts
-var logger3 = createModuleLogger({
-  module: "ValidationPatterns",
-  defaultCategory: "validation" /* VALIDATION */
-});
-var Validators = class {
-  /**
-   * URL validation
-   */
-  static isURL(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "URL is required" };
-    }
-    try {
-      const url = new URL(value);
-      const allowedProtocols = options.protocols || ["http:", "https:"];
-      if (!allowedProtocols.includes(url.protocol)) {
-        return {
-          valid: false,
-          error: `Protocol ${url.protocol} not allowed. Use: ${allowedProtocols.join(", ")}`
-        };
-      }
-      return { valid: true };
-    } catch (error10) {
-      return { valid: false, error: "Invalid URL format" };
-    }
-  }
-  /**
-   * Email validation
-   */
-  static isEmail(value) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!value) {
-      return { valid: false, error: "Email is required" };
-    }
-    if (!emailRegex.test(value)) {
-      return { valid: false, error: "Invalid email format" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Selector validation (CSS/XPath)
-   */
-  static isSelector(value, type = "css") {
-    if (!value) {
-      return { valid: false, error: "Selector is required" };
-    }
-    if (type === "css") {
-      try {
-        document.createDocumentFragment().querySelector(value);
-        return { valid: true };
-      } catch {
-        return { valid: false, error: "Invalid CSS selector" };
-      }
-    } else {
-      if (!value.startsWith("/") && !value.startsWith("//")) {
-        return { valid: false, error: "XPath must start with / or //" };
-      }
-      return { valid: true };
-    }
-  }
-  /**
-   * GitHub token validation
-   */
-  static isGitHubToken(value) {
-    if (!value) {
-      return { valid: false, error: "GitHub token is required" };
-    }
-    const validPrefixes = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"];
-    const hasValidPrefix = validPrefixes.some((prefix) => value.startsWith(prefix));
-    if (!hasValidPrefix && !value.match(/^[a-f0-9]{40}$/)) {
-      return {
-        valid: false,
-        error: "Invalid GitHub token format",
-        details: {
-          hint: "Token should start with ghp_, gho_, etc. or be a 40-character hex string"
-        }
-      };
-    }
-    return { valid: true };
-  }
-  /**
-   * API key validation (generic)
-   */
-  static isAPIKey(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "API key is required" };
-    }
-    const { minLength = 20, maxLength = 200, pattern, prefix } = options;
-    if (value.length < minLength) {
-      return { valid: false, error: `API key must be at least ${minLength} characters` };
-    }
-    if (value.length > maxLength) {
-      return { valid: false, error: `API key must not exceed ${maxLength} characters` };
-    }
-    if (prefix && !value.startsWith(prefix)) {
-      return { valid: false, error: `API key must start with ${prefix}` };
-    }
-    if (pattern && !pattern.test(value)) {
-      return { valid: false, error: "API key format is invalid" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Port number validation
-   */
-  static isPort(value) {
-    const port = typeof value === "string" ? parseInt(value, 10) : value;
-    if (isNaN(port)) {
-      return { valid: false, error: "Port must be a number" };
-    }
-    if (port < 1 || port > 65535) {
-      return { valid: false, error: "Port must be between 1 and 65535" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Timeout validation (e.g., "30s", "5m", "1000ms")
-   */
-  static isTimeout(value) {
-    const match = value.match(/^(\d+)(ms|s|m|h)?$/);
-    if (!match) {
-      return {
-        valid: false,
-        error: "Invalid timeout format",
-        details: { example: "30s, 5m, 1000ms" }
-      };
-    }
-    const [, amount, unit = "ms"] = match;
-    const num = parseInt(amount, 10);
-    if (num <= 0) {
-      return { valid: false, error: "Timeout must be positive" };
-    }
-    const multipliers = { ms: 1, s: 1e3, m: 6e4, h: 36e5 };
-    const ms = num * multipliers[unit];
-    if (ms > 36e5) {
-      return { valid: false, error: "Timeout cannot exceed 1 hour" };
-    }
-    return { valid: true, details: { milliseconds: ms } };
-  }
-  /**
-   * File path validation
-   */
-  static isFilePath(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "File path is required" };
-    }
-    if (value.includes("..") && !options.allowRelative) {
-      return { valid: false, error: "Relative paths with .. are not allowed" };
-    }
-    if (options.extensions && options.extensions.length > 0) {
-      const hasValidExt = options.extensions.some(
-        (ext) => value.toLowerCase().endsWith(ext.toLowerCase())
-      );
-      if (!hasValidExt) {
-        return {
-          valid: false,
-          error: `File must have one of these extensions: ${options.extensions.join(", ")}`
-        };
-      }
-    }
-    return { valid: true };
-  }
-  /**
-   * JSON string validation
-   */
-  static isJSON(value) {
-    try {
-      JSON.parse(value);
-      return { valid: true };
-    } catch (error10) {
-      return {
-        valid: false,
-        error: "Invalid JSON format",
-        details: { parseError: error10 instanceof Error ? error10.message : String(error10) }
-      };
-    }
-  }
-  /**
-   * Semantic version validation
-   */
-  static isSemVer(value) {
-    const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-    if (!semverRegex.test(value)) {
-      return {
-        valid: false,
-        error: "Invalid semantic version",
-        details: { example: "1.2.3, 1.0.0-alpha, 2.1.0+build123" }
-      };
-    }
-    return { valid: true };
-  }
-};
-
-// src/core/utils/AsyncUtilities.ts
-var logger4 = createModuleLogger({
-  module: "AsyncUtilities",
-  defaultCategory: "processing" /* PROCESSING */
-});
-
-// src/core/index.ts
-function initializeCoreServices() {
-  console.log("\u2705 YoFix core services initialized");
-}
-
 // src/steps/0-initialize.step.ts
+init_core();
 function parseInputs() {
   return {
     previewUrl: getRequiredConfig("preview-url"),
@@ -27700,10 +27669,12 @@ async function initialize() {
 // src/steps/1-analyze-routes.step.ts
 var core9 = __toESM(require_core());
 var import_path2 = __toESM(require("path"));
+init_GitHubServiceFactory();
 
 // src/core/analysis/ThirdPartyRouteImpactAnalyzer.ts
 var core8 = __toESM(require_core());
 var import_analyzer = require("@yofix/analyzer");
+init_core();
 function createEmptyImpactTree(totalFilesChanged) {
   return {
     affectedRoutes: [],
@@ -27714,11 +27685,17 @@ function createEmptyImpactTree(totalFilesChanged) {
   };
 }
 async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
-  const configuration = getConfiguration();
-  const claudeApiKey = configuration.getInput("claude-api-key");
+  const claudeApiKey = config.get("claude-api-key", { required: true });
+  const modelFromConfig = config.get("claude-model", { required: true });
+  const forceRefreshInput = config.get("route-impact-force-refresh", { defaultValue: "false" });
   if (!claudeApiKey) {
     throw new Error(
       "Claude API key is required for route-impact-analyzer integration."
+    );
+  }
+  if (!modelFromConfig) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
     );
   }
   const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
@@ -27737,15 +27714,6 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
       commentBody: ""
     };
   }
-  const modelFromConfig = configuration.getInput("claude-model");
-  if (!modelFromConfig) {
-    throw new Error(
-      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
-    );
-  }
-  const forceRefreshInput = configuration.getInput(
-    "route-impact-force-refresh"
-  );
   const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
   core8.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
   core8.info(`  - Codebase path: ${process.cwd()}`);
@@ -27928,6 +27896,7 @@ No impacted routes detected.`;
 }
 
 // src/steps/1-analyze-routes.step.ts
+init_core();
 async function analyzeRoutes(stepData) {
   return executeStep("Analyze Routes", async () => {
     const { previewUrl, prNumber, githubContext } = stepData;
@@ -28085,15 +28054,10 @@ var import_path3 = __toESM(require("path"));
 // src/core/screenshot/BrowserScreenshotCapture.ts
 var core10 = __toESM(require_core());
 var import_browser = require("@yofix/browser");
+init_core();
 async function captureScreenshotsWithBrowser(options) {
-  const configuration = getConfiguration();
-  core10.info(`[DEBUG] Configuration type: ${configuration.constructor.name}`);
-  core10.info(`[DEBUG] GITHUB_ACTIONS: ${process.env.GITHUB_ACTIONS}`);
-  core10.info(`[DEBUG] NODE_ENV: ${process.env.NODE_ENV}`);
-  core10.info(`[DEBUG] INPUT_CLAUDE_API_KEY exists: ${!!process.env.INPUT_CLAUDE_API_KEY}`);
-  core10.info(`[DEBUG] INPUT_CLAUDE_API_KEY length: ${process.env.INPUT_CLAUDE_API_KEY?.length || 0}`);
-  const claudeApiKey = configuration.getInput("claude-api-key");
-  const claudeModel = configuration.getInput("claude-model");
+  const claudeApiKey = config.get("claude-api-key", { required: true });
+  const claudeModel = config.get("claude-model", { required: true });
   core10.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? "EXISTS" : "NULL"}`);
   core10.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || "NULL"}`);
   if (!claudeApiKey) {
@@ -28169,6 +28133,7 @@ async function captureScreenshotsWithBrowser(options) {
 }
 
 // src/steps/2-browse-routes.step.ts
+init_core();
 async function browseRoutes(stepData) {
   return executeStep("Browse Routes & Capture Screenshots", async () => {
     const { previewUrl, routes } = stepData;
@@ -28261,6 +28226,7 @@ function extractRoutePath(route, separator = "-") {
 }
 
 // src/steps/2.5-compare-baselines.step.ts
+init_core();
 async function compareWithBaselines(stepData) {
   return executeStep("Compare with Baselines", async () => {
     const { prNumber, screenshots, _internal: internal } = stepData;
@@ -28650,6 +28616,7 @@ async function compareWithBaselines(stepData) {
 // src/steps/3-upload-storage.step.ts
 var core14 = __toESM(require_core());
 var import_fs4 = require("fs");
+init_core();
 async function uploadToStorage(stepData) {
   return executeStep("Upload Screenshots to Storage", async () => {
     const { prNumber, screenshots, _internal: internal } = stepData;
@@ -28816,6 +28783,8 @@ var core16 = __toESM(require_core());
 
 // src/github/PRReporter.ts
 var core15 = __toESM(require_core());
+init_core();
+init_GitHubServiceFactory();
 var PRReporter = class {
   constructor() {
     this.commentEngine = getGitHubCommentEngine();
@@ -29295,6 +29264,8 @@ ${message}
 };
 
 // src/steps/4-post-results.step.ts
+init_core();
+init_GitHubServiceFactory();
 async function postResults(stepData) {
   return executeStep("Post Results to PR", async () => {
     const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata } = stepData;
@@ -29465,6 +29436,7 @@ ${timingSummary}`);
 // src/steps/5-update-baselines.step.ts
 var core17 = __toESM(require_core());
 var import_fs5 = require("fs");
+init_core();
 async function updateBaselines(stepData) {
   return executeStep("Update Baselines (Post-Merge)", async () => {
     const { prNumber, screenshots } = stepData;
@@ -29603,6 +29575,7 @@ async function updateBaselines(stepData) {
 }
 
 // src/index.ts
+init_CentralizedErrorHandler();
 async function main() {
   const workflowStartTime = Date.now();
   const manager = getStepDataManager();

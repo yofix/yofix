@@ -4,7 +4,6 @@
  */
 
 import * as core from '@actions/core';
-import { getConfiguration } from '../hooks/ConfigurationHook';
 import { errorHandler, ErrorCategory, ErrorSeverity } from '../error/CentralizedErrorHandler';
 import { createModuleLogger } from '../error/ErrorHandlerFactory';
 
@@ -61,24 +60,11 @@ export class ConfigurationManager {
 
     let value: string | undefined;
 
-    // Try GitHub Action input first
-    try {
-      const inputKey = this.toInputKey(key);
-      value = getConfiguration().getInput(inputKey);
-      if (value) {
-        this.logger.debug(`Found ${key} in GitHub inputs`);
-      }
-    } catch (error) {
-      // Not in GitHub Action context
-    }
-
-    // Try environment variable
-    if (!value) {
-      const envKey = this.toEnvKey(key);
-      value = process.env[envKey];
-      if (value) {
-        this.logger.debug(`Found ${key} in environment`);
-      }
+    // Try environment variable (INPUT_* format used by GitHub Actions)
+    const envKey = this.toEnvKey(key);
+    value = process.env[envKey];
+    if (value) {
+      this.logger.debug(`Found ${key} in environment`);
     }
 
     // Use default value

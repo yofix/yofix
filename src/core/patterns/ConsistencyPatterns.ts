@@ -6,7 +6,6 @@
 import { errorHandler, ErrorCategory, ErrorSeverity } from '../error/CentralizedErrorHandler';
 import { GitHubServiceFactory, GitHubService } from '../github/GitHubServiceFactory';
 import { botActivity } from '../bot/BotActivityHandler';
-import { getConfiguration } from '../hooks/ConfigurationHook';
 import * as core from '@actions/core';
 
 /**
@@ -223,34 +222,29 @@ export class BotOperations {
 
 /**
  * Configuration pattern for consistent settings access
+ * Note: This is now a thin wrapper around ConfigurationManager
+ * Consider using ConfigurationManager directly for new code
  */
 export class ConfigPattern {
-  private static config = getConfiguration();
-  
   static get(key: string, defaultValue?: string): string {
-    return this.config.getInput(key) || defaultValue || '';
+    // Import lazily to avoid circular dependencies
+    const { config } = require('../config/ConfigurationManager');
+    return config.get(key, { defaultValue }) || defaultValue || '';
   }
-  
+
   static getBoolean(key: string, defaultValue: boolean = false): boolean {
-    return this.config.getBooleanInput(key) || defaultValue;
+    const { config } = require('../config/ConfigurationManager');
+    return config.getBoolean(key, defaultValue);
   }
-  
+
   static getNumber(key: string, defaultValue: number = 0): number {
-    const value = this.config.getInput(key);
-    if (!value) return defaultValue;
-    const num = parseInt(value, 10);
-    return isNaN(num) ? defaultValue : num;
+    const { config } = require('../config/ConfigurationManager');
+    return config.getNumber(key, defaultValue);
   }
-  
+
   static getJson<T>(key: string, defaultValue: T): T {
-    const value = this.config.getInput(key);
-    if (!value) return defaultValue;
-    
-    try {
-      return JSON.parse(value);
-    } catch {
-      return defaultValue;
-    }
+    const { config } = require('../config/ConfigurationManager');
+    return config.getJSON(key, defaultValue) as T;
   }
 }
 

@@ -96,7 +96,18 @@ export async function postResults(stepData: StepData): Promise<StepData> {
             .map((f: any) => {
               // Retrieve original metadata (screenshotMetadataMap is an object, not a Map)
               const metadata = screenshotMetadataMap[f.localPath];
-              const viewport = metadata?.viewport || { width: 0, height: 0, name: '' };
+
+              // Find the actual screenshot data from @yofix/browser result to get real dimensions
+              const actualScreenshot = r.screenshots.find((s: any) => s.path === f.localPath);
+
+              // Use actual screenshot dimensions if available, otherwise fall back to metadata viewport
+              const viewport = actualScreenshot
+                ? {
+                    width: actualScreenshot.width,
+                    height: actualScreenshot.height,
+                    name: `${actualScreenshot.width}x${actualScreenshot.height}`
+                  }
+                : metadata?.viewport || { width: 0, height: 0, name: '' };
 
               // Find matching diff file for this screenshot
               const viewportKey = `${viewport.width}x${viewport.height}`;

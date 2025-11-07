@@ -99,6 +99,16 @@ inputs:
     description: 'Pixel difference threshold for baseline comparison (0-1, default: 0.01 = 1%)'
     required: false
     default: '0.01'
+
+  allow-height-mismatch:
+    description: 'Allow comparing screenshots with different heights (useful for dynamic content). Default: false'
+    required: false
+    default: 'true'
+
+  height-comparison-strategy:
+    description: 'Strategy for handling height differences: "crop" (compare overlapping region) or "pad" (pad smaller with white, show all changes). Default: pad'
+    required: false
+    default: 'pad'
   
   max-routes:
     description: 'Maximum number of routes to test'
@@ -234,6 +244,8 @@ runs:
         INPUT_VIEWPORTS: ${{ inputs.viewports }}
         INPUT_FULL_PAGE: ${{ inputs.full-page }}
         INPUT_COMPARISON_THRESHOLD: ${{ inputs.comparison-threshold }}
+        INPUT_ALLOW_HEIGHT_MISMATCH: ${{ inputs.allow-height-mismatch }}
+        INPUT_HEIGHT_COMPARISON_STRATEGY: ${{ inputs.height-comparison-strategy }}
         INPUT_MAX_ROUTES: ${{ inputs.max-routes }}
 
         # Authentication Configuration

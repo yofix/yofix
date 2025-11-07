@@ -56,6 +56,8 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });
     const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' });
     const comparisonThreshold = parseFloat(config.get('comparison-threshold', { defaultValue: '0.01' }));
+    const allowHeightMismatch = config.getBoolean('allow-height-mismatch', false);
+    const heightComparisonStrategy = config.get('height-comparison-strategy', { defaultValue: 'pad' }) as 'crop' | 'pad';
     const productionUrl = config.get('production-url');
 
     core.info(`📁 Storage directory: ${storageDirectory}/`);
@@ -341,6 +343,9 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     core.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
     core.info(`   Diff Format: side-by-side`);
     core.info(`   Parallel Processing: enabled (concurrency: 3)`);
+    if (allowHeightMismatch) {
+      core.info(`   Height Mismatch: allowed (strategy: ${heightComparisonStrategy})`);
+    }
 
     try {
       const result = await compareBaselines({
@@ -354,7 +359,11 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           },
           generateHash: true,
           detectRegions: true,
-          verbose: true
+          verbose: true,
+          // Height mismatch handling
+          allowHeightMismatch,
+          cropMode: heightComparisonStrategy,
+          reportDimensionDiff: true
         }
       });
 
@@ -471,6 +480,18 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           const critical = comparison.diff.regions.filter(r => r.severity === 'critical').length;
           const moderate = comparison.diff.regions.filter(r => r.severity === 'moderate').length;
           core.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+        }
+
+        // Log dimension differences if present
+        if (comparison.dimensionDiff) {
+          const { heightDiff, cropped, comparedHeight } = comparison.dimensionDiff;
+          if (heightDiff !== 0) {
+            if (cropped) {
+              core.info(`     📏 Height Difference: ${heightDiff}px (cropped to ${comparedHeight}px for comparison)`);
+            } else {
+              core.info(`     📏 Height Difference: ${heightDiff}px (padded to ${comparedHeight}px for comparison)`);
+            }
+          }
         }
       }
 

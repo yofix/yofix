@@ -28161,6 +28161,8 @@ async function compareWithBaselines(stepData) {
     const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
     const comparisonThreshold = parseFloat(config.get("comparison-threshold", { defaultValue: "0.01" }));
+    const allowHeightMismatch = config.getBoolean("allow-height-mismatch", false);
+    const heightComparisonStrategy = config.get("height-comparison-strategy", { defaultValue: "pad" });
     const productionUrl = config.get("production-url");
     core13.info(`\u{1F4C1} Storage directory: ${storageDirectory}/`);
     if (productionUrl) {
@@ -28389,6 +28391,9 @@ async function compareWithBaselines(stepData) {
     core13.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
     core13.info(`   Diff Format: side-by-side`);
     core13.info(`   Parallel Processing: enabled (concurrency: 3)`);
+    if (allowHeightMismatch) {
+      core13.info(`   Height Mismatch: allowed (strategy: ${heightComparisonStrategy})`);
+    }
     try {
       const result = await (0, import_comparator.compareBaselines)({
         comparisons: comparisonsToRun,
@@ -28402,7 +28407,11 @@ async function compareWithBaselines(stepData) {
           },
           generateHash: true,
           detectRegions: true,
-          verbose: true
+          verbose: true,
+          // Height mismatch handling
+          allowHeightMismatch,
+          cropMode: heightComparisonStrategy,
+          reportDimensionDiff: true
         }
       });
       if (!result.success) {
@@ -28498,6 +28507,16 @@ async function compareWithBaselines(stepData) {
           const critical = comparison.diff.regions.filter((r) => r.severity === "critical").length;
           const moderate = comparison.diff.regions.filter((r) => r.severity === "moderate").length;
           core13.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+        }
+        if (comparison.dimensionDiff) {
+          const { heightDiff, cropped, comparedHeight } = comparison.dimensionDiff;
+          if (heightDiff !== 0) {
+            if (cropped) {
+              core13.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (cropped to ${comparedHeight}px for comparison)`);
+            } else {
+              core13.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (padded to ${comparedHeight}px for comparison)`);
+            }
+          }
         }
       }
       const totalComparisons = result.comparisons.length;
@@ -29239,7 +29258,12 @@ async function postResults(stepData) {
           duration: r.timing?.totalTime || 0,
           screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes("/diffs/")).map((f) => {
             const metadata2 = screenshotMetadataMap[f.localPath];
-            const viewport = metadata2?.viewport || { width: 0, height: 0, name: "" };
+            const actualScreenshot = r.screenshots.find((s) => s.path === f.localPath);
+            const viewport = actualScreenshot ? {
+              width: actualScreenshot.width,
+              height: actualScreenshot.height,
+              name: `${actualScreenshot.width}x${actualScreenshot.height}`
+            } : metadata2?.viewport || { width: 0, height: 0, name: "" };
             const viewportKey = `${viewport.width}x${viewport.height}`;
             const diffFile = diffFiles.find(
               (d) => d.route === routePath && d.viewport === viewportKey

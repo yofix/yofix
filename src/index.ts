@@ -28,6 +28,9 @@ async function main(): Promise<void> {
     core.info('🚀 YoFix Visual Testing Action');
     core.info('━'.repeat(60));
 
+    // Initialize step data directory
+    await manager.initialize();
+
     // Step 0: Initialize
     core.startGroup('📋 Step 0: Initialize Workflow');
     let stepData = await initialize();

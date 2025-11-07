@@ -29726,6 +29726,7 @@ async function main8() {
     core18.info("\u2501".repeat(60));
     core18.info("\u{1F680} YoFix Visual Testing Action");
     core18.info("\u2501".repeat(60));
+    await manager.initialize();
     core18.startGroup("\u{1F4CB} Step 0: Initialize Workflow");
     let stepData = await initialize();
     await manager.save(stepData);

@@ -40,6 +40,10 @@ export async function browseRoutes(stepData: StepData): Promise<StepData> {
 
     core.info(`📱 Using ${viewports.length} viewports: ${viewports.map(v => v.name).join(', ')}`);
 
+    // Get fullPage configuration
+    const fullPage = config.getBoolean('full-page', true);
+    core.info(`📏 Full-page capture: ${fullPage ? 'Enabled (viewport width + full height)' : 'Disabled (fixed viewport dimensions)'}`);
+
     // Get authentication config if provided
     const authEmail = config.get('auth-email');
     const authPassword = config.get('auth-password');
@@ -67,6 +71,7 @@ export async function browseRoutes(stepData: StepData): Promise<StepData> {
       viewports,
       credentials,
       loginUrl: authLoginUrl,
+      fullPage,
       verbose: true
     });
 

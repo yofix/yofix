@@ -18,6 +18,7 @@ export interface BrowserScreenshotOptions {
     password: string;
   };
   loginUrl?: string;
+  fullPage?: boolean;
   verbose?: boolean;
 }
 
@@ -98,6 +99,7 @@ export async function captureScreenshotsWithBrowser(
         headless: true,
         timeout: 60000,
         waitUntil: "networkidle",
+        fullPage: options.fullPage !== undefined ? options.fullPage : true,
       },
       storage: {
         provider: "local", // Always use local storage

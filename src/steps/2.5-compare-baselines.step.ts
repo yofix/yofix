@@ -23,7 +23,7 @@ import { captureScreenshotsWithBrowser } from '../core/screenshot/BrowserScreens
 interface DiffFileInfo {
   route: string;
   viewport: string;
-  localPath: string;
+  localPath?: string;
   destination: string; // For upload step
   hasDifference: boolean;
   diffPercentage: number;
@@ -34,6 +34,7 @@ interface DiffFileInfo {
     timeCreated?: string;
     customMetadata?: Record<string, string>;
   };
+  error?: string; // Error message if comparison failed
 }
 
 /**
@@ -53,9 +54,12 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     // Get storage configuration
     const firebaseCredentials = config.get('firebase-credentials');
     const storageBucket = config.get('storage-bucket');
+    const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });
     const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' });
     const comparisonThreshold = parseFloat(config.get('comparison-threshold', { defaultValue: '0.01' }));
     const productionUrl = config.get('production-url');
+
+    core.info(`📁 Storage directory: ${storageDirectory}/`);
 
     // Get authentication config for production screenshot capture
     const authEmail = config.get('auth-email');
@@ -136,7 +140,8 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
               provider: storageProvider as 'firebase' | 's3',
               config: {
                 bucket: storageBucket,
-                credentials: credentialsBase64
+                credentials: credentialsBase64,
+                basePath: storageDirectory
               }
             } as any,
             files: [baselineKey]
@@ -154,12 +159,16 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                   throw new Error(`Viewport configuration not found for ${viewport}`);
                 }
 
+                // Get fullPage config (same as used for PR screenshots)
+                const fullPage = config.getBoolean('full-page', true);
+
                 const productionCapture = await captureScreenshotsWithBrowser({
                   routes: [routePath],
                   baseUrl: productionUrl,
                   viewports: [viewportConfig],
                   credentials,
                   loginUrl: authLoginUrl,
+                  fullPage,
                   verbose: false
                 });
 
@@ -177,7 +186,8 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                     provider: storageProvider as 'firebase' | 's3',
                     config: {
                       bucket: storageBucket,
-                      credentials: credentialsBase64
+                      credentials: credentialsBase64,
+                      basePath: storageDirectory
                     }
                   } as any,
                   files: [{
@@ -353,6 +363,32 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         const { sanitized: sanitizedRoute } = extractRoutePath(comparison.route, '_');
         const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
         const diffFilePath = path.join(diffOutputDir, diffFileName);
+
+        // Check if comparison had an error (e.g., dimension mismatch)
+        if (comparison.error) {
+          core.warning(`\n  ⚠️  ${comparison.route} (${comparison.viewport}):`);
+          core.warning(`     Error: ${comparison.error}`);
+
+          // Retrieve baseline URL and metadata from map
+          const comparisonKey = `${comparison.route}_${comparison.viewport}`;
+          const baselineUrl = baselineUrlMap.get(comparisonKey);
+          const baselineMetadata = baselineMetadataMap.get(comparisonKey);
+
+          diffFilesInfo.push({
+            route: comparison.route,
+            viewport: comparison.viewport,
+            localPath: undefined,
+            destination: `pr-${prNumber}/diffs/${diffFileName}`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: 'error',
+            baselineUrl,
+            baselineMetadata,
+            metrics: {},
+            error: comparison.error
+          });
+          continue;
+        }
 
         // Save diff image if differences were found
         if (comparison.diff && comparison.diff.buffer) {

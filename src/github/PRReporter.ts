@@ -339,8 +339,12 @@ ${message}
           comparisonCell = `✅ **${comp.diffPercentage.toFixed(2)}% diff**<br/>No issues detected`;
           break;
         case 'changed':
+          // Use more precision for very small differences
+          const displayPercentage = comp.diffPercentage < 0.01
+            ? comp.diffPercentage.toFixed(4)
+            : comp.diffPercentage.toFixed(2);
           const diffIcon = comp.diffPercentage > 5 ? '🚨' : comp.diffPercentage > 1 ? '⚠️' : 'ℹ️';
-          comparisonCell = `${diffIcon} **${comp.diffPercentage.toFixed(2)}% diff**<br/>`;
+          comparisonCell = `${diffIcon} **${displayPercentage}% diff**<br/>`;
           if (comp.diffImageUrl) {
             comparisonCell += `[View Diff](${comp.diffImageUrl})`;
           } else {
@@ -348,7 +352,20 @@ ${message}
           }
           break;
         case 'error':
-          comparisonCell = `❌ **Comparison Failed**<br/>Unable to compare images`;
+          // Extract error details if available
+          let errorMsg = comp.metrics?.error || 'Unable to compare images';
+
+          // Provide helpful context for dimension mismatches
+          if (errorMsg.includes('dimensions do not match')) {
+            errorMsg = errorMsg.replace(
+              'Image dimensions do not match:',
+              '📏 **Dimension Mismatch**<br/>Images have different sizes:'
+            );
+            errorMsg += '<br/><br/>ℹ️ **Why?** Baseline was captured at different settings (likely viewport-only vs full-page)';
+            errorMsg += '<br/>🔧 **Fix:** Delete old baselines from storage and re-run to create new full-page baselines';
+          }
+
+          comparisonCell = `❌ **Cannot Compare**<br/>${errorMsg}`;
           break;
         default:
           comparisonCell = `❓ **Unknown Status**`;

@@ -27424,6 +27424,7 @@ async function uploadToStorage(stepData) {
     }
     const firebaseCredentials = config.get("firebase-credentials");
     const storageBucket = config.get("storage-bucket");
+    const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
     if (!firebaseCredentials || !storageBucket) {
       core7.warning("\u26A0\uFE0F Firebase storage not configured. Screenshots saved locally only.");
@@ -27440,6 +27441,7 @@ async function uploadToStorage(stepData) {
     }
     core7.info(`\u{1F4E4} Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
     core7.info(`  Storage Bucket: ${storageBucket}`);
+    core7.info(`  Storage Directory: ${storageDirectory}/`);
     const screenshotMetadataMap = /* @__PURE__ */ new Map();
     const filesForUpload = internal.screenshotResult.screenshots.flatMap(
       (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
@@ -27504,13 +27506,14 @@ async function uploadToStorage(stepData) {
     let storageUrl = "";
     try {
       const { uploadFiles } = await import("@yofix/storage");
+      const basePath = storageDirectory ? `${storageDirectory}/pr-${prNumber}/screenshots` : `pr-${prNumber}/screenshots`;
       const uploadResult = await uploadFiles({
         storage: {
           provider: storageProvider,
           config: {
             bucket: storageBucket,
             credentials: credentialsBase64,
-            basePath: `pr-${prNumber}/screenshots`
+            basePath
           }
         },
         // Type assertion for external package

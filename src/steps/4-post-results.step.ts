@@ -116,7 +116,10 @@ export async function postResults(stepData: StepData): Promise<StepData> {
                 hasDifference: diffFile.hasDifference,
                 diffPercentage: diffFile.diffPercentage || 0,
                 diffImageUrl: diffImageFile?.url || null,
-                metrics: diffFile.metrics
+                metrics: {
+                  ...diffFile.metrics,
+                  error: diffFile.error // Include error message if present
+                }
               } : null;
 
               // Construct baseline data if available

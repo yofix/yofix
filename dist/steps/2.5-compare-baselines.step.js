@@ -27491,7 +27491,8 @@ async function captureScreenshotsWithBrowser(options) {
       browser: {
         headless: true,
         timeout: 6e4,
-        waitUntil: "networkidle"
+        waitUntil: "networkidle",
+        fullPage: options.fullPage !== void 0 ? options.fullPage : true
       },
       storage: {
         provider: "local"
@@ -27527,9 +27528,11 @@ async function compareWithBaselines(stepData) {
     core9.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
     const firebaseCredentials = config.get("firebase-credentials");
     const storageBucket = config.get("storage-bucket");
+    const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
     const comparisonThreshold = parseFloat(config.get("comparison-threshold", { defaultValue: "0.01" }));
     const productionUrl = config.get("production-url");
+    core9.info(`\u{1F4C1} Storage directory: ${storageDirectory}/`);
     const authEmail = config.get("auth-email");
     const authPassword = config.get("auth-password");
     const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
@@ -27587,7 +27590,8 @@ async function compareWithBaselines(stepData) {
               provider: storageProvider,
               config: {
                 bucket: storageBucket,
-                credentials: credentialsBase64
+                credentials: credentialsBase64,
+                basePath: storageDirectory
               }
             },
             files: [baselineKey]
@@ -27600,12 +27604,14 @@ async function compareWithBaselines(stepData) {
                 if (!viewportConfig) {
                   throw new Error(`Viewport configuration not found for ${viewport}`);
                 }
+                const fullPage = config.getBoolean("full-page", true);
                 const productionCapture = await captureScreenshotsWithBrowser({
                   routes: [routePath],
                   baseUrl: productionUrl,
                   viewports: [viewportConfig],
                   credentials,
                   loginUrl: authLoginUrl,
+                  fullPage,
                   verbose: false
                 });
                 if (!productionCapture.success || productionCapture.screenshots.length === 0) {
@@ -27619,7 +27625,8 @@ async function compareWithBaselines(stepData) {
                     provider: storageProvider,
                     config: {
                       bucket: storageBucket,
-                      credentials: credentialsBase64
+                      credentials: credentialsBase64,
+                      basePath: storageDirectory
                     }
                   },
                   files: [{
@@ -27774,6 +27781,28 @@ async function compareWithBaselines(stepData) {
         const { sanitized: sanitizedRoute } = extractRoutePath(comparison.route, "_");
         const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
         const diffFilePath = import_path2.default.join(diffOutputDir, diffFileName);
+        if (comparison.error) {
+          core9.warning(`
+  \u26A0\uFE0F  ${comparison.route} (${comparison.viewport}):`);
+          core9.warning(`     Error: ${comparison.error}`);
+          const comparisonKey2 = `${comparison.route}_${comparison.viewport}`;
+          const baselineUrl2 = baselineUrlMap.get(comparisonKey2);
+          const baselineMetadata2 = baselineMetadataMap.get(comparisonKey2);
+          diffFilesInfo.push({
+            route: comparison.route,
+            viewport: comparison.viewport,
+            localPath: void 0,
+            destination: `pr-${prNumber}/diffs/${diffFileName}`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: "error",
+            baselineUrl: baselineUrl2,
+            baselineMetadata: baselineMetadata2,
+            metrics: {},
+            error: comparison.error
+          });
+          continue;
+        }
         if (comparison.diff && comparison.diff.buffer) {
           await import_fs2.promises.writeFile(diffFilePath, comparison.diff.buffer);
           core9.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);

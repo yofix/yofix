@@ -24075,7 +24075,8 @@ async function captureScreenshotsWithBrowser(options) {
       browser: {
         headless: true,
         timeout: 6e4,
-        waitUntil: "networkidle"
+        waitUntil: "networkidle",
+        fullPage: options.fullPage !== void 0 ? options.fullPage : true
       },
       storage: {
         provider: "local"
@@ -27510,6 +27511,8 @@ async function browseRoutes(stepData) {
       return { width, height, name: `${width}x${height}` };
     });
     core8.info(`\u{1F4F1} Using ${viewports.length} viewports: ${viewports.map((v) => v.name).join(", ")}`);
+    const fullPage = config.getBoolean("full-page", true);
+    core8.info(`\u{1F4CF} Full-page capture: ${fullPage ? "Enabled (viewport width + full height)" : "Disabled (fixed viewport dimensions)"}`);
     const authEmail = config.get("auth-email");
     const authPassword = config.get("auth-password");
     const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
@@ -27528,6 +27531,7 @@ async function browseRoutes(stepData) {
       viewports,
       credentials,
       loginUrl: authLoginUrl,
+      fullPage,
       verbose: true
     });
     if (!screenshotResult.success) {

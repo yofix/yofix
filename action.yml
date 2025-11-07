@@ -42,7 +42,12 @@ inputs:
   storage-bucket:
     description: 'Firebase Storage bucket name'
     required: false
-  
+
+  storage-directory:
+    description: 'Base directory in storage for all YoFix files (baselines, screenshots, diffs, cache). Default: yofix'
+    required: false
+    default: 'yofix'
+
   # S3 Storage
   s3-bucket:
     description: 'AWS S3 bucket name'
@@ -84,6 +89,11 @@ inputs:
     description: 'Comma-separated viewport sizes (e.g., 1920x1080,768x1024,375x667)'
     required: false
     default: '1920x1080,768x1024,375x667'
+
+  full-page:
+    description: 'Capture full-page height (true) or fixed viewport height (false). When true, uses viewport width but captures entire page height.'
+    required: false
+    default: 'true'
 
   comparison-threshold:
     description: 'Pixel difference threshold for baseline comparison (0-1, default: 0.01 = 1%)'

@@ -34,6 +34,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
 
     const firebaseCredentials = config.get('firebase-credentials');
     const storageBucket = config.get('storage-bucket');
+    const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });
     const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' });
 
     // Skip upload if storage not configured
@@ -54,6 +55,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
 
     core.info(`📤 Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
     core.info(`  Storage Bucket: ${storageBucket}`);
+    core.info(`  Storage Directory: ${storageDirectory}/`);
 
     // Prepare files for upload from screenshotResult
     const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any; duration?: number }>();
@@ -135,13 +137,17 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
       const { uploadFiles } = await import('@yofix/storage');
 
       // Upload using @yofix/storage
+      const basePath = storageDirectory
+        ? `${storageDirectory}/pr-${prNumber}/screenshots`
+        : `pr-${prNumber}/screenshots`;
+
       const uploadResult = await uploadFiles({
         storage: {
           provider: storageProvider as 'firebase' | 's3',
           config: {
             bucket: storageBucket,
             credentials: credentialsBase64,
-            basePath: `pr-${prNumber}/screenshots`
+            basePath
           }
         } as any, // Type assertion for external package
         files: filesForUpload,

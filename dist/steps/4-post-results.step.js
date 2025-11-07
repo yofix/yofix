@@ -27472,7 +27472,7 @@ ${message}
    * Generate a single row for the comparison table
    */
   generateComparisonTableRow(screenshot) {
-    var _a, _b;
+    var _a, _b, _c;
     const viewport = `**${screenshot.viewport.width}\xD7${screenshot.viewport.height}**`;
     let baselineCell = `${viewport}<br/>`;
     if ((_a = screenshot.baseline) == null ? void 0 : _a.url) {
@@ -27501,8 +27501,9 @@ ${message}
           comparisonCell = `\u2705 **${comp.diffPercentage.toFixed(2)}% diff**<br/>No issues detected`;
           break;
         case "changed":
+          const displayPercentage = comp.diffPercentage < 0.01 ? comp.diffPercentage.toFixed(4) : comp.diffPercentage.toFixed(2);
           const diffIcon = comp.diffPercentage > 5 ? "\u{1F6A8}" : comp.diffPercentage > 1 ? "\u26A0\uFE0F" : "\u2139\uFE0F";
-          comparisonCell = `${diffIcon} **${comp.diffPercentage.toFixed(2)}% diff**<br/>`;
+          comparisonCell = `${diffIcon} **${displayPercentage}% diff**<br/>`;
           if (comp.diffImageUrl) {
             comparisonCell += `[View Diff](${comp.diffImageUrl})`;
           } else {
@@ -27510,7 +27511,16 @@ ${message}
           }
           break;
         case "error":
-          comparisonCell = `\u274C **Comparison Failed**<br/>Unable to compare images`;
+          let errorMsg = ((_c = comp.metrics) == null ? void 0 : _c.error) || "Unable to compare images";
+          if (errorMsg.includes("dimensions do not match")) {
+            errorMsg = errorMsg.replace(
+              "Image dimensions do not match:",
+              "\u{1F4CF} **Dimension Mismatch**<br/>Images have different sizes:"
+            );
+            errorMsg += "<br/><br/>\u2139\uFE0F **Why?** Baseline was captured at different settings (likely viewport-only vs full-page)";
+            errorMsg += "<br/>\u{1F527} **Fix:** Delete old baselines from storage and re-run to create new full-page baselines";
+          }
+          comparisonCell = `\u274C **Cannot Compare**<br/>${errorMsg}`;
           break;
         default:
           comparisonCell = `\u2753 **Unknown Status**`;
@@ -27992,7 +28002,11 @@ async function postResults(stepData) {
               hasDifference: diffFile.hasDifference,
               diffPercentage: diffFile.diffPercentage || 0,
               diffImageUrl: (diffImageFile == null ? void 0 : diffImageFile.url) || null,
-              metrics: diffFile.metrics
+              metrics: {
+                ...diffFile.metrics,
+                error: diffFile.error
+                // Include error message if present
+              }
             } : null;
             const baselineData = (diffFile == null ? void 0 : diffFile.baselineUrl) ? {
               url: diffFile.baselineUrl,

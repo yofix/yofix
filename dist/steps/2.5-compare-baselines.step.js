@@ -27549,9 +27549,16 @@ async function compareWithBaselines(stepData) {
     let newScreenshots = 0;
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
+      let routePath = route;
+      try {
+        const url = new URL(route);
+        routePath = url.pathname;
+      } catch {
+        routePath = route;
+      }
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
-        const sanitizedRoute = route.replace(/\//g, "_");
+        const sanitizedRoute = routePath.replace(/\//g, "_");
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
         core8.info(`  Checking baseline for ${route} (${viewport})`);
         try {
@@ -27574,7 +27581,7 @@ async function compareWithBaselines(stepData) {
                   throw new Error(`Viewport configuration not found for ${viewport}`);
                 }
                 const productionCapture = await captureScreenshotsWithBrowser({
-                  routes: [route],
+                  routes: [routePath],
                   baseUrl: productionUrl,
                   viewports: [viewportConfig],
                   credentials,
@@ -27615,7 +27622,7 @@ async function compareWithBaselines(stepData) {
                 core8.info(`    \u2705 Baseline created from production`);
                 const currentBuffer2 = await import_fs2.promises.readFile(screenshot.path);
                 comparisonsToRun.push({
-                  route,
+                  route: routePath,
                   viewport,
                   current: currentBuffer2,
                   baseline: productionBuffer
@@ -27652,12 +27659,12 @@ async function compareWithBaselines(stepData) {
           const baselineBuffer = baselineResult.files[0].buffer;
           const baselineUrl = baselineResult.files[0].url;
           const currentBuffer = await import_fs2.promises.readFile(screenshot.path);
-          const comparisonKey = `${route}_${viewport}`;
+          const comparisonKey = `${routePath}_${viewport}`;
           if (baselineUrl) {
             baselineUrlMap.set(comparisonKey, baselineUrl);
           }
           comparisonsToRun.push({
-            route,
+            route: routePath,
             viewport,
             current: currentBuffer,
             baseline: baselineBuffer

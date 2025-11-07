@@ -116,9 +116,19 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
 
+      // Extract just the pathname from the route (in case it's a full URL)
+      let routePath = route;
+      try {
+        const url = new URL(route);
+        routePath = url.pathname;
+      } catch {
+        // If it's not a valid URL, use it as-is (it's already a path)
+        routePath = route;
+      }
+
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
-        const sanitizedRoute = route.replace(/\//g, '_');
+        const sanitizedRoute = routePath.replace(/\//g, '_');
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
 
         core.info(`  Checking baseline for ${route} (${viewport})`);
@@ -149,7 +159,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                 }
 
                 const productionCapture = await captureScreenshotsWithBrowser({
-                  routes: [route],
+                  routes: [routePath],
                   baseUrl: productionUrl,
                   viewports: [viewportConfig],
                   credentials,
@@ -198,7 +208,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                 // Now add to comparisons with the production screenshot as baseline
                 const currentBuffer = await fs.readFile(screenshot.path);
                 comparisonsToRun.push({
-                  route,
+                  route: routePath,
                   viewport,
                   current: currentBuffer,
                   baseline: productionBuffer
@@ -241,14 +251,14 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           const baselineUrl = baselineResult.files[0].url; // URL from @yofix/storage
           const currentBuffer = await fs.readFile(screenshot.path);
 
-          // Store baseline URL for later retrieval
-          const comparisonKey = `${route}_${viewport}`;
+          // Store baseline URL for later retrieval (use routePath for consistency)
+          const comparisonKey = `${routePath}_${viewport}`;
           if (baselineUrl) {
             baselineUrlMap.set(comparisonKey, baselineUrl);
           }
 
           comparisonsToRun.push({
-            route,
+            route: routePath,
             viewport,
             current: currentBuffer,
             baseline: baselineBuffer

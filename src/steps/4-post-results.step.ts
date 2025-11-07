@@ -122,7 +122,23 @@ export async function postResults(stepData: StepData): Promise<StepData> {
               // Construct baseline data if available
               const baselineData = diffFile?.baselineUrl ? {
                 url: diffFile.baselineUrl,
-                updatedDate: 'From storage' // Can be enhanced with actual date
+                updatedDate: (() => {
+                  // Try to get date from customMetadata.createdAt first (when baseline was created from production)
+                  if (diffFile.baselineMetadata?.customMetadata?.createdAt) {
+                    const timestamp = parseInt(diffFile.baselineMetadata.customMetadata.createdAt);
+                    return new Date(timestamp).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    });
+                  }
+                  // Otherwise use timeCreated from storage (original file creation time)
+                  if (diffFile.baselineMetadata?.timeCreated) {
+                    return new Date(diffFile.baselineMetadata.timeCreated).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    });
+                  }
+                  // Fallback to generic message
+                  return 'From storage';
+                })()
               } : null;
 
               return {

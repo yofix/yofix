@@ -27996,8 +27996,25 @@ async function postResults(stepData) {
             } : null;
             const baselineData = (diffFile == null ? void 0 : diffFile.baselineUrl) ? {
               url: diffFile.baselineUrl,
-              updatedDate: "From storage"
-              // Can be enhanced with actual date
+              updatedDate: (() => {
+                var _a3, _b2, _c2;
+                if ((_b2 = (_a3 = diffFile.baselineMetadata) == null ? void 0 : _a3.customMetadata) == null ? void 0 : _b2.createdAt) {
+                  const timestamp = parseInt(diffFile.baselineMetadata.customMetadata.createdAt);
+                  return new Date(timestamp).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric"
+                  });
+                }
+                if ((_c2 = diffFile.baselineMetadata) == null ? void 0 : _c2.timeCreated) {
+                  return new Date(diffFile.baselineMetadata.timeCreated).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric"
+                  });
+                }
+                return "From storage";
+              })()
             } : null;
             return {
               name: `${routePath}-${viewport.width}x${viewport.height}.png`,

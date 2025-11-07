@@ -27572,6 +27572,7 @@ async function compareWithBaselines(stepData) {
     const comparisonsToRun = [];
     const diffFilesInfo = [];
     const baselineUrlMap = /* @__PURE__ */ new Map();
+    const baselineMetadataMap = /* @__PURE__ */ new Map();
     let newScreenshots = 0;
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
@@ -27677,10 +27678,15 @@ async function compareWithBaselines(stepData) {
           }
           const baselineBuffer = baselineResult.files[0].buffer;
           const baselineUrl = baselineResult.files[0].url;
+          const baselineMetadata = {
+            timeCreated: baselineResult.files[0].timeCreated,
+            customMetadata: baselineResult.files[0].customMetadata
+          };
           const currentBuffer = await import_fs2.promises.readFile(screenshot.path);
           const comparisonKey = `${routePath}_${viewport}`;
           if (baselineUrl) {
             baselineUrlMap.set(comparisonKey, baselineUrl);
+            baselineMetadataMap.set(comparisonKey, baselineMetadata);
           }
           comparisonsToRun.push({
             route: routePath,
@@ -27777,6 +27783,7 @@ async function compareWithBaselines(stepData) {
         else unchangedCount++;
         const comparisonKey = `${comparison.route}_${comparison.viewport}`;
         const baselineUrl = baselineUrlMap.get(comparisonKey);
+        const baselineMetadata = baselineMetadataMap.get(comparisonKey);
         diffFilesInfo.push({
           route: comparison.route,
           viewport: comparison.viewport,
@@ -27787,6 +27794,7 @@ async function compareWithBaselines(stepData) {
           diffPercentage: comparison.diffPercentage,
           status,
           baselineUrl,
+          baselineMetadata,
           metrics: {
             similarity: comparison.similarity,
             pixelDifference: comparison.pixelDifference,

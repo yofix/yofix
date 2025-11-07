@@ -30,6 +30,10 @@ interface DiffFileInfo {
   status: 'new' | 'unchanged' | 'changed' | 'error';
   metrics?: any;
   baselineUrl?: string; // Public URL of baseline image from @yofix/storage
+  baselineMetadata?: {
+    timeCreated?: string;
+    customMetadata?: Record<string, string>;
+  };
 }
 
 /**
@@ -112,6 +116,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     const comparisonsToRun = [];
     const diffFilesInfo: DiffFileInfo[] = [];
     const baselineUrlMap = new Map<string, string>(); // key: route_viewport, value: baseline URL
+    const baselineMetadataMap = new Map<string, { timeCreated?: string; customMetadata?: Record<string, string> }>(); // key: route_viewport, value: metadata
     let newScreenshots = 0;
 
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
@@ -240,12 +245,17 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           // Baseline found - add to comparisons
           const baselineBuffer = baselineResult.files[0].buffer;
           const baselineUrl = baselineResult.files[0].url; // URL from @yofix/storage
+          const baselineMetadata = {
+            timeCreated: baselineResult.files[0].timeCreated,
+            customMetadata: baselineResult.files[0].customMetadata
+          };
           const currentBuffer = await fs.readFile(screenshot.path);
 
-          // Store baseline URL for later retrieval (use routePath for consistency)
+          // Store baseline URL and metadata for later retrieval (use routePath for consistency)
           const comparisonKey = `${routePath}_${viewport}`;
           if (baselineUrl) {
             baselineUrlMap.set(comparisonKey, baselineUrl);
+            baselineMetadataMap.set(comparisonKey, baselineMetadata);
           }
 
           comparisonsToRun.push({
@@ -354,9 +364,10 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         if (status === 'changed') changedCount++;
         else unchangedCount++;
 
-        // Retrieve baseline URL from map
+        // Retrieve baseline URL and metadata from map
         const comparisonKey = `${comparison.route}_${comparison.viewport}`;
         const baselineUrl = baselineUrlMap.get(comparisonKey);
+        const baselineMetadata = baselineMetadataMap.get(comparisonKey);
 
         diffFilesInfo.push({
           route: comparison.route,
@@ -368,6 +379,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           diffPercentage: comparison.diffPercentage,
           status,
           baselineUrl,
+          baselineMetadata,
           metrics: {
             similarity: comparison.similarity,
             pixelDifference: comparison.pixelDifference,

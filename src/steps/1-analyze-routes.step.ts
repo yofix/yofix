@@ -26,20 +26,7 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
   return executeStep('Analyze Routes', async () => {
     const { previewUrl, prNumber, githubContext } = stepData;
 
-    // Skip route analysis if not in PR context
-    if (prNumber === 0) {
-      core.warning('⚠️ No PR number detected. Skipping route analysis and defaulting to homepage.');
-      return {
-        ...stepData,
-        routes: {
-          affectedRoutes: ['/'],
-          impactTree: null,
-          routesToTest: null,
-          components: ['App'],
-          impactCommentBody: null
-        }
-      };
-    }
+   
 
     let impactTree: ExternalRouteImpactTree | null = null;
     let routesToTest: ExternalRouteImpactTree | null = null;

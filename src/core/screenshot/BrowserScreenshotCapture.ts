@@ -67,9 +67,12 @@ export async function captureScreenshotsWithBrowser(
 
   const startTime = Date.now();
 
+  // Use GITHUB_WORKSPACE for user's repo, not action's installation directory
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
+
   // Call route-impact-browser (local storage only)
   const result = await captureRouteScreenshots({
-    codebase: { path: process.cwd() },
+    codebase: { path: codebasePath },
     routes: options.routes,
     baseUrl: options.baseUrl,
     credentials: options.credentials,

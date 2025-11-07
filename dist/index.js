@@ -27715,14 +27715,15 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     };
   }
   const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
   core8.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
-  core8.info(`  - Codebase path: ${process.cwd()}`);
+  core8.info(`  - Codebase path: ${codebasePath}`);
   core8.info(`  - Changed files count: ${changedFiles.length}`);
   core8.info(`  - Base URL: ${previewUrl}`);
   core8.info(`  - Model: ${modelFromConfig}`);
   core8.info(`  - Force refresh: ${forceRefresh}`);
   const result = await (0, import_analyzer.analyzeRouteImpact)({
-    codebase: { path: process.cwd() },
+    codebase: { path: codebasePath },
     changedFiles,
     options: {
       baseUrl: previewUrl,
@@ -27900,19 +27901,6 @@ init_core();
 async function analyzeRoutes(stepData) {
   return executeStep("Analyze Routes", async () => {
     const { previewUrl, prNumber, githubContext } = stepData;
-    if (prNumber === 0) {
-      core9.warning("\u26A0\uFE0F No PR number detected. Skipping route analysis and defaulting to homepage.");
-      return {
-        ...stepData,
-        routes: {
-          affectedRoutes: ["/"],
-          impactTree: null,
-          routesToTest: null,
-          components: ["App"],
-          impactCommentBody: null
-        }
-      };
-    }
     let impactTree = null;
     let routesToTest = null;
     let affectedRoutes = [];
@@ -28075,8 +28063,9 @@ async function captureScreenshotsWithBrowser(options) {
   core10.info(`  - Base URL: ${options.baseUrl}`);
   core10.info(`  - Viewports: ${options.viewports.length}`);
   const startTime = Date.now();
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
   const result = await (0, import_browser.captureRouteScreenshots)({
-    codebase: { path: process.cwd() },
+    codebase: { path: codebasePath },
     routes: options.routes,
     baseUrl: options.baseUrl,
     credentials: options.credentials,

@@ -93,15 +93,18 @@ export async function analyzeRoutesWithExternalTool(
     forceRefreshInput === "True" ||
     forceRefreshInput === "TRUE";
 
+  // Use GITHUB_WORKSPACE for user's repo, not action's installation directory
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
+
   core.info(`📊 Calling route-impact-analyzer with:`);
-  core.info(`  - Codebase path: ${process.cwd()}`);
+  core.info(`  - Codebase path: ${codebasePath}`);
   core.info(`  - Changed files count: ${changedFiles.length}`);
   core.info(`  - Base URL: ${previewUrl}`);
   core.info(`  - Model: ${modelFromConfig}`);
   core.info(`  - Force refresh: ${forceRefresh}`);
 
   const result = await analyzeRouteImpact({
-    codebase: { path: process.cwd() },
+    codebase: { path: codebasePath },
     changedFiles,
     options: {
       baseUrl: previewUrl,

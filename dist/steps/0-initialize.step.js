@@ -24023,7 +24023,7 @@ function getEnvironmentDefault(key) {
   if (key === "GITHUB_ACTIONS") {
     return environmentDefaults.github.actions;
   }
-  if (key === "CLAUDE_API_KEY" || key === "ANTHROPIC_API_KEY") {
+  if (key === "CLAUDE_API_KEY" || key === "CLAUDE_API_KEY") {
     return environmentDefaults.ai.claudeApiKey;
   }
   if (key === "FIREBASE_PROJECT_ID") {

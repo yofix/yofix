@@ -55,6 +55,10 @@ export async function postResults(stepData: StepData): Promise<StepData> {
     // Handle screenshotMetadataMap as object (JSON deserialized)
     const screenshotMetadataMap = internal?.screenshotMetadataMap || {};
 
+    // Extract comparison data from Step 2.5
+    const comparison = stepData.comparison || { hasChanges: false, diffCount: 0, diffFiles: [] };
+    const diffFiles = internal?.diffFiles || [];
+
     if (!screenshotResult) {
       throw new Error('Screenshot result not found in step data');
     }
@@ -102,11 +106,37 @@ export async function postResults(stepData: StepData): Promise<StepData> {
           status: r.success !== false ? 'passed' : 'failed',
           duration: r.timing?.totalTime || 0,
           screenshots: uploadedFiles
-            .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute))
+            .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes('/diffs/'))
             .map((f: any) => {
               // Retrieve original metadata (screenshotMetadataMap is an object, not a Map)
               const metadata = screenshotMetadataMap[f.localPath];
               const viewport = metadata?.viewport || { width: 0, height: 0, name: '' };
+
+              // Find matching diff file for this screenshot
+              const viewportKey = `${viewport.width}x${viewport.height}`;
+              const diffFile = diffFiles.find((d: any) =>
+                d.route === routePath && d.viewport === viewportKey
+              );
+
+              // Find diff image URL from uploadedFiles
+              const diffImageFile = diffFile ? uploadedFiles.find((uf: any) =>
+                uf.localPath === diffFile.localPath
+              ) : null;
+
+              // Construct comparison data if available
+              const comparisonData = diffFile ? {
+                status: diffFile.status,
+                hasDifference: diffFile.hasDifference,
+                diffPercentage: diffFile.diffPercentage || 0,
+                diffImageUrl: diffImageFile?.url || null,
+                metrics: diffFile.metrics
+              } : null;
+
+              // Construct baseline data if available
+              const baselineData = diffFile?.baselineUrl ? {
+                url: diffFile.baselineUrl,
+                updatedDate: 'From storage' // Can be enhanced with actual date
+              } : null;
 
               return {
                 name: `${routePath}-${viewport.width}x${viewport.height}.png`,
@@ -115,7 +145,9 @@ export async function postResults(stepData: StepData): Promise<StepData> {
                 timestamp: Date.now(),
                 firebaseUrl: f.url || '',
                 route: routePath,
-                duration: metadata?.duration
+                duration: metadata?.duration,
+                comparison: comparisonData,
+                baseline: baselineData
               };
             }),
           videos: [],

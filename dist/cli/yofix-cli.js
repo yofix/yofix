@@ -41209,7 +41209,7 @@ function getEnvironmentDefault(key) {
   if (key === "GITHUB_ACTIONS") {
     return environmentDefaults.github.actions;
   }
-  if (key === "CLAUDE_API_KEY" || key === "ANTHROPIC_API_KEY") {
+  if (key === "CLAUDE_API_KEY" || key === "CLAUDE_API_KEY") {
     return environmentDefaults.ai.claudeApiKey;
   }
   if (key === "FIREBASE_PROJECT_ID") {
@@ -44516,15 +44516,30 @@ if (fs6.existsSync(envLocal)) {
 }
 var program2 = new Command();
 program2.name("yofix").description("YoFix CLI - AI-powered visual issue detection and auto-fix").version("1.0.0");
-program2.command("scan <url>").description("Scan a URL for visual issues").option("-r, --routes <routes...>", "Specific routes to scan", ["/"]).option("-v, --viewports <viewports...>", "Viewports to test", ["1920x1080", "768x1024", "375x667"]).option("-o, --output <file>", "Output results to file").option("--claude-key <key>", "Claude API key (or set CLAUDE_API_KEY env var)").action(async (url, options) => {
+program2.command("scan <url>").description("Scan a URL for visual issues").option("-r, --routes <routes...>", "Specific routes to scan", ["/"]).option("-v, --viewports <viewports...>", "Viewports to test", [
+  "1920x1080",
+  "768x1024",
+  "375x667"
+]).option("-o, --output <file>", "Output results to file").option(
+  "--claude-key <key>",
+  "Claude API key (or set CLAUDE_API_KEY env var)"
+).action(async (url, options) => {
   const claudeKey = options.claudeKey || process.env.CLAUDE_API_KEY;
   if (!claudeKey) {
-    console.error(source_default.red("Error: Claude API key required. Set CLAUDE_API_KEY or use --claude-key"));
+    console.error(
+      source_default.red(
+        "Error: Claude API key required. Set CLAUDE_API_KEY or use --claude-key"
+      )
+    );
     process.exit(1);
   }
   console.log(source_default.blue(`\u{1F50D} Scanning ${url}...`));
   try {
-    console.log(source_default.yellow("\u26A0\uFE0F Visual analysis removed - only simple screenshot capture supported"));
+    console.log(
+      source_default.yellow(
+        "\u26A0\uFE0F Visual analysis removed - only simple screenshot capture supported"
+      )
+    );
     console.log(source_default.blue("Use the GitHub Action for full functionality"));
     process.exit(0);
   } catch (error3) {
@@ -44532,7 +44547,10 @@ program2.command("scan <url>").description("Scan a URL for visual issues").optio
     process.exit(1);
   }
 });
-program2.command("fix <issue-file>").description("Generate fixes for issues in a scan result file").option("--claude-key <key>", "Claude API key (or set CLAUDE_API_KEY env var)").option("-o, --output <file>", "Output fixes to file").action(async (issueFile, options) => {
+program2.command("fix <issue-file>").description("Generate fixes for issues in a scan result file").option(
+  "--claude-key <key>",
+  "Claude API key (or set CLAUDE_API_KEY env var)"
+).option("-o, --output <file>", "Output fixes to file").action(async (issueFile, options) => {
   const claudeKey = options.claudeKey || config.get("claude-api-key", {
     defaultValue: process.env.CLAUDE_API_KEY
   });
@@ -44549,7 +44567,11 @@ program2.command("fix <issue-file>").description("Generate fixes for issues in a
     if (!parseResult.success) {
       throw new Error(`Invalid JSON in file: ${parseResult.error}`);
     }
-    console.log(source_default.yellow("\u26A0\uFE0F Fix generation removed - only simple screenshot capture supported"));
+    console.log(
+      source_default.yellow(
+        "\u26A0\uFE0F Fix generation removed - only simple screenshot capture supported"
+      )
+    );
     console.log(source_default.blue("Use the GitHub Action for full functionality"));
     process.exit(0);
   } catch (error3) {
@@ -44557,14 +44579,21 @@ program2.command("fix <issue-file>").description("Generate fixes for issues in a
     process.exit(1);
   }
 });
-program2.command("setup").description("Learn routing patterns from your codebase (one-time setup)").option("--claude-key <key>", "Claude API key (or set CLAUDE_API_KEY env var)").option("--force", "Force re-learning even if patterns exist").option("--no-remote", "Skip remote storage (local only)").action(async (options) => {
+program2.command("setup").description("Learn routing patterns from your codebase (one-time setup)").option(
+  "--claude-key <key>",
+  "Claude API key (or set CLAUDE_API_KEY env var)"
+).option("--force", "Force re-learning even if patterns exist").option("--no-remote", "Skip remote storage (local only)").action(async (options) => {
   var _a2, _b;
   try {
     const repoRoot = process.cwd();
-    const claudeKey = options.claudeKey || process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+    const claudeKey = options.claudeKey || process.env.CLAUDE_API_KEY || process.env.CLAUDE_API_KEY;
     if (!claudeKey) {
       console.error(source_default.red("\u274C Error: Claude API key required"));
-      console.error(source_default.gray("   Set CLAUDE_API_KEY environment variable or use --claude-key"));
+      console.error(
+        source_default.gray(
+          "   Set CLAUDE_API_KEY environment variable or use --claude-key"
+        )
+      );
       process.exit(1);
     }
     const store = new PatternStore({ repoRoot });
@@ -44572,14 +44601,24 @@ program2.command("setup").description("Learn routing patterns from your codebase
     if (metadata.exists && !options.force) {
       console.log(source_default.yellow("\u26A0\uFE0F  Patterns already exist"));
       console.log(source_default.gray(`   Framework: ${metadata.framework}`));
-      console.log(source_default.gray(`   Confidence: ${((metadata.confidence || 0) * 100).toFixed(1)}%`));
+      console.log(
+        source_default.gray(
+          `   Confidence: ${((metadata.confidence || 0) * 100).toFixed(1)}%`
+        )
+      );
       console.log(source_default.gray(`   Learned: ${metadata.learnedAt}`));
       console.log(source_default.gray("\n   Use --force to re-learn"));
       process.exit(0);
     }
     console.log(source_default.blue.bold("\n\u{1F680} YoFix Pattern Learning\n"));
-    console.log(source_default.gray("This will analyze your codebase to learn routing patterns."));
-    console.log(source_default.gray("This is a one-time setup that takes ~30-60 seconds.\n"));
+    console.log(
+      source_default.gray(
+        "This will analyze your codebase to learn routing patterns."
+      )
+    );
+    console.log(
+      source_default.gray("This is a one-time setup that takes ~30-60 seconds.\n")
+    );
     const learner = new RepositoryLearner(claudeKey, repoRoot);
     const patterns = await learner.learnRepository();
     const metrics = learner.getMetrics();
@@ -44587,20 +44626,42 @@ program2.command("setup").description("Learn routing patterns from your codebase
     console.log(source_default.green.bold("\n\u{1F389} Setup Complete!\n"));
     console.log(source_default.cyan("\u{1F4CA} Learned Patterns:"));
     console.log(source_default.gray(`   Framework: ${patterns.framework}`));
-    console.log(source_default.gray(`   Confidence: ${(patterns.confidence * 100).toFixed(1)}%`));
-    console.log(source_default.gray(`   Routes Found: ${((_a2 = patterns.metadata) == null ? void 0 : _a2.routesFound) || 0}`));
-    console.log(source_default.gray(`   Files Analyzed: ${((_b = patterns.metadata) == null ? void 0 : _b.filesAnalyzed) || 0}`));
+    console.log(
+      source_default.gray(`   Confidence: ${(patterns.confidence * 100).toFixed(1)}%`)
+    );
+    console.log(
+      source_default.gray(`   Routes Found: ${((_a2 = patterns.metadata) == null ? void 0 : _a2.routesFound) || 0}`)
+    );
+    console.log(
+      source_default.gray(
+        `   Files Analyzed: ${((_b = patterns.metadata) == null ? void 0 : _b.filesAnalyzed) || 0}`
+      )
+    );
     console.log(source_default.cyan("\n\u{1F4B0} Cost:"));
-    console.log(source_default.gray(`   Tokens Used: ${metrics.tokensUsed.toLocaleString()}`));
-    console.log(source_default.gray(`   Estimated Cost: $${metrics.estimatedCost.toFixed(4)}`));
-    console.log(source_default.gray(`   Duration: ${metrics.duration.seconds.toFixed(1)}s`));
+    console.log(
+      source_default.gray(`   Tokens Used: ${metrics.tokensUsed.toLocaleString()}`)
+    );
+    console.log(
+      source_default.gray(`   Estimated Cost: $${metrics.estimatedCost.toFixed(4)}`)
+    );
+    console.log(
+      source_default.gray(`   Duration: ${metrics.duration.seconds.toFixed(1)}s`)
+    );
     console.log(source_default.cyan("\n\u{1F4C1} Storage:"));
     console.log(source_default.gray(`   Local: .yofix/patterns.json`));
     if (options.remote !== false) {
       console.log(source_default.gray(`   Remote: Saved`));
     }
-    console.log(source_default.green("\n\u2705 You can now run yofix with intelligent route detection!"));
-    console.log(source_default.gray("   Future PR analyses will use these patterns for fast, accurate route detection.\n"));
+    console.log(
+      source_default.green(
+        "\n\u2705 You can now run yofix with intelligent route detection!"
+      )
+    );
+    console.log(
+      source_default.gray(
+        "   Future PR analyses will use these patterns for fast, accurate route detection.\n"
+      )
+    );
   } catch (error3) {
     console.error(source_default.red(`
 \u274C Setup failed: ${error3.message}`));

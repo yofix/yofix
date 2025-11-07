@@ -94,6 +94,11 @@ inputs:
     description: 'Comma-separated viewport sizes (e.g., 1920x1080,768x1024,375x667)'
     required: false
     default: '1920x1080,768x1024,375x667'
+
+  comparison-threshold:
+    description: 'Pixel difference threshold for baseline comparison (0-1, default: 0.01 = 1%)'
+    required: false
+    default: '0.01'
   
   max-routes:
     description: 'Maximum number of routes to test'
@@ -122,6 +127,11 @@ inputs:
     description: 'Clear route analysis cache before running'
     required: false
     default: 'false'
+
+  update-baselines-on-merge:
+    description: 'Update baselines after PR merge - tuple format: ["branch", "enabled"] (e.g., ["main", "true"])'
+    required: false
+    default: '["", "false"]'
 
 outputs:
   status:
@@ -263,6 +273,23 @@ runs:
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
         INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}
 
+    # Step 6.5: Compare with Baselines
+    - name: 🔍 Compare Screenshots with Baselines
+      id: compare-baselines
+      shell: bash
+      run: |
+        echo "📊 Comparing screenshots with stored baselines..."
+        node ${{ github.action_path }}/dist/steps/2.5-compare-baselines.step.js
+      env:
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_COMPARISON-THRESHOLD: ${{ inputs.comparison-threshold }}
+
     # Step 7: Upload Screenshots
     - name: ☁️ Upload Screenshots to Storage
       id: upload-storage
@@ -289,6 +316,24 @@ runs:
         node ${{ github.action_path }}/dist/steps/4-post-results.step.js
       env:
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+
+    # Step 8.5: Update Baselines (Post-Merge Only)
+    - name: 🔄 Update Baselines
+      id: update-baselines
+      if: always()
+      shell: bash
+      run: |
+        echo "🔄 Checking baseline update configuration..."
+        node ${{ github.action_path }}/dist/steps/5-update-baselines.step.js
+      env:
+        INPUT_STORAGE-PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE-CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE-BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_S3-BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS-REGION: ${{ inputs.aws-region }}
+        INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
+        INPUT_UPDATE-BASELINES-ON-MERGE: ${{ inputs.update-baselines-on-merge }}
 
     # Step 9: Generate Test Summary
     - name: 📊 Generate Test Summary

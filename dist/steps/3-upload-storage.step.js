@@ -24249,7 +24249,7 @@ function getEnvironmentDefault(key) {
   if (key === "GITHUB_ACTIONS") {
     return environmentDefaults.github.actions;
   }
-  if (key === "CLAUDE_API_KEY" || key === "ANTHROPIC_API_KEY") {
+  if (key === "CLAUDE_API_KEY" || key === "CLAUDE_API_KEY") {
     return environmentDefaults.ai.claudeApiKey;
   }
   if (key === "FIREBASE_PROJECT_ID") {
@@ -27457,6 +27457,34 @@ async function uploadToStorage(stepData) {
         };
       })
     );
+    if (internal.diffFiles && Array.isArray(internal.diffFiles)) {
+      core7.info(`\u{1F4CA} Adding ${internal.diffFiles.length} diff image(s) to upload`);
+      for (const diffFile of internal.diffFiles) {
+        if (diffFile.hasDifference && diffFile.localPath) {
+          filesForUpload.push({
+            path: diffFile.localPath,
+            destination: diffFile.destination,
+            contentType: "image/png",
+            metadata: {
+              type: "diff",
+              route: diffFile.route,
+              viewport: diffFile.viewport,
+              diffPercentage: diffFile.diffPercentage,
+              status: diffFile.status
+            }
+          });
+          screenshotMetadataMap.set(diffFile.localPath, {
+            route: diffFile.route,
+            viewport: { name: diffFile.viewport },
+            metadata: {
+              type: "diff",
+              diffPercentage: diffFile.diffPercentage,
+              metrics: diffFile.metrics
+            }
+          });
+        }
+      }
+    }
     let credentialsBase64 = firebaseCredentials;
     if (firebaseCredentials.endsWith(".json")) {
       try {

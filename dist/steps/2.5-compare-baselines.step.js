@@ -94,11 +94,11 @@ var require_command = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.issue = exports2.issueCommand = void 0;
-    var os = __importStar(require("os"));
+    var os2 = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueCommand(command, properties, message) {
       const cmd = new Command(command, properties, message);
-      process.stdout.write(cmd.toString() + os.EOL);
+      process.stdout.write(cmd.toString() + os2.EOL);
     }
     exports2.issueCommand = issueCommand;
     function issue(name, message = "") {
@@ -181,18 +181,18 @@ var require_file_command = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.prepareKeyValueMessage = exports2.issueFileCommand = void 0;
     var crypto = __importStar(require("crypto"));
-    var fs4 = __importStar(require("fs"));
-    var os = __importStar(require("os"));
+    var fs5 = __importStar(require("fs"));
+    var os2 = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
       const filePath = process.env[`GITHUB_${command}`];
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs4.existsSync(filePath)) {
+      if (!fs5.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs4.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
+      fs5.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os2.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -206,7 +206,7 @@ var require_file_command = __commonJS({
       if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
       }
-      return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
+      return `${key}<<${delimiter}${os2.EOL}${convertedValue}${os2.EOL}${delimiter}`;
     }
     exports2.prepareKeyValueMessage = prepareKeyValueMessage;
   }
@@ -995,14 +995,14 @@ var require_util = __commonJS({
         }
         const port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80;
         let origin = url.origin != null ? url.origin : `${url.protocol}//${url.hostname}:${port}`;
-        let path4 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
+        let path5 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
         if (origin.endsWith("/")) {
           origin = origin.substring(0, origin.length - 1);
         }
-        if (path4 && !path4.startsWith("/")) {
-          path4 = `/${path4}`;
+        if (path5 && !path5.startsWith("/")) {
+          path5 = `/${path5}`;
         }
-        url = new URL(origin + path4);
+        url = new URL(origin + path5);
       }
       return url;
     }
@@ -2616,20 +2616,20 @@ var require_parseParams = __commonJS({
 var require_basename = __commonJS({
   "node_modules/undici/node_modules/@fastify/busboy/lib/utils/basename.js"(exports2, module2) {
     "use strict";
-    module2.exports = function basename2(path4) {
-      if (typeof path4 !== "string") {
+    module2.exports = function basename2(path5) {
+      if (typeof path5 !== "string") {
         return "";
       }
-      for (var i = path4.length - 1; i >= 0; --i) {
-        switch (path4.charCodeAt(i)) {
+      for (var i = path5.length - 1; i >= 0; --i) {
+        switch (path5.charCodeAt(i)) {
           case 47:
           // '/'
           case 92:
-            path4 = path4.slice(i + 1);
-            return path4 === ".." || path4 === "." ? "" : path4;
+            path5 = path5.slice(i + 1);
+            return path5 === ".." || path5 === "." ? "" : path5;
         }
       }
-      return path4 === ".." || path4 === "." ? "" : path4;
+      return path5 === ".." || path5 === "." ? "" : path5;
     };
   }
 });
@@ -5662,7 +5662,7 @@ var require_request = __commonJS({
     }
     var Request = class _Request {
       constructor(origin, {
-        path: path4,
+        path: path5,
         method,
         body,
         headers,
@@ -5676,11 +5676,11 @@ var require_request = __commonJS({
         throwOnError,
         expectContinue
       }, handler) {
-        if (typeof path4 !== "string") {
+        if (typeof path5 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path4[0] !== "/" && !(path4.startsWith("http://") || path4.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path5[0] !== "/" && !(path5.startsWith("http://") || path5.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.exec(path4) !== null) {
+        } else if (invalidPathRegex.exec(path5) !== null) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -5743,7 +5743,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? util.buildURL(path4, query) : path4;
+        this.path = query ? util.buildURL(path5, query) : path5;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -6751,9 +6751,9 @@ var require_RedirectHandler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path4 = search ? `${pathname}${search}` : pathname;
+        const path5 = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path4;
+        this.opts.path = path5;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -7993,7 +7993,7 @@ var require_client = __commonJS({
         writeH2(client, client[kHTTP2Session], request);
         return;
       }
-      const { body, method, path: path4, host, upgrade, headers, blocking, reset } = request;
+      const { body, method, path: path5, host, upgrade, headers, blocking, reset } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8043,7 +8043,7 @@ var require_client = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path4} HTTP/1.1\r
+      let header = `${method} ${path5} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -8106,7 +8106,7 @@ upgrade: ${upgrade}\r
       return true;
     }
     function writeH2(client, session, request) {
-      const { body, method, path: path4, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
+      const { body, method, path: path5, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
       let headers;
       if (typeof reqHeaders === "string") headers = Request[kHTTP2CopyHeaders](reqHeaders.trim());
       else headers = reqHeaders;
@@ -8149,7 +8149,7 @@ upgrade: ${upgrade}\r
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path4;
+      headers[HTTP2_HEADER_PATH] = path5;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
@@ -10389,20 +10389,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path4) {
-      if (typeof path4 !== "string") {
-        return path4;
+    function safeUrl(path5) {
+      if (typeof path5 !== "string") {
+        return path5;
       }
-      const pathSegments = path4.split("?");
+      const pathSegments = path5.split("?");
       if (pathSegments.length !== 2) {
-        return path4;
+        return path5;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path4, method, body, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path4);
+    function matchKey(mockDispatch2, { path: path5, method, body, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path5);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -10420,7 +10420,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path4 }) => matchValue(safeUrl(path4), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path5 }) => matchValue(safeUrl(path5), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -10457,9 +10457,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path: path4, method, body, headers, query } = opts;
+      const { path: path5, method, body, headers, query } = opts;
       return {
-        path: path4,
+        path: path5,
         method,
         body,
         headers,
@@ -10908,10 +10908,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path4, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path5, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path4,
+            Path: path5,
             "Status code": statusCode,
             Persistent: persist ? "\u2705" : "\u274C",
             Invocations: timesInvoked,
@@ -15544,8 +15544,8 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path4) {
-      for (const char of path4) {
+    function validateCookiePath(path5) {
+      for (const char of path5) {
         const code = char.charCodeAt(0);
         if (code < 33 || char === ";") {
           throw new Error("Invalid cookie path");
@@ -17227,11 +17227,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path4 = opts.path;
+          let path5 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path4 = `/${path4}`;
+            path5 = `/${path5}`;
           }
-          url = new URL(util.parseOrigin(url).origin + path4);
+          url = new URL(util.parseOrigin(url).origin + path5);
         } else {
           if (!opts) {
             opts = typeof url === "object" ? url : {};
@@ -18454,7 +18454,7 @@ var require_path_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.toPlatformPath = exports2.toWin32Path = exports2.toPosixPath = void 0;
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     function toPosixPath(pth) {
       return pth.replace(/[\\]/g, "/");
     }
@@ -18464,7 +18464,7 @@ var require_path_utils = __commonJS({
     }
     exports2.toWin32Path = toWin32Path;
     function toPlatformPath(pth) {
-      return pth.replace(/[/\\]/g, path4.sep);
+      return pth.replace(/[/\\]/g, path5.sep);
     }
     exports2.toPlatformPath = toPlatformPath;
   }
@@ -18527,12 +18527,12 @@ var require_io_util = __commonJS({
     var _a;
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCmdPath = exports2.tryGetExecutablePath = exports2.isRooted = exports2.isDirectory = exports2.exists = exports2.READONLY = exports2.UV_FS_O_EXLOCK = exports2.IS_WINDOWS = exports2.unlink = exports2.symlink = exports2.stat = exports2.rmdir = exports2.rm = exports2.rename = exports2.readlink = exports2.readdir = exports2.open = exports2.mkdir = exports2.lstat = exports2.copyFile = exports2.chmod = void 0;
-    var fs4 = __importStar(require("fs"));
-    var path4 = __importStar(require("path"));
-    _a = fs4.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
+    var fs5 = __importStar(require("fs"));
+    var path5 = __importStar(require("path"));
+    _a = fs5.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
     exports2.IS_WINDOWS = process.platform === "win32";
     exports2.UV_FS_O_EXLOCK = 268435456;
-    exports2.READONLY = fs4.constants.O_RDONLY;
+    exports2.READONLY = fs5.constants.O_RDONLY;
     function exists2(fsPath) {
       return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -18577,7 +18577,7 @@ var require_io_util = __commonJS({
         }
         if (stats && stats.isFile()) {
           if (exports2.IS_WINDOWS) {
-            const upperExt = path4.extname(filePath).toUpperCase();
+            const upperExt = path5.extname(filePath).toUpperCase();
             if (extensions.some((validExt) => validExt.toUpperCase() === upperExt)) {
               return filePath;
             }
@@ -18601,11 +18601,11 @@ var require_io_util = __commonJS({
           if (stats && stats.isFile()) {
             if (exports2.IS_WINDOWS) {
               try {
-                const directory = path4.dirname(filePath);
-                const upperName = path4.basename(filePath).toUpperCase();
+                const directory = path5.dirname(filePath);
+                const upperName = path5.basename(filePath).toUpperCase();
                 for (const actualName of yield exports2.readdir(directory)) {
                   if (upperName === actualName.toUpperCase()) {
-                    filePath = path4.join(directory, actualName);
+                    filePath = path5.join(directory, actualName);
                     break;
                   }
                 }
@@ -18700,7 +18700,7 @@ var require_io = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.findInPath = exports2.which = exports2.mkdirP = exports2.rmRF = exports2.mv = exports2.cp = void 0;
     var assert_1 = require("assert");
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var ioUtil = __importStar(require_io_util());
     function cp(source, dest, options = {}) {
       return __awaiter(this, void 0, void 0, function* () {
@@ -18709,7 +18709,7 @@ var require_io = __commonJS({
         if (destStat && destStat.isFile() && !force) {
           return;
         }
-        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path4.join(dest, path4.basename(source)) : dest;
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path5.join(dest, path5.basename(source)) : dest;
         if (!(yield ioUtil.exists(source))) {
           throw new Error(`no such file or directory: ${source}`);
         }
@@ -18721,7 +18721,7 @@ var require_io = __commonJS({
             yield cpDirRecursive(source, newDest, 0, force);
           }
         } else {
-          if (path4.relative(source, newDest) === "") {
+          if (path5.relative(source, newDest) === "") {
             throw new Error(`'${newDest}' and '${source}' are the same file`);
           }
           yield copyFile2(source, newDest, force);
@@ -18734,7 +18734,7 @@ var require_io = __commonJS({
         if (yield ioUtil.exists(dest)) {
           let destExists = true;
           if (yield ioUtil.isDirectory(dest)) {
-            dest = path4.join(dest, path4.basename(source));
+            dest = path5.join(dest, path5.basename(source));
             destExists = yield ioUtil.exists(dest);
           }
           if (destExists) {
@@ -18745,7 +18745,7 @@ var require_io = __commonJS({
             }
           }
         }
-        yield mkdirP(path4.dirname(dest));
+        yield mkdirP(path5.dirname(dest));
         yield ioUtil.rename(source, dest);
       });
     }
@@ -18808,7 +18808,7 @@ var require_io = __commonJS({
         }
         const extensions = [];
         if (ioUtil.IS_WINDOWS && process.env["PATHEXT"]) {
-          for (const extension of process.env["PATHEXT"].split(path4.delimiter)) {
+          for (const extension of process.env["PATHEXT"].split(path5.delimiter)) {
             if (extension) {
               extensions.push(extension);
             }
@@ -18821,12 +18821,12 @@ var require_io = __commonJS({
           }
           return [];
         }
-        if (tool.includes(path4.sep)) {
+        if (tool.includes(path5.sep)) {
           return [];
         }
         const directories = [];
         if (process.env.PATH) {
-          for (const p of process.env.PATH.split(path4.delimiter)) {
+          for (const p of process.env.PATH.split(path5.delimiter)) {
             if (p) {
               directories.push(p);
             }
@@ -18834,7 +18834,7 @@ var require_io = __commonJS({
         }
         const matches = [];
         for (const directory of directories) {
-          const filePath = yield ioUtil.tryGetExecutablePath(path4.join(directory, tool), extensions);
+          const filePath = yield ioUtil.tryGetExecutablePath(path5.join(directory, tool), extensions);
           if (filePath) {
             matches.push(filePath);
           }
@@ -18947,10 +18947,10 @@ var require_toolrunner = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.argStringToArray = exports2.ToolRunner = void 0;
-    var os = __importStar(require("os"));
+    var os2 = __importStar(require("os"));
     var events = __importStar(require("events"));
     var child = __importStar(require("child_process"));
-    var path4 = __importStar(require("path"));
+    var path5 = __importStar(require("path"));
     var io = __importStar(require_io());
     var ioUtil = __importStar(require_io_util());
     var timers_1 = require("timers");
@@ -19002,12 +19002,12 @@ var require_toolrunner = __commonJS({
       _processLineBuffer(data, strBuffer, onLine) {
         try {
           let s = strBuffer + data.toString();
-          let n = s.indexOf(os.EOL);
+          let n = s.indexOf(os2.EOL);
           while (n > -1) {
             const line = s.substring(0, n);
             onLine(line);
-            s = s.substring(n + os.EOL.length);
-            n = s.indexOf(os.EOL);
+            s = s.substring(n + os2.EOL.length);
+            n = s.indexOf(os2.EOL);
           }
           return s;
         } catch (err) {
@@ -19165,7 +19165,7 @@ var require_toolrunner = __commonJS({
       exec() {
         return __awaiter(this, void 0, void 0, function* () {
           if (!ioUtil.isRooted(this.toolPath) && (this.toolPath.includes("/") || IS_WINDOWS && this.toolPath.includes("\\"))) {
-            this.toolPath = path4.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            this.toolPath = path5.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
           }
           this.toolPath = yield io.which(this.toolPath, true);
           return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -19176,7 +19176,7 @@ var require_toolrunner = __commonJS({
             }
             const optionsNonNull = this._cloneExecOptions(this.options);
             if (!optionsNonNull.silent && optionsNonNull.outStream) {
-              optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os.EOL);
+              optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os2.EOL);
             }
             const state = new ExecState(optionsNonNull, this.toolPath);
             state.on("debug", (message) => {
@@ -19664,8 +19664,8 @@ var require_core = __commonJS({
     var command_1 = require_command();
     var file_command_1 = require_file_command();
     var utils_1 = require_utils();
-    var os = __importStar(require("os"));
-    var path4 = __importStar(require("path"));
+    var os2 = __importStar(require("os"));
+    var path5 = __importStar(require("path"));
     var oidc_utils_1 = require_oidc_utils();
     var ExitCode;
     (function(ExitCode2) {
@@ -19693,7 +19693,7 @@ var require_core = __commonJS({
       } else {
         (0, command_1.issueCommand)("add-path", {}, inputPath);
       }
-      process.env["PATH"] = `${inputPath}${path4.delimiter}${process.env["PATH"]}`;
+      process.env["PATH"] = `${inputPath}${path5.delimiter}${process.env["PATH"]}`;
     }
     exports2.addPath = addPath;
     function getInput(name, options) {
@@ -19727,15 +19727,15 @@ var require_core = __commonJS({
 Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
     exports2.getBooleanInput = getBooleanInput;
-    function setOutput3(name, value) {
+    function setOutput2(name, value) {
       const filePath = process.env["GITHUB_OUTPUT"] || "";
       if (filePath) {
         return (0, file_command_1.issueFileCommand)("OUTPUT", (0, file_command_1.prepareKeyValueMessage)(name, value));
       }
-      process.stdout.write(os.EOL);
+      process.stdout.write(os2.EOL);
       (0, command_1.issueCommand)("set-output", { name }, (0, utils_1.toCommandValue)(value));
     }
-    exports2.setOutput = setOutput3;
+    exports2.setOutput = setOutput2;
     function setCommandEcho(enabled) {
       (0, command_1.issue)("echo", enabled ? "on" : "off");
     }
@@ -19757,16 +19757,16 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.error = error5;
-    function warning9(message, properties = {}) {
+    function warning8(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning9;
+    exports2.warning = warning8;
     function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.notice = notice;
     function info7(message) {
-      process.stdout.write(message + os.EOL);
+      process.stdout.write(message + os2.EOL);
     }
     exports2.info = info7;
     function startGroup2(name) {
@@ -19849,8 +19849,8 @@ var require_context = __commonJS({
           if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
             this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
           } else {
-            const path4 = process.env.GITHUB_EVENT_PATH;
-            process.stdout.write(`GITHUB_EVENT_PATH ${path4} does not exist${os_1.EOL}`);
+            const path5 = process.env.GITHUB_EVENT_PATH;
+            process.stdout.write(`GITHUB_EVENT_PATH ${path5} does not exist${os_1.EOL}`);
           }
         }
         this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -23894,24 +23894,247 @@ var require_github = __commonJS({
   }
 });
 
-// src/steps/4-post-results.step.ts
-var post_results_step_exports = {};
-__export(post_results_step_exports, {
-  main: () => main,
-  postResults: () => postResults
+// src/steps/2.5-compare-baselines.step.ts
+var compare_baselines_step_exports = {};
+__export(compare_baselines_step_exports, {
+  compareWithBaselines: () => compareWithBaselines,
+  main: () => main
 });
-module.exports = __toCommonJS(post_results_step_exports);
+module.exports = __toCommonJS(compare_baselines_step_exports);
 var core8 = __toESM(require_core());
+var import_fs2 = require("fs");
+var import_path2 = __toESM(require("path"));
+var import_os = __toESM(require("os"));
+var import_comparator = require("@yofix/comparator");
 
-// src/github/PRReporter.ts
-var core6 = __toESM(require_core());
+// src/steps/shared/StepDataManager.ts
+var import_fs = require("fs");
+var import_path = __toESM(require("path"));
+var core = __toESM(require_core());
+var _StepDataManager = class _StepDataManager {
+  constructor(workspacePath) {
+    this.workspacePath = workspacePath || process.env.GITHUB_WORKSPACE || process.cwd();
+    this.dataDir = import_path.default.join(this.workspacePath, _StepDataManager.DATA_DIR);
+  }
+  /**
+   * Initialize the data directory
+   */
+  async initialize() {
+    try {
+      await import_fs.promises.mkdir(this.dataDir, { recursive: true });
+      core.info(`\u{1F4C1} Initialized step data directory: ${this.dataDir}`);
+    } catch (error5) {
+      core.error(`Failed to initialize step data directory: ${error5}`);
+      throw error5;
+    }
+  }
+  /**
+   * Save step data to disk
+   */
+  async save(data) {
+    try {
+      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
+      await import_fs.promises.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
+      core.info(`\u{1F4BE} Saved step data to ${dataPath}`);
+      this.setOutputs(data);
+    } catch (error5) {
+      core.error(`Failed to save step data: ${error5}`);
+      throw error5;
+    }
+  }
+  /**
+   * Load step data from disk
+   */
+  async load() {
+    try {
+      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
+      const content = await import_fs.promises.readFile(dataPath, "utf-8");
+      const data = JSON.parse(content);
+      core.info(`\u{1F4E5} Loaded step data from ${dataPath}`);
+      return data;
+    } catch (error5) {
+      core.error(`Failed to load step data: ${error5}`);
+      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error5}`);
+    }
+  }
+  /**
+   * Update specific fields in step data (partial update)
+   */
+  async update(updates) {
+    try {
+      const data = await this.load();
+      const updatedData = { ...data, ...updates };
+      await this.save(updatedData);
+      core.info(`\u{1F504} Updated step data with: ${Object.keys(updates).join(", ")}`);
+    } catch (error5) {
+      core.error(`Failed to update step data: ${error5}`);
+      throw error5;
+    }
+  }
+  /**
+   * Check if step data exists
+   */
+  async exists() {
+    try {
+      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
+      await import_fs.promises.access(dataPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * Cleanup step data
+   */
+  async cleanup() {
+    try {
+      await import_fs.promises.rm(this.dataDir, { recursive: true, force: true });
+      core.info(`\u{1F9F9} Cleaned up step data directory`);
+    } catch (error5) {
+      core.warning(`Failed to cleanup step data: ${error5}`);
+    }
+  }
+  /**
+   * Record step timing
+   */
+  async recordStepTiming(stepName, start, end) {
+    try {
+      const data = await this.load();
+      data.metadata.stepTimings[stepName] = {
+        start,
+        end,
+        duration: end - start
+      };
+      await this.save(data);
+      core.info(`\u23F1\uFE0F Recorded timing for ${stepName}: ${end - start}ms`);
+    } catch (error5) {
+      core.warning(`Failed to record step timing: ${error5}`);
+    }
+  }
+  /**
+   * Get step timing summary
+   */
+  async getTimingSummary() {
+    try {
+      const data = await this.load();
+      const timings = data.metadata.stepTimings;
+      const totalDuration = Date.now() - data.metadata.startTime;
+      let summary = `## \u23F1\uFE0F Step Timings
+
+`;
+      summary += `**Total Duration:** ${(totalDuration / 1e3).toFixed(2)}s
+
+`;
+      for (const [step, timing] of Object.entries(timings)) {
+        const durationSeconds = (timing.duration / 1e3).toFixed(2);
+        const percentage = (timing.duration / totalDuration * 100).toFixed(1);
+        summary += `- **${step}:** ${durationSeconds}s (${percentage}%)
+`;
+      }
+      return summary;
+    } catch (error5) {
+      core.warning(`Failed to generate timing summary: ${error5}`);
+      return "";
+    }
+  }
+  /**
+   * Set GitHub Action outputs for easy access in workflow
+   */
+  setOutputs(data) {
+    try {
+      core.setOutput("pr-number", data.prNumber.toString());
+      core.setOutput("preview-url", data.previewUrl);
+      core.setOutput("data-dir", _StepDataManager.DATA_DIR);
+      if (data.routes) {
+        core.setOutput("routes-count", data.routes.affectedRoutes.length.toString());
+        core.setOutput("has-routes", data.routes.affectedRoutes.length > 0 ? "true" : "false");
+      }
+      if (data.comparison) {
+        core.setOutput("has-changes", data.comparison.hasChanges ? "true" : "false");
+        core.setOutput("diff-count", data.comparison.diffCount.toString());
+      }
+    } catch (error5) {
+      core.warning(`Failed to set GitHub outputs: ${error5}`);
+    }
+  }
+  /**
+   * Get data directory path
+   */
+  getDataDir() {
+    return this.dataDir;
+  }
+  /**
+   * Get full path for a file within data directory
+   */
+  getFilePath(filename) {
+    return import_path.default.join(this.dataDir, filename);
+  }
+  /**
+   * Save arbitrary file to data directory
+   */
+  async saveFile(filename, content) {
+    try {
+      const filePath = this.getFilePath(filename);
+      await import_fs.promises.writeFile(filePath, content);
+      core.info(`\u{1F4BE} Saved file: ${filename}`);
+      return filePath;
+    } catch (error5) {
+      core.error(`Failed to save file ${filename}: ${error5}`);
+      throw error5;
+    }
+  }
+  /**
+   * Load arbitrary file from data directory
+   */
+  async loadFile(filename) {
+    try {
+      const filePath = this.getFilePath(filename);
+      const content = await import_fs.promises.readFile(filePath, "utf-8");
+      return content;
+    } catch (error5) {
+      core.error(`Failed to load file ${filename}: ${error5}`);
+      throw error5;
+    }
+  }
+};
+_StepDataManager.DATA_DIR = ".yofix-step-data";
+_StepDataManager.DATA_FILE = "step-data.json";
+_StepDataManager.METADATA_FILE = "metadata.json";
+var StepDataManager = _StepDataManager;
+var instance = null;
+function getStepDataManager(workspacePath) {
+  if (!instance) {
+    instance = new StepDataManager(workspacePath);
+  }
+  return instance;
+}
+async function executeStep(stepName, stepFunction) {
+  const start = Date.now();
+  core.startGroup(`\u{1F680} ${stepName}`);
+  try {
+    const result = await stepFunction();
+    const end = Date.now();
+    core.info(`\u2705 ${stepName} completed in ${end - start}ms`);
+    core.endGroup();
+    const manager = getStepDataManager();
+    if (await manager.exists()) {
+      await manager.recordStepTiming(stepName, start, end);
+    }
+    return result;
+  } catch (error5) {
+    const end = Date.now();
+    core.error(`\u274C ${stepName} failed after ${end - start}ms: ${error5}`);
+    core.endGroup();
+    throw error5;
+  }
+}
 
 // src/core/github/GitHubCommentEngine.ts
-var core = __toESM(require_core());
+var core2 = __toESM(require_core());
 
 // src/config/env-loader.ts
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
+var fs2 = __toESM(require("fs"));
+var path2 = __toESM(require("path"));
 function parseEnvFile(content) {
   const result = {};
   const lines = content.split("\n");
@@ -23935,12 +24158,12 @@ function parseEnvFile(content) {
 }
 function loadEnvLocal(rootDir) {
   const projectRoot = rootDir || process.cwd();
-  const envLocalPath = path.join(projectRoot, ".env.local");
-  if (!fs.existsSync(envLocalPath)) {
+  const envLocalPath = path2.join(projectRoot, ".env.local");
+  if (!fs2.existsSync(envLocalPath)) {
     return {};
   }
   try {
-    const content = fs.readFileSync(envLocalPath, "utf8");
+    const content = fs2.readFileSync(envLocalPath, "utf8");
     return parseEnvFile(content);
   } catch (error5) {
     console.warn(`Warning: Could not load .env.local file: ${error5}`);
@@ -24377,8 +24600,8 @@ var MockGitHubService = class {
   setMockComments(issueNumber, comments) {
     this.mockData.comments.set(`${issueNumber}`, comments);
   }
-  setMockFileContent(path4, content) {
-    this.mockData.fileContents.set(path4, content);
+  setMockFileContent(path5, content) {
+    this.mockData.fileContents.set(path5, content);
   }
   setMockContext(context) {
     this.mockData.context = { ...this.mockData.context, ...context };
@@ -24414,11 +24637,11 @@ var MockGitHubService = class {
   async addReaction(commentId, reaction) {
     console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
   }
-  async getFileContent(path4, ref) {
-    return this.mockData.fileContents.get(path4) || null;
+  async getFileContent(path5, ref) {
+    return this.mockData.fileContents.get(path5) || null;
   }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
+  async getContent(path5, ref) {
+    return this.getFileContent(path5, ref);
   }
   async listCheckRuns(ref) {
     const context = this.getContext();
@@ -24600,16 +24823,16 @@ var EnhancedGitHubService = class {
       });
     }, false);
   }
-  async getFileContent(path4, ref) {
+  async getFileContent(path5, ref) {
     this.ensureConfigured();
     const context = this.getContext();
-    const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path4, ref);
+    const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path5, ref);
     return this.withCacheAndRateLimit(cacheKey, async () => {
       try {
         const { data } = await this.octokit.rest.repos.getContent({
           owner: context.owner,
           repo: context.repo,
-          path: path4,
+          path: path5,
           ref
         });
         if ("content" in data && !Array.isArray(data)) {
@@ -24629,8 +24852,8 @@ var EnhancedGitHubService = class {
       }
     });
   }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
+  async getContent(path5, ref) {
+    return this.getFileContent(path5, ref);
   }
   async listCheckRuns(ref) {
     this.ensureConfigured();
@@ -24725,8 +24948,8 @@ var EnhancedGitHubService = class {
       try {
         const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
         if (eventPath) {
-          const fs4 = require("fs");
-          payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
+          const fs5 = require("fs");
+          payload = JSON.parse(fs5.readFileSync(eventPath, "utf8"));
         }
       } catch (error5) {
         console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error5);
@@ -24864,14 +25087,14 @@ var OctokitGitHubService = class {
       content: reaction
     });
   }
-  async getFileContent(path4, ref) {
+  async getFileContent(path5, ref) {
     this.ensureConfigured();
     const context = this.getContext();
     try {
       const { data } = await this.octokit.rest.repos.getContent({
         owner: context.owner,
         repo: context.repo,
-        path: path4,
+        path: path5,
         ref
       });
       if ("content" in data && !Array.isArray(data)) {
@@ -24890,8 +25113,8 @@ var OctokitGitHubService = class {
       throw error5;
     }
   }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
+  async getContent(path5, ref) {
+    return this.getFileContent(path5, ref);
   }
   async listCheckRuns(ref) {
     this.ensureConfigured();
@@ -24973,8 +25196,8 @@ var OctokitGitHubService = class {
       try {
         const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
         if (eventPath) {
-          const fs4 = require("fs");
-          payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
+          const fs5 = require("fs");
+          payload = JSON.parse(fs5.readFileSync(eventPath, "utf8"));
         }
       } catch (error5) {
         console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error5);
@@ -25045,13 +25268,13 @@ var LazyGitHubService = class {
     const service = await this.ensureService();
     return service.addReaction(commentId, reaction);
   }
-  async getFileContent(path4, ref) {
+  async getFileContent(path5, ref) {
     const service = await this.ensureService();
-    return service.getFileContent(path4, ref);
+    return service.getFileContent(path5, ref);
   }
-  async getContent(path4, ref) {
+  async getContent(path5, ref) {
     const service = await this.ensureService();
-    return service.getContent(path4, ref);
+    return service.getContent(path5, ref);
   }
   async listCheckRuns(ref) {
     const service = await this.ensureService();
@@ -25099,8 +25322,8 @@ var LazyGitHubService = class {
     try {
       const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
       if (eventPath) {
-        const fs4 = require("fs");
-        payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
+        const fs5 = require("fs");
+        payload = JSON.parse(fs5.readFileSync(eventPath, "utf8"));
       }
     } catch (error5) {
       console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error5);
@@ -25199,7 +25422,7 @@ var GitHubCommentEngine = class {
   async postComment(message, options = {}) {
     try {
       if (this.prNumber === 0) {
-        core.warning("No PR number found, cannot post comment");
+        core2.warning("No PR number found, cannot post comment");
         return null;
       }
       let body = message;
@@ -25238,16 +25461,16 @@ ${body}`;
             body
           );
           commentId = existingComment.id;
-          core.info(`Updated existing comment #${commentId}`);
+          core2.info(`Updated existing comment #${commentId}`);
         } else {
           const result = await this.github.createComment(body);
           commentId = result.id;
-          core.info(`Created new comment #${commentId}`);
+          core2.info(`Created new comment #${commentId}`);
         }
       } else {
         const result = await this.github.createComment(body);
         commentId = result.id;
-        core.info(`Created comment #${commentId}`);
+        core2.info(`Created comment #${commentId}`);
       }
       if (options.threadId && !this.threadCache.has(options.threadId)) {
         this.threadCache.set(options.threadId, commentId);
@@ -25259,7 +25482,7 @@ ${body}`;
       }
       return commentId;
     } catch (error5) {
-      core.error(`Failed to post comment: ${error5}`);
+      core2.error(`Failed to post comment: ${error5}`);
       return null;
     }
   }
@@ -25341,9 +25564,9 @@ ${body}`;
         commentId,
         reaction
       );
-      core.debug(`Added ${reaction} reaction to comment #${commentId}`);
+      core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
     } catch (error5) {
-      core.warning(`Failed to add reaction: ${error5}`);
+      core2.warning(`Failed to add reaction: ${error5}`);
     }
   }
   /**
@@ -25356,7 +25579,7 @@ ${body}`;
         await this.addReaction(triggeringCommentId, reaction);
       }
     } catch (error5) {
-      core.warning(`Failed to post reaction: ${error5}`);
+      core2.warning(`Failed to post reaction: ${error5}`);
     }
   }
   /**
@@ -25366,7 +25589,7 @@ ${body}`;
     try {
       await this.addReaction(commentId, reaction);
     } catch (error5) {
-      core.warning(`Failed to react to comment: ${error5}`);
+      core2.warning(`Failed to react to comment: ${error5}`);
     }
   }
   /**
@@ -25423,7 +25646,7 @@ ${body}`;
       );
       return existingComment || null;
     } catch (error5) {
-      core.warning(`Failed to find comment by signature: ${error5}`);
+      core2.warning(`Failed to find comment by signature: ${error5}`);
       return null;
     }
   }
@@ -25436,9 +25659,9 @@ ${body}`;
       const botComments = comments.filter(
         (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
       );
-      core.info(`Found ${botComments.length} bot comments`);
+      core2.info(`Found ${botComments.length} bot comments`);
     } catch (error5) {
-      core.warning(`Failed to list comments: ${error5}`);
+      core2.warning(`Failed to list comments: ${error5}`);
     }
   }
   /**
@@ -25463,7 +25686,7 @@ function getGitHubCommentEngine() {
 }
 
 // src/core/error/CentralizedErrorHandler.ts
-var core2 = __toESM(require_core());
+var core3 = __toESM(require_core());
 var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity5) => {
   ErrorSeverity5["LOW"] = "low";
   ErrorSeverity5["MEDIUM"] = "medium";
@@ -25523,9 +25746,9 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
       this.owner = context.owner;
       this.repo = context.repo;
       this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-      core2.info("Centralized error handler initialized with GitHub integration");
+      core3.info("Centralized error handler initialized with GitHub integration");
     } catch (error5) {
-      core2.warning("Failed to initialize GitHub service, errors will only be logged");
+      core3.warning("Failed to initialize GitHub service, errors will only be logged");
       this.github = null;
     }
   }
@@ -25565,19 +25788,19 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     const logMessage = `${location} ${errorMessage}`.trim();
     switch (options.severity) {
       case "critical" /* CRITICAL */:
-        core2.error(logMessage);
+        core3.error(logMessage);
         if (!this.isTestMode) {
-          core2.setFailed(logMessage);
+          core3.setFailed(logMessage);
         }
         break;
       case "high" /* HIGH */:
-        core2.error(logMessage);
+        core3.error(logMessage);
         break;
       case "medium" /* MEDIUM */:
-        core2.warning(logMessage);
+        core3.warning(logMessage);
         break;
       case "low" /* LOW */:
-        core2.info(logMessage);
+        core3.info(logMessage);
         break;
     }
   }
@@ -25604,9 +25827,9 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
       return;
     }
     process.on("uncaughtException", async (error5) => {
-      core2.error(`Uncaught Exception: ${error5.message}`);
+      core3.error(`Uncaught Exception: ${error5.message}`);
       if (error5.stack) {
-        core2.debug(error5.stack);
+        core3.debug(error5.stack);
       }
       const errorEntry = {
         error: error5,
@@ -25625,7 +25848,7 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     });
     process.on("unhandledRejection", async (reason, promise) => {
       const errorMessage = reason instanceof Error ? reason.message : String(reason);
-      core2.error(`Unhandled Rejection: ${errorMessage}`);
+      core3.error(`Unhandled Rejection: ${errorMessage}`);
       const errorEntry = {
         error: new Error(errorMessage),
         context: {
@@ -25666,11 +25889,11 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
   async postErrorSummary() {
     var _a, _b;
     if (!this.github || this.prNumber === 0) {
-      core2.debug("Skipping error summary: No GitHub service or PR number");
+      core3.debug("Skipping error summary: No GitHub service or PR number");
       return;
     }
     if (this.errorBuffer.length === 0) {
-      core2.info("\u2705 No errors to report");
+      core3.info("\u2705 No errors to report");
       return;
     }
     const byLocation = {};
@@ -25727,14 +25950,14 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     try {
       await this.github.createComment(message);
     } catch (error5) {
-      core2.warning(`Failed to post error summary: ${error5}`);
+      core3.warning(`Failed to post error summary: ${error5}`);
     }
   }
 };
 var errorHandler = CentralizedErrorHandler.getInstance();
 
 // src/core/bot/BotActivityHandler.ts
-var core3 = __toESM(require_core());
+var core4 = __toESM(require_core());
 var BotActivityHandler = class {
   constructor() {
     this.activities = /* @__PURE__ */ new Map();
@@ -25767,7 +25990,7 @@ var BotActivityHandler = class {
    */
   async addStep(stepName, status = "pending", message) {
     if (!this.currentActivity) {
-      core3.warning("No active bot activity");
+      core4.warning("No active bot activity");
       return;
     }
     const step = {
@@ -25786,7 +26009,7 @@ var BotActivityHandler = class {
     if (!this.currentActivity) return;
     const step = this.currentActivity.steps.find((s) => s.name === stepName);
     if (!step) {
-      core3.warning(`Step ${stepName} not found`);
+      core4.warning(`Step ${stepName} not found`);
       return;
     }
     const previousStatus = step.status;
@@ -26021,28 +26244,28 @@ var BotActivityHandler = class {
 var botActivity = new BotActivityHandler();
 
 // src/core/error/ErrorHandlerFactory.ts
-var core4 = __toESM(require_core());
+var core5 = __toESM(require_core());
 function createModuleLogger(options) {
   const { module: module2, debug: debug6 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
   return {
     debug: (message, ...args) => {
-      if (debug6 || core4.isDebug()) {
-        core4.debug(`[${module2}] ${message}`);
+      if (debug6 || core5.isDebug()) {
+        core5.debug(`[${module2}] ${message}`);
         if (args.length > 0) {
-          core4.debug(`[${module2}] ${JSON.stringify(args)}`);
+          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
         }
       }
     },
     info: (message, ...args) => {
-      core4.info(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug6 || core4.isDebug())) {
-        core4.debug(`[${module2}] ${JSON.stringify(args)}`);
+      core5.info(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug6 || core5.isDebug())) {
+        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
     warn: (message, ...args) => {
-      core4.warning(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug6 || core4.isDebug())) {
-        core4.debug(`[${module2}] ${JSON.stringify(args)}`);
+      core5.warning(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug6 || core5.isDebug())) {
+        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
     error: async (error5, context) => {
@@ -26176,7 +26399,7 @@ function getConfiguration() {
 }
 
 // src/core/patterns/ConsistencyPatterns.ts
-var core5 = __toESM(require_core());
+var core6 = __toESM(require_core());
 async function executeOperation(operation, context) {
   const startTime = Date.now();
   try {
@@ -26222,7 +26445,7 @@ var GitHubOperations = class {
     var _a;
     this.ensureInitialized();
     if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core5.warning("No PR context available, skipping progress comment");
+      core6.warning("No PR context available, skipping progress comment");
       return;
     }
     const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
@@ -26245,14 +26468,14 @@ var GitHubOperations = class {
         );
       }
     } catch (error5) {
-      core5.warning(`Failed to post progress comment: ${error5}`);
+      core6.warning(`Failed to post progress comment: ${error5}`);
     }
   }
   static async postResult(result, operation) {
     var _a;
     this.ensureInitialized();
     if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core5.warning("No PR context available, skipping result comment");
+      core6.warning("No PR context available, skipping result comment");
       return;
     }
     const emoji = result.success ? "\u2705" : "\u274C";
@@ -26282,7 +26505,7 @@ var GitHubOperations = class {
         message
       );
     } catch (error5) {
-      core5.warning(`Failed to post result comment: ${error5}`);
+      core6.warning(`Failed to post result comment: ${error5}`);
     }
   }
   static async addReaction(reaction) {
@@ -26300,7 +26523,7 @@ var GitHubOperations = class {
         );
       }
     } catch (error5) {
-      core5.debug(`Failed to add reaction: ${error5}`);
+      core6.debug(`Failed to add reaction: ${error5}`);
     }
   }
   static getTriggeringCommentId() {
@@ -26846,9 +27069,9 @@ var logger = createModuleLogger({
 });
 
 // src/core/utils/FileSystemWrapper.ts
-var fs2 = __toESM(require("fs/promises"));
+var fs3 = __toESM(require("fs/promises"));
 var fsSync = __toESM(require("fs"));
-var path2 = __toESM(require("path"));
+var path3 = __toESM(require("path"));
 var logger2 = createModuleLogger({
   module: "FileSystem",
   defaultCategory: ErrorCategory.FILE_SYSTEM
@@ -26861,14 +27084,14 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         try {
-          await fs2.access(filePath, fsSync.constants.F_OK);
+          await fs3.access(filePath, fsSync.constants.F_OK);
           return true;
         } catch {
           return false;
         }
       },
       {
-        name: `Check file exists: ${path2.basename(filePath)}`,
+        name: `Check file exists: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         fallback: false
@@ -26883,12 +27106,12 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         if (options.maxSize) {
-          const stats = await fs2.stat(filePath);
+          const stats = await fs3.stat(filePath);
           if (stats.size > options.maxSize) {
             throw new Error(`File size ${stats.size} exceeds maximum ${options.maxSize}`);
           }
         }
-        const content = await fs2.readFile(filePath, {
+        const content = await fs3.readFile(filePath, {
           encoding: options.encoding || "utf-8",
           flag: options.flag
         });
@@ -26902,7 +27125,7 @@ var FileSystem = class {
         return content.toString();
       },
       {
-        name: `Read file: ${path2.basename(filePath)}`,
+        name: `Read file: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
@@ -26918,7 +27141,7 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         if (options.createDirectories) {
-          await this.ensureDirectory(path2.dirname(filePath));
+          await this.ensureDirectory(path3.dirname(filePath));
         }
         let data;
         if (typeof content === "object" && !Buffer.isBuffer(content)) {
@@ -26928,19 +27151,19 @@ var FileSystem = class {
         }
         if (options.backup && await this.exists(filePath)) {
           const backupPath = `${filePath}.backup`;
-          await fs2.copyFile(filePath, backupPath);
+          await fs3.copyFile(filePath, backupPath);
           logger2.debug(`Created backup: ${backupPath}`);
         }
         if (options.atomic) {
           const tempPath = `${filePath}.tmp`;
-          await fs2.writeFile(tempPath, data, {
+          await fs3.writeFile(tempPath, data, {
             encoding: options.encoding || "utf-8",
             mode: options.mode,
             flag: options.flag || "w"
           });
-          await fs2.rename(tempPath, filePath);
+          await fs3.rename(tempPath, filePath);
         } else {
-          await fs2.writeFile(filePath, data, {
+          await fs3.writeFile(filePath, data, {
             encoding: options.encoding || "utf-8",
             mode: options.mode,
             flag: options.flag || "w"
@@ -26949,7 +27172,7 @@ var FileSystem = class {
         return true;
       },
       {
-        name: `Write file: ${path2.basename(filePath)}`,
+        name: `Write file: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { filePath, options },
@@ -26965,11 +27188,11 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         try {
-          const stats = await fs2.stat(filePath);
+          const stats = await fs3.stat(filePath);
           if (stats.isDirectory()) {
-            await fs2.rm(filePath, { recursive: true, force: true });
+            await fs3.rm(filePath, { recursive: true, force: true });
           } else {
-            await fs2.unlink(filePath);
+            await fs3.unlink(filePath);
           }
           return true;
         } catch (error5) {
@@ -26980,7 +27203,7 @@ var FileSystem = class {
         }
       },
       {
-        name: `Delete: ${path2.basename(filePath)}`,
+        name: `Delete: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { filePath },
@@ -26995,11 +27218,11 @@ var FileSystem = class {
   static async ensureDirectory(dirPath) {
     const result = await executeOperation(
       async () => {
-        await fs2.mkdir(dirPath, { recursive: true });
+        await fs3.mkdir(dirPath, { recursive: true });
         return true;
       },
       {
-        name: `Create directory: ${path2.basename(dirPath)}`,
+        name: `Create directory: ${path3.basename(dirPath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { dirPath },
@@ -27014,10 +27237,10 @@ var FileSystem = class {
   static async listDirectory(dirPath, options = {}) {
     const result = await executeOperation(
       async () => {
-        const entries = await fs2.readdir(dirPath, { withFileTypes: true });
+        const entries = await fs3.readdir(dirPath, { withFileTypes: true });
         const files = [];
         for (const entry of entries) {
-          const fullPath = path2.join(dirPath, entry.name);
+          const fullPath = path3.join(dirPath, entry.name);
           if (!options.includeHidden && entry.name.startsWith(".")) {
             continue;
           }
@@ -27034,7 +27257,7 @@ var FileSystem = class {
         return files;
       },
       {
-        name: `List directory: ${path2.basename(dirPath)}`,
+        name: `List directory: ${path3.basename(dirPath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { dirPath, options },
@@ -27052,8 +27275,8 @@ var FileSystem = class {
         if (!options.overwrite && await this.exists(destination)) {
           throw new Error(`Destination file already exists: ${destination}`);
         }
-        await this.ensureDirectory(path2.dirname(destination));
-        await fs2.copyFile(source, destination);
+        await this.ensureDirectory(path3.dirname(destination));
+        await fs3.copyFile(source, destination);
         return true;
       },
       {
@@ -27073,7 +27296,7 @@ var FileSystem = class {
     const result = await executeOperation(
       async () => {
         try {
-          await fs2.rename(source, destination);
+          await fs3.rename(source, destination);
         } catch (error5) {
           if (error5.code === "EXDEV") {
             await this.copy(source, destination);
@@ -27085,7 +27308,7 @@ var FileSystem = class {
         return true;
       },
       {
-        name: `Move file: ${path2.basename(source)} to ${path2.basename(destination)}`,
+        name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "medium" /* MEDIUM */,
         metadata: { source, destination },
@@ -27099,9 +27322,9 @@ var FileSystem = class {
    */
   static async getStats(filePath) {
     const result = await executeOperation(
-      async () => await fs2.stat(filePath),
+      async () => await fs3.stat(filePath),
       {
-        name: `Get file stats: ${path2.basename(filePath)}`,
+        name: `Get file stats: ${path3.basename(filePath)}`,
         category: ErrorCategory.FILE_SYSTEM,
         severity: "low" /* LOW */,
         metadata: { filePath },
@@ -27131,7 +27354,7 @@ var FileSystem = class {
     const tempDir = process.env.TMPDIR || "/tmp";
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    const tempPath = path2.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
+    const tempPath = path3.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
     await this.write(tempPath, "", { createDirectories: true });
     return tempPath;
   }
@@ -27144,7 +27367,7 @@ var FileSystem = class {
     try {
       const files = await this.listDirectory(directory);
       for (const file of files) {
-        if (pattern && !pattern.test(path2.basename(file))) {
+        if (pattern && !pattern.test(path3.basename(file))) {
           continue;
         }
         const stats = await this.getStats(file);
@@ -27188,899 +27411,417 @@ var logger4 = createModuleLogger({
   defaultCategory: ErrorCategory.PROCESSING
 });
 
-// src/github/PRReporter.ts
-var PRReporter = class {
-  constructor() {
-    this.commentEngine = getGitHubCommentEngine();
-    const githubService = GitHubServiceFactory.getService();
-    const context = githubService.getContext();
-    this.prNumber = context.prNumber;
-    if (!this.prNumber) {
-      core6.warning("No PR number found, cannot post comment");
-    }
-  }
-  /**
-   * Post comprehensive verification results to PR
-   */
-  async postResults(result, storageConsoleUrl) {
-    if (!this.prNumber) {
-      core6.warning("No PR number found, cannot post comment");
-      return;
-    }
-    try {
-      core6.info(`Posting verification results to PR #${this.prNumber}...`);
-      const comment = this.generateCommentBody(result, storageConsoleUrl);
-      await this.commentEngine.postComment(comment, {
-        updateExisting: true,
-        signature: "yofix-verification-results"
-      });
-      core6.info("Posted verification results to PR");
-    } catch (error5) {
-      await errorHandler.handleError(error5, {
-        severity: "high" /* HIGH */,
-        category: "github" /* GITHUB */,
-        location: "pr-reporter"
-      });
-      throw error5;
-    }
-  }
-  /**
-   * Post a simple status update (for early failures)
-   */
-  async postStatusUpdate(status, message) {
-    if (!this.prNumber) {
-      core6.warning("No PR number found, cannot post status update");
-      return;
-    }
-    try {
-      const statusEmoji = {
-        running: "\u{1F504}",
-        failed: "\u274C",
-        skipped: "\u23ED\uFE0F"
-      };
-      const comment = `## ${statusEmoji[status]} Runtime PR Verification
-
-**Status**: ${status.charAt(0).toUpperCase() + status.slice(1)}
-
-${message}
-
----
-*Generated by [YoFix](https://github.com/yofix/yofix) \u2022 ${(/* @__PURE__ */ new Date()).toLocaleString()}*`;
-      await this.commentEngine.postComment(comment, {
-        updateExisting: true,
-        signature: "yofix-status-update"
-      });
-    } catch (error5) {
-      await errorHandler.handleError(error5, {
-        severity: "medium" /* MEDIUM */,
-        category: "github" /* GITHUB */,
-        location: "pr-reporter",
-        recoverable: true
-      });
-    }
-  }
-  /**
-   * Generate comprehensive comment body with React-specific results
-   */
-  generateCommentBody(result, storageConsoleUrl) {
-    const statusEmoji = result.status === "success" ? "\u2705" : result.status === "partial" ? "\u26A0\uFE0F" : "\u274C";
-    const firebaseEmoji = "\u{1F525}";
-    const reactEmoji = "\u269B\uFE0F";
-    const frameworkName = result.framework || "Web App";
-    let comment = `## ${statusEmoji} Runtime PR Verification - ${frameworkName}
-
-`;
-    comment += `**Test Results**: ${result.passedTests}/${result.totalTests} passed`;
-    if (result.failedTests > 0) {
-      comment += ` \u2022 ${result.failedTests} failed`;
-    }
-    if (result.skippedTests > 0) {
-      comment += ` \u2022 ${result.skippedTests} skipped`;
-    }
-    comment += ` \u2022 ${this.formatDuration(result.duration)}
-
-`;
-    const screenshots = result.testResults.flatMap((t) => t.screenshots);
-    const videos = result.testResults.flatMap((t) => t.videos);
-    if (screenshots.length > 0 || videos.length > 0) {
-      comment += `**Visual Evidence**: `;
-      comment += `\u{1F4F8} ${screenshots.length} screenshot${screenshots.length !== 1 ? "s" : ""}`;
-      if (videos.length > 0) {
-        comment += ` \u2022 \u{1F3A5} ${videos.length} video${videos.length !== 1 ? "s" : ""}`;
-      }
-      if (storageConsoleUrl) {
-        comment += ` \u2022 [Firebase Console](${storageConsoleUrl})`;
-      }
-      comment += "\n\n";
-    }
-    if (screenshots.length > 0) {
-      core6.info(`Embedding ${screenshots.length} screenshots in PR comment`);
-      const screenshotsWithUrls = screenshots.filter((s) => s.firebaseUrl);
-      core6.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
-      const hasBaselineData = screenshots.some((s) => s.comparison || s.baseline);
-      if (hasBaselineData) {
-        comment += this.generateVisualComparisonTable(screenshots, result);
-      } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result);
-      }
-    }
-    if (videos.length > 0) {
-      core6.info(`Embedding ${videos.length} videos in PR comment`);
-      const videosWithUrls = videos.filter((v) => v.firebaseUrl);
-      core6.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
-      comment += this.generateEmbeddedVideos(videos);
-    }
-    comment += "<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n";
-    if (result.summary.issuesFound.length > 0) {
-      comment += "### \u26A0\uFE0F Issues Detected\n\n";
-      for (const issue of result.summary.issuesFound.slice(0, 5)) {
-        comment += `- ${issue}
-`;
-      }
-      if (result.summary.issuesFound.length > 5) {
-        comment += `- ...and ${result.summary.issuesFound.length - 5} more issues
-`;
-      }
-      comment += "\n";
-    }
-    comment += "### \u{1F525} Firebase Configuration\n\n";
-    comment += `- **Project**: \`${result.firebaseConfig.projectId}\`
-`;
-    comment += `- **Target**: \`${result.firebaseConfig.target}\`
-`;
-    comment += `- **Build System**: ${result.firebaseConfig.buildSystem === "vite" ? "Vite" : "Create React App"}
-`;
-    comment += `- **Preview URL**: [${result.firebaseConfig.previewUrl}](${result.firebaseConfig.previewUrl})
-
-`;
-    const consoleErrors = result.testResults.flatMap(
-      (t) => t.consoleMessages.filter((m) => m.type === "error")
-    );
-    if (consoleErrors.length > 0) {
-      comment += "### \u{1F41B} Console Errors\n\n";
-      comment += `Found ${consoleErrors.length} console error${consoleErrors.length !== 1 ? "s" : ""} during testing:
-
-`;
-      for (const error5 of consoleErrors.slice(0, 3)) {
-        comment += `- \`${error5.text.substring(0, 100)}${error5.text.length > 100 ? "..." : ""}\`
-`;
-      }
-      if (consoleErrors.length > 3) {
-        comment += `- ...and ${consoleErrors.length - 3} more errors
-`;
-      }
-      comment += "\n";
-    }
-    comment += "</details>\n\n";
-    const timestamp = (/* @__PURE__ */ new Date()).toLocaleString();
-    comment += `---
-*Generated by [YoFix](https://github.com/yofix/yofix) \u2022 ${timestamp}*`;
-    return comment;
-  }
-  /**
-   * Format duration in human-readable format
-   */
-  formatDuration(durationMs) {
-    if (durationMs < 1e3) {
-      return `${durationMs}ms`;
-    } else if (durationMs < 6e4) {
-      return `${(durationMs / 1e3).toFixed(1)}s`;
-    } else {
-      const minutes = Math.floor(durationMs / 6e4);
-      const seconds = (durationMs % 6e4 / 1e3).toFixed(0);
-      return `${minutes}m ${seconds}s`;
-    }
-  }
-  /**
-   * Generate visual comparison table with baseline vs current screenshots
-   */
-  generateVisualComparisonTable(screenshots, result) {
-    if (screenshots.length === 0) {
-      return "";
-    }
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || this.extractRouteFromScreenshotName(screenshot.name);
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {});
-    const totalRoutes = Object.keys(groupedByRoute).length;
-    const routesWithIssues = Object.values(groupedByRoute).filter(
-      (screenshots2) => screenshots2.some((s) => {
-        var _a, _b, _c;
-        return ((_a = s.comparison) == null ? void 0 : _a.hasDifference) || ((_c = (_b = s.comparison) == null ? void 0 : _b.issues) == null ? void 0 : _c.length) > 0;
-      })
-    ).length;
-    const newRoutes = Object.values(groupedByRoute).filter(
-      (screenshots2) => screenshots2.some((s) => {
-        var _a;
-        return ((_a = s.comparison) == null ? void 0 : _a.status) === "new";
-      })
-    ).length;
-    let content = `## \u{1F4F8} Visual Testing Results
-
-`;
-    content += `### \u{1F3AF} Summary: ${totalRoutes} route${totalRoutes !== 1 ? "s" : ""} tested`;
-    if (routesWithIssues > 0) {
-      content += ` \u2022 \u26A0\uFE0F ${routesWithIssues} with issues`;
-    }
-    if (newRoutes > 0) {
-      content += ` \u2022 \u{1F195} ${newRoutes} new`;
-    }
-    content += `
-
-`;
-    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      const routeHasIssues = routeScreenshots.some(
-        (s) => {
-          var _a, _b, _c;
-          return ((_a = s.comparison) == null ? void 0 : _a.hasDifference) || ((_c = (_b = s.comparison) == null ? void 0 : _b.issues) == null ? void 0 : _c.length) > 0;
-        }
-      );
-      const isNewRoute = routeScreenshots.some((s) => {
-        var _a;
-        return ((_a = s.comparison) == null ? void 0 : _a.status) === "new";
-      });
-      const statusIcon = isNewRoute ? "\u{1F195}" : routeHasIssues ? "\u26A0\uFE0F" : "\u2705";
-      const statusText = isNewRoute ? "New Route" : routeHasIssues ? "Issues Detected" : "No Issues";
-      content += `<details>
-`;
-      content += `<summary><strong>\u{1F4CD} ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>
-
-`;
-      content += `| Baseline (Last Updated) | Current Screenshot | Comparison |
-`;
-      content += `|------------------------|-------------------|------------|
-`;
-      const sortedScreenshots = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
-      for (const screenshot of sortedScreenshots) {
-        content += this.generateComparisonTableRow(screenshot);
-      }
-      const allIssues = routeScreenshots.flatMap((s) => {
-        var _a;
-        return ((_a = s.comparison) == null ? void 0 : _a.issues) || [];
-      });
-      if (allIssues.length > 0) {
-        content += `
-**Issues Found:**
-`;
-        for (const issue of allIssues) {
-          const severityIcon = issue.severity === "critical" ? "\u{1F6A8}" : issue.severity === "warning" ? "\u26A0\uFE0F" : "\u2139\uFE0F";
-          content += `- ${severityIcon} **${issue.type}**: ${issue.description}
-`;
-          if (issue.fix) {
-            content += `  - \u{1F527} **Fix**: ${issue.fix}
-`;
-          }
-        }
-      }
-      content += `
-</details>
-
-`;
-    }
-    return content;
-  }
-  /**
-   * Generate a single row for the comparison table
-   */
-  generateComparisonTableRow(screenshot) {
-    var _a, _b;
-    const viewport = `**${screenshot.viewport.width}\xD7${screenshot.viewport.height}**`;
-    let baselineCell = `${viewport}<br/>`;
-    if ((_a = screenshot.baseline) == null ? void 0 : _a.url) {
-      const updatedDate = screenshot.baseline.updatedDate || "Unknown";
-      baselineCell += `![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
-    } else if (((_b = screenshot.comparison) == null ? void 0 : _b.status) === "new") {
-      baselineCell += "\u{1F195} *New baseline created*";
-    } else {
-      baselineCell += "\u274C *No baseline*";
-    }
-    let currentCell = `${viewport}<br/>`;
-    if (screenshot.firebaseUrl) {
-      const captureDate = new Date(screenshot.timestamp).toLocaleDateString();
-      currentCell += `![Current](${screenshot.firebaseUrl})<br/>*Captured: ${captureDate}*`;
-    } else {
-      currentCell += "\u274C *Screenshot not available*";
-    }
-    let comparisonCell = "";
-    if (screenshot.comparison) {
-      const comp = screenshot.comparison;
-      switch (comp.status) {
-        case "new":
-          comparisonCell = `\u{1F195} **New Route**<br/>Baseline created from current`;
-          break;
-        case "unchanged":
-          comparisonCell = `\u2705 **${comp.diffPercentage.toFixed(2)}% diff**<br/>No issues detected`;
-          break;
-        case "changed":
-          const diffIcon = comp.diffPercentage > 5 ? "\u{1F6A8}" : comp.diffPercentage > 1 ? "\u26A0\uFE0F" : "\u2139\uFE0F";
-          comparisonCell = `${diffIcon} **${comp.diffPercentage.toFixed(2)}% diff**<br/>`;
-          if (comp.diffImageUrl) {
-            comparisonCell += `[View Diff](${comp.diffImageUrl})`;
-          } else {
-            comparisonCell += "Visual changes detected";
-          }
-          break;
-        case "error":
-          comparisonCell = `\u274C **Comparison Failed**<br/>Unable to compare images`;
-          break;
-        default:
-          comparisonCell = `\u2753 **Unknown Status**`;
-      }
-      if (comp.issues && comp.issues.length > 0) {
-        const criticalIssues = comp.issues.filter((i) => i.severity === "critical").length;
-        const warningIssues = comp.issues.filter((i) => i.severity === "warning").length;
-        if (criticalIssues > 0) {
-          comparisonCell += `<br/>\u{1F6A8} ${criticalIssues} critical issue${criticalIssues !== 1 ? "s" : ""}`;
-        }
-        if (warningIssues > 0) {
-          comparisonCell += `<br/>\u26A0\uFE0F ${warningIssues} warning${warningIssues !== 1 ? "s" : ""}`;
-        }
-      }
-    } else {
-      comparisonCell = "\u2139\uFE0F **No comparison data**";
-    }
-    return `| ${baselineCell} | ${currentCell} | ${comparisonCell} |
-`;
-  }
-  /**
-   * Extract route name from screenshot filename
-   */
-  extractRouteFromScreenshotName(screenshotName) {
-    let route = screenshotName.replace(/-\d+x\d+.*$/, "").replace(/\.(png|jpg|jpeg)$/, "");
-    route = route.replace(/_/g, "/");
-    if (!route.startsWith("/")) {
-      route = "/" + route;
-    }
-    if (route === "/root" || route === "/") {
-      return "/";
-    }
-    return route;
-  }
-  /**
-   * Get base preview URL without trailing slash
-   */
-  getBasePreviewUrl(result) {
-    return result.firebaseConfig.previewUrl.replace(/\/$/, "");
-  }
-  /**
-   * Create clickable route link with preview URL
-   */
-  createRouteLink(route, result) {
-    const baseUrl = this.getBasePreviewUrl(result);
-    return `[${route}](${baseUrl}${route})`;
-  }
-  /**
-   * Generate embedded screenshots for PR comment (legacy method)
-   */
-  generateEmbeddedScreenshots(screenshots, result) {
-    if (screenshots.length === 0) {
-      return "";
-    }
-    let gallery = "### \u{1F4F8} Screenshots\n\n";
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || "/";
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {});
-    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      const screenshotsWithUrls = routeScreenshots.filter((s) => s.firebaseUrl);
-      if (screenshotsWithUrls.length === 0) {
-        continue;
-      }
-      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
-      const testResult = result.testResults.find((test) => {
-        let testRoute = test.testId.replace("test-", "");
-        if (testRoute.startsWith("http://") || testRoute.startsWith("https://")) {
-          try {
-            const url = new URL(testRoute);
-            testRoute = url.pathname;
-          } catch (error5) {
-          }
-        }
-        return testRoute === route;
-      });
-      const totalTimeText = (testResult == null ? void 0 : testResult.duration) ? ` \u2022 ${this.formatDuration(testResult.duration)}` : "";
-      gallery += `<details>
-`;
-      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>
-
-`;
-      gallery += "<table>\n<tr>\n";
-      const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
-      for (const screenshot of sorted) {
-        const durationText = screenshot.duration ? ` \u2022 ${this.formatDuration(screenshot.duration)}` : "";
-        gallery += `<td align="center">
-`;
-        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}${durationText}</strong><br>
-`;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />
-`;
-        gallery += `</td>
-`;
-      }
-      gallery += "</tr>\n</table>\n\n";
-      gallery += `</details>
-
-`;
-    }
-    return gallery;
-  }
-  /**
-   * Generate embedded videos for PR comment
-   */
-  generateEmbeddedVideos(videos) {
-    if (videos.length === 0) {
-      return "";
-    }
-    let gallery = "### \u{1F3A5} Test Videos\n\n";
-    const videosWithUrls = videos.filter((v) => v.firebaseUrl);
-    if (videosWithUrls.length === 0) {
-      gallery += "_Videos captured but URLs not available_\n\n";
-      return gallery;
-    }
-    gallery += "<table>\n";
-    for (let i = 0; i < videosWithUrls.length; i += 3) {
-      gallery += "<tr>\n";
-      for (let j = i; j < Math.min(i + 3, videosWithUrls.length); j++) {
-        const video = videosWithUrls[j];
-        gallery += `<td align="center" width="33%">
-`;
-        gallery += `<a href="${video.firebaseUrl}">
-`;
-        gallery += `<div>\u{1F3AC}</div>
-`;
-        gallery += `<strong>${video.name.replace(/\.(webm|mp4)$/, "")}</strong><br>
-`;
-        gallery += `<em>${this.formatDuration(video.duration)}</em><br>
-`;
-        gallery += `<kbd>\u25B6\uFE0F Click to Play</kbd>
-`;
-        gallery += `</a>
-`;
-        gallery += `</td>
-`;
-      }
-      for (let k = videosWithUrls.length % 3; k < 3 && k > 0 && i + 3 > videosWithUrls.length; k++) {
-        gallery += `<td></td>
-`;
-      }
-      gallery += "</tr>\n";
-    }
-    gallery += "</table>\n\n";
-    gallery += "<details>\n<summary>Direct video links</summary>\n\n";
-    for (const video of videosWithUrls) {
-      gallery += `- [${video.name}](${video.firebaseUrl}) - ${this.formatDuration(video.duration)}
-`;
-    }
-    gallery += "\n</details>\n\n";
-    return gallery;
-  }
-  /**
-   * Generate compact status badge for quick overview
-   */
-  generateStatusBadge(result) {
-    const status = result.status;
-    const color = status === "success" ? "brightgreen" : status === "partial" ? "yellow" : "red";
-    const tests = `${result.passedTests}/${result.totalTests}`;
-    return `![Tests](https://img.shields.io/badge/tests-${tests}-${color}) ![Status](https://img.shields.io/badge/status-${status}-${color})`;
-  }
-};
-
-// src/steps/shared/StepDataManager.ts
-var import_fs = require("fs");
-var import_path = __toESM(require("path"));
+// src/core/screenshot/BrowserScreenshotCapture.ts
 var core7 = __toESM(require_core());
-var _StepDataManager = class _StepDataManager {
-  constructor(workspacePath) {
-    this.workspacePath = workspacePath || process.env.GITHUB_WORKSPACE || process.cwd();
-    this.dataDir = import_path.default.join(this.workspacePath, _StepDataManager.DATA_DIR);
+var import_browser = require("@yofix/browser");
+async function captureScreenshotsWithBrowser(options) {
+  const configuration = getConfiguration();
+  const claudeApiKey = configuration.getInput("claude-api-key");
+  const claudeModel = configuration.getInput("claude-model");
+  if (!claudeApiKey) {
+    throw new Error(
+      "Claude API key is required for route-impact-browser integration."
+    );
   }
-  /**
-   * Initialize the data directory
-   */
-  async initialize() {
-    try {
-      await import_fs.promises.mkdir(this.dataDir, { recursive: true });
-      core7.info(`\u{1F4C1} Initialized step data directory: ${this.dataDir}`);
-    } catch (error5) {
-      core7.error(`Failed to initialize step data directory: ${error5}`);
-      throw error5;
-    }
+  if (!claudeModel) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
+    );
   }
-  /**
-   * Save step data to disk
-   */
-  async save(data) {
-    try {
-      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
-      await import_fs.promises.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
-      core7.info(`\u{1F4BE} Saved step data to ${dataPath}`);
-      this.setOutputs(data);
-    } catch (error5) {
-      core7.error(`Failed to save step data: ${error5}`);
-      throw error5;
-    }
-  }
-  /**
-   * Load step data from disk
-   */
-  async load() {
-    try {
-      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
-      const content = await import_fs.promises.readFile(dataPath, "utf-8");
-      const data = JSON.parse(content);
-      core7.info(`\u{1F4E5} Loaded step data from ${dataPath}`);
-      return data;
-    } catch (error5) {
-      core7.error(`Failed to load step data: ${error5}`);
-      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error5}`);
-    }
-  }
-  /**
-   * Update specific fields in step data (partial update)
-   */
-  async update(updates) {
-    try {
-      const data = await this.load();
-      const updatedData = { ...data, ...updates };
-      await this.save(updatedData);
-      core7.info(`\u{1F504} Updated step data with: ${Object.keys(updates).join(", ")}`);
-    } catch (error5) {
-      core7.error(`Failed to update step data: ${error5}`);
-      throw error5;
-    }
-  }
-  /**
-   * Check if step data exists
-   */
-  async exists() {
-    try {
-      const dataPath = import_path.default.join(this.dataDir, _StepDataManager.DATA_FILE);
-      await import_fs.promises.access(dataPath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  /**
-   * Cleanup step data
-   */
-  async cleanup() {
-    try {
-      await import_fs.promises.rm(this.dataDir, { recursive: true, force: true });
-      core7.info(`\u{1F9F9} Cleaned up step data directory`);
-    } catch (error5) {
-      core7.warning(`Failed to cleanup step data: ${error5}`);
-    }
-  }
-  /**
-   * Record step timing
-   */
-  async recordStepTiming(stepName, start, end) {
-    try {
-      const data = await this.load();
-      data.metadata.stepTimings[stepName] = {
-        start,
-        end,
-        duration: end - start
-      };
-      await this.save(data);
-      core7.info(`\u23F1\uFE0F Recorded timing for ${stepName}: ${end - start}ms`);
-    } catch (error5) {
-      core7.warning(`Failed to record step timing: ${error5}`);
-    }
-  }
-  /**
-   * Get step timing summary
-   */
-  async getTimingSummary() {
-    try {
-      const data = await this.load();
-      const timings = data.metadata.stepTimings;
-      const totalDuration = Date.now() - data.metadata.startTime;
-      let summary = `## \u23F1\uFE0F Step Timings
-
-`;
-      summary += `**Total Duration:** ${(totalDuration / 1e3).toFixed(2)}s
-
-`;
-      for (const [step, timing] of Object.entries(timings)) {
-        const durationSeconds = (timing.duration / 1e3).toFixed(2);
-        const percentage = (timing.duration / totalDuration * 100).toFixed(1);
-        summary += `- **${step}:** ${durationSeconds}s (${percentage}%)
-`;
-      }
-      return summary;
-    } catch (error5) {
-      core7.warning(`Failed to generate timing summary: ${error5}`);
-      return "";
-    }
-  }
-  /**
-   * Set GitHub Action outputs for easy access in workflow
-   */
-  setOutputs(data) {
-    try {
-      core7.setOutput("pr-number", data.prNumber.toString());
-      core7.setOutput("preview-url", data.previewUrl);
-      core7.setOutput("data-dir", _StepDataManager.DATA_DIR);
-      if (data.routes) {
-        core7.setOutput("routes-count", data.routes.affectedRoutes.length.toString());
-        core7.setOutput("has-routes", data.routes.affectedRoutes.length > 0 ? "true" : "false");
-      }
-      if (data.comparison) {
-        core7.setOutput("has-changes", data.comparison.hasChanges ? "true" : "false");
-        core7.setOutput("diff-count", data.comparison.diffCount.toString());
-      }
-    } catch (error5) {
-      core7.warning(`Failed to set GitHub outputs: ${error5}`);
-    }
-  }
-  /**
-   * Get data directory path
-   */
-  getDataDir() {
-    return this.dataDir;
-  }
-  /**
-   * Get full path for a file within data directory
-   */
-  getFilePath(filename) {
-    return import_path.default.join(this.dataDir, filename);
-  }
-  /**
-   * Save arbitrary file to data directory
-   */
-  async saveFile(filename, content) {
-    try {
-      const filePath = this.getFilePath(filename);
-      await import_fs.promises.writeFile(filePath, content);
-      core7.info(`\u{1F4BE} Saved file: ${filename}`);
-      return filePath;
-    } catch (error5) {
-      core7.error(`Failed to save file ${filename}: ${error5}`);
-      throw error5;
-    }
-  }
-  /**
-   * Load arbitrary file from data directory
-   */
-  async loadFile(filename) {
-    try {
-      const filePath = this.getFilePath(filename);
-      const content = await import_fs.promises.readFile(filePath, "utf-8");
-      return content;
-    } catch (error5) {
-      core7.error(`Failed to load file ${filename}: ${error5}`);
-      throw error5;
-    }
-  }
-};
-_StepDataManager.DATA_DIR = ".yofix-step-data";
-_StepDataManager.DATA_FILE = "step-data.json";
-_StepDataManager.METADATA_FILE = "metadata.json";
-var StepDataManager = _StepDataManager;
-var instance = null;
-function getStepDataManager(workspacePath) {
-  if (!instance) {
-    instance = new StepDataManager(workspacePath);
-  }
-  return instance;
-}
-async function executeStep(stepName, stepFunction) {
-  const start = Date.now();
-  core7.startGroup(`\u{1F680} ${stepName}`);
-  try {
-    const result = await stepFunction();
-    const end = Date.now();
-    core7.info(`\u2705 ${stepName} completed in ${end - start}ms`);
-    core7.endGroup();
-    const manager = getStepDataManager();
-    if (await manager.exists()) {
-      await manager.recordStepTiming(stepName, start, end);
-    }
-    return result;
-  } catch (error5) {
-    const end = Date.now();
-    core7.error(`\u274C ${stepName} failed after ${end - start}ms: ${error5}`);
-    core7.endGroup();
-    throw error5;
-  }
-}
-
-// src/steps/4-post-results.step.ts
-async function postResults(stepData) {
-  return executeStep("Post Results to PR", async () => {
-    var _a, _b, _c, _d, _e, _f;
-    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata } = stepData;
-    const internal = stepData._internal;
-    if (!routes || !screenshots) {
-      throw new Error("Missing routes or screenshots data. Run previous steps first.");
-    }
-    const githubToken = config.get("github-token");
-    const github = GitHubServiceFactory.getService();
-    if (githubToken) {
-      await github.configure({ token: githubToken });
-    }
-    core8.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
-    const analysis = {
-      hasUIChanges: routes.affectedRoutes.length > 0,
-      changedPaths: routes.affectedRoutes,
-      components: routes.components,
-      routes: routes.affectedRoutes,
-      testSuggestions: routes.affectedRoutes.map((r) => `Test route ${r} for visual regressions`),
-      riskLevel: (((_b = (_a = routes.routesToTest) == null ? void 0 : _a.sharedComponents) == null ? void 0 : _b.size) || 0) > 0 ? "high" : "medium"
-    };
-    const screenshotResult = internal == null ? void 0 : internal.screenshotResult;
-    const uploadedFiles = (internal == null ? void 0 : internal.uploadedFiles) || [];
-    const storageUrl = (internal == null ? void 0 : internal.storageUrl) || "";
-    const screenshotMetadataMap = (internal == null ? void 0 : internal.screenshotMetadataMap) || {};
-    const comparison = stepData.comparison || { hasChanges: false, diffCount: 0, diffFiles: [] };
-    const diffFiles = (internal == null ? void 0 : internal.diffFiles) || [];
-    if (!screenshotResult) {
-      throw new Error("Screenshot result not found in step data");
-    }
-    const totalDuration = Date.now() - metadata.startTime;
-    const verificationResult = {
-      status: screenshotResult.success ? "success" : "failure",
-      firebaseConfig: {
-        projectId: firebaseConfig.projectId,
-        target: firebaseConfig.target,
-        buildSystem: firebaseConfig.buildSystem,
-        previewUrl,
-        region: firebaseConfig.region
+  core7.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
+  core7.info(`  - Routes: ${options.routes.length}`);
+  core7.info(`  - Base URL: ${options.baseUrl}`);
+  core7.info(`  - Viewports: ${options.viewports.length}`);
+  const startTime = Date.now();
+  const result = await (0, import_browser.captureRouteScreenshots)({
+    codebase: { path: process.cwd() },
+    routes: options.routes,
+    baseUrl: options.baseUrl,
+    credentials: options.credentials,
+    loginUrl: options.loginUrl,
+    options: {
+      viewports: options.viewports.map((vp) => ({
+        width: vp.width,
+        height: vp.height,
+        name: vp.name || `${vp.width}x${vp.height}`
+      })),
+      llm: {
+        provider: "anthropic",
+        apiKey: claudeApiKey,
+        model: claudeModel
       },
-      framework: ((_c = routes.routesToTest) == null ? void 0 : _c.framework) || ((_d = routes.impactTree) == null ? void 0 : _d.framework),
-      totalTests: screenshotResult.screenshots.length,
-      passedTests: screenshotResult.screenshots.filter((r) => r.success !== false).length,
-      failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
-      skippedTests: 0,
-      duration: totalDuration,
-      testResults: screenshotResult.screenshots.map((r) => {
-        var _a2;
-        let routePath = r.route;
-        if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
-          try {
-            const url = new URL(routePath);
-            routePath = url.pathname;
-          } catch (error5) {
-            core8.debug(`Failed to parse route URL: ${routePath}`);
-          }
+      auth: options.credentials ? {
+        enabled: true,
+        skipLoginIfAuthenticated: false,
+        cache: {
+          enabled: true,
+          provider: "file-system",
+          ttl: 30 * 24 * 60 * 60 * 1e3
+          // 30 days
         }
-        const sanitizedRoute = routePath.replace(/^\//, "").replace(/\//g, "-").toLowerCase();
-        return {
-          testId: `test-${r.route}`,
-          testName: `Route Test: ${r.route}`,
-          status: r.success !== false ? "passed" : "failed",
-          duration: ((_a2 = r.timing) == null ? void 0 : _a2.totalTime) || 0,
-          screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes("/diffs/")).map((f) => {
-            const metadata2 = screenshotMetadataMap[f.localPath];
-            const viewport = (metadata2 == null ? void 0 : metadata2.viewport) || { width: 0, height: 0, name: "" };
-            const viewportKey = `${viewport.width}x${viewport.height}`;
-            const diffFile = diffFiles.find(
-              (d) => d.route === routePath && d.viewport === viewportKey
-            );
-            const diffImageFile = diffFile ? uploadedFiles.find(
-              (uf) => uf.localPath === diffFile.localPath
-            ) : null;
-            const comparisonData = diffFile ? {
-              status: diffFile.status,
-              hasDifference: diffFile.hasDifference,
-              diffPercentage: diffFile.diffPercentage || 0,
-              diffImageUrl: (diffImageFile == null ? void 0 : diffImageFile.url) || null,
-              metrics: diffFile.metrics
-            } : null;
-            const baselineData = (diffFile == null ? void 0 : diffFile.baselineUrl) ? {
-              url: diffFile.baselineUrl,
-              updatedDate: "From storage"
-              // Can be enhanced with actual date
-            } : null;
-            return {
-              name: `${routePath}-${viewport.width}x${viewport.height}.png`,
-              path: f.localPath,
-              viewport,
-              timestamp: Date.now(),
-              firebaseUrl: f.url || "",
-              route: routePath,
-              duration: metadata2 == null ? void 0 : metadata2.duration,
-              comparison: comparisonData,
-              baseline: baselineData
-            };
-          }),
-          videos: [],
-          errors: r.error ? [r.error] : [],
-          consoleMessages: []
-        };
-      }),
-      screenshotsUrl: storageUrl,
-      summary: {
-        componentsVerified: analysis.components,
-        routesTested: analysis.routes,
-        issuesFound: ((_e = screenshotResult.errors) == null ? void 0 : _e.map((e) => e.message)) || []
+      } : {
+        enabled: false
+      },
+      browser: {
+        headless: true,
+        timeout: 6e4,
+        waitUntil: "networkidle"
+      },
+      storage: {
+        provider: "local"
+        // Always use local storage
+      },
+      verbose: options.verbose ?? false
+    }
+  });
+  const totalDuration = Date.now() - startTime;
+  core7.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
+  core7.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
+  core7.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
+  core7.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
+  core7.info(`  - Output directory: ${result.metadata.outputDirectory}`);
+  return {
+    success: result.success,
+    screenshots: result.screenshots,
+    outputDirectory: result.metadata.outputDirectory,
+    totalDuration,
+    errors: result.errors
+  };
+}
+
+// src/steps/2.5-compare-baselines.step.ts
+async function compareWithBaselines(stepData) {
+  return executeStep("Compare with Baselines", async () => {
+    var _a, _b, _c, _d;
+    const { prNumber, screenshots } = stepData;
+    const internal = stepData._internal;
+    if (!screenshots || !(internal == null ? void 0 : internal.screenshotResult)) {
+      throw new Error("No screenshots available for comparison. Run browse-routes step first.");
+    }
+    core8.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
+    const firebaseCredentials = config.get("firebase-credentials");
+    const storageBucket = config.get("storage-bucket");
+    const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
+    const comparisonThreshold = parseFloat(config.get("comparison-threshold", { defaultValue: "0.01" }));
+    const productionUrl = config.get("production-url");
+    if (!firebaseCredentials || !storageBucket) {
+      core8.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
+      core8.warning('   All screenshots will be marked as "new"');
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: "Baseline comparison skipped - no storage configured"
+        },
+        _internal: {
+          ...internal,
+          diffFiles: []
+        }
+      };
+    }
+    const diffOutputDir = await import_fs2.promises.mkdtemp(import_path2.default.join(import_os.default.tmpdir(), "yofix-diffs-"));
+    core8.info(`\u{1F4C1} Diff output directory: ${diffOutputDir}`);
+    const { downloadFiles, uploadFiles } = await import("@yofix/storage");
+    let credentialsBase64 = firebaseCredentials;
+    if (firebaseCredentials.endsWith(".json")) {
+      try {
+        const credentialsContent = await import_fs2.promises.readFile(firebaseCredentials, "utf-8");
+        credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
+        core8.info("  Using Firebase credentials from file");
+      } catch (error5) {
+        core8.debug(`Not a file path, treating as base64: ${error5}`);
       }
-    };
-    core8.info(`\u{1F4CA} Verification Summary:`);
-    core8.info(`  Total tests: ${verificationResult.totalTests}`);
-    core8.info(`  Passed: ${verificationResult.passedTests}`);
-    core8.info(`  Failed: ${verificationResult.failedTests}`);
-    core8.info(`  Duration: ${(totalDuration / 1e3).toFixed(2)}s`);
-    const timingSummary = await getStepDataManager().getTimingSummary();
-    if (timingSummary) {
+    }
+    const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
+    const viewports = viewportsConfig.split(",").map((viewport) => {
+      const [width, height] = viewport.trim().split("x").map(Number);
+      return { width, height, name: `${width}x${height}` };
+    });
+    const comparisonsToRun = [];
+    const diffFilesInfo = [];
+    const baselineUrlMap = /* @__PURE__ */ new Map();
+    let newScreenshots = 0;
+    for (const routeScreenshot of internal.screenshotResult.screenshots) {
+      const route = routeScreenshot.route;
+      for (const screenshot of routeScreenshot.screenshots) {
+        const viewport = `${screenshot.width}x${screenshot.height}`;
+        const sanitizedRoute = route.replace(/\//g, "_");
+        const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
+        core8.info(`  Checking baseline for ${route} (${viewport})`);
+        try {
+          const baselineResult = await downloadFiles({
+            storage: {
+              provider: storageProvider,
+              config: {
+                bucket: storageBucket,
+                credentials: credentialsBase64
+              }
+            },
+            files: [baselineKey]
+          });
+          if (!baselineResult.success || baselineResult.files.length === 0) {
+            if (productionUrl) {
+              core8.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${route}`);
+              try {
+                const viewportConfig = viewports.find((v) => v.name === viewport);
+                if (!viewportConfig) {
+                  throw new Error(`Viewport configuration not found for ${viewport}`);
+                }
+                const productionCapture = await captureScreenshotsWithBrowser({
+                  routes: [route],
+                  baseUrl: productionUrl,
+                  viewports: [viewportConfig],
+                  verbose: false
+                });
+                if (!productionCapture.success || productionCapture.screenshots.length === 0) {
+                  throw new Error("Production screenshot capture failed");
+                }
+                const productionScreenshot = productionCapture.screenshots[0].screenshots[0];
+                const productionBuffer = await import_fs2.promises.readFile(productionScreenshot.path);
+                core8.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
+                const uploadResult = await uploadFiles({
+                  storage: {
+                    provider: storageProvider,
+                    config: {
+                      bucket: storageBucket,
+                      credentials: credentialsBase64
+                    }
+                  },
+                  files: [{
+                    path: productionScreenshot.path,
+                    destination: baselineKey,
+                    contentType: "image/png",
+                    metadata: {
+                      type: "baseline",
+                      route,
+                      viewport,
+                      source: "production",
+                      createdAt: Date.now()
+                    }
+                  }],
+                  verbose: false
+                });
+                if (!uploadResult.success) {
+                  throw new Error("Failed to upload baseline");
+                }
+                core8.info(`    \u2705 Baseline created from production`);
+                const currentBuffer2 = await import_fs2.promises.readFile(screenshot.path);
+                comparisonsToRun.push({
+                  route,
+                  viewport,
+                  current: currentBuffer2,
+                  baseline: productionBuffer
+                });
+              } catch (error5) {
+                core8.warning(`    \u274C Failed to create baseline from production: ${error5}`);
+                core8.warning(`    Marking as NEW instead`);
+                newScreenshots++;
+                diffFilesInfo.push({
+                  route,
+                  viewport,
+                  localPath: screenshot.path,
+                  destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+                  hasDifference: false,
+                  diffPercentage: 0,
+                  status: "new"
+                });
+              }
+            } else {
+              core8.info(`    \u26A0\uFE0F  No baseline found - marking as NEW`);
+              newScreenshots++;
+              diffFilesInfo.push({
+                route,
+                viewport,
+                localPath: screenshot.path,
+                destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+                hasDifference: false,
+                diffPercentage: 0,
+                status: "new"
+              });
+            }
+            continue;
+          }
+          const baselineBuffer = baselineResult.files[0].buffer;
+          const baselineUrl = baselineResult.files[0].url;
+          const currentBuffer = await import_fs2.promises.readFile(screenshot.path);
+          const comparisonKey = `${route}_${viewport}`;
+          if (baselineUrl) {
+            baselineUrlMap.set(comparisonKey, baselineUrl);
+          }
+          comparisonsToRun.push({
+            route,
+            viewport,
+            current: currentBuffer,
+            baseline: baselineBuffer
+          });
+        } catch (error5) {
+          core8.warning(`    \u274C Error fetching baseline: ${error5}`);
+          diffFilesInfo.push({
+            route,
+            viewport,
+            localPath: screenshot.path,
+            destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: "error"
+          });
+        }
+      }
+    }
+    if (newScreenshots > 0) {
       core8.info(`
-${timingSummary}`);
+\u{1F4DD} ${newScreenshots} screenshot(s) have no baseline (new routes/viewports)`);
     }
-    core8.info("\u{1F4E4} Posting results to PR...");
-    const reporter = new PRReporter();
+    if (comparisonsToRun.length === 0) {
+      core8.info("\n\u2705 No baseline comparisons needed (all screenshots are new)");
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: `All ${newScreenshots} screenshot(s) are new (no existing baselines)`
+        },
+        _internal: {
+          ...internal,
+          diffFiles: diffFilesInfo
+        }
+      };
+    }
+    core8.info(`
+\u{1F4CA} Running ${comparisonsToRun.length} baseline comparison(s)...`);
+    core8.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
+    core8.info(`   Diff Format: side-by-side`);
+    core8.info(`   Parallel Processing: enabled (concurrency: 3)`);
     try {
-      await Promise.race([
-        reporter.postResults(verificationResult, prNumber.toString()),
-        new Promise(
-          (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 3e4)
-        )
-      ]);
-      core8.info(`\u2705 PR report posted successfully`);
-    } catch (error5) {
-      core8.warning(`Failed to post PR report: ${error5}`);
-      await errorHandler.handleError(error5, {
-        severity: "medium" /* MEDIUM */,
-        category: "github" /* GITHUB */,
-        location: "pr-reporter",
-        recoverable: true
+      const result = await (0, import_comparator.compareBaselines)({
+        comparisons: comparisonsToRun,
+        options: {
+          threshold: comparisonThreshold,
+          diffFormat: "side-by-side",
+          // Baseline | Diff | Current
+          parallel: {
+            enabled: true,
+            concurrency: 3
+          },
+          generateHash: true,
+          detectRegions: true,
+          verbose: true
+        }
       });
+      if (!result.success) {
+        core8.warning("Comparison failed:");
+        (_a = result.errors) == null ? void 0 : _a.forEach((error5) => {
+          core8.warning(`  - ${error5.message}`);
+        });
+        return {
+          ...stepData,
+          comparison: {
+            hasChanges: false,
+            diffCount: 0,
+            diffFiles: [],
+            summary: "Baseline comparison failed"
+          },
+          _internal: {
+            ...internal,
+            diffFiles: diffFilesInfo
+          }
+        };
+      }
+      let changedCount = 0;
+      let unchangedCount = 0;
+      for (const comparison of result.comparisons) {
+        const sanitizedRoute = comparison.route.replace(/\//g, "_");
+        const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
+        const diffFilePath = import_path2.default.join(diffOutputDir, diffFileName);
+        if (comparison.diff && comparison.diff.buffer) {
+          await import_fs2.promises.writeFile(diffFilePath, comparison.diff.buffer);
+          core8.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);
+        }
+        const status = comparison.match ? "unchanged" : "changed";
+        if (status === "changed") changedCount++;
+        else unchangedCount++;
+        const comparisonKey = `${comparison.route}_${comparison.viewport}`;
+        const baselineUrl = baselineUrlMap.get(comparisonKey);
+        diffFilesInfo.push({
+          route: comparison.route,
+          viewport: comparison.viewport,
+          localPath: diffFilePath,
+          destination: `pr-${prNumber}/diffs/${diffFileName}`,
+          hasDifference: !comparison.match,
+          diffPercentage: comparison.diffPercentage,
+          status,
+          baselineUrl,
+          metrics: {
+            similarity: comparison.similarity,
+            pixelDifference: comparison.pixelDifference,
+            perceptualHash: comparison.metrics.perceptualHash,
+            mse: comparison.metrics.mse,
+            psnr: comparison.metrics.psnr,
+            regions: ((_c = (_b = comparison.diff) == null ? void 0 : _b.regions) == null ? void 0 : _c.length) || 0
+          }
+        });
+        core8.info(`
+  \u{1F4C8} ${comparison.route} (${comparison.viewport}):`);
+        core8.info(`     Status: ${status === "changed" ? "\u274C CHANGED" : "\u2705 UNCHANGED"}`);
+        core8.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
+        core8.info(`     Pixels Different: ${comparison.pixelDifference}`);
+        if (comparison.metrics.perceptualHash) {
+          core8.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
+        }
+        if (comparison.metrics.psnr !== void 0) {
+          const psnrValue = comparison.metrics.psnr === Infinity ? "\u221E (identical)" : `${comparison.metrics.psnr.toFixed(2)} dB`;
+          core8.info(`     PSNR: ${psnrValue}`);
+        }
+        if ((_d = comparison.diff) == null ? void 0 : _d.regions) {
+          const critical = comparison.diff.regions.filter((r) => r.severity === "critical").length;
+          const moderate = comparison.diff.regions.filter((r) => r.severity === "moderate").length;
+          core8.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+        }
+      }
+      const totalComparisons = result.comparisons.length;
+      const overallSimilarity = (result.summary.overallSimilarity * 100).toFixed(2);
+      core8.info(`
+\u2705 Comparison complete:`);
+      core8.info(`   Total Comparisons: ${totalComparisons}`);
+      core8.info(`   New Screenshots: ${newScreenshots}`);
+      core8.info(`   Unchanged: ${unchangedCount}`);
+      core8.info(`   Changed: ${changedCount}`);
+      core8.info(`   Overall Similarity: ${overallSimilarity}%`);
+      core8.info(`   Duration: ${result.metadata.duration}ms`);
+      const summary = `Compared ${totalComparisons} screenshot(s): ${unchangedCount} unchanged, ${changedCount} changed${newScreenshots > 0 ? `, ${newScreenshots} new` : ""}`;
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: changedCount > 0,
+          diffCount: changedCount,
+          diffFiles: diffFilesInfo.filter((d) => d.hasDifference).map((d) => d.localPath),
+          summary
+        },
+        _internal: {
+          ...internal,
+          diffFiles: diffFilesInfo,
+          diffOutputDir
+        }
+      };
+    } catch (error5) {
+      core8.error(`Error during comparison: ${error5}`);
+      throw error5;
     }
-    core8.setOutput("success", verificationResult.status === "success");
-    core8.setOutput("issues-found", ((_f = screenshotResult.errors) == null ? void 0 : _f.length) || 0);
-    core8.setOutput("critical-issues", 0);
-    core8.setOutput("warning-issues", 0);
-    core8.setOutput("total-tests", verificationResult.totalTests);
-    core8.setOutput("passed-tests", verificationResult.passedTests);
-    core8.setOutput("failed-tests", verificationResult.failedTests);
-    core8.setOutput("duration-ms", totalDuration);
-    core8.setOutput("duration-seconds", (totalDuration / 1e3).toFixed(2));
-    if (verificationResult.status === "success") {
-      core8.info("\n\u2705 All visual tests completed successfully!");
-    } else {
-      core8.error("\n\u274C Visual tests completed with errors");
-    }
-    core8.info(`\u23F1\uFE0F Total execution time: ${(totalDuration / 1e3).toFixed(2)}s`);
-    return stepData;
   });
 }
 async function main() {
-  let hadError = false;
-  let mainError = null;
   try {
     const manager = getStepDataManager();
     const stepData = await manager.load();
-    await postResults(stepData);
-    core8.info("\u2705 Step 4: Post Results completed successfully");
+    const updatedData = await compareWithBaselines(stepData);
+    await manager.save(updatedData);
+    core8.info("\u2705 Step 2.5: Compare Baselines completed successfully");
   } catch (error5) {
-    hadError = true;
-    mainError = error5;
-    core8.error(`\u274C Step 4 failed: ${error5}`);
-    await errorHandler.handleError(error5, {
-      severity: "critical" /* CRITICAL */,
-      category: "orchestration" /* ORCHESTRATION */,
-      location: "post-results",
-      recoverable: false
-    }).catch(() => {
-    });
-  } finally {
-    core8.info("\u{1F4CA} Posting error summary...");
-    await errorHandler.postErrorSummary().catch((summaryError) => {
-      core8.warning(`Failed to post error summary: ${summaryError}`);
-    });
-  }
-  if (hadError) {
-    core8.setFailed(`Step 4 failed: ${mainError}`);
-    throw mainError;
+    core8.setFailed(`Step 2.5 failed: ${error5}`);
+    throw error5;
   }
 }
 if (require.main === module) {
@@ -28088,8 +27829,8 @@ if (require.main === module) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  main,
-  postResults
+  compareWithBaselines,
+  main
 });
 /*! Bundled license information:
 
@@ -28099,4 +27840,4 @@ undici/lib/fetch/body.js:
 undici/lib/websocket/frame.js:
   (*! ws. MIT License. Einar Otto Stangvik <einaros@gmail.com> *)
 */
-//# sourceMappingURL=4-post-results.step.js.map
+//# sourceMappingURL=2.5-compare-baselines.step.js.map

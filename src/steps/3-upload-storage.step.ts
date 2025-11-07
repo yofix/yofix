@@ -81,6 +81,40 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
       })
     );
 
+    // Add diff images to upload if comparison was run
+    if (internal.diffFiles && Array.isArray(internal.diffFiles)) {
+      core.info(`📊 Adding ${internal.diffFiles.length} diff image(s) to upload`);
+
+      for (const diffFile of internal.diffFiles) {
+        // Only upload diff files that have actual differences
+        if (diffFile.hasDifference && diffFile.localPath) {
+          filesForUpload.push({
+            path: diffFile.localPath,
+            destination: diffFile.destination,
+            contentType: 'image/png',
+            metadata: {
+              type: 'diff',
+              route: diffFile.route,
+              viewport: diffFile.viewport,
+              diffPercentage: diffFile.diffPercentage,
+              status: diffFile.status
+            }
+          });
+
+          // Store diff metadata
+          screenshotMetadataMap.set(diffFile.localPath, {
+            route: diffFile.route,
+            viewport: { name: diffFile.viewport },
+            metadata: {
+              type: 'diff',
+              diffPercentage: diffFile.diffPercentage,
+              metrics: diffFile.metrics
+            }
+          });
+        }
+      }
+    }
+
     // Check if firebaseCredentials is a file path (for testing)
     let credentialsBase64 = firebaseCredentials;
     if (firebaseCredentials.endsWith('.json')) {

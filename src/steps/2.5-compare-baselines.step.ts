@@ -340,7 +340,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
       let unchangedCount = 0;
 
       for (const comparison of result.comparisons) {
-        const sanitizedRoute = comparison.route.replace(/\//g, '_');
+        const { sanitized: sanitizedRoute } = extractRoutePath(comparison.route, '_');
         const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
         const diffFilePath = path.join(diffOutputDir, diffFileName);
 

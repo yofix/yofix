@@ -27765,7 +27765,7 @@ async function compareWithBaselines(stepData) {
       let changedCount = 0;
       let unchangedCount = 0;
       for (const comparison of result.comparisons) {
-        const sanitizedRoute = comparison.route.replace(/\//g, "_");
+        const { sanitized: sanitizedRoute } = extractRoutePath(comparison.route, "_");
         const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
         const diffFilePath = import_path2.default.join(diffOutputDir, diffFileName);
         if (comparison.diff && comparison.diff.buffer) {

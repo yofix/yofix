@@ -23901,7 +23901,7 @@ __export(post_results_step_exports, {
   postResults: () => postResults
 });
 module.exports = __toCommonJS(post_results_step_exports);
-var core8 = __toESM(require_core());
+var core9 = __toESM(require_core());
 
 // src/github/PRReporter.ts
 var core6 = __toESM(require_core());
@@ -26064,8 +26064,8 @@ function createModuleLogger(options) {
 
 // src/core/hooks/ConfigurationHook.ts
 var GitHubActionsConfigurationHook = class {
-  constructor(core9) {
-    this.core = core9;
+  constructor(core10) {
+    this.core = core10;
   }
   getInput(name) {
     return this.core.getInput(name);
@@ -26149,8 +26149,8 @@ var ConfigurationFactory = class {
       if (process.env.NODE_ENV === "test") {
         this.instance = new MockConfigurationHook();
       } else if (process.env.GITHUB_ACTIONS) {
-        const core9 = require_core();
-        this.instance = new GitHubActionsConfigurationHook(core9);
+        const core10 = require_core();
+        this.instance = new GitHubActionsConfigurationHook(core10);
       } else {
         this.instance = new EnvironmentConfigurationHook();
       }
@@ -27895,6 +27895,21 @@ async function executeStep(stepName, stepFunction) {
   }
 }
 
+// src/steps/shared/route.utils.ts
+var core8 = __toESM(require_core());
+function extractRoutePath(route) {
+  let routePath = route;
+  if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
+    try {
+      const url = new URL(routePath);
+      routePath = url.pathname;
+    } catch (error5) {
+      core8.debug(`Failed to parse route URL: ${routePath}`);
+    }
+  }
+  return routePath;
+}
+
 // src/steps/4-post-results.step.ts
 async function postResults(stepData) {
   return executeStep("Post Results to PR", async () => {
@@ -27909,7 +27924,7 @@ async function postResults(stepData) {
     if (githubToken) {
       await github.configure({ token: githubToken });
     }
-    core8.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
+    core9.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
     const analysis = {
       hasUIChanges: routes.affectedRoutes.length > 0,
       changedPaths: routes.affectedRoutes,
@@ -27945,15 +27960,7 @@ async function postResults(stepData) {
       duration: totalDuration,
       testResults: screenshotResult.screenshots.map((r) => {
         var _a2;
-        let routePath = r.route;
-        if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
-          try {
-            const url = new URL(routePath);
-            routePath = url.pathname;
-          } catch (error5) {
-            core8.debug(`Failed to parse route URL: ${routePath}`);
-          }
-        }
+        const routePath = extractRoutePath(r.route);
         const sanitizedRoute = routePath.replace(/^\//, "").replace(/\//g, "-").toLowerCase();
         return {
           testId: `test-${r.route}`,
@@ -28006,17 +28013,17 @@ async function postResults(stepData) {
         issuesFound: ((_e = screenshotResult.errors) == null ? void 0 : _e.map((e) => e.message)) || []
       }
     };
-    core8.info(`\u{1F4CA} Verification Summary:`);
-    core8.info(`  Total tests: ${verificationResult.totalTests}`);
-    core8.info(`  Passed: ${verificationResult.passedTests}`);
-    core8.info(`  Failed: ${verificationResult.failedTests}`);
-    core8.info(`  Duration: ${(totalDuration / 1e3).toFixed(2)}s`);
+    core9.info(`\u{1F4CA} Verification Summary:`);
+    core9.info(`  Total tests: ${verificationResult.totalTests}`);
+    core9.info(`  Passed: ${verificationResult.passedTests}`);
+    core9.info(`  Failed: ${verificationResult.failedTests}`);
+    core9.info(`  Duration: ${(totalDuration / 1e3).toFixed(2)}s`);
     const timingSummary = await getStepDataManager().getTimingSummary();
     if (timingSummary) {
-      core8.info(`
+      core9.info(`
 ${timingSummary}`);
     }
-    core8.info("\u{1F4E4} Posting results to PR...");
+    core9.info("\u{1F4E4} Posting results to PR...");
     const reporter = new PRReporter();
     try {
       await Promise.race([
@@ -28025,9 +28032,9 @@ ${timingSummary}`);
           (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 3e4)
         )
       ]);
-      core8.info(`\u2705 PR report posted successfully`);
+      core9.info(`\u2705 PR report posted successfully`);
     } catch (error5) {
-      core8.warning(`Failed to post PR report: ${error5}`);
+      core9.warning(`Failed to post PR report: ${error5}`);
       await errorHandler.handleError(error5, {
         severity: "medium" /* MEDIUM */,
         category: "github" /* GITHUB */,
@@ -28035,21 +28042,21 @@ ${timingSummary}`);
         recoverable: true
       });
     }
-    core8.setOutput("success", verificationResult.status === "success");
-    core8.setOutput("issues-found", ((_f = screenshotResult.errors) == null ? void 0 : _f.length) || 0);
-    core8.setOutput("critical-issues", 0);
-    core8.setOutput("warning-issues", 0);
-    core8.setOutput("total-tests", verificationResult.totalTests);
-    core8.setOutput("passed-tests", verificationResult.passedTests);
-    core8.setOutput("failed-tests", verificationResult.failedTests);
-    core8.setOutput("duration-ms", totalDuration);
-    core8.setOutput("duration-seconds", (totalDuration / 1e3).toFixed(2));
+    core9.setOutput("success", verificationResult.status === "success");
+    core9.setOutput("issues-found", ((_f = screenshotResult.errors) == null ? void 0 : _f.length) || 0);
+    core9.setOutput("critical-issues", 0);
+    core9.setOutput("warning-issues", 0);
+    core9.setOutput("total-tests", verificationResult.totalTests);
+    core9.setOutput("passed-tests", verificationResult.passedTests);
+    core9.setOutput("failed-tests", verificationResult.failedTests);
+    core9.setOutput("duration-ms", totalDuration);
+    core9.setOutput("duration-seconds", (totalDuration / 1e3).toFixed(2));
     if (verificationResult.status === "success") {
-      core8.info("\n\u2705 All visual tests completed successfully!");
+      core9.info("\n\u2705 All visual tests completed successfully!");
     } else {
-      core8.error("\n\u274C Visual tests completed with errors");
+      core9.error("\n\u274C Visual tests completed with errors");
     }
-    core8.info(`\u23F1\uFE0F Total execution time: ${(totalDuration / 1e3).toFixed(2)}s`);
+    core9.info(`\u23F1\uFE0F Total execution time: ${(totalDuration / 1e3).toFixed(2)}s`);
     return stepData;
   });
 }
@@ -28060,11 +28067,11 @@ async function main() {
     const manager = getStepDataManager();
     const stepData = await manager.load();
     await postResults(stepData);
-    core8.info("\u2705 Step 4: Post Results completed successfully");
+    core9.info("\u2705 Step 4: Post Results completed successfully");
   } catch (error5) {
     hadError = true;
     mainError = error5;
-    core8.error(`\u274C Step 4 failed: ${error5}`);
+    core9.error(`\u274C Step 4 failed: ${error5}`);
     await errorHandler.handleError(error5, {
       severity: "critical" /* CRITICAL */,
       category: "orchestration" /* ORCHESTRATION */,
@@ -28073,13 +28080,13 @@ async function main() {
     }).catch(() => {
     });
   } finally {
-    core8.info("\u{1F4CA} Posting error summary...");
+    core9.info("\u{1F4CA} Posting error summary...");
     await errorHandler.postErrorSummary().catch((summaryError) => {
-      core8.warning(`Failed to post error summary: ${summaryError}`);
+      core9.warning(`Failed to post error summary: ${summaryError}`);
     });
   }
   if (hadError) {
-    core8.setFailed(`Step 4 failed: ${mainError}`);
+    core9.setFailed(`Step 4 failed: ${mainError}`);
     throw mainError;
   }
 }

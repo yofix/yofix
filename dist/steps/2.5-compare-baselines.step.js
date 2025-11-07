@@ -397,7 +397,7 @@ var require_tunnel = __commonJS({
         connectOptions.headers = connectOptions.headers || {};
         connectOptions.headers["Proxy-Authorization"] = "Basic " + new Buffer(connectOptions.proxyAuth).toString("base64");
       }
-      debug6("making CONNECT request");
+      debug7("making CONNECT request");
       var connectReq = self.request(connectOptions);
       connectReq.useChunkedEncodingByDefault = false;
       connectReq.once("response", onResponse);
@@ -417,7 +417,7 @@ var require_tunnel = __commonJS({
         connectReq.removeAllListeners();
         socket.removeAllListeners();
         if (res.statusCode !== 200) {
-          debug6(
+          debug7(
             "tunneling socket could not be established, statusCode=%d",
             res.statusCode
           );
@@ -429,7 +429,7 @@ var require_tunnel = __commonJS({
           return;
         }
         if (head.length > 0) {
-          debug6("got illegal response body from proxy");
+          debug7("got illegal response body from proxy");
           socket.destroy();
           var error5 = new Error("got illegal response body from proxy");
           error5.code = "ECONNRESET";
@@ -437,13 +437,13 @@ var require_tunnel = __commonJS({
           self.removeSocket(placeholder);
           return;
         }
-        debug6("tunneling connection has established");
+        debug7("tunneling connection has established");
         self.sockets[self.sockets.indexOf(placeholder)] = socket;
         return cb(socket);
       }
       function onError(cause) {
         connectReq.removeAllListeners();
-        debug6(
+        debug7(
           "tunneling socket could not be established, cause=%s\n",
           cause.message,
           cause.stack
@@ -505,9 +505,9 @@ var require_tunnel = __commonJS({
       }
       return target;
     }
-    var debug6;
+    var debug7;
     if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
-      debug6 = function() {
+      debug7 = function() {
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[0] === "string") {
           args[0] = "TUNNEL: " + args[0];
@@ -517,10 +517,10 @@ var require_tunnel = __commonJS({
         console.error.apply(console, args);
       };
     } else {
-      debug6 = function() {
+      debug7 = function() {
       };
     }
-    exports2.debug = debug6;
+    exports2.debug = debug7;
   }
 });
 
@@ -19749,10 +19749,10 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       return process.env["RUNNER_DEBUG"] === "1";
     }
     exports2.isDebug = isDebug2;
-    function debug6(message) {
+    function debug7(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
-    exports2.debug = debug6;
+    exports2.debug = debug7;
     function error5(message, properties = {}) {
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
@@ -23901,7 +23901,7 @@ __export(compare_baselines_step_exports, {
   main: () => main
 });
 module.exports = __toCommonJS(compare_baselines_step_exports);
-var core8 = __toESM(require_core());
+var core9 = __toESM(require_core());
 var import_fs2 = require("fs");
 var import_path2 = __toESM(require("path"));
 var import_os = __toESM(require("os"));
@@ -24129,8 +24129,23 @@ async function executeStep(stepName, stepFunction) {
   }
 }
 
-// src/core/github/GitHubCommentEngine.ts
+// src/steps/shared/route.utils.ts
 var core2 = __toESM(require_core());
+function extractRoutePath(route) {
+  let routePath = route;
+  if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
+    try {
+      const url = new URL(routePath);
+      routePath = url.pathname;
+    } catch (error5) {
+      core2.debug(`Failed to parse route URL: ${routePath}`);
+    }
+  }
+  return routePath;
+}
+
+// src/core/github/GitHubCommentEngine.ts
+var core3 = __toESM(require_core());
 
 // src/config/env-loader.ts
 var fs2 = __toESM(require("fs"));
@@ -25422,7 +25437,7 @@ var GitHubCommentEngine = class {
   async postComment(message, options = {}) {
     try {
       if (this.prNumber === 0) {
-        core2.warning("No PR number found, cannot post comment");
+        core3.warning("No PR number found, cannot post comment");
         return null;
       }
       let body = message;
@@ -25461,16 +25476,16 @@ ${body}`;
             body
           );
           commentId = existingComment.id;
-          core2.info(`Updated existing comment #${commentId}`);
+          core3.info(`Updated existing comment #${commentId}`);
         } else {
           const result = await this.github.createComment(body);
           commentId = result.id;
-          core2.info(`Created new comment #${commentId}`);
+          core3.info(`Created new comment #${commentId}`);
         }
       } else {
         const result = await this.github.createComment(body);
         commentId = result.id;
-        core2.info(`Created comment #${commentId}`);
+        core3.info(`Created comment #${commentId}`);
       }
       if (options.threadId && !this.threadCache.has(options.threadId)) {
         this.threadCache.set(options.threadId, commentId);
@@ -25482,7 +25497,7 @@ ${body}`;
       }
       return commentId;
     } catch (error5) {
-      core2.error(`Failed to post comment: ${error5}`);
+      core3.error(`Failed to post comment: ${error5}`);
       return null;
     }
   }
@@ -25564,9 +25579,9 @@ ${body}`;
         commentId,
         reaction
       );
-      core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
+      core3.debug(`Added ${reaction} reaction to comment #${commentId}`);
     } catch (error5) {
-      core2.warning(`Failed to add reaction: ${error5}`);
+      core3.warning(`Failed to add reaction: ${error5}`);
     }
   }
   /**
@@ -25579,7 +25594,7 @@ ${body}`;
         await this.addReaction(triggeringCommentId, reaction);
       }
     } catch (error5) {
-      core2.warning(`Failed to post reaction: ${error5}`);
+      core3.warning(`Failed to post reaction: ${error5}`);
     }
   }
   /**
@@ -25589,7 +25604,7 @@ ${body}`;
     try {
       await this.addReaction(commentId, reaction);
     } catch (error5) {
-      core2.warning(`Failed to react to comment: ${error5}`);
+      core3.warning(`Failed to react to comment: ${error5}`);
     }
   }
   /**
@@ -25646,7 +25661,7 @@ ${body}`;
       );
       return existingComment || null;
     } catch (error5) {
-      core2.warning(`Failed to find comment by signature: ${error5}`);
+      core3.warning(`Failed to find comment by signature: ${error5}`);
       return null;
     }
   }
@@ -25659,9 +25674,9 @@ ${body}`;
       const botComments = comments.filter(
         (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
       );
-      core2.info(`Found ${botComments.length} bot comments`);
+      core3.info(`Found ${botComments.length} bot comments`);
     } catch (error5) {
-      core2.warning(`Failed to list comments: ${error5}`);
+      core3.warning(`Failed to list comments: ${error5}`);
     }
   }
   /**
@@ -25686,7 +25701,7 @@ function getGitHubCommentEngine() {
 }
 
 // src/core/error/CentralizedErrorHandler.ts
-var core3 = __toESM(require_core());
+var core4 = __toESM(require_core());
 var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity5) => {
   ErrorSeverity5["LOW"] = "low";
   ErrorSeverity5["MEDIUM"] = "medium";
@@ -25746,9 +25761,9 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
       this.owner = context.owner;
       this.repo = context.repo;
       this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-      core3.info("Centralized error handler initialized with GitHub integration");
+      core4.info("Centralized error handler initialized with GitHub integration");
     } catch (error5) {
-      core3.warning("Failed to initialize GitHub service, errors will only be logged");
+      core4.warning("Failed to initialize GitHub service, errors will only be logged");
       this.github = null;
     }
   }
@@ -25788,19 +25803,19 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     const logMessage = `${location} ${errorMessage}`.trim();
     switch (options.severity) {
       case "critical" /* CRITICAL */:
-        core3.error(logMessage);
+        core4.error(logMessage);
         if (!this.isTestMode) {
-          core3.setFailed(logMessage);
+          core4.setFailed(logMessage);
         }
         break;
       case "high" /* HIGH */:
-        core3.error(logMessage);
+        core4.error(logMessage);
         break;
       case "medium" /* MEDIUM */:
-        core3.warning(logMessage);
+        core4.warning(logMessage);
         break;
       case "low" /* LOW */:
-        core3.info(logMessage);
+        core4.info(logMessage);
         break;
     }
   }
@@ -25827,9 +25842,9 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
       return;
     }
     process.on("uncaughtException", async (error5) => {
-      core3.error(`Uncaught Exception: ${error5.message}`);
+      core4.error(`Uncaught Exception: ${error5.message}`);
       if (error5.stack) {
-        core3.debug(error5.stack);
+        core4.debug(error5.stack);
       }
       const errorEntry = {
         error: error5,
@@ -25848,7 +25863,7 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     });
     process.on("unhandledRejection", async (reason, promise) => {
       const errorMessage = reason instanceof Error ? reason.message : String(reason);
-      core3.error(`Unhandled Rejection: ${errorMessage}`);
+      core4.error(`Unhandled Rejection: ${errorMessage}`);
       const errorEntry = {
         error: new Error(errorMessage),
         context: {
@@ -25889,11 +25904,11 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
   async postErrorSummary() {
     var _a, _b;
     if (!this.github || this.prNumber === 0) {
-      core3.debug("Skipping error summary: No GitHub service or PR number");
+      core4.debug("Skipping error summary: No GitHub service or PR number");
       return;
     }
     if (this.errorBuffer.length === 0) {
-      core3.info("\u2705 No errors to report");
+      core4.info("\u2705 No errors to report");
       return;
     }
     const byLocation = {};
@@ -25950,14 +25965,14 @@ var CentralizedErrorHandler = class _CentralizedErrorHandler {
     try {
       await this.github.createComment(message);
     } catch (error5) {
-      core3.warning(`Failed to post error summary: ${error5}`);
+      core4.warning(`Failed to post error summary: ${error5}`);
     }
   }
 };
 var errorHandler = CentralizedErrorHandler.getInstance();
 
 // src/core/bot/BotActivityHandler.ts
-var core4 = __toESM(require_core());
+var core5 = __toESM(require_core());
 var BotActivityHandler = class {
   constructor() {
     this.activities = /* @__PURE__ */ new Map();
@@ -25990,7 +26005,7 @@ var BotActivityHandler = class {
    */
   async addStep(stepName, status = "pending", message) {
     if (!this.currentActivity) {
-      core4.warning("No active bot activity");
+      core5.warning("No active bot activity");
       return;
     }
     const step = {
@@ -26009,7 +26024,7 @@ var BotActivityHandler = class {
     if (!this.currentActivity) return;
     const step = this.currentActivity.steps.find((s) => s.name === stepName);
     if (!step) {
-      core4.warning(`Step ${stepName} not found`);
+      core5.warning(`Step ${stepName} not found`);
       return;
     }
     const previousStatus = step.status;
@@ -26244,28 +26259,28 @@ var BotActivityHandler = class {
 var botActivity = new BotActivityHandler();
 
 // src/core/error/ErrorHandlerFactory.ts
-var core5 = __toESM(require_core());
+var core6 = __toESM(require_core());
 function createModuleLogger(options) {
-  const { module: module2, debug: debug6 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
+  const { module: module2, debug: debug7 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
   return {
     debug: (message, ...args) => {
-      if (debug6 || core5.isDebug()) {
-        core5.debug(`[${module2}] ${message}`);
+      if (debug7 || core6.isDebug()) {
+        core6.debug(`[${module2}] ${message}`);
         if (args.length > 0) {
-          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+          core6.debug(`[${module2}] ${JSON.stringify(args)}`);
         }
       }
     },
     info: (message, ...args) => {
-      core5.info(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug6 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      core6.info(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug7 || core6.isDebug())) {
+        core6.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
     warn: (message, ...args) => {
-      core5.warning(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug6 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      core6.warning(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug7 || core6.isDebug())) {
+        core6.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
     error: async (error5, context) => {
@@ -26287,8 +26302,8 @@ function createModuleLogger(options) {
 
 // src/core/hooks/ConfigurationHook.ts
 var GitHubActionsConfigurationHook = class {
-  constructor(core9) {
-    this.core = core9;
+  constructor(core10) {
+    this.core = core10;
   }
   getInput(name) {
     return this.core.getInput(name);
@@ -26372,8 +26387,8 @@ var ConfigurationFactory = class {
       if (process.env.NODE_ENV === "test") {
         this.instance = new MockConfigurationHook();
       } else if (process.env.GITHUB_ACTIONS) {
-        const core9 = require_core();
-        this.instance = new GitHubActionsConfigurationHook(core9);
+        const core10 = require_core();
+        this.instance = new GitHubActionsConfigurationHook(core10);
       } else {
         this.instance = new EnvironmentConfigurationHook();
       }
@@ -26399,7 +26414,7 @@ function getConfiguration() {
 }
 
 // src/core/patterns/ConsistencyPatterns.ts
-var core6 = __toESM(require_core());
+var core7 = __toESM(require_core());
 async function executeOperation(operation, context) {
   const startTime = Date.now();
   try {
@@ -26445,7 +26460,7 @@ var GitHubOperations = class {
     var _a;
     this.ensureInitialized();
     if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core6.warning("No PR context available, skipping progress comment");
+      core7.warning("No PR context available, skipping progress comment");
       return;
     }
     const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
@@ -26468,14 +26483,14 @@ var GitHubOperations = class {
         );
       }
     } catch (error5) {
-      core6.warning(`Failed to post progress comment: ${error5}`);
+      core7.warning(`Failed to post progress comment: ${error5}`);
     }
   }
   static async postResult(result, operation) {
     var _a;
     this.ensureInitialized();
     if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core6.warning("No PR context available, skipping result comment");
+      core7.warning("No PR context available, skipping result comment");
       return;
     }
     const emoji = result.success ? "\u2705" : "\u274C";
@@ -26505,7 +26520,7 @@ var GitHubOperations = class {
         message
       );
     } catch (error5) {
-      core6.warning(`Failed to post result comment: ${error5}`);
+      core7.warning(`Failed to post result comment: ${error5}`);
     }
   }
   static async addReaction(reaction) {
@@ -26523,7 +26538,7 @@ var GitHubOperations = class {
         );
       }
     } catch (error5) {
-      core6.debug(`Failed to add reaction: ${error5}`);
+      core7.debug(`Failed to add reaction: ${error5}`);
     }
   }
   static getTriggeringCommentId() {
@@ -27412,7 +27427,7 @@ var logger4 = createModuleLogger({
 });
 
 // src/core/screenshot/BrowserScreenshotCapture.ts
-var core7 = __toESM(require_core());
+var core8 = __toESM(require_core());
 var import_browser = require("@yofix/browser");
 async function captureScreenshotsWithBrowser(options) {
   const configuration = getConfiguration();
@@ -27428,10 +27443,10 @@ async function captureScreenshotsWithBrowser(options) {
       "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
     );
   }
-  core7.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
-  core7.info(`  - Routes: ${options.routes.length}`);
-  core7.info(`  - Base URL: ${options.baseUrl}`);
-  core7.info(`  - Viewports: ${options.viewports.length}`);
+  core8.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
+  core8.info(`  - Routes: ${options.routes.length}`);
+  core8.info(`  - Base URL: ${options.baseUrl}`);
+  core8.info(`  - Viewports: ${options.viewports.length}`);
   const startTime = Date.now();
   const result = await (0, import_browser.captureRouteScreenshots)({
     codebase: { path: process.cwd() },
@@ -27475,11 +27490,11 @@ async function captureScreenshotsWithBrowser(options) {
     }
   });
   const totalDuration = Date.now() - startTime;
-  core7.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
-  core7.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
-  core7.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
-  core7.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
-  core7.info(`  - Output directory: ${result.metadata.outputDirectory}`);
+  core8.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
+  core8.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
+  core8.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
+  core8.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
+  core8.info(`  - Output directory: ${result.metadata.outputDirectory}`);
   return {
     success: result.success,
     screenshots: result.screenshots,
@@ -27498,7 +27513,7 @@ async function compareWithBaselines(stepData) {
     if (!screenshots || !(internal == null ? void 0 : internal.screenshotResult)) {
       throw new Error("No screenshots available for comparison. Run browse-routes step first.");
     }
-    core8.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
+    core9.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
     const firebaseCredentials = config.get("firebase-credentials");
     const storageBucket = config.get("storage-bucket");
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
@@ -27509,8 +27524,8 @@ async function compareWithBaselines(stepData) {
     const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
     const credentials = authEmail && authPassword ? { email: authEmail, password: authPassword } : void 0;
     if (!firebaseCredentials || !storageBucket) {
-      core8.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
-      core8.warning('   All screenshots will be marked as "new"');
+      core9.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
+      core9.warning('   All screenshots will be marked as "new"');
       return {
         ...stepData,
         comparison: {
@@ -27526,16 +27541,16 @@ async function compareWithBaselines(stepData) {
       };
     }
     const diffOutputDir = await import_fs2.promises.mkdtemp(import_path2.default.join(import_os.default.tmpdir(), "yofix-diffs-"));
-    core8.info(`\u{1F4C1} Diff output directory: ${diffOutputDir}`);
+    core9.info(`\u{1F4C1} Diff output directory: ${diffOutputDir}`);
     const { downloadFiles, uploadFiles } = await import("@yofix/storage");
     let credentialsBase64 = firebaseCredentials;
     if (firebaseCredentials.endsWith(".json")) {
       try {
         const credentialsContent = await import_fs2.promises.readFile(firebaseCredentials, "utf-8");
         credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
-        core8.info("  Using Firebase credentials from file");
+        core9.info("  Using Firebase credentials from file");
       } catch (error5) {
-        core8.debug(`Not a file path, treating as base64: ${error5}`);
+        core9.debug(`Not a file path, treating as base64: ${error5}`);
       }
     }
     const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
@@ -27549,18 +27564,12 @@ async function compareWithBaselines(stepData) {
     let newScreenshots = 0;
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
-      let routePath = route;
-      try {
-        const url = new URL(route);
-        routePath = url.pathname;
-      } catch {
-        routePath = route;
-      }
+      const routePath = extractRoutePath(route);
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
         const sanitizedRoute = routePath.replace(/\//g, "_");
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
-        core8.info(`  Checking baseline for ${route} (${viewport})`);
+        core9.info(`  Checking baseline for ${route} (${viewport})`);
         try {
           const baselineResult = await downloadFiles({
             storage: {
@@ -27574,7 +27583,7 @@ async function compareWithBaselines(stepData) {
           });
           if (!baselineResult.success || baselineResult.files.length === 0) {
             if (productionUrl) {
-              core8.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${route}`);
+              core9.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${route}`);
               try {
                 const viewportConfig = viewports.find((v) => v.name === viewport);
                 if (!viewportConfig) {
@@ -27593,7 +27602,7 @@ async function compareWithBaselines(stepData) {
                 }
                 const productionScreenshot = productionCapture.screenshots[0].screenshots[0];
                 const productionBuffer = await import_fs2.promises.readFile(productionScreenshot.path);
-                core8.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
+                core9.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
                 const uploadResult = await uploadFiles({
                   storage: {
                     provider: storageProvider,
@@ -27619,7 +27628,7 @@ async function compareWithBaselines(stepData) {
                 if (!uploadResult.success) {
                   throw new Error("Failed to upload baseline");
                 }
-                core8.info(`    \u2705 Baseline created from production`);
+                core9.info(`    \u2705 Baseline created from production`);
                 const currentBuffer2 = await import_fs2.promises.readFile(screenshot.path);
                 comparisonsToRun.push({
                   route: routePath,
@@ -27628,11 +27637,11 @@ async function compareWithBaselines(stepData) {
                   baseline: productionBuffer
                 });
               } catch (error5) {
-                core8.warning(`    \u274C Failed to create baseline from production: ${error5}`);
-                core8.warning(`    Marking as NEW instead`);
+                core9.warning(`    \u274C Failed to create baseline from production: ${error5}`);
+                core9.warning(`    Marking as NEW instead`);
                 newScreenshots++;
                 diffFilesInfo.push({
-                  route,
+                  route: routePath,
                   viewport,
                   localPath: screenshot.path,
                   destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
@@ -27642,10 +27651,10 @@ async function compareWithBaselines(stepData) {
                 });
               }
             } else {
-              core8.info(`    \u26A0\uFE0F  No baseline found - marking as NEW`);
+              core9.info(`    \u26A0\uFE0F  No baseline found - marking as NEW`);
               newScreenshots++;
               diffFilesInfo.push({
-                route,
+                route: routePath,
                 viewport,
                 localPath: screenshot.path,
                 destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
@@ -27670,9 +27679,9 @@ async function compareWithBaselines(stepData) {
             baseline: baselineBuffer
           });
         } catch (error5) {
-          core8.warning(`    \u274C Error fetching baseline: ${error5}`);
+          core9.warning(`    \u274C Error fetching baseline: ${error5}`);
           diffFilesInfo.push({
-            route,
+            route: routePath,
             viewport,
             localPath: screenshot.path,
             destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
@@ -27684,11 +27693,11 @@ async function compareWithBaselines(stepData) {
       }
     }
     if (newScreenshots > 0) {
-      core8.info(`
+      core9.info(`
 \u{1F4DD} ${newScreenshots} screenshot(s) have no baseline (new routes/viewports)`);
     }
     if (comparisonsToRun.length === 0) {
-      core8.info("\n\u2705 No baseline comparisons needed (all screenshots are new)");
+      core9.info("\n\u2705 No baseline comparisons needed (all screenshots are new)");
       return {
         ...stepData,
         comparison: {
@@ -27703,11 +27712,11 @@ async function compareWithBaselines(stepData) {
         }
       };
     }
-    core8.info(`
+    core9.info(`
 \u{1F4CA} Running ${comparisonsToRun.length} baseline comparison(s)...`);
-    core8.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
-    core8.info(`   Diff Format: side-by-side`);
-    core8.info(`   Parallel Processing: enabled (concurrency: 3)`);
+    core9.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
+    core9.info(`   Diff Format: side-by-side`);
+    core9.info(`   Parallel Processing: enabled (concurrency: 3)`);
     try {
       const result = await (0, import_comparator.compareBaselines)({
         comparisons: comparisonsToRun,
@@ -27725,9 +27734,9 @@ async function compareWithBaselines(stepData) {
         }
       });
       if (!result.success) {
-        core8.warning("Comparison failed:");
+        core9.warning("Comparison failed:");
         (_a = result.errors) == null ? void 0 : _a.forEach((error5) => {
-          core8.warning(`  - ${error5.message}`);
+          core9.warning(`  - ${error5.message}`);
         });
         return {
           ...stepData,
@@ -27751,7 +27760,7 @@ async function compareWithBaselines(stepData) {
         const diffFilePath = import_path2.default.join(diffOutputDir, diffFileName);
         if (comparison.diff && comparison.diff.buffer) {
           await import_fs2.promises.writeFile(diffFilePath, comparison.diff.buffer);
-          core8.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);
+          core9.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);
         }
         const status = comparison.match ? "unchanged" : "changed";
         if (status === "changed") changedCount++;
@@ -27776,34 +27785,34 @@ async function compareWithBaselines(stepData) {
             regions: ((_c = (_b = comparison.diff) == null ? void 0 : _b.regions) == null ? void 0 : _c.length) || 0
           }
         });
-        core8.info(`
+        core9.info(`
   \u{1F4C8} ${comparison.route} (${comparison.viewport}):`);
-        core8.info(`     Status: ${status === "changed" ? "\u274C CHANGED" : "\u2705 UNCHANGED"}`);
-        core8.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
-        core8.info(`     Pixels Different: ${comparison.pixelDifference}`);
+        core9.info(`     Status: ${status === "changed" ? "\u274C CHANGED" : "\u2705 UNCHANGED"}`);
+        core9.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
+        core9.info(`     Pixels Different: ${comparison.pixelDifference}`);
         if (comparison.metrics.perceptualHash) {
-          core8.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
+          core9.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
         }
         if (comparison.metrics.psnr !== void 0) {
           const psnrValue = comparison.metrics.psnr === Infinity ? "\u221E (identical)" : `${comparison.metrics.psnr.toFixed(2)} dB`;
-          core8.info(`     PSNR: ${psnrValue}`);
+          core9.info(`     PSNR: ${psnrValue}`);
         }
         if ((_d = comparison.diff) == null ? void 0 : _d.regions) {
           const critical = comparison.diff.regions.filter((r) => r.severity === "critical").length;
           const moderate = comparison.diff.regions.filter((r) => r.severity === "moderate").length;
-          core8.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+          core9.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
         }
       }
       const totalComparisons = result.comparisons.length;
       const overallSimilarity = (result.summary.overallSimilarity * 100).toFixed(2);
-      core8.info(`
+      core9.info(`
 \u2705 Comparison complete:`);
-      core8.info(`   Total Comparisons: ${totalComparisons}`);
-      core8.info(`   New Screenshots: ${newScreenshots}`);
-      core8.info(`   Unchanged: ${unchangedCount}`);
-      core8.info(`   Changed: ${changedCount}`);
-      core8.info(`   Overall Similarity: ${overallSimilarity}%`);
-      core8.info(`   Duration: ${result.metadata.duration}ms`);
+      core9.info(`   Total Comparisons: ${totalComparisons}`);
+      core9.info(`   New Screenshots: ${newScreenshots}`);
+      core9.info(`   Unchanged: ${unchangedCount}`);
+      core9.info(`   Changed: ${changedCount}`);
+      core9.info(`   Overall Similarity: ${overallSimilarity}%`);
+      core9.info(`   Duration: ${result.metadata.duration}ms`);
       const summary = `Compared ${totalComparisons} screenshot(s): ${unchangedCount} unchanged, ${changedCount} changed${newScreenshots > 0 ? `, ${newScreenshots} new` : ""}`;
       return {
         ...stepData,
@@ -27820,7 +27829,7 @@ async function compareWithBaselines(stepData) {
         }
       };
     } catch (error5) {
-      core8.error(`Error during comparison: ${error5}`);
+      core9.error(`Error during comparison: ${error5}`);
       throw error5;
     }
   });
@@ -27831,9 +27840,9 @@ async function main() {
     const stepData = await manager.load();
     const updatedData = await compareWithBaselines(stepData);
     await manager.save(updatedData);
-    core8.info("\u2705 Step 2.5: Compare Baselines completed successfully");
+    core9.info("\u2705 Step 2.5: Compare Baselines completed successfully");
   } catch (error5) {
-    core8.setFailed(`Step 2.5 failed: ${error5}`);
+    core9.setFailed(`Step 2.5 failed: ${error5}`);
     throw error5;
   }
 }

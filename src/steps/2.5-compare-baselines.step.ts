@@ -16,6 +16,7 @@ import path from 'path';
 import os from 'os';
 import { compareBaselines } from '@yofix/comparator';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
+import { extractRoutePath } from './shared/route.utils';
 import { config } from '../core';
 import { captureScreenshotsWithBrowser } from '../core/screenshot/BrowserScreenshotCapture';
 
@@ -115,16 +116,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
 
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
-
-      // Extract just the pathname from the route (in case it's a full URL)
-      let routePath = route;
-      try {
-        const url = new URL(route);
-        routePath = url.pathname;
-      } catch {
-        // If it's not a valid URL, use it as-is (it's already a path)
-        routePath = route;
-      }
+      const routePath = extractRoutePath(route);
 
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
@@ -219,7 +211,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                 core.warning(`    Marking as NEW instead`);
                 newScreenshots++;
                 diffFilesInfo.push({
-                  route,
+                  route: routePath,
                   viewport,
                   localPath: screenshot.path,
                   destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
@@ -234,7 +226,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
               newScreenshots++;
 
               diffFilesInfo.push({
-                route,
+                route: routePath,
                 viewport,
                 localPath: screenshot.path,
                 destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
@@ -267,7 +259,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         } catch (error) {
           core.warning(`    ❌ Error fetching baseline: ${error}`);
           diffFilesInfo.push({
-            route,
+            route: routePath,
             viewport,
             localPath: screenshot.path,
             destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,

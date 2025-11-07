@@ -13,6 +13,7 @@ import * as core from '@actions/core';
 import path from 'path';
 import { PRReporter } from '../github/PRReporter';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
+import { extractRoutePath } from './shared/route.utils';
 import { VerificationResult, RouteAnalysisResult } from '../types';
 import { ErrorSeverity, ErrorCategory, errorHandler, config } from '../core';
 import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
@@ -84,15 +85,7 @@ export async function postResults(stepData: StepData): Promise<StepData> {
       duration: totalDuration,
       testResults: screenshotResult.screenshots.map((r: any) => {
         // Extract pathname from full URL for matching
-        let routePath = r.route;
-        if (routePath.startsWith('http://') || routePath.startsWith('https://')) {
-          try {
-            const url = new URL(routePath);
-            routePath = url.pathname;
-          } catch (error) {
-            core.debug(`Failed to parse route URL: ${routePath}`);
-          }
-        }
+        const routePath = extractRoutePath(r.route);
 
         // Convert route path to sanitized filename format
         const sanitizedRoute = routePath

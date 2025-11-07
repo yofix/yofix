@@ -28087,8 +28087,15 @@ var core10 = __toESM(require_core());
 var import_browser = require("@yofix/browser");
 async function captureScreenshotsWithBrowser(options) {
   const configuration = getConfiguration();
+  core10.info(`[DEBUG] Configuration type: ${configuration.constructor.name}`);
+  core10.info(`[DEBUG] GITHUB_ACTIONS: ${process.env.GITHUB_ACTIONS}`);
+  core10.info(`[DEBUG] NODE_ENV: ${process.env.NODE_ENV}`);
+  core10.info(`[DEBUG] INPUT_CLAUDE_API_KEY exists: ${!!process.env.INPUT_CLAUDE_API_KEY}`);
+  core10.info(`[DEBUG] INPUT_CLAUDE_API_KEY length: ${process.env.INPUT_CLAUDE_API_KEY?.length || 0}`);
   const claudeApiKey = configuration.getInput("claude-api-key");
   const claudeModel = configuration.getInput("claude-model");
+  core10.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? "EXISTS" : "NULL"}`);
+  core10.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || "NULL"}`);
   if (!claudeApiKey) {
     throw new Error(
       "Claude API key is required for route-impact-browser integration."

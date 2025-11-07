@@ -42,8 +42,19 @@ export async function captureScreenshotsWithBrowser(
   options: BrowserScreenshotOptions
 ): Promise<BrowserScreenshotResult> {
   const configuration = getConfiguration();
+
+  // Debug logging
+  core.info(`[DEBUG] Configuration type: ${configuration.constructor.name}`);
+  core.info(`[DEBUG] GITHUB_ACTIONS: ${process.env.GITHUB_ACTIONS}`);
+  core.info(`[DEBUG] NODE_ENV: ${process.env.NODE_ENV}`);
+  core.info(`[DEBUG] INPUT_CLAUDE_API_KEY exists: ${!!process.env.INPUT_CLAUDE_API_KEY}`);
+  core.info(`[DEBUG] INPUT_CLAUDE_API_KEY length: ${process.env.INPUT_CLAUDE_API_KEY?.length || 0}`);
+
   const claudeApiKey = configuration.getInput("claude-api-key");
   const claudeModel = configuration.getInput("claude-model");
+
+  core.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? 'EXISTS' : 'NULL'}`);
+  core.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || 'NULL'}`);
 
   if (!claudeApiKey) {
     throw new Error(

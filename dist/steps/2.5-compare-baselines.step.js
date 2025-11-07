@@ -27588,7 +27588,7 @@ async function compareWithBaselines(stepData) {
           });
           if (!baselineResult.success || baselineResult.files.length === 0) {
             if (productionUrl) {
-              core9.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${route}`);
+              core9.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${routePath}`);
               try {
                 const viewportConfig = viewports.find((v) => v.name === viewport);
                 if (!viewportConfig) {
@@ -27622,7 +27622,7 @@ async function compareWithBaselines(stepData) {
                     contentType: "image/png",
                     metadata: {
                       type: "baseline",
-                      route,
+                      route: routePath,
                       viewport,
                       source: "production",
                       createdAt: Date.now()

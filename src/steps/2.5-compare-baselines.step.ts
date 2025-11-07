@@ -140,7 +140,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           if (!baselineResult.success || baselineResult.files.length === 0) {
             // No baseline exists - check if production-url is available
             if (productionUrl) {
-              core.info(`    📸 No baseline found - capturing from production: ${productionUrl}${route}`);
+              core.info(`    📸 No baseline found - capturing from production: ${productionUrl}${routePath}`);
 
               try {
                 // Capture production screenshot for this specific route
@@ -181,7 +181,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                     contentType: 'image/png',
                     metadata: {
                       type: 'baseline',
-                      route,
+                      route: routePath,
                       viewport,
                       source: 'production',
                       createdAt: Date.now()

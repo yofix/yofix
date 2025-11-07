@@ -16,6 +16,7 @@
 import * as core from '@actions/core';
 import { promises as fs } from 'fs';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
+import { extractRoutePath } from './shared/route.utils';
 import { config } from '../core';
 
 /**
@@ -108,10 +109,10 @@ export async function updateBaselines(stepData: StepData): Promise<StepData> {
 
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
+      const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, '_');
 
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
-        const sanitizedRoute = route.replace(/\//g, '_');
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
 
         try {
@@ -121,7 +122,7 @@ export async function updateBaselines(stepData: StepData): Promise<StepData> {
             contentType: 'image/png',
             metadata: {
               type: 'baseline',
-              route,
+              route: routePath,
               viewport,
               source: 'merged-pr',
               prNumber,
@@ -129,7 +130,7 @@ export async function updateBaselines(stepData: StepData): Promise<StepData> {
             }
           });
 
-          core.info(`  ✓ Queued: ${route} (${viewport})`);
+          core.info(`  ✓ Queued: ${routePath} (${viewport})`);
         } catch (error) {
           core.warning(`  ✗ Failed to read screenshot for ${route} (${viewport}): ${error}`);
           failureCount++;

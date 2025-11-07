@@ -195,3 +195,41 @@ runs:
       run: |
         cd ${{ github.action_path }}
         node dist/index.js
+      env:
+        # Core Configuration
+        INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
+        INPUT_CLAUDE_MODEL: ${{ inputs.claude-model }}
+        INPUT_PRODUCTION_URL: ${{ inputs.production-url }}
+
+        # Storage Configuration
+        INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}
+        INPUT_FIREBASE_CREDENTIALS: ${{ inputs.firebase-credentials }}
+        INPUT_STORAGE_BUCKET: ${{ inputs.storage-bucket }}
+        INPUT_STORAGE_DIRECTORY: ${{ inputs.storage-directory }}
+        INPUT_S3_BUCKET: ${{ inputs.s3-bucket }}
+        INPUT_AWS_REGION: ${{ inputs.aws-region }}
+        INPUT_AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        INPUT_AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+
+        # Firebase Configuration
+        INPUT_FIREBASE_TARGET: ${{ inputs.firebase-target }}
+        INPUT_BUILD_SYSTEM: ${{ inputs.build-system }}
+
+        # Testing Configuration
+        INPUT_TEST_TIMEOUT: ${{ inputs.test-timeout }}
+        INPUT_CLEANUP_DAYS: ${{ inputs.cleanup-days }}
+        INPUT_VIEWPORTS: ${{ inputs.viewports }}
+        INPUT_FULL_PAGE: ${{ inputs.full-page }}
+        INPUT_COMPARISON_THRESHOLD: ${{ inputs.comparison-threshold }}
+        INPUT_MAX_ROUTES: ${{ inputs.max-routes }}
+
+        # Authentication Configuration
+        INPUT_AUTH_EMAIL: ${{ inputs.auth-email }}
+        INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
+        INPUT_AUTH_LOGIN_URL: ${{ inputs.auth-login-url }}
+
+        # Workflow Configuration
+        INPUT_CLEAR_CACHE: ${{ inputs.clear-cache }}
+        INPUT_UPDATE_BASELINES_ON_MERGE: ${{ inputs.update-baselines-on-merge }}

@@ -530,8 +530,3 @@ export async function main(): Promise<void> {
     throw error;
   }
 }
-
-// Run if executed directly
-if (require.main === module) {
-  main();
-}

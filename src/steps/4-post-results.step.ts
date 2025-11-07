@@ -267,8 +267,3 @@ export async function main(): Promise<void> {
     throw mainError;
   }
 }
-
-// Run if executed directly
-if (require.main === module) {
-  main();
-}

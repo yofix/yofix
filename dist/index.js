@@ -27696,21 +27696,6 @@ async function initialize() {
     return stepData;
   });
 }
-async function main() {
-  try {
-    const manager = getStepDataManager();
-    await manager.initialize();
-    const stepData = await initialize();
-    await manager.save(stepData);
-    core7.info("\u2705 Step 0: Initialize completed successfully");
-  } catch (error10) {
-    core7.setFailed(`Step 0 failed: ${error10}`);
-    throw error10;
-  }
-}
-if (require.main === module) {
-  main();
-}
 
 // src/steps/1-analyze-routes.step.ts
 var core9 = __toESM(require_core());
@@ -28090,21 +28075,6 @@ function logImpactTreeSummary(impactTree) {
     core9.info(`\u{1F4CD} Routes: ${allRoutes.slice(0, 20).join(", ")} ... and ${allRoutes.length - 20} more`);
   }
 }
-async function main2() {
-  try {
-    const manager = getStepDataManager();
-    const stepData = await manager.load();
-    const updatedData = await analyzeRoutes(stepData);
-    await manager.save(updatedData);
-    core9.info("\u2705 Step 1: Analyze Routes completed successfully");
-  } catch (error10) {
-    core9.setFailed(`Step 1 failed: ${error10}`);
-    throw error10;
-  }
-}
-if (require.main === module) {
-  main2();
-}
 
 // src/steps/2-browse-routes.step.ts
 var core11 = __toESM(require_core());
@@ -28253,21 +28223,6 @@ async function browseRoutes(stepData) {
       }
     };
   });
-}
-async function main3() {
-  try {
-    const manager = getStepDataManager();
-    const stepData = await manager.load();
-    const updatedData = await browseRoutes(stepData);
-    await manager.save(updatedData);
-    core11.info("\u2705 Step 2: Browse Routes completed successfully");
-  } catch (error10) {
-    core11.setFailed(`Step 2 failed: ${error10}`);
-    throw error10;
-  }
-}
-if (require.main === module) {
-  main3();
 }
 
 // src/steps/2.5-compare-baselines.step.ts
@@ -28684,21 +28639,6 @@ async function compareWithBaselines(stepData) {
     }
   });
 }
-async function main4() {
-  try {
-    const manager = getStepDataManager();
-    const stepData = await manager.load();
-    const updatedData = await compareWithBaselines(stepData);
-    await manager.save(updatedData);
-    core13.info("\u2705 Step 2.5: Compare Baselines completed successfully");
-  } catch (error10) {
-    core13.setFailed(`Step 2.5 failed: ${error10}`);
-    throw error10;
-  }
-}
-if (require.main === module) {
-  main4();
-}
 
 // src/steps/3-upload-storage.step.ts
 var core14 = __toESM(require_core());
@@ -28862,21 +28802,6 @@ async function uploadToStorage(stepData) {
       }
     };
   });
-}
-async function main5() {
-  try {
-    const manager = getStepDataManager();
-    const stepData = await manager.load();
-    const updatedData = await uploadToStorage(stepData);
-    await manager.save(updatedData);
-    core14.info("\u2705 Step 3: Upload Storage completed successfully");
-  } catch (error10) {
-    core14.setFailed(`Step 3 failed: ${error10}`);
-    throw error10;
-  }
-}
-if (require.main === module) {
-  main5();
 }
 
 // src/steps/4-post-results.step.ts
@@ -29529,39 +29454,6 @@ ${timingSummary}`);
     return stepData;
   });
 }
-async function main6() {
-  let hadError = false;
-  let mainError = null;
-  try {
-    const manager = getStepDataManager();
-    const stepData = await manager.load();
-    await postResults(stepData);
-    core16.info("\u2705 Step 4: Post Results completed successfully");
-  } catch (error10) {
-    hadError = true;
-    mainError = error10;
-    core16.error(`\u274C Step 4 failed: ${error10}`);
-    await errorHandler.handleError(error10, {
-      severity: "critical" /* CRITICAL */,
-      category: "orchestration" /* ORCHESTRATION */,
-      location: "post-results",
-      recoverable: false
-    }).catch(() => {
-    });
-  } finally {
-    core16.info("\u{1F4CA} Posting error summary...");
-    await errorHandler.postErrorSummary().catch((summaryError) => {
-      core16.warning(`Failed to post error summary: ${summaryError}`);
-    });
-  }
-  if (hadError) {
-    core16.setFailed(`Step 4 failed: ${mainError}`);
-    throw mainError;
-  }
-}
-if (require.main === module) {
-  main6();
-}
 
 // src/steps/5-update-baselines.step.ts
 var core17 = __toESM(require_core());
@@ -29702,24 +29594,9 @@ async function updateBaselines(stepData) {
     };
   });
 }
-async function main7() {
-  try {
-    const manager = getStepDataManager();
-    const stepData = await manager.load();
-    const updatedData = await updateBaselines(stepData);
-    await manager.save(updatedData);
-    core17.info("\u2705 Step 5: Update Baselines completed successfully");
-  } catch (error10) {
-    core17.setFailed(`Step 5 failed: ${error10}`);
-    throw error10;
-  }
-}
-if (require.main === module) {
-  main7();
-}
 
 // src/index.ts
-async function main8() {
+async function main() {
   const workflowStartTime = Date.now();
   const manager = getStepDataManager();
   try {
@@ -29788,7 +29665,7 @@ async function main8() {
     throw error10;
   }
 }
-main8().catch((error10) => {
+main().catch((error10) => {
   console.error("Fatal error in YoFix workflow:", error10);
   process.exit(1);
 });

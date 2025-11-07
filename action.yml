@@ -196,8 +196,7 @@ runs:
         cd ${{ github.action_path }}
         node dist/index.js
       env:
-        # GitHub Actions Environment
-        GITHUB_ACTIONS: true
+        # GitHub Actions Context (do NOT set GITHUB_ACTIONS=true as it breaks @actions/core in composite actions)
         GITHUB_WORKSPACE: ${{ github.workspace }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_EVENT_NAME: ${{ github.event_name }}

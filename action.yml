@@ -157,7 +157,7 @@ runs:
           playwright-browsers-${{ runner.os }}-1.54.1-
           playwright-browsers-${{ runner.os }}-
 
-    # Step 2: Setup Playwright [Step 2]
+    # Step 2: Setup Playwright 
     - name: 🎭 Setup Playwright Environment
       shell: bash
       run: |

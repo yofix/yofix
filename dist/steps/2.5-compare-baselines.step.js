@@ -27532,6 +27532,12 @@ async function compareWithBaselines(stepData) {
     const comparisonThreshold = parseFloat(config.get("comparison-threshold", { defaultValue: "0.01" }));
     const productionUrl = config.get("production-url");
     core9.info(`\u{1F4C1} Storage directory: ${storageDirectory}/`);
+    if (productionUrl) {
+      core9.info(`\u{1F310} Production URL configured: ${productionUrl}`);
+      core9.info(`   Baselines will be auto-created from production if missing`);
+    } else {
+      core9.info(`\u2139\uFE0F  No production URL configured - new routes will be marked as NEW`);
+    }
     const authEmail = config.get("auth-email");
     const authPassword = config.get("auth-password");
     const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });

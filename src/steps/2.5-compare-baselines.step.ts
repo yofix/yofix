@@ -59,6 +59,12 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
     const productionUrl = config.get('production-url');
 
     core.info(`📁 Storage directory: ${storageDirectory}/`);
+    if (productionUrl) {
+      core.info(`🌐 Production URL configured: ${productionUrl}`);
+      core.info(`   Baselines will be auto-created from production if missing`);
+    } else {
+      core.info(`ℹ️  No production URL configured - new routes will be marked as NEW`);
+    }
 
     // Get authentication config for production screenshot capture
     const authEmail = config.get('auth-email');

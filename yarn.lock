@@ -3112,10 +3112,10 @@
     typescript "^5.7.2"
     zod "^3.24.1"
 
-"@yofix/browser@^1.0.8":
-  version "1.0.8"
-  resolved "https://registry.npmjs.org/@yofix/browser/-/browser-1.0.8.tgz"
-  integrity sha512-hO7L0mUgXHaqE0/fXcHPYveWn+FBv+hQfO/dGVQFJc6HhXk8wbUuOAKpnMEUmW055QB/JyCrdNWIObbEOzFyaA==
+"@yofix/browser@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.npmjs.org/@yofix/browser/-/browser-1.0.9.tgz"
+  integrity sha512-dquKaQ4EYsBdVlqCyKOZt1oVSLBgl3NMvPRXsuQGcP1oMEo0PmvbuXuhCIbTCOx73S8yC8znImT077DecUtQBg==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"
@@ -3138,10 +3138,10 @@
     sharp "^0.33.0"
     zod "^3.24.1"
 
-"@yofix/storage@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.npmjs.org/@yofix/storage/-/storage-1.0.2.tgz"
-  integrity sha512-ODTHwE90uYX2Le7xWcL5vc+6W/JnRJPsuwIAAtvq7F4QfKcaWabSGY4qxMwc5Gf0gjRT/1muPFhk3pclt3kdOw==
+"@yofix/storage@^1.0.5":
+  version "1.0.5"
+  resolved "https://registry.npmjs.org/@yofix/storage/-/storage-1.0.5.tgz"
+  integrity sha512-H0mSzOtDmFkbwpmNc1lrZ3HdU5DnCu7lLiWaOTkoG2wNdUu+J1MMp7wJlADdRQOCwah342pT881oS4uJDjSOBw==
   dependencies:
     "@actions/artifact" "^2.1.11"
     "@actions/core" "^1.11.1"

@@ -25,8 +25,7 @@ interface UploadedFile {
  */
 export async function uploadToStorage(stepData: StepData): Promise<StepData> {
   return executeStep('Upload Screenshots to Storage', async () => {
-    const { prNumber, screenshots } = stepData;
-    const internal = (stepData as any)._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
 
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error('No screenshots available for upload. Run browse-routes step first.');
@@ -50,7 +49,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
           uploadedFiles: [],
           storageUrl: ''
         }
-      } as any;
+      };
     }
 
     core.info(`📤 Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
@@ -135,6 +134,28 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
     try {
       // Dynamic import to avoid bundling issues
       const { uploadFiles } = await import('@yofix/storage');
+      type ProviderConfig = Parameters<typeof uploadFiles>[0]['storage'];
+
+      // Construct storage config based on provider type
+      const storageConfig: ProviderConfig = storageProvider === 'firebase'
+        ? {
+            provider: 'firebase',
+            config: {
+              bucket: storageBucket,
+              credentials: credentialsBase64,
+              basePath: storageDirectory
+            }
+          }
+        : {
+            provider: 's3',
+            config: {
+              bucket: storageBucket,
+              region: config.get('aws-region', { defaultValue: 'us-east-1' }),
+              accessKeyId: config.get('aws-access-key-id'),
+              secretAccessKey: config.get('aws-secret-access-key'),
+              basePath: storageDirectory
+            }
+          };
 
       // Upload using @yofix/storage
       const basePath = storageDirectory
@@ -142,14 +163,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
         : `pr-${prNumber}/screenshots`;
 
       const uploadResult = await uploadFiles({
-        storage: {
-          provider: storageProvider as 'firebase' | 's3',
-          config: {
-            bucket: storageBucket,
-            credentials: credentialsBase64,
-            basePath
-          }
-        } as any, // Type assertion for external package
+        storage: storageConfig,
         files: filesForUpload,
         verbose: true,
         onProgress: (progress) => {

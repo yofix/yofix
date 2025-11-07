@@ -42,8 +42,7 @@ interface DiffFileInfo {
  */
 export async function compareWithBaselines(stepData: StepData): Promise<StepData> {
   return executeStep('Compare with Baselines', async () => {
-    const { prNumber, screenshots } = stepData;
-    const internal = (stepData as any)._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
 
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error('No screenshots available for comparison. Run browse-routes step first.');
@@ -87,7 +86,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           ...internal,
           diffFiles: []
         }
-      } as any;
+      };
     }
 
     // Create temporary directory for diff images
@@ -96,6 +95,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
 
     // Dynamic import to avoid bundling issues
     const { downloadFiles, uploadFiles } = await import('@yofix/storage');
+    type ProviderConfig = Parameters<typeof downloadFiles>[0]['storage'];
 
     // Check if firebaseCredentials is a file path (for testing)
     let credentialsBase64 = firebaseCredentials;
@@ -108,6 +108,27 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         core.debug(`Not a file path, treating as base64: ${error}`);
       }
     }
+
+    // Construct storage config based on provider type
+    const storageConfig: ProviderConfig = storageProvider === 'firebase'
+      ? {
+          provider: 'firebase',
+          config: {
+            bucket: storageBucket,
+            credentials: credentialsBase64,
+            basePath: storageDirectory
+          }
+        }
+      : {
+          provider: 's3',
+          config: {
+            bucket: storageBucket,
+            region: config.get('aws-region', { defaultValue: 'us-east-1' }),
+            accessKeyId: config.get('aws-access-key-id'),
+            secretAccessKey: config.get('aws-secret-access-key'),
+            basePath: storageDirectory
+          }
+        };
 
     // Parse viewport configurations for production capture if needed
     const viewportsConfig = config.get('viewports', { defaultValue: '1920x1080,768x1024,375x667' });
@@ -136,14 +157,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         try {
           // Try to download baseline from storage
           const baselineResult = await downloadFiles({
-            storage: {
-              provider: storageProvider as 'firebase' | 's3',
-              config: {
-                bucket: storageBucket,
-                credentials: credentialsBase64,
-                basePath: storageDirectory
-              }
-            } as any,
+            storage: storageConfig,
             files: [baselineKey]
           });
 
@@ -182,14 +196,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                 // Upload production screenshot as baseline
                 core.info(`    ☁️  Uploading production screenshot as baseline...`);
                 const uploadResult = await uploadFiles({
-                  storage: {
-                    provider: storageProvider as 'firebase' | 's3',
-                    config: {
-                      bucket: storageBucket,
-                      credentials: credentialsBase64,
-                      basePath: storageDirectory
-                    }
-                  } as any,
+                  storage: storageConfig,
                   files: [{
                     path: productionScreenshot.path,
                     destination: baselineKey,
@@ -210,6 +217,20 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
                 }
 
                 core.info(`    ✅ Baseline created from production`);
+
+                // Store baseline URL and metadata for PR display
+                const comparisonKey = `${routePath}_${viewport}`;
+                const uploadedBaseline = uploadResult.files[0];
+                if (uploadedBaseline?.url) {
+                  baselineUrlMap.set(comparisonKey, uploadedBaseline.url);
+                  baselineMetadataMap.set(comparisonKey, {
+                    timeCreated: new Date().toISOString(),
+                    customMetadata: {
+                      createdAt: Date.now().toString(),
+                      source: 'production'
+                    }
+                  });
+                }
 
                 // Now add to comparisons with the production screenshot as baseline
                 const currentBuffer = await fs.readFile(screenshot.path);
@@ -255,9 +276,10 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           // Baseline found - add to comparisons
           const baselineBuffer = baselineResult.files[0].buffer;
           const baselineUrl = baselineResult.files[0].url; // URL from @yofix/storage
+          const downloadedFile = baselineResult.files[0] as any; // Type assertion for optional metadata fields
           const baselineMetadata = {
-            timeCreated: baselineResult.files[0].timeCreated,
-            customMetadata: baselineResult.files[0].customMetadata
+            timeCreated: downloadedFile.timeCreated,
+            customMetadata: downloadedFile.customMetadata
           };
           const currentBuffer = await fs.readFile(screenshot.path);
 
@@ -309,7 +331,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           ...internal,
           diffFiles: diffFilesInfo
         }
-      } as any;
+      };
     }
 
     // Run comparisons using @yofix/comparator
@@ -352,7 +374,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
             ...internal,
             diffFiles: diffFilesInfo
           }
-        } as any;
+        };
       }
 
       // Process results
@@ -469,7 +491,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         comparison: {
           hasChanges: changedCount > 0,
           diffCount: changedCount,
-          diffFiles: diffFilesInfo.filter(d => d.hasDifference).map(d => d.localPath),
+          diffFiles: diffFilesInfo.filter(d => d.hasDifference).map(d => d.localPath).filter((path): path is string => path !== undefined),
           summary
         },
         _internal: {
@@ -477,7 +499,7 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
           diffFiles: diffFilesInfo,
           diffOutputDir
         }
-      } as any;
+      };
 
     } catch (error) {
       core.error(`Error during comparison: ${error}`);

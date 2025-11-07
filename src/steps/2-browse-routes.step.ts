@@ -105,7 +105,7 @@ export async function browseRoutes(stepData: StepData): Promise<StepData> {
         screenshotResult,
         outputDirectory: screenshotResult.outputDirectory
       }
-    } as any; // Type assertion needed for _internal field
+    };
   });
 }
 

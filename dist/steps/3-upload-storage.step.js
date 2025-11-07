@@ -27417,8 +27417,7 @@ var logger4 = createModuleLogger({
 async function uploadToStorage(stepData) {
   return executeStep("Upload Screenshots to Storage", async () => {
     var _a;
-    const { prNumber, screenshots } = stepData;
-    const internal = stepData._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
     if (!screenshots || !(internal == null ? void 0 : internal.screenshotResult)) {
       throw new Error("No screenshots available for upload. Run browse-routes step first.");
     }
@@ -27506,17 +27505,26 @@ async function uploadToStorage(stepData) {
     let storageUrl = "";
     try {
       const { uploadFiles } = await import("@yofix/storage");
+      const storageConfig = storageProvider === "firebase" ? {
+        provider: "firebase",
+        config: {
+          bucket: storageBucket,
+          credentials: credentialsBase64,
+          basePath: storageDirectory
+        }
+      } : {
+        provider: "s3",
+        config: {
+          bucket: storageBucket,
+          region: config.get("aws-region", { defaultValue: "us-east-1" }),
+          accessKeyId: config.get("aws-access-key-id"),
+          secretAccessKey: config.get("aws-secret-access-key"),
+          basePath: storageDirectory
+        }
+      };
       const basePath = storageDirectory ? `${storageDirectory}/pr-${prNumber}/screenshots` : `pr-${prNumber}/screenshots`;
       const uploadResult = await uploadFiles({
-        storage: {
-          provider: storageProvider,
-          config: {
-            bucket: storageBucket,
-            credentials: credentialsBase64,
-            basePath
-          }
-        },
-        // Type assertion for external package
+        storage: storageConfig,
         files: filesForUpload,
         verbose: true,
         onProgress: (progress) => {

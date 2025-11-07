@@ -27520,8 +27520,7 @@ async function captureScreenshotsWithBrowser(options) {
 async function compareWithBaselines(stepData) {
   return executeStep("Compare with Baselines", async () => {
     var _a, _b, _c, _d;
-    const { prNumber, screenshots } = stepData;
-    const internal = stepData._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
     if (!screenshots || !(internal == null ? void 0 : internal.screenshotResult)) {
       throw new Error("No screenshots available for comparison. Run browse-routes step first.");
     }
@@ -27567,6 +27566,23 @@ async function compareWithBaselines(stepData) {
         core9.debug(`Not a file path, treating as base64: ${error5}`);
       }
     }
+    const storageConfig = storageProvider === "firebase" ? {
+      provider: "firebase",
+      config: {
+        bucket: storageBucket,
+        credentials: credentialsBase64,
+        basePath: storageDirectory
+      }
+    } : {
+      provider: "s3",
+      config: {
+        bucket: storageBucket,
+        region: config.get("aws-region", { defaultValue: "us-east-1" }),
+        accessKeyId: config.get("aws-access-key-id"),
+        secretAccessKey: config.get("aws-secret-access-key"),
+        basePath: storageDirectory
+      }
+    };
     const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
     const viewports = viewportsConfig.split(",").map((viewport) => {
       const [width, height] = viewport.trim().split("x").map(Number);
@@ -27586,14 +27602,7 @@ async function compareWithBaselines(stepData) {
         core9.info(`  Checking baseline for ${route} (${viewport})`);
         try {
           const baselineResult = await downloadFiles({
-            storage: {
-              provider: storageProvider,
-              config: {
-                bucket: storageBucket,
-                credentials: credentialsBase64,
-                basePath: storageDirectory
-              }
-            },
+            storage: storageConfig,
             files: [baselineKey]
           });
           if (!baselineResult.success || baselineResult.files.length === 0) {
@@ -27621,14 +27630,7 @@ async function compareWithBaselines(stepData) {
                 const productionBuffer = await import_fs2.promises.readFile(productionScreenshot.path);
                 core9.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
                 const uploadResult = await uploadFiles({
-                  storage: {
-                    provider: storageProvider,
-                    config: {
-                      bucket: storageBucket,
-                      credentials: credentialsBase64,
-                      basePath: storageDirectory
-                    }
-                  },
+                  storage: storageConfig,
                   files: [{
                     path: productionScreenshot.path,
                     destination: baselineKey,
@@ -27647,6 +27649,18 @@ async function compareWithBaselines(stepData) {
                   throw new Error("Failed to upload baseline");
                 }
                 core9.info(`    \u2705 Baseline created from production`);
+                const comparisonKey2 = `${routePath}_${viewport}`;
+                const uploadedBaseline = uploadResult.files[0];
+                if (uploadedBaseline == null ? void 0 : uploadedBaseline.url) {
+                  baselineUrlMap.set(comparisonKey2, uploadedBaseline.url);
+                  baselineMetadataMap.set(comparisonKey2, {
+                    timeCreated: (/* @__PURE__ */ new Date()).toISOString(),
+                    customMetadata: {
+                      createdAt: Date.now().toString(),
+                      source: "production"
+                    }
+                  });
+                }
                 const currentBuffer2 = await import_fs2.promises.readFile(screenshot.path);
                 comparisonsToRun.push({
                   route: routePath,
@@ -27685,9 +27699,10 @@ async function compareWithBaselines(stepData) {
           }
           const baselineBuffer = baselineResult.files[0].buffer;
           const baselineUrl = baselineResult.files[0].url;
+          const downloadedFile = baselineResult.files[0];
           const baselineMetadata = {
-            timeCreated: baselineResult.files[0].timeCreated,
-            customMetadata: baselineResult.files[0].customMetadata
+            timeCreated: downloadedFile.timeCreated,
+            customMetadata: downloadedFile.customMetadata
           };
           const currentBuffer = await import_fs2.promises.readFile(screenshot.path);
           const comparisonKey = `${routePath}_${viewport}`;
@@ -27867,7 +27882,7 @@ async function compareWithBaselines(stepData) {
         comparison: {
           hasChanges: changedCount > 0,
           diffCount: changedCount,
-          diffFiles: diffFilesInfo.filter((d) => d.hasDifference).map((d) => d.localPath),
+          diffFiles: diffFilesInfo.filter((d) => d.hasDifference).map((d) => d.localPath).filter((path5) => path5 !== void 0),
           summary
         },
         _internal: {

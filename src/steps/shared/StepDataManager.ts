@@ -14,6 +14,91 @@ import * as core from '@actions/core';
 import { ExternalRouteImpactTree } from '../../core/analysis/ThirdPartyRouteImpactAnalyzer';
 
 /**
+ * Internal step data not exposed in public outputs
+ */
+export interface InternalStepData {
+  screenshotResult?: {
+    success: boolean;
+    totalDuration?: number;
+    baseUrl?: string;
+    outputDirectory: string;
+    metadata?: {
+      timestamp: number;
+      totalRoutes: number;
+      totalScreenshots: number;
+      successfulRoutes: number;
+      failedRoutes: number;
+      outputDirectory: string;
+      authUsed: boolean;
+      loginFlowDetected: boolean;
+      totalDuration: number;
+      baseUrl: string;
+    };
+    screenshots: Array<{
+      route: string;
+      fullUrl: string;
+      screenshots: Array<{
+        viewport: string;
+        path: string;
+        destination: string;
+        width: number;
+        height: number;
+        size: number;
+        duration: number;
+        contentType: string;
+        metadata: {
+          route: string;
+          fullUrl: string;
+          viewport: string;
+          width: string;
+          height: string;
+        };
+      }>;
+      timing: {
+        navigationTime: number;
+        screenshotTime: number;
+        totalTime: number;
+      };
+      success: boolean;
+      error?: string;
+    }>;
+    errors?: Array<{
+      code: string;
+      message: string;
+      route?: string;
+      phase?: 'login' | 'navigation' | 'screenshot' | 'storage';
+      details?: unknown;
+    }>;
+    artifactInfo?: {
+      uploaded: boolean;
+      artifactName: string;
+      artifactId?: number;
+      size: number;
+    };
+  };
+  diffFiles?: Array<{
+    route: string;
+    viewport: string;
+    localPath?: string;
+    destination: string;
+    hasDifference: boolean;
+    diffPercentage: number;
+    status: 'new' | 'unchanged' | 'changed' | 'error';
+    metrics?: any;
+    baselineUrl?: string;
+    baselineMetadata?: {
+      timeCreated?: string;
+      customMetadata?: Record<string, string>;
+    };
+    error?: string;
+  }>;
+  diffOutputDir?: string;
+  outputDirectory?: string;
+  uploadedFiles?: any[];
+  storageUrl?: string;
+}
+
+/**
  * Shared data structure passed between steps
  */
 export interface StepData {
@@ -69,6 +154,9 @@ export interface StepData {
     startTime: number;
     stepTimings: Record<string, { start: number; end: number; duration: number }>;
   };
+
+  // Internal step data not exposed in public outputs
+  _internal?: InternalStepData;
 }
 
 /**

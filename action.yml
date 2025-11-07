@@ -142,5 +142,56 @@ outputs:
     description: 'Detected build system'
 
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: 'composite'
+  steps:
+    # Step 1: Cache Playwright browsers
+    - name: 📦 Cache Playwright Browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/playwright-deps
+        key: playwright-browsers-${{ runner.os }}-1.54.1-v2
+        restore-keys: |
+          playwright-browsers-${{ runner.os }}-1.54.1-
+          playwright-browsers-${{ runner.os }}-
+
+    # Step 2: Setup Playwright
+    - name: 🎭 Setup Playwright Environment
+      shell: bash
+      run: |
+        echo "::group::Playwright Setup"
+        cd ${{ github.action_path }}
+
+        if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+          echo "📦 Installing Playwright browsers (cache miss)..."
+          npx -y playwright@1.54.1 install chromium --with-deps
+          mkdir -p ~/playwright-deps
+          dpkg -l > ~/playwright-deps/installed-packages.txt 2>/dev/null || true
+          echo "✅ Playwright browsers and dependencies installed"
+        else
+          echo "🚀 Using cached Playwright browsers"
+          npx -y playwright@1.54.1 install-deps chromium || true
+        fi
+        echo "::endgroup::"
+
+    # Step 3: Install runtime dependencies
+    - name: 📦 Install YoFix Dependencies
+      shell: bash
+      run: |
+        echo "::group::YoFix Dependencies Installation"
+        echo "📦 Installing runtime dependencies..."
+        cd ${{ github.action_path }}
+        npm install --production --ignore-scripts
+        npm rebuild
+        echo "✅ Runtime dependencies installed"
+        echo "::endgroup::"
+
+    # Step 4: Execute YoFix Workflow
+    - name: 🚀 Run YoFix Visual Testing
+      id: yofix-main
+      shell: bash
+      run: |
+        cd ${{ github.action_path }}
+        node dist/index.js

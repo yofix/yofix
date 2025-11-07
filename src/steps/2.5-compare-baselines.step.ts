@@ -116,11 +116,10 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
 
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
-      const routePath = extractRoutePath(route);
+      const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, '_');
 
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
-        const sanitizedRoute = routePath.replace(/\//g, '_');
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
 
         core.info(`  Checking baseline for ${route} (${viewport})`);

@@ -84,14 +84,8 @@ export async function postResults(stepData: StepData): Promise<StepData> {
       skippedTests: 0,
       duration: totalDuration,
       testResults: screenshotResult.screenshots.map((r: any) => {
-        // Extract pathname from full URL for matching
-        const routePath = extractRoutePath(r.route);
-
-        // Convert route path to sanitized filename format
-        const sanitizedRoute = routePath
-          .replace(/^\//, '')
-          .replace(/\//g, '-')
-          .toLowerCase();
+        // Extract pathname (for matching) and sanitized version (for filenames)
+        const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(r.route, '-');
 
         return {
           testId: `test-${r.route}`,

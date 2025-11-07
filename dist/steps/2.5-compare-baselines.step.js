@@ -24131,17 +24131,23 @@ async function executeStep(stepName, stepFunction) {
 
 // src/steps/shared/route.utils.ts
 var core2 = __toESM(require_core());
-function extractRoutePath(route) {
-  let routePath = route;
-  if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
+function extractRoutePath(route, separator = "-") {
+  let pathname = route;
+  if (pathname.startsWith("http://") || pathname.startsWith("https://")) {
     try {
-      const url = new URL(routePath);
-      routePath = url.pathname;
+      const url = new URL(pathname);
+      pathname = url.pathname;
     } catch (error5) {
-      core2.debug(`Failed to parse route URL: ${routePath}`);
+      core2.debug(`Failed to parse route URL: ${pathname}`);
     }
   }
-  return routePath;
+  let sanitized;
+  if (pathname === "/" || pathname === "") {
+    sanitized = "home";
+  } else {
+    sanitized = pathname.replace(/^\//, "").replace(/\//g, separator).toLowerCase();
+  }
+  return { pathname, sanitized };
 }
 
 // src/core/github/GitHubCommentEngine.ts
@@ -27564,10 +27570,9 @@ async function compareWithBaselines(stepData) {
     let newScreenshots = 0;
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
-      const routePath = extractRoutePath(route);
+      const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, "_");
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
-        const sanitizedRoute = routePath.replace(/\//g, "_");
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
         core9.info(`  Checking baseline for ${route} (${viewport})`);
         try {

@@ -6,27 +6,45 @@
 import * as core from '@actions/core';
 
 /**
- * Extract pathname from full URL for matching
- * Same pattern used in Step 2.5 and Step 4
+ * Extract pathname from full URL and return both unsanitized and sanitized versions
  *
  * @param route - Full URL or pathname
- * @returns Pathname only (e.g., /dashboard) or original if not a URL
+ * @param separator - Character to replace slashes with in sanitized version (default: '-')
+ * @returns Object with pathname (for matching) and sanitized (for filenames)
  *
  * @example
- * extractRoutePath('https://preview.com/dashboard') // '/dashboard'
- * extractRoutePath('/dashboard') // '/dashboard'
+ * extractRoutePath('https://preview.com/dashboard')
+ * // { pathname: '/dashboard', sanitized: 'dashboard' }
+ *
+ * extractRoutePath('/api/users', '_')
+ * // { pathname: '/api/users', sanitized: 'api_users' }
+ *
+ * extractRoutePath('/')
+ * // { pathname: '/', sanitized: 'home' }
  */
-export function extractRoutePath(route: string): string {
-  let routePath = route;
+export function extractRoutePath(route: string, separator: string = '-'): { pathname: string, sanitized: string } {
+  let pathname = route;
 
-  if (routePath.startsWith('http://') || routePath.startsWith('https://')) {
+  // Extract pathname from URL if needed
+  if (pathname.startsWith('http://') || pathname.startsWith('https://')) {
     try {
-      const url = new URL(routePath);
-      routePath = url.pathname;
+      const url = new URL(pathname);
+      pathname = url.pathname;
     } catch (error) {
-      core.debug(`Failed to parse route URL: ${routePath}`);
+      core.debug(`Failed to parse route URL: ${pathname}`);
     }
   }
 
-  return routePath;
+  // Handle root path specially
+  let sanitized: string;
+  if (pathname === '/' || pathname === '') {
+    sanitized = 'home';
+  } else {
+    sanitized = pathname
+      .replace(/^\//, '')           // Remove leading slash
+      .replace(/\//g, separator)    // Replace slashes with separator
+      .toLowerCase();               // Convert to lowercase
+  }
+
+  return { pathname, sanitized };
 }

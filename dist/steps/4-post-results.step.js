@@ -27897,17 +27897,23 @@ async function executeStep(stepName, stepFunction) {
 
 // src/steps/shared/route.utils.ts
 var core8 = __toESM(require_core());
-function extractRoutePath(route) {
-  let routePath = route;
-  if (routePath.startsWith("http://") || routePath.startsWith("https://")) {
+function extractRoutePath(route, separator = "-") {
+  let pathname = route;
+  if (pathname.startsWith("http://") || pathname.startsWith("https://")) {
     try {
-      const url = new URL(routePath);
-      routePath = url.pathname;
+      const url = new URL(pathname);
+      pathname = url.pathname;
     } catch (error5) {
-      core8.debug(`Failed to parse route URL: ${routePath}`);
+      core8.debug(`Failed to parse route URL: ${pathname}`);
     }
   }
-  return routePath;
+  let sanitized;
+  if (pathname === "/" || pathname === "") {
+    sanitized = "home";
+  } else {
+    sanitized = pathname.replace(/^\//, "").replace(/\//g, separator).toLowerCase();
+  }
+  return { pathname, sanitized };
 }
 
 // src/steps/4-post-results.step.ts
@@ -27960,8 +27966,7 @@ async function postResults(stepData) {
       duration: totalDuration,
       testResults: screenshotResult.screenshots.map((r) => {
         var _a2;
-        const routePath = extractRoutePath(r.route);
-        const sanitizedRoute = routePath.replace(/^\//, "").replace(/\//g, "-").toLowerCase();
+        const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(r.route, "-");
         return {
           testId: `test-${r.route}`,
           testName: `Route Test: ${r.route}`,

@@ -196,6 +196,18 @@ runs:
         cd ${{ github.action_path }}
         node dist/index.js
       env:
+        # GitHub Actions Environment
+        GITHUB_ACTIONS: true
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_PATH: ${{ github.event_path }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_RUN_NUMBER: ${{ github.run_number }}
+
         # Core Configuration
         INPUT_PREVIEW_URL: ${{ inputs.preview-url }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}

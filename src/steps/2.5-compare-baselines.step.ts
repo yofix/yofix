@@ -361,7 +361,8 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
         diffFilesInfo.push({
           route: comparison.route,
           viewport: comparison.viewport,
-          localPath: diffFilePath,
+          // Only set localPath if diff file was actually written to disk
+          localPath: (comparison.diff && comparison.diff.buffer) ? diffFilePath : undefined,
           destination: `pr-${prNumber}/diffs/${diffFileName}`,
           hasDifference: !comparison.match,
           diffPercentage: comparison.diffPercentage,

@@ -45,8 +45,7 @@ function parseInputs(): ActionInputs {
     mcpProvider: config.get('mcp-provider'),
     mcpOptions: config.get('mcp-options'),
     enableAINavigation: getBooleanConfig('enable-ai-navigation'),
-    enableAITestGeneration: getBooleanConfig('enable-ai-test-generation'),
-    testRoutes: config.get('test-routes')
+    enableAITestGeneration: getBooleanConfig('enable-ai-test-generation')
   };
 }
 

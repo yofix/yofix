@@ -378,7 +378,6 @@ export const actionDefaults = {
   "enable-smart-auth": "false",
   "enable-ai-navigation": "false",
   "enable-ai-test-generation": "false",
-  "test-routes": "",
   "session-mode": "sharedAgent",
   "clear-cache": "false",
   "engine-mode": "deterministic",

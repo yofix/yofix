@@ -60,17 +60,7 @@ inputs:
   aws-secret-access-key:
     description: 'AWS secret access key (uses default credentials if not provided)'
     required: false
-  
-  # Cache Configuration
-  redis-url:
-    description: 'Redis URL for caching (format: redis://user:pass@host:port)'
-    required: false
 
-  cache-ttl:
-    description: 'Cache TTL in seconds'
-    required: false
-    default: '3600'
-  
   firebase-target:
     description: 'Firebase hosting target (auto-detected from preview URL if not provided)'
     required: false
@@ -117,11 +107,6 @@ inputs:
     description: 'Login page URL path (e.g., /login)'
     required: false
     default: '/login'
-  
-  test-routes:
-    description: 'Comma-separated list of specific routes to test'
-    required: false
-    default: ''
 
   clear-cache:
     description: 'Clear route analysis cache before running'
@@ -228,8 +213,6 @@ runs:
         INPUT_AWS-REGION: ${{ inputs.aws-region }}
         INPUT_AWS-ACCESS-KEY-ID: ${{ inputs.aws-access-key-id }}
         INPUT_AWS-SECRET-ACCESS-KEY: ${{ inputs.aws-secret-access-key }}
-        INPUT_REDIS-URL: ${{ inputs.redis-url }}
-        INPUT_CACHE-TTL: ${{ inputs.cache-ttl }}
         INPUT_FIREBASE-TARGET: ${{ inputs.firebase-target }}
         INPUT_BUILD-SYSTEM: ${{ inputs.build-system }}
         INPUT_TEST-TIMEOUT: ${{ inputs.test-timeout }}
@@ -239,7 +222,6 @@ runs:
         INPUT_AUTH-EMAIL: ${{ inputs.auth-email }}
         INPUT_AUTH-PASSWORD: ${{ inputs.auth-password }}
         INPUT_AUTH-LOGIN-URL: ${{ inputs.auth-login-url }}
-        INPUT_TEST-ROUTES: ${{ inputs.test-routes }}
         INPUT_CLEAR-CACHE: ${{ inputs.clear-cache }}
 
     # Step 5: Analyze Routes

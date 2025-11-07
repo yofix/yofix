@@ -4,9 +4,8 @@
   "description": "AI-powered visual issue detection and auto-fix for web applications",
   "scripts": {
     "postinstall": "playwright install chromium",
-    "build:ncc": "tsc && ncc build dist/index.js -o dist-final --source-map --external sharp --external firebase-admin --external @google-cloud/firestore --external @yofix/analyzer --external @yofix/browser --external @yofix/comparator --external @yofix/storage && cp -r dist-final/* dist/ && rm -rf dist-final",
-    "build": "npm run clean && npm run build:steps",
-    "build:steps": "mkdir -p dist/steps && esbuild src/steps/0-initialize.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/0-initialize.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/1-analyze-routes.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/1-analyze-routes.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/2-browse-routes.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/2-browse-routes.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/2.5-compare-baselines.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/2.5-compare-baselines.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/3-upload-storage.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/3-upload-storage.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/4-post-results.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/4-post-results.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap && esbuild src/steps/5-update-baselines.step.ts --bundle --platform=node --target=node16 --outfile=dist/steps/5-update-baselines.step.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap",
+    "build": "npm run clean && npm run build:main",
+    "build:main": "mkdir -p dist && esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js --external:sharp --external:playwright --external:firebase-admin --external:@google-cloud/firestore --external:@yofix/analyzer --external:@yofix/browser --external:@yofix/comparator --external:@yofix/storage --format=cjs --sourcemap",
     "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "test:action": "act -j visual-test --secret-file .env.test",
@@ -20,13 +19,9 @@
     "release:dev": "./scripts/release-dev.sh",
     "release:alpha": "./scripts/release-pre.sh alpha",
     "test:storage": "ts-node tests/test-storage-local.ts",
-    "test:firebase": "ts-node src/cli/test-firebase.ts",
     "test:storage:ci": "ts-node tests/test-storage-integration.ts",
-    "test:cache": "echo 'Cache test not implemented yet'",
     "test:browser-agent": "jest src/browser-agent --passWithNoTests",
-    "test:integration": "jest tests/integration --passWithNoTests",
-    "build:ts": "tsc",
-    "build:bundle": "npm run build"
+    "test:integration": "jest tests/integration --passWithNoTests"
   },
   "keywords": [
     "visual-testing",
@@ -79,7 +74,6 @@
     "@types/node": "^18.19.39",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
-    "@vercel/ncc": "^0.38.1",
     "esbuild": "^0.25.8",
     "eslint": "^8.56.0",
     "jest": "^29.7.0",

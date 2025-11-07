@@ -3090,11 +3090,6 @@
   resolved "https://registry.npmjs.org/@ungap/structured-clone/-/structured-clone-1.3.0.tgz"
   integrity sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==
 
-"@vercel/ncc@^0.38.1":
-  version "0.38.3"
-  resolved "https://registry.npmjs.org/@vercel/ncc/-/ncc-0.38.3.tgz"
-  integrity sha512-rnK6hJBS6mwc+Bkab+PGPs9OiS0i/3kdTO+CkI8V0/VrW3vmz7O2Pxjw/owOlmo6PKEIxRSeZKv/kuL9itnpYA==
-
 "@yofix/analyzer@^0.1.3":
   version "0.1.3"
   resolved "https://registry.npmjs.org/@yofix/analyzer/-/analyzer-0.1.3.tgz"

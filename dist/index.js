@@ -27620,7 +27620,7 @@ function createEmptyImpactTree(totalFilesChanged) {
 async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   const claudeApiKey = config.get("claude-api-key", { required: true });
   const modelFromConfig = config.get("claude-model", { required: true });
-  const forceRefreshInput = config.get("route-impact-force-refresh", { defaultValue: "false" });
+  const forceRefreshInput = config.get("analyzer-force-refresh", { defaultValue: "auto" });
   if (!claudeApiKey) {
     throw new Error(
       "Claude API key is required for route-impact-analyzer integration."
@@ -28723,7 +28723,7 @@ var core16 = __toESM(require_core());
 var core15 = __toESM(require_core());
 init_core();
 init_GitHubServiceFactory();
-var PRReporter = class {
+var PRReporter = class _PRReporter {
   constructor() {
     this.commentEngine = getGitHubCommentEngine();
     const githubService = GitHubServiceFactory.getService();
@@ -28732,6 +28732,24 @@ var PRReporter = class {
     if (!this.prNumber) {
       core15.warning("No PR number found, cannot post comment");
     }
+  }
+  static {
+    // Status emoji mappings
+    this.STATUS_EMOJIS = {
+      success: "\u2705",
+      partial: "\u26A0\uFE0F",
+      failure: "\u274C",
+      running: "\u{1F504}",
+      failed: "\u274C",
+      skipped: "\u23ED\uFE0F"
+    };
+  }
+  static {
+    this.SEVERITY_ICONS = {
+      critical: "\u{1F6A8}",
+      warning: "\u26A0\uFE0F",
+      info: "\u2139\uFE0F"
+    };
   }
   /**
    * Post comprehensive verification results to PR
@@ -28767,12 +28785,8 @@ var PRReporter = class {
       return;
     }
     try {
-      const statusEmoji = {
-        running: "\u{1F504}",
-        failed: "\u274C",
-        skipped: "\u23ED\uFE0F"
-      };
-      const comment = `## ${statusEmoji[status]} Runtime PR Verification
+      const statusEmoji = _PRReporter.STATUS_EMOJIS[status];
+      const comment = `## ${statusEmoji} Runtime PR Verification
 
 **Status**: ${status.charAt(0).toUpperCase() + status.slice(1)}
 
@@ -28797,9 +28811,7 @@ ${message}
    * Generate comprehensive comment body with React-specific results
    */
   generateCommentBody(result, storageConsoleUrl) {
-    const statusEmoji = result.status === "success" ? "\u2705" : result.status === "partial" ? "\u26A0\uFE0F" : "\u274C";
-    const firebaseEmoji = "\u{1F525}";
-    const reactEmoji = "\u269B\uFE0F";
+    const statusEmoji = _PRReporter.STATUS_EMOJIS[result.status] || _PRReporter.STATUS_EMOJIS.failure;
     const frameworkName = result.framework || "Web App";
     let comment = `## ${statusEmoji} Runtime PR Verification - ${frameworkName}
 
@@ -28829,18 +28841,13 @@ ${message}
     }
     if (screenshots.length > 0) {
       core15.info(`Embedding ${screenshots.length} screenshots in PR comment`);
-      const screenshotsWithUrls = screenshots.filter((s) => s.firebaseUrl);
+      const screenshotsWithUrls = this.filterWithUrls(screenshots);
       core15.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
-      const hasBaselineData = screenshots.some((s) => s.comparison || s.baseline);
-      if (hasBaselineData) {
-        comment += this.generateVisualComparisonTable(screenshots, result);
-      } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result);
-      }
+      comment += this.generateVisualComparisonTable(screenshots, result);
     }
     if (videos.length > 0) {
       core15.info(`Embedding ${videos.length} videos in PR comment`);
-      const videosWithUrls = videos.filter((v) => v.firebaseUrl);
+      const videosWithUrls = this.filterWithUrls(videos);
       core15.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
       comment += this.generateEmbeddedVideos(videos);
     }
@@ -28892,6 +28899,51 @@ ${message}
     return comment;
   }
   /**
+   * Helper: Format viewport dimensions
+   */
+  formatViewport(viewport) {
+    return `${viewport.width}\xD7${viewport.height}`;
+  }
+  /**
+   * Helper: Filter items that have Firebase URLs
+   */
+  filterWithUrls(items) {
+    return items.filter((item) => item.firebaseUrl);
+  }
+  /**
+   * Helper: Get route from screenshot object
+   */
+  getRouteFromScreenshot(screenshot) {
+    return screenshot.route || this.extractRouteFromScreenshotName(screenshot.name) || "/";
+  }
+  /**
+   * Helper: Group screenshots by route
+   */
+  groupScreenshotsByRoute(screenshots) {
+    return screenshots.reduce((acc, screenshot) => {
+      const route = this.getRouteFromScreenshot(screenshot);
+      if (!acc[route]) {
+        acc[route] = [];
+      }
+      acc[route].push(screenshot);
+      return acc;
+    }, {});
+  }
+  /**
+   * Helper: Get severity icon based on severity level
+   */
+  getSeverityIcon(severity) {
+    return _PRReporter.SEVERITY_ICONS[severity];
+  }
+  /**
+   * Helper: Get diff severity icon based on percentage
+   */
+  getDiffSeverityIcon(diffPercentage) {
+    if (diffPercentage > 5) return _PRReporter.SEVERITY_ICONS.critical;
+    if (diffPercentage > 1) return _PRReporter.SEVERITY_ICONS.warning;
+    return _PRReporter.SEVERITY_ICONS.info;
+  }
+  /**
    * Format duration in human-readable format
    */
   formatDuration(durationMs) {
@@ -28912,14 +28964,7 @@ ${message}
     if (screenshots.length === 0) {
       return "";
     }
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || this.extractRouteFromScreenshotName(screenshot.name);
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {});
+    const groupedByRoute = this.groupScreenshotsByRoute(screenshots);
     const totalRoutes = Object.keys(groupedByRoute).length;
     const routesWithIssues = Object.values(groupedByRoute).filter(
       (screenshots2) => screenshots2.some((s) => s.comparison?.hasDifference || s.comparison?.issues?.length > 0)
@@ -28949,12 +28994,16 @@ ${message}
       const statusText = isNewRoute ? "New Route" : routeHasIssues ? "Issues Detected" : "No Issues";
       content += `<details>
 `;
-      content += `<summary><strong>\u{1F4CD} ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>
+      content += `<summary><strong>\u{1F4CD} ${route}</strong> - ${statusIcon} ${statusText}</summary>
 
 `;
-      content += `| Baseline (Last Updated) | Current Screenshot | Comparison |
+      const productionUrl = this.getProductionUrl();
+      const previewUrl = this.getBasePreviewUrl(result);
+      const baselineHeader = productionUrl ? `Baseline ([Production \u2197](${productionUrl}${route}))` : `Baseline (Production)`;
+      const currentHeader = `Current ([Preview \u2197](${previewUrl}${route}))`;
+      content += `| ${baselineHeader} | ${currentHeader} | Comparison |
 `;
-      content += `|------------------------|-------------------|------------|
+      content += `|${"-".repeat(baselineHeader.length + 2)}|${"-".repeat(currentHeader.length + 2)}|------------|
 `;
       const sortedScreenshots = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
       for (const screenshot of sortedScreenshots) {
@@ -28966,7 +29015,7 @@ ${message}
 **Issues Found:**
 `;
         for (const issue of allIssues) {
-          const severityIcon = issue.severity === "critical" ? "\u{1F6A8}" : issue.severity === "warning" ? "\u26A0\uFE0F" : "\u2139\uFE0F";
+          const severityIcon = this.getSeverityIcon(issue.severity || "info");
           content += `- ${severityIcon} **${issue.type}**: ${issue.description}
 `;
           if (issue.fix) {
@@ -28986,19 +29035,24 @@ ${message}
    * Generate a single row for the comparison table
    */
   generateComparisonTableRow(screenshot) {
-    const viewport = `**${screenshot.viewport.width}\xD7${screenshot.viewport.height}**`;
-    let baselineCell = `${viewport}<br/>`;
+    const durationText = screenshot.duration ? ` \u2022 ${this.formatDuration(screenshot.duration)}` : "";
+    const viewport = `**${this.formatViewport(screenshot.viewport)}**${durationText}`;
+    let baselineCell = "";
     if (screenshot.baseline?.url) {
       const updatedDate = screenshot.baseline.updatedDate || "Unknown";
-      baselineCell += `![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
+      baselineCell = `${viewport}<br/>![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
     } else if (screenshot.comparison?.status === "new") {
-      baselineCell += "\u{1F195} *New baseline created*";
+      baselineCell = "\u{1F195} *New baseline created*";
     } else {
-      baselineCell += "\u274C *No baseline*";
+      baselineCell = "\u{1F195} *No baseline available*";
     }
     let currentCell = `${viewport}<br/>`;
     if (screenshot.firebaseUrl) {
-      const captureDate = new Date(screenshot.timestamp).toLocaleDateString();
+      const captureDate = new Date(screenshot.timestamp).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
       currentCell += `![Current](${screenshot.firebaseUrl})<br/>*Captured: ${captureDate}*`;
     } else {
       currentCell += "\u274C *Screenshot not available*";
@@ -29015,7 +29069,7 @@ ${message}
           break;
         case "changed":
           const displayPercentage = comp.diffPercentage < 0.01 ? comp.diffPercentage.toFixed(4) : comp.diffPercentage.toFixed(2);
-          const diffIcon = comp.diffPercentage > 5 ? "\u{1F6A8}" : comp.diffPercentage > 1 ? "\u26A0\uFE0F" : "\u2139\uFE0F";
+          const diffIcon = this.getDiffSeverityIcon(comp.diffPercentage);
           comparisonCell = `${diffIcon} **${displayPercentage}% diff**<br/>`;
           if (comp.diffImageUrl) {
             comparisonCell += `[View Diff](${comp.diffImageUrl})`;
@@ -29049,7 +29103,7 @@ ${message}
         }
       }
     } else {
-      comparisonCell = "\u2139\uFE0F **No comparison data**";
+      comparisonCell = "\u{1F195} **First Run**<br/>Establishing baseline";
     }
     return `| ${baselineCell} | ${currentCell} | ${comparisonCell} |
 `;
@@ -29075,70 +29129,14 @@ ${message}
     return result.firebaseConfig.previewUrl.replace(/\/$/, "");
   }
   /**
-   * Create clickable route link with preview URL
+   * Get production URL from configuration (if available)
    */
-  createRouteLink(route, result) {
-    const baseUrl = this.getBasePreviewUrl(result);
-    return `[${route}](${baseUrl}${route})`;
-  }
-  /**
-   * Generate embedded screenshots for PR comment (legacy method)
-   */
-  generateEmbeddedScreenshots(screenshots, result) {
-    if (screenshots.length === 0) {
-      return "";
+  getProductionUrl() {
+    const productionUrl = process.env.INPUT_PRODUCTION_URL || process.env.PRODUCTION_URL;
+    if (productionUrl) {
+      return productionUrl.replace(/\/$/, "");
     }
-    let gallery = "### \u{1F4F8} Screenshots\n\n";
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || "/";
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {});
-    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      const screenshotsWithUrls = routeScreenshots.filter((s) => s.firebaseUrl);
-      if (screenshotsWithUrls.length === 0) {
-        continue;
-      }
-      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
-      const testResult = result.testResults.find((test) => {
-        let testRoute = test.testId.replace("test-", "");
-        if (testRoute.startsWith("http://") || testRoute.startsWith("https://")) {
-          try {
-            const url = new URL(testRoute);
-            testRoute = url.pathname;
-          } catch (error10) {
-          }
-        }
-        return testRoute === route;
-      });
-      const totalTimeText = testResult?.duration ? ` \u2022 ${this.formatDuration(testResult.duration)}` : "";
-      gallery += `<details>
-`;
-      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>
-
-`;
-      gallery += "<table>\n<tr>\n";
-      const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
-      for (const screenshot of sorted) {
-        const durationText = screenshot.duration ? ` \u2022 ${this.formatDuration(screenshot.duration)}` : "";
-        gallery += `<td align="center">
-`;
-        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}${durationText}</strong><br>
-`;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />
-`;
-        gallery += `</td>
-`;
-      }
-      gallery += "</tr>\n</table>\n\n";
-      gallery += `</details>
-
-`;
-    }
-    return gallery;
+    return null;
   }
   /**
    * Generate embedded videos for PR comment
@@ -29148,7 +29146,7 @@ ${message}
       return "";
     }
     let gallery = "### \u{1F3A5} Test Videos\n\n";
-    const videosWithUrls = videos.filter((v) => v.firebaseUrl);
+    const videosWithUrls = this.filterWithUrls(videos);
     if (videosWithUrls.length === 0) {
       gallery += "_Videos captured but URLs not available_\n\n";
       return gallery;

@@ -4,12 +4,34 @@ import { getGitHubCommentEngine, errorHandler, ErrorCategory, ErrorSeverity } fr
 import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
 
 /**
- * PR Reporter - Now uses centralized GitHub comment engine
- * @deprecated Use GitHubCommentEngine directly for new code
+ * PR Reporter - Specialized reporter for visual regression testing results
+ *
+ * Uses centralized GitHubCommentEngine for comment posting, but provides
+ * domain-specific formatting for verification results, screenshots, and
+ * visual comparison data.
+ *
+ * Note: For generic PR comments, use GitHubCommentEngine directly.
+ * This class is specifically for YoFix verification result formatting.
  */
 export class PRReporter {
   private commentEngine = getGitHubCommentEngine();
   private prNumber: number;
+
+  // Status emoji mappings
+  private static readonly STATUS_EMOJIS = {
+    success: '✅',
+    partial: '⚠️',
+    failure: '❌',
+    running: '🔄',
+    failed: '❌',
+    skipped: '⏭️'
+  } as const;
+
+  private static readonly SEVERITY_ICONS = {
+    critical: '🚨',
+    warning: '⚠️',
+    info: 'ℹ️'
+  } as const;
 
   constructor() {
     // Comment engine is already initialized globally
@@ -63,13 +85,9 @@ export class PRReporter {
     }
     
     try {
-      const statusEmoji = {
-        running: '🔄',
-        failed: '❌',
-        skipped: '⏭️'
-      };
+      const statusEmoji = PRReporter.STATUS_EMOJIS[status];
 
-      const comment = `## ${statusEmoji[status]} Runtime PR Verification
+      const comment = `## ${statusEmoji} Runtime PR Verification
 
 **Status**: ${status.charAt(0).toUpperCase() + status.slice(1)}
 
@@ -96,9 +114,7 @@ ${message}
    * Generate comprehensive comment body with React-specific results
    */
   private generateCommentBody(result: VerificationResult, storageConsoleUrl?: string): string {
-    const statusEmoji = result.status === 'success' ? '✅' : result.status === 'partial' ? '⚠️' : '❌';
-    const firebaseEmoji = '🔥';
-    const reactEmoji = '⚛️';
+    const statusEmoji = PRReporter.STATUS_EMOJIS[result.status] || PRReporter.STATUS_EMOJIS.failure;
 
     // Get framework name from route-impact-analyzer or fallback to generic
     const frameworkName = result.framework || 'Web App';
@@ -135,22 +151,17 @@ ${message}
     // Embed screenshots directly
     if (screenshots.length > 0) {
       core.info(`Embedding ${screenshots.length} screenshots in PR comment`);
-      const screenshotsWithUrls = screenshots.filter(s => s.firebaseUrl);
+      const screenshotsWithUrls = this.filterWithUrls(screenshots);
       core.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
 
-      // Use enhanced comparison layout if baseline data is available
-      const hasBaselineData = screenshots.some(s => s.comparison || s.baseline);
-      if (hasBaselineData) {
-        comment += this.generateVisualComparisonTable(screenshots, result);
-      } else {
-        comment += this.generateEmbeddedScreenshots(screenshots, result);
-      }
+      // Always use unified comparison table structure (handles missing baselines gracefully)
+      comment += this.generateVisualComparisonTable(screenshots, result);
     }
     
     // Embed videos directly
     if (videos.length > 0) {
       core.info(`Embedding ${videos.length} videos in PR comment`);
-      const videosWithUrls = videos.filter(v => v.firebaseUrl);
+      const videosWithUrls = this.filterWithUrls(videos);
       core.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
       
       comment += this.generateEmbeddedVideos(videos);
@@ -206,6 +217,57 @@ ${message}
   }
 
   /**
+   * Helper: Format viewport dimensions
+   */
+  private formatViewport(viewport: { width: number; height: number }): string {
+    return `${viewport.width}×${viewport.height}`;
+  }
+
+  /**
+   * Helper: Filter items that have Firebase URLs
+   */
+  private filterWithUrls<T extends { firebaseUrl?: string }>(items: T[]): T[] {
+    return items.filter(item => item.firebaseUrl);
+  }
+
+  /**
+   * Helper: Get route from screenshot object
+   */
+  private getRouteFromScreenshot(screenshot: any): string {
+    return screenshot.route || this.extractRouteFromScreenshotName(screenshot.name) || '/';
+  }
+
+  /**
+   * Helper: Group screenshots by route
+   */
+  private groupScreenshotsByRoute(screenshots: any[]): Record<string, any[]> {
+    return screenshots.reduce((acc, screenshot) => {
+      const route = this.getRouteFromScreenshot(screenshot);
+      if (!acc[route]) {
+        acc[route] = [];
+      }
+      acc[route].push(screenshot);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }
+
+  /**
+   * Helper: Get severity icon based on severity level
+   */
+  private getSeverityIcon(severity: 'critical' | 'warning' | 'info'): string {
+    return PRReporter.SEVERITY_ICONS[severity];
+  }
+
+  /**
+   * Helper: Get diff severity icon based on percentage
+   */
+  private getDiffSeverityIcon(diffPercentage: number): string {
+    if (diffPercentage > 5) return PRReporter.SEVERITY_ICONS.critical;
+    if (diffPercentage > 1) return PRReporter.SEVERITY_ICONS.warning;
+    return PRReporter.SEVERITY_ICONS.info;
+  }
+
+  /**
    * Format duration in human-readable format
    */
   private formatDuration(durationMs: number): string {
@@ -229,14 +291,7 @@ ${message}
     }
 
     // Group screenshots by route
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      const route = screenshot.route || this.extractRouteFromScreenshotName(screenshot.name);
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {} as Record<string, any[]>);
+    const groupedByRoute = this.groupScreenshotsByRoute(screenshots);
 
     // Generate summary statistics
     const totalRoutes = Object.keys(groupedByRoute).length;
@@ -268,15 +323,24 @@ ${message}
       const statusText = isNewRoute ? 'New Route' : routeHasIssues ? 'Issues Detected' : 'No Issues';
 
       content += `<details>\n`;
-      content += `<summary><strong>📍 ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
-      
-      // Create comparison table for this route
-      content += `| Baseline (Last Updated) | Current Screenshot | Comparison |\n`;
-      content += `|------------------------|-------------------|------------|\n`;
-      
+      content += `<summary><strong>📍 ${route}</strong> - ${statusIcon} ${statusText}</summary>\n\n`;
+
+      // Get production URL (if available from configuration) and preview URL
+      const productionUrl = this.getProductionUrl();
+      const previewUrl = this.getBasePreviewUrl(result);
+
+      // Create comparison table headers with links
+      const baselineHeader = productionUrl
+        ? `Baseline ([Production ↗](${productionUrl}${route}))`
+        : `Baseline (Production)`;
+      const currentHeader = `Current ([Preview ↗](${previewUrl}${route}))`;
+
+      content += `| ${baselineHeader} | ${currentHeader} | Comparison |\n`;
+      content += `|${'-'.repeat(baselineHeader.length + 2)}|${'-'.repeat(currentHeader.length + 2)}|------------|\n`;
+
       // Sort by viewport size (desktop first)
       const sortedScreenshots = (routeScreenshots as any[]).sort((a, b) => b.viewport.width - a.viewport.width);
-      
+
       for (const screenshot of sortedScreenshots) {
         content += this.generateComparisonTableRow(screenshot);
       }
@@ -286,8 +350,7 @@ ${message}
       if (allIssues.length > 0) {
         content += `\n**Issues Found:**\n`;
         for (const issue of allIssues) {
-          const severityIcon = issue.severity === 'critical' ? '🚨' : 
-                              issue.severity === 'warning' ? '⚠️' : 'ℹ️';
+          const severityIcon = this.getSeverityIcon(issue.severity || 'info');
           content += `- ${severityIcon} **${issue.type}**: ${issue.description}\n`;
           if (issue.fix) {
             content += `  - 🔧 **Fix**: ${issue.fix}\n`;
@@ -305,23 +368,29 @@ ${message}
    * Generate a single row for the comparison table
    */
   private generateComparisonTableRow(screenshot: any): string {
-    const viewport = `**${screenshot.viewport.width}×${screenshot.viewport.height}**`;
-    
-    // Baseline column (includes viewport info)
-    let baselineCell = `${viewport}<br/>`;
+    // Viewport with optional duration
+    const durationText = screenshot.duration ? ` • ${this.formatDuration(screenshot.duration)}` : '';
+    const viewport = `**${this.formatViewport(screenshot.viewport)}**${durationText}`;
+
+    // Baseline column - only show viewport/duration if baseline exists
+    let baselineCell = '';
     if (screenshot.baseline?.url) {
       const updatedDate = screenshot.baseline.updatedDate || 'Unknown';
-      baselineCell += `![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
+      baselineCell = `${viewport}<br/>![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
     } else if (screenshot.comparison?.status === 'new') {
-      baselineCell += '🆕 *New baseline created*';
+      baselineCell = '🆕 *New baseline created*';
     } else {
-      baselineCell += '❌ *No baseline*';
+      baselineCell = '🆕 *No baseline available*';
     }
-    
-    // Current screenshot column (includes viewport info)
+
+    // Current screenshot column (includes viewport info and consistent date format)
     let currentCell = `${viewport}<br/>`;
     if (screenshot.firebaseUrl) {
-      const captureDate = new Date(screenshot.timestamp).toLocaleDateString();
+      const captureDate = new Date(screenshot.timestamp).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
       currentCell += `![Current](${screenshot.firebaseUrl})<br/>*Captured: ${captureDate}*`;
     } else {
       currentCell += '❌ *Screenshot not available*';
@@ -343,7 +412,7 @@ ${message}
           const displayPercentage = comp.diffPercentage < 0.01
             ? comp.diffPercentage.toFixed(4)
             : comp.diffPercentage.toFixed(2);
-          const diffIcon = comp.diffPercentage > 5 ? '🚨' : comp.diffPercentage > 1 ? '⚠️' : 'ℹ️';
+          const diffIcon = this.getDiffSeverityIcon(comp.diffPercentage);
           comparisonCell = `${diffIcon} **${displayPercentage}% diff**<br/>`;
           if (comp.diffImageUrl) {
             comparisonCell += `[View Diff](${comp.diffImageUrl})`;
@@ -383,9 +452,10 @@ ${message}
         }
       }
     } else {
-      comparisonCell = 'ℹ️ **No comparison data**';
+      // No comparison data available (first run without baseline comparison step)
+      comparisonCell = '🆕 **First Run**<br/>Establishing baseline';
     }
-    
+
     return `| ${baselineCell} | ${currentCell} | ${comparisonCell} |\n`;
   }
 
@@ -414,90 +484,17 @@ ${message}
   }
 
   /**
-   * Create clickable route link with preview URL
+   * Get production URL from configuration (if available)
    */
-  private createRouteLink(route: string, result: VerificationResult): string {
-    const baseUrl = this.getBasePreviewUrl(result);
-    return `[${route}](${baseUrl}${route})`;
+  private getProductionUrl(): string | null {
+    // Try to get from environment variable (GitHub Actions input)
+    const productionUrl = process.env.INPUT_PRODUCTION_URL || process.env.PRODUCTION_URL;
+    if (productionUrl) {
+      return productionUrl.replace(/\/$/, ''); // Remove trailing slash
+    }
+    return null;
   }
 
-  /**
-   * Generate embedded screenshots for PR comment (legacy method)
-   */
-  private generateEmbeddedScreenshots(screenshots: any[], result: VerificationResult): string {
-    if (screenshots.length === 0) {
-      return '';
-    }
-
-    let gallery = '### 📸 Screenshots\n\n';
-
-    // Group screenshots by route (use the route property directly from screenshot)
-    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
-      // Use the route property that was preserved from @yofix/browser
-      const route = screenshot.route || '/';
-
-      if (!acc[route]) {
-        acc[route] = [];
-      }
-      acc[route].push(screenshot);
-      return acc;
-    }, {} as Record<string, any[]>);
-
-    // Generate collapsible gallery for each route
-    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
-      // Only show images if they have Firebase URLs
-      const screenshotsWithUrls = (routeScreenshots as any[]).filter((s: any) => s.firebaseUrl);
-
-      if (screenshotsWithUrls.length === 0) {
-        continue;
-      }
-
-      // Get the full URL from the first screenshot
-      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
-
-      // Get route-level total time from test results
-      const testResult = result.testResults.find(test => {
-        let testRoute = test.testId.replace('test-', '');
-        // Extract pathname from full URL if needed
-        if (testRoute.startsWith('http://') || testRoute.startsWith('https://')) {
-          try {
-            const url = new URL(testRoute);
-            testRoute = url.pathname;
-          } catch (error) {
-            // Keep as-is if parsing fails
-          }
-        }
-        return testRoute === route;
-      });
-
-      const totalTimeText = testResult?.duration ? ` • ${this.formatDuration(testResult.duration)}` : '';
-
-      // Create collapsible section for each route
-      gallery += `<details>\n`;
-      gallery += `<summary><strong>📍 Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>\n\n`;
-
-      // Create a table for viewports
-      gallery += '<table>\n<tr>\n';
-
-      // Sort by viewport size (desktop, tablet, mobile)
-      const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
-
-      for (const screenshot of sorted) {
-        // Get individual screenshot duration (viewport resize + reflow + capture)
-        const durationText = screenshot.duration ? ` • ${this.formatDuration(screenshot.duration)}` : '';
-
-        gallery += `<td align="center">\n`;
-        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}×${screenshot.viewport.height}`}${durationText}</strong><br>\n`;
-        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />\n`;
-        gallery += `</td>\n`;
-      }
-
-      gallery += '</tr>\n</table>\n\n';
-      gallery += `</details>\n\n`;
-    }
-
-    return gallery;
-  }
 
   /**
    * Generate embedded videos for PR comment
@@ -508,9 +505,9 @@ ${message}
     }
 
     let gallery = '### 🎥 Test Videos\n\n';
-    
+
     // Only show videos that have Firebase URLs
-    const videosWithUrls = videos.filter(v => v.firebaseUrl);
+    const videosWithUrls = this.filterWithUrls(videos);
     
     if (videosWithUrls.length === 0) {
       gallery += '_Videos captured but URLs not available_\n\n';

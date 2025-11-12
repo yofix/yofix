@@ -23,6 +23,14 @@ inputs:
     description: 'Claude model to use (e.g., claude-sonnet-4-5-20250929, claude-sonnet-4-20250514)'
     required: true
 
+
+  # @yofix/analyzer
+
+  analyzer-force-refresh:
+    description: 'Force refresh of the route impact analysis, everytime use the llm for create the route patterns'
+    required: false
+    default: 'auto'
+
   # Baseline Configuration
   production-url:
     description: 'Production or staging URL for creating visual baselines (e.g., https://myapp.com)'
@@ -223,6 +231,7 @@ runs:
         INPUT_CLAUDE_API_KEY: ${{ inputs.claude-api-key }}
         INPUT_CLAUDE_MODEL: ${{ inputs.claude-model }}
         INPUT_PRODUCTION_URL: ${{ inputs.production-url }}
+        INPUT_ANALYZER_FORCE_REFRESH: ${{ inputs.analyzer-force-refresh }}
 
         # Storage Configuration
         INPUT_STORAGE_PROVIDER: ${{ inputs.storage-provider }}

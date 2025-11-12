@@ -53,7 +53,7 @@ export async function analyzeRoutesWithExternalTool(
   // Get configuration using ConfigurationManager (proper way)
   const claudeApiKey = config.get('claude-api-key', { required: true });
   const modelFromConfig = config.get('claude-model', { required: true });
-  const forceRefreshInput = config.get('route-impact-force-refresh', { defaultValue: 'false' });
+  const forceRefreshInput = config.get('analyzer-force-refresh', { defaultValue: 'auto' });
 
   if (!claudeApiKey) {
     throw new Error(
@@ -88,6 +88,7 @@ export async function analyzeRoutesWithExternalTool(
     };
   }
 
+  // Handle force-refresh: 'true' = force, 'false' = disable, 'auto' = let cache decide (default)
   const forceRefresh =
     forceRefreshInput === "true" ||
     forceRefreshInput === "True" ||

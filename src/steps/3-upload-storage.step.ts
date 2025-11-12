@@ -25,8 +25,7 @@ interface UploadedFile {
  */
 export async function uploadToStorage(stepData: StepData): Promise<StepData> {
   return executeStep('Upload Screenshots to Storage', async () => {
-    const { prNumber, screenshots } = stepData;
-    const internal = (stepData as any)._internal;
+    const { prNumber, screenshots, _internal: internal } = stepData;
 
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error('No screenshots available for upload. Run browse-routes step first.');
@@ -34,6 +33,7 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
 
     const firebaseCredentials = config.get('firebase-credentials');
     const storageBucket = config.get('storage-bucket');
+    const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });
     const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' });
 
     // Skip upload if storage not configured
@@ -49,14 +49,15 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
           uploadedFiles: [],
           storageUrl: ''
         }
-      } as any;
+      };
     }
 
     core.info(`📤 Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
     core.info(`  Storage Bucket: ${storageBucket}`);
+    core.info(`  Storage Directory: ${storageDirectory}/`);
 
     // Prepare files for upload from screenshotResult
-    const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any }>();
+    const screenshotMetadataMap = new Map<string, { route: string; viewport: any; metadata: any; duration?: number }>();
 
     const filesForUpload = internal.screenshotResult.screenshots.flatMap((routeScreenshot: any) =>
       routeScreenshot.screenshots.map((screenshot: any) => {
@@ -81,6 +82,40 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
       })
     );
 
+    // Add diff images to upload if comparison was run
+    if (internal.diffFiles && Array.isArray(internal.diffFiles)) {
+      core.info(`📊 Adding ${internal.diffFiles.length} diff image(s) to upload`);
+
+      for (const diffFile of internal.diffFiles) {
+        // Only upload diff files that have actual differences
+        if (diffFile.hasDifference && diffFile.localPath) {
+          filesForUpload.push({
+            path: diffFile.localPath,
+            destination: diffFile.destination,
+            contentType: 'image/png',
+            metadata: {
+              type: 'diff',
+              route: diffFile.route,
+              viewport: diffFile.viewport,
+              diffPercentage: diffFile.diffPercentage,
+              status: diffFile.status
+            }
+          });
+
+          // Store diff metadata
+          screenshotMetadataMap.set(diffFile.localPath, {
+            route: diffFile.route,
+            viewport: { name: diffFile.viewport },
+            metadata: {
+              type: 'diff',
+              diffPercentage: diffFile.diffPercentage,
+              metrics: diffFile.metrics
+            }
+          });
+        }
+      }
+    }
+
     // Check if firebaseCredentials is a file path (for testing)
     let credentialsBase64 = firebaseCredentials;
     if (firebaseCredentials.endsWith('.json')) {
@@ -99,17 +134,36 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
     try {
       // Dynamic import to avoid bundling issues
       const { uploadFiles } = await import('@yofix/storage');
+      type ProviderConfig = Parameters<typeof uploadFiles>[0]['storage'];
+
+      // Construct storage config based on provider type
+      const storageConfig: ProviderConfig = storageProvider === 'firebase'
+        ? {
+            provider: 'firebase',
+            config: {
+              bucket: storageBucket,
+              credentials: credentialsBase64,
+              basePath: storageDirectory
+            }
+          }
+        : {
+            provider: 's3',
+            config: {
+              bucket: storageBucket,
+              region: config.get('aws-region', { defaultValue: 'us-east-1' }),
+              accessKeyId: config.get('aws-access-key-id'),
+              secretAccessKey: config.get('aws-secret-access-key'),
+              basePath: storageDirectory
+            }
+          };
 
       // Upload using @yofix/storage
+      const basePath = storageDirectory
+        ? `${storageDirectory}/pr-${prNumber}/screenshots`
+        : `pr-${prNumber}/screenshots`;
+
       const uploadResult = await uploadFiles({
-        storage: {
-          provider: storageProvider as 'firebase' | 's3',
-          config: {
-            bucket: storageBucket,
-            credentials: credentialsBase64,
-            basePath: `pr-${prNumber}/screenshots`
-          }
-        } as any, // Type assertion for external package
+        storage: storageConfig,
         files: filesForUpload,
         verbose: true,
         onProgress: (progress) => {
@@ -188,9 +242,4 @@ export async function main(): Promise<void> {
     core.setFailed(`Step 3 failed: ${error}`);
     throw error;
   }
-}
-
-// Run if executed directly
-if (require.main === module) {
-  main();
 }

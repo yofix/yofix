@@ -1,0 +1,549 @@
+/**
+ * Step 2.5: Compare Screenshots with Baselines
+ *
+ * Uses @yofix/comparator to perform pixel-level comparison between
+ * captured screenshots and stored baselines. Generates diff images
+ * and detects visual regression regions.
+ *
+ * Outputs:
+ * - comparison: Comparison summary with diff counts and details
+ * - diffFiles: Array of generated diff images
+ */
+
+import * as core from '@actions/core';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
+import { compareBaselines } from '@yofix/comparator';
+import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
+import { extractRoutePath } from './shared/route.utils';
+import { config } from '../core';
+import { captureScreenshotsWithBrowser } from '../core/screenshot/BrowserScreenshotCapture';
+
+interface DiffFileInfo {
+  route: string;
+  viewport: string;
+  localPath?: string;
+  destination: string; // For upload step
+  hasDifference: boolean;
+  diffPercentage: number;
+  status: 'new' | 'unchanged' | 'changed' | 'error';
+  metrics?: any;
+  baselineUrl?: string; // Public URL of baseline image from @yofix/storage
+  baselineMetadata?: {
+    timeCreated?: string;
+    customMetadata?: Record<string, string>;
+  };
+  error?: string; // Error message if comparison failed
+}
+
+/**
+ * Main step execution
+ */
+export async function compareWithBaselines(stepData: StepData): Promise<StepData> {
+  return executeStep('Compare with Baselines', async () => {
+    const { prNumber, screenshots, _internal: internal } = stepData;
+
+    if (!screenshots || !internal?.screenshotResult) {
+      throw new Error('No screenshots available for comparison. Run browse-routes step first.');
+    }
+
+    core.info(`🔍 Starting baseline comparison for PR #${prNumber}`);
+
+    // Get storage configuration
+    const firebaseCredentials = config.get('firebase-credentials');
+    const storageBucket = config.get('storage-bucket');
+    const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });
+    const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' });
+    const comparisonThreshold = parseFloat(config.get('comparison-threshold', { defaultValue: '0.01' }));
+    const allowHeightMismatch = config.getBoolean('allow-height-mismatch', false);
+    const heightComparisonStrategy = config.get('height-comparison-strategy', { defaultValue: 'pad' }) as 'crop' | 'pad';
+    const productionUrl = config.get('production-url');
+
+    core.info(`📁 Storage directory: ${storageDirectory}/`);
+    if (productionUrl) {
+      core.info(`🌐 Production URL configured: ${productionUrl}`);
+      core.info(`   Baselines will be auto-created from production if missing`);
+    } else {
+      core.info(`ℹ️  No production URL configured - new routes will be marked as NEW`);
+    }
+
+    // Get authentication config for production screenshot capture
+    const authEmail = config.get('auth-email');
+    const authPassword = config.get('auth-password');
+    const authLoginUrl = config.get('auth-login-url', { defaultValue: '/login' });
+
+    const credentials = authEmail && authPassword
+      ? { email: authEmail, password: authPassword }
+      : undefined;
+
+    // Skip comparison if storage not configured (no baselines available)
+    if (!firebaseCredentials || !storageBucket) {
+      core.warning('⚠️ Storage not configured - skipping baseline comparison');
+      core.warning('   All screenshots will be marked as "new"');
+
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: 'Baseline comparison skipped - no storage configured'
+        },
+        _internal: {
+          ...internal,
+          diffFiles: []
+        }
+      };
+    }
+
+    // Create temporary directory for diff images
+    const diffOutputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'yofix-diffs-'));
+    core.info(`📁 Diff output directory: ${diffOutputDir}`);
+
+    // Dynamic import to avoid bundling issues
+    const { downloadFiles, uploadFiles } = await import('@yofix/storage');
+    type ProviderConfig = Parameters<typeof downloadFiles>[0]['storage'];
+
+    // Check if firebaseCredentials is a file path (for testing)
+    let credentialsBase64 = firebaseCredentials;
+    if (firebaseCredentials.endsWith('.json')) {
+      try {
+        const credentialsContent = await fs.readFile(firebaseCredentials, 'utf-8');
+        credentialsBase64 = Buffer.from(credentialsContent).toString('base64');
+        core.info('  Using Firebase credentials from file');
+      } catch (error) {
+        core.debug(`Not a file path, treating as base64: ${error}`);
+      }
+    }
+
+    // Construct storage config based on provider type
+    const storageConfig: ProviderConfig = storageProvider === 'firebase'
+      ? {
+          provider: 'firebase',
+          config: {
+            bucket: storageBucket,
+            credentials: credentialsBase64,
+            basePath: storageDirectory
+          }
+        }
+      : {
+          provider: 's3',
+          config: {
+            bucket: storageBucket,
+            region: config.get('aws-region', { defaultValue: 'us-east-1' }),
+            accessKeyId: config.get('aws-access-key-id'),
+            secretAccessKey: config.get('aws-secret-access-key'),
+            basePath: storageDirectory
+          }
+        };
+
+    // Prepare comparisons
+    const comparisonsToRun = [];
+    const diffFilesInfo: DiffFileInfo[] = [];
+    const baselineUrlMap = new Map<string, string>(); // key: route_viewport, value: baseline URL
+    const baselineMetadataMap = new Map<string, { timeCreated?: string; customMetadata?: Record<string, string> }>(); // key: route_viewport, value: metadata
+    let newScreenshots = 0;
+
+    for (const routeScreenshot of internal.screenshotResult.screenshots) {
+      const route = routeScreenshot.route;
+      const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, '_');
+
+      for (const screenshot of routeScreenshot.screenshots) {
+        const viewport = `${screenshot.width}x${screenshot.height}`;
+        const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
+
+        core.info(`  Checking baseline for ${route} (${viewport})`);
+
+        try {
+          // Try to download baseline from storage
+          const baselineResult = await downloadFiles({
+            storage: storageConfig,
+            files: [baselineKey]
+          });
+
+          if (!baselineResult.success || baselineResult.files.length === 0) {
+            // No baseline exists - check if production-url is available
+            if (productionUrl) {
+              core.info(`    📸 No baseline found - capturing from production: ${productionUrl}${routePath}`);
+
+              try {
+                // Capture production screenshot for this specific route
+                // Use actual screenshot dimensions (not viewport config) to ensure dimension match
+                const [actualWidth, actualHeight] = viewport.split('x').map(Number);
+                const viewportConfig = {
+                  width: actualWidth,
+                  height: actualHeight,
+                  name: viewport
+                };
+
+                // Get fullPage config (same as used for PR screenshots)
+                const fullPage = config.getBoolean('full-page', true);
+
+                const productionCapture = await captureScreenshotsWithBrowser({
+                  routes: [routePath],
+                  baseUrl: productionUrl,
+                  viewports: [viewportConfig],
+                  credentials,
+                  loginUrl: authLoginUrl,
+                  fullPage,
+                  verbose: false
+                });
+
+                if (!productionCapture.success || productionCapture.screenshots.length === 0) {
+                  throw new Error('Production screenshot capture failed');
+                }
+
+                const productionScreenshot = productionCapture.screenshots[0].screenshots[0];
+                const productionBuffer = await fs.readFile(productionScreenshot.path);
+
+                // Upload production screenshot as baseline
+                core.info(`    ☁️  Uploading production screenshot as baseline...`);
+                const uploadResult = await uploadFiles({
+                  storage: storageConfig,
+                  files: [{
+                    path: productionScreenshot.path,
+                    destination: baselineKey,
+                    contentType: 'image/png',
+                    metadata: {
+                      type: 'baseline',
+                      route: routePath,
+                      viewport,
+                      source: 'production',
+                      createdAt: Date.now().toString()
+                    }
+                  }],
+                  verbose: false
+                });
+
+                if (!uploadResult.success) {
+                  throw new Error('Failed to upload baseline');
+                }
+
+                core.info(`    ✅ Baseline created from production`);
+
+                // Store baseline URL and metadata for PR display
+                const comparisonKey = `${routePath}_${viewport}`;
+                const uploadedBaseline = uploadResult.files[0];
+                if (uploadedBaseline?.url) {
+                  baselineUrlMap.set(comparisonKey, uploadedBaseline.url);
+                  baselineMetadataMap.set(comparisonKey, {
+                    timeCreated: new Date().toISOString(),
+                    customMetadata: {
+                      createdAt: Date.now().toString(),
+                      source: 'production'
+                    }
+                  });
+                }
+
+                // Now add to comparisons with the production screenshot as baseline
+                const currentBuffer = await fs.readFile(screenshot.path);
+                comparisonsToRun.push({
+                  route: routePath,
+                  viewport,
+                  current: currentBuffer,
+                  baseline: productionBuffer
+                });
+
+              } catch (error) {
+                core.warning(`    ❌ Failed to create baseline from production: ${error}`);
+                core.warning(`    Marking as NEW instead`);
+                newScreenshots++;
+                diffFilesInfo.push({
+                  route: routePath,
+                  viewport,
+                  localPath: screenshot.path,
+                  destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+                  hasDifference: false,
+                  diffPercentage: 0,
+                  status: 'new'
+                });
+              }
+            } else {
+              // No production URL configured - mark as new
+              core.info(`    ⚠️  No baseline found - marking as NEW`);
+              newScreenshots++;
+
+              diffFilesInfo.push({
+                route: routePath,
+                viewport,
+                localPath: screenshot.path,
+                destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+                hasDifference: false,
+                diffPercentage: 0,
+                status: 'new'
+              });
+            }
+            continue;
+          }
+
+          // Baseline found - add to comparisons
+          const baselineBuffer = baselineResult.files[0].buffer;
+          const baselineUrl = baselineResult.files[0].url; // URL from @yofix/storage
+          const downloadedFile = baselineResult.files[0] as any; // Type assertion for optional metadata fields
+          const baselineMetadata = {
+            timeCreated: downloadedFile.timeCreated,
+            customMetadata: downloadedFile.customMetadata
+          };
+          const currentBuffer = await fs.readFile(screenshot.path);
+
+          // Store baseline URL and metadata for later retrieval (use routePath for consistency)
+          const comparisonKey = `${routePath}_${viewport}`;
+          if (baselineUrl) {
+            baselineUrlMap.set(comparisonKey, baselineUrl);
+            baselineMetadataMap.set(comparisonKey, baselineMetadata);
+          }
+
+          comparisonsToRun.push({
+            route: routePath,
+            viewport,
+            current: currentBuffer,
+            baseline: baselineBuffer
+          });
+
+        } catch (error) {
+          core.warning(`    ❌ Error fetching baseline: ${error}`);
+          diffFilesInfo.push({
+            route: routePath,
+            viewport,
+            localPath: screenshot.path,
+            destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: 'error'
+          });
+        }
+      }
+    }
+
+    if (newScreenshots > 0) {
+      core.info(`\n📝 ${newScreenshots} screenshot(s) have no baseline (new routes/viewports)`);
+    }
+
+    if (comparisonsToRun.length === 0) {
+      core.info('\n✅ No baseline comparisons needed (all screenshots are new)');
+
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: `All ${newScreenshots} screenshot(s) are new (no existing baselines)`
+        },
+        _internal: {
+          ...internal,
+          diffFiles: diffFilesInfo
+        }
+      };
+    }
+
+    // Run comparisons using @yofix/comparator
+    core.info(`\n📊 Running ${comparisonsToRun.length} baseline comparison(s)...`);
+    core.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
+    core.info(`   Diff Format: side-by-side`);
+    core.info(`   Parallel Processing: enabled (concurrency: 3)`);
+    if (allowHeightMismatch) {
+      core.info(`   Height Mismatch: allowed (strategy: ${heightComparisonStrategy})`);
+    }
+
+    try {
+      const result = await compareBaselines({
+        comparisons: comparisonsToRun,
+        options: {
+          threshold: comparisonThreshold,
+          diffFormat: 'side-by-side', // Baseline | Diff | Current
+          parallel: {
+            enabled: true,
+            concurrency: 3
+          },
+          generateHash: true,
+          detectRegions: true,
+          verbose: true,
+          // Height mismatch handling
+          allowHeightMismatch,
+          cropMode: heightComparisonStrategy,
+          reportDimensionDiff: true
+        }
+      });
+
+      if (!result.success) {
+        core.warning('Comparison failed:');
+        result.errors?.forEach(error => {
+          core.warning(`  - ${error.message}`);
+        });
+
+        return {
+          ...stepData,
+          comparison: {
+            hasChanges: false,
+            diffCount: 0,
+            diffFiles: [],
+            summary: 'Baseline comparison failed'
+          },
+          _internal: {
+            ...internal,
+            diffFiles: diffFilesInfo
+          }
+        };
+      }
+
+      // Process results
+      let changedCount = 0;
+      let unchangedCount = 0;
+
+      for (const comparison of result.comparisons) {
+        const { sanitized: sanitizedRoute } = extractRoutePath(comparison.route, '_');
+        const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
+        const diffFilePath = path.join(diffOutputDir, diffFileName);
+
+        // Check if comparison had an error (e.g., dimension mismatch)
+        if (comparison.error) {
+          core.warning(`\n  ⚠️  ${comparison.route} (${comparison.viewport}):`);
+          core.warning(`     Error: ${comparison.error}`);
+
+          // Retrieve baseline URL and metadata from map
+          const comparisonKey = `${comparison.route}_${comparison.viewport}`;
+          const baselineUrl = baselineUrlMap.get(comparisonKey);
+          const baselineMetadata = baselineMetadataMap.get(comparisonKey);
+
+          diffFilesInfo.push({
+            route: comparison.route,
+            viewport: comparison.viewport,
+            localPath: undefined,
+            destination: `pr-${prNumber}/diffs/${diffFileName}`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: 'error',
+            baselineUrl,
+            baselineMetadata,
+            metrics: {},
+            error: comparison.error
+          });
+          continue;
+        }
+
+        // Save diff image if differences were found
+        if (comparison.diff && comparison.diff.buffer) {
+          await fs.writeFile(diffFilePath, comparison.diff.buffer);
+          core.info(`  💾 Saved diff image: ${diffFileName}`);
+        }
+
+        const status: 'unchanged' | 'changed' = comparison.match ? 'unchanged' : 'changed';
+        if (status === 'changed') changedCount++;
+        else unchangedCount++;
+
+        // Retrieve baseline URL and metadata from map
+        const comparisonKey = `${comparison.route}_${comparison.viewport}`;
+        const baselineUrl = baselineUrlMap.get(comparisonKey);
+        const baselineMetadata = baselineMetadataMap.get(comparisonKey);
+
+        diffFilesInfo.push({
+          route: comparison.route,
+          viewport: comparison.viewport,
+          // Only set localPath if diff file was actually written to disk
+          localPath: (comparison.diff && comparison.diff.buffer) ? diffFilePath : undefined,
+          destination: `pr-${prNumber}/diffs/${diffFileName}`,
+          hasDifference: !comparison.match,
+          diffPercentage: comparison.diffPercentage,
+          status,
+          baselineUrl,
+          baselineMetadata,
+          metrics: {
+            similarity: comparison.similarity,
+            pixelDifference: comparison.pixelDifference,
+            perceptualHash: comparison.metrics.perceptualHash,
+            mse: comparison.metrics.mse,
+            psnr: comparison.metrics.psnr,
+            regions: comparison.diff?.regions?.length || 0
+          }
+        });
+
+        // Log metrics
+        core.info(`\n  📈 ${comparison.route} (${comparison.viewport}):`);
+        core.info(`     Status: ${status === 'changed' ? '❌ CHANGED' : '✅ UNCHANGED'}`);
+        core.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
+        core.info(`     Pixels Different: ${comparison.pixelDifference}`);
+
+        if (comparison.metrics.perceptualHash) {
+          core.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
+        }
+
+        if (comparison.metrics.psnr !== undefined) {
+          const psnrValue = comparison.metrics.psnr === Infinity
+            ? '∞ (identical)'
+            : `${comparison.metrics.psnr.toFixed(2)} dB`;
+          core.info(`     PSNR: ${psnrValue}`);
+        }
+
+        if (comparison.diff?.regions) {
+          const critical = comparison.diff.regions.filter(r => r.severity === 'critical').length;
+          const moderate = comparison.diff.regions.filter(r => r.severity === 'moderate').length;
+          core.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+        }
+
+        // Log dimension differences if present
+        if (comparison.dimensionDiff) {
+          const { heightDiff, cropped, comparedHeight } = comparison.dimensionDiff;
+          if (heightDiff !== 0) {
+            if (cropped) {
+              core.info(`     📏 Height Difference: ${heightDiff}px (cropped to ${comparedHeight}px for comparison)`);
+            } else {
+              core.info(`     📏 Height Difference: ${heightDiff}px (padded to ${comparedHeight}px for comparison)`);
+            }
+          }
+        }
+      }
+
+      // Generate summary
+      const totalComparisons = result.comparisons.length;
+      const overallSimilarity = (result.summary.overallSimilarity * 100).toFixed(2);
+
+      core.info(`\n✅ Comparison complete:`);
+      core.info(`   Total Comparisons: ${totalComparisons}`);
+      core.info(`   New Screenshots: ${newScreenshots}`);
+      core.info(`   Unchanged: ${unchangedCount}`);
+      core.info(`   Changed: ${changedCount}`);
+      core.info(`   Overall Similarity: ${overallSimilarity}%`);
+      core.info(`   Duration: ${result.metadata.duration}ms`);
+
+      const summary = `Compared ${totalComparisons} screenshot(s): ${unchangedCount} unchanged, ${changedCount} changed${newScreenshots > 0 ? `, ${newScreenshots} new` : ''}`;
+
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: changedCount > 0,
+          diffCount: changedCount,
+          diffFiles: diffFilesInfo.filter(d => d.hasDifference).map(d => d.localPath).filter((path): path is string => path !== undefined),
+          summary
+        },
+        _internal: {
+          ...internal,
+          diffFiles: diffFilesInfo,
+          diffOutputDir
+        }
+      };
+
+    } catch (error) {
+      core.error(`Error during comparison: ${error}`);
+      throw error;
+    }
+  });
+}
+
+/**
+ * Entry point for standalone execution
+ */
+export async function main(): Promise<void> {
+  try {
+    const manager = getStepDataManager();
+    const stepData = await manager.load();
+    const updatedData = await compareWithBaselines(stepData);
+    await manager.save(updatedData);
+
+    core.info('✅ Step 2.5: Compare Baselines completed successfully');
+  } catch (error) {
+    core.setFailed(`Step 2.5 failed: ${error}`);
+    throw error;
+  }
+}

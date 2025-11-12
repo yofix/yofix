@@ -13,6 +13,7 @@ import * as core from '@actions/core';
 import path from 'path';
 import { PRReporter } from '../github/PRReporter';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
+import { extractRoutePath } from './shared/route.utils';
 import { VerificationResult, RouteAnalysisResult } from '../types';
 import { ErrorSeverity, ErrorCategory, errorHandler, config } from '../core';
 import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
@@ -22,8 +23,7 @@ import { GitHubServiceFactory } from '../core/github/GitHubServiceFactory';
  */
 export async function postResults(stepData: StepData): Promise<StepData> {
   return executeStep('Post Results to PR', async () => {
-    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata } = stepData;
-    const internal = (stepData as any)._internal;
+    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata, _internal: internal } = stepData;
 
     if (!routes || !screenshots) {
       throw new Error('Missing routes or screenshots data. Run previous steps first.');
@@ -55,6 +55,10 @@ export async function postResults(stepData: StepData): Promise<StepData> {
     // Handle screenshotMetadataMap as object (JSON deserialized)
     const screenshotMetadataMap = internal?.screenshotMetadataMap || {};
 
+    // Extract comparison data from Step 2.5
+    const comparison = stepData.comparison || { hasChanges: false, diffCount: 0, diffFiles: [] };
+    const diffFiles = internal?.diffFiles || [];
+
     if (!screenshotResult) {
       throw new Error('Screenshot result not found in step data');
     }
@@ -79,22 +83,8 @@ export async function postResults(stepData: StepData): Promise<StepData> {
       skippedTests: 0,
       duration: totalDuration,
       testResults: screenshotResult.screenshots.map((r: any) => {
-        // Extract pathname from full URL for matching
-        let routePath = r.route;
-        if (routePath.startsWith('http://') || routePath.startsWith('https://')) {
-          try {
-            const url = new URL(routePath);
-            routePath = url.pathname;
-          } catch (error) {
-            core.debug(`Failed to parse route URL: ${routePath}`);
-          }
-        }
-
-        // Convert route path to sanitized filename format
-        const sanitizedRoute = routePath
-          .replace(/^\//, '')
-          .replace(/\//g, '-')
-          .toLowerCase();
+        // Extract pathname (for matching) and sanitized version (for filenames)
+        const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(r.route, '-');
 
         return {
           testId: `test-${r.route}`,
@@ -102,11 +92,67 @@ export async function postResults(stepData: StepData): Promise<StepData> {
           status: r.success !== false ? 'passed' : 'failed',
           duration: r.timing?.totalTime || 0,
           screenshots: uploadedFiles
-            .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute))
+            .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes('/diffs/'))
             .map((f: any) => {
               // Retrieve original metadata (screenshotMetadataMap is an object, not a Map)
               const metadata = screenshotMetadataMap[f.localPath];
-              const viewport = metadata?.viewport || { width: 0, height: 0, name: '' };
+
+              // Find the actual screenshot data from @yofix/browser result to get real dimensions
+              const actualScreenshot = r.screenshots.find((s: any) => s.path === f.localPath);
+
+              // Use actual screenshot dimensions if available, otherwise fall back to metadata viewport
+              const viewport = actualScreenshot
+                ? {
+                    width: actualScreenshot.width,
+                    height: actualScreenshot.height,
+                    name: `${actualScreenshot.width}x${actualScreenshot.height}`
+                  }
+                : metadata?.viewport || { width: 0, height: 0, name: '' };
+
+              // Find matching diff file for this screenshot
+              const viewportKey = `${viewport.width}x${viewport.height}`;
+              const diffFile = diffFiles.find((d: any) =>
+                d.route === routePath && d.viewport === viewportKey
+              );
+
+              // Find diff image URL from uploadedFiles
+              const diffImageFile = diffFile ? uploadedFiles.find((uf: any) =>
+                uf.localPath === diffFile.localPath
+              ) : null;
+
+              // Construct comparison data if available
+              const comparisonData = diffFile ? {
+                status: diffFile.status,
+                hasDifference: diffFile.hasDifference,
+                diffPercentage: diffFile.diffPercentage || 0,
+                diffImageUrl: diffImageFile?.url || null,
+                metrics: {
+                  ...diffFile.metrics,
+                  error: diffFile.error // Include error message if present
+                }
+              } : null;
+
+              // Construct baseline data if available
+              const baselineData = diffFile?.baselineUrl ? {
+                url: diffFile.baselineUrl,
+                updatedDate: (() => {
+                  // Try to get date from customMetadata.createdAt first (when baseline was created from production)
+                  if (diffFile.baselineMetadata?.customMetadata?.createdAt) {
+                    const timestamp = parseInt(diffFile.baselineMetadata.customMetadata.createdAt);
+                    return new Date(timestamp).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    });
+                  }
+                  // Otherwise use timeCreated from storage (original file creation time)
+                  if (diffFile.baselineMetadata?.timeCreated) {
+                    return new Date(diffFile.baselineMetadata.timeCreated).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    });
+                  }
+                  // Fallback to generic message
+                  return 'From storage';
+                })()
+              } : null;
 
               return {
                 name: `${routePath}-${viewport.width}x${viewport.height}.png`,
@@ -115,7 +161,9 @@ export async function postResults(stepData: StepData): Promise<StepData> {
                 timestamp: Date.now(),
                 firebaseUrl: f.url || '',
                 route: routePath,
-                duration: metadata?.duration
+                duration: metadata?.duration,
+                comparison: comparisonData,
+                baseline: baselineData
               };
             }),
           videos: [],
@@ -228,9 +276,4 @@ export async function main(): Promise<void> {
     core.setFailed(`Step 4 failed: ${mainError}`);
     throw mainError;
   }
-}
-
-// Run if executed directly
-if (require.main === module) {
-  main();
 }

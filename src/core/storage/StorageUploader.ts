@@ -5,7 +5,7 @@
 
 import * as core from "@actions/core";
 import { uploadFiles, type UploadedFile } from "@yofix/storage";
-import { getConfiguration } from "../hooks/ConfigurationHook";
+import { config } from "../index";
 import type { RouteScreenshot } from "@yofix/browser";
 
 export interface StorageUploadOptions {
@@ -29,8 +29,6 @@ export interface StorageUploadResult {
 export async function uploadScreenshots(
   options: StorageUploadOptions
 ): Promise<StorageUploadResult> {
-  const configuration = getConfiguration();
-
   core.info(`📤 Uploading screenshots to ${options.storageProvider}...`);
   core.info(`  - Total routes: ${options.screenshots.length}`);
   core.info(`  - Total files: ${getTotalFileCount(options.screenshots)}`);
@@ -118,11 +116,9 @@ function prepareStorageConfig(
   provider: "firebase" | "s3",
   prNumber: number
 ) {
-  const configuration = getConfiguration();
-
   if (provider === "firebase") {
-    const firebaseCredentials = configuration.getInput("firebase-credentials");
-    const storageBucket = configuration.getInput("storage-bucket");
+    const firebaseCredentials = config.get("firebase-credentials");
+    const storageBucket = config.get("storage-bucket");
 
     if (!firebaseCredentials || !storageBucket) {
       throw new Error(
@@ -139,10 +135,10 @@ function prepareStorageConfig(
       },
     };
   } else if (provider === "s3") {
-    const s3Bucket = configuration.getInput("s3-bucket");
-    const awsRegion = configuration.getInput("aws-region") || "us-east-1";
-    const awsAccessKeyId = configuration.getInput("aws-access-key-id");
-    const awsSecretAccessKey = configuration.getInput("aws-secret-access-key");
+    const s3Bucket = config.get("s3-bucket");
+    const awsRegion = config.get("aws-region", { defaultValue: "us-east-1" });
+    const awsAccessKeyId = config.get("aws-access-key-id");
+    const awsSecretAccessKey = config.get("aws-secret-access-key");
 
     if (!s3Bucket) {
       throw new Error("S3 bucket is required for S3 storage provider.");

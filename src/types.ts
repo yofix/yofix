@@ -148,7 +148,6 @@ export interface ActionInputs {
   mcpOptions?: string;
   enableAINavigation?: boolean;
   enableAITestGeneration?: boolean;
-  testRoutes?: string;
 }
 
 export interface FirebaseStorageConfig {

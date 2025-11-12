@@ -6,7 +6,7 @@
 
 import * as core from "@actions/core";
 import { captureRouteScreenshots, type RouteScreenshot } from "@yofix/browser";
-import { getConfiguration } from "../hooks/ConfigurationHook";
+import { config } from "../index";
 import type { Viewport } from "../../types";
 
 export interface BrowserScreenshotOptions {
@@ -18,6 +18,7 @@ export interface BrowserScreenshotOptions {
     password: string;
   };
   loginUrl?: string;
+  fullPage?: boolean;
   verbose?: boolean;
 }
 
@@ -40,9 +41,12 @@ export interface BrowserScreenshotResult {
 export async function captureScreenshotsWithBrowser(
   options: BrowserScreenshotOptions
 ): Promise<BrowserScreenshotResult> {
-  const configuration = getConfiguration();
-  const claudeApiKey = configuration.getInput("claude-api-key");
-  const claudeModel = configuration.getInput("claude-model");
+  // Get configuration using ConfigurationManager (proper way)
+  const claudeApiKey = config.get('claude-api-key', { required: true });
+  const claudeModel = config.get('claude-model', { required: true });
+
+  core.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? 'EXISTS' : 'NULL'}`);
+  core.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || 'NULL'}`);
 
   if (!claudeApiKey) {
     throw new Error(
@@ -63,9 +67,12 @@ export async function captureScreenshotsWithBrowser(
 
   const startTime = Date.now();
 
+  // Use GITHUB_WORKSPACE for user's repo, not action's installation directory
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
+
   // Call route-impact-browser (local storage only)
   const result = await captureRouteScreenshots({
-    codebase: { path: process.cwd() },
+    codebase: { path: codebasePath },
     routes: options.routes,
     baseUrl: options.baseUrl,
     credentials: options.credentials,
@@ -98,6 +105,7 @@ export async function captureScreenshotsWithBrowser(
         headless: true,
         timeout: 60000,
         waitUntil: "networkidle",
+        fullPage: options.fullPage !== undefined ? options.fullPage : true,
       },
       storage: {
         provider: "local", // Always use local storage

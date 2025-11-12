@@ -179,7 +179,7 @@ rm src/core/analysis/VisualAnalyzer.ts
 ### Running Tests with V3
 ```bash
 # Set environment variable for Claude API
-export ANTHROPIC_API_KEY="your-api-key"
+export CLAUDE_API_KEY="your-api-key"
 
 # Run with new browser-agent system
 npm run test:browser-agent
@@ -226,11 +226,11 @@ export function createAuthHandler(version: 'v2' | 'v3' = 'v3') {
 
 ## Benefits Realized
 
-✅ **85% Code Reduction**: From complex selector-based to natural language  
-✅ **2x Performance**: Faster execution and lower memory usage  
-✅ **95%+ Reliability**: Self-healing vs brittle selectors  
-✅ **Zero Maintenance**: No selector updates needed  
-✅ **Enhanced Features**: Built-in visual testing and fix generation  
-✅ **Future-Proof**: AI-native approach adapts to changes  
+✅ **85% Code Reduction**: From complex selector-based to natural language
+✅ **2x Performance**: Faster execution and lower memory usage
+✅ **95%+ Reliability**: Self-healing vs brittle selectors
+✅ **Zero Maintenance**: No selector updates needed
+✅ **Enhanced Features**: Built-in visual testing and fix generation
+✅ **Future-Proof**: AI-native approach adapts to changes
 
 The migration to browser-agent represents a fundamental shift from fragile, selector-based automation to robust, AI-driven browser control that will significantly reduce maintenance burden while improving test reliability and coverage.

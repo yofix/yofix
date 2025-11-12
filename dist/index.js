@@ -4,12 +4,11 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -27,7 +26,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/@actions/core/lib/utils.js
 var require_utils = __commonJS({
@@ -94,11 +92,11 @@ var require_command = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.issue = exports2.issueCommand = void 0;
-    var os = __importStar(require("os"));
+    var os3 = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueCommand(command, properties, message) {
       const cmd = new Command(command, properties, message);
-      process.stdout.write(cmd.toString() + os.EOL);
+      process.stdout.write(cmd.toString() + os3.EOL);
     }
     exports2.issueCommand = issueCommand;
     function issue(name, message = "") {
@@ -181,18 +179,18 @@ var require_file_command = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.prepareKeyValueMessage = exports2.issueFileCommand = void 0;
     var crypto = __importStar(require("crypto"));
-    var fs4 = __importStar(require("fs"));
-    var os = __importStar(require("os"));
+    var fs8 = __importStar(require("fs"));
+    var os3 = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
       const filePath = process.env[`GITHUB_${command}`];
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs4.existsSync(filePath)) {
+      if (!fs8.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs4.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
+      fs8.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os3.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -206,7 +204,7 @@ var require_file_command = __commonJS({
       if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
       }
-      return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
+      return `${key}<<${delimiter}${os3.EOL}${convertedValue}${os3.EOL}${delimiter}`;
     }
     exports2.prepareKeyValueMessage = prepareKeyValueMessage;
   }
@@ -397,7 +395,7 @@ var require_tunnel = __commonJS({
         connectOptions.headers = connectOptions.headers || {};
         connectOptions.headers["Proxy-Authorization"] = "Basic " + new Buffer(connectOptions.proxyAuth).toString("base64");
       }
-      debug5("making CONNECT request");
+      debug9("making CONNECT request");
       var connectReq = self.request(connectOptions);
       connectReq.useChunkedEncodingByDefault = false;
       connectReq.once("response", onResponse);
@@ -417,40 +415,40 @@ var require_tunnel = __commonJS({
         connectReq.removeAllListeners();
         socket.removeAllListeners();
         if (res.statusCode !== 200) {
-          debug5(
+          debug9(
             "tunneling socket could not be established, statusCode=%d",
             res.statusCode
           );
           socket.destroy();
-          var error4 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
-          error4.code = "ECONNRESET";
-          options.request.emit("error", error4);
+          var error10 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
+          error10.code = "ECONNRESET";
+          options.request.emit("error", error10);
           self.removeSocket(placeholder);
           return;
         }
         if (head.length > 0) {
-          debug5("got illegal response body from proxy");
+          debug9("got illegal response body from proxy");
           socket.destroy();
-          var error4 = new Error("got illegal response body from proxy");
-          error4.code = "ECONNRESET";
-          options.request.emit("error", error4);
+          var error10 = new Error("got illegal response body from proxy");
+          error10.code = "ECONNRESET";
+          options.request.emit("error", error10);
           self.removeSocket(placeholder);
           return;
         }
-        debug5("tunneling connection has established");
+        debug9("tunneling connection has established");
         self.sockets[self.sockets.indexOf(placeholder)] = socket;
         return cb(socket);
       }
       function onError(cause) {
         connectReq.removeAllListeners();
-        debug5(
+        debug9(
           "tunneling socket could not be established, cause=%s\n",
           cause.message,
           cause.stack
         );
-        var error4 = new Error("tunneling socket could not be established, cause=" + cause.message);
-        error4.code = "ECONNRESET";
-        options.request.emit("error", error4);
+        var error10 = new Error("tunneling socket could not be established, cause=" + cause.message);
+        error10.code = "ECONNRESET";
+        options.request.emit("error", error10);
         self.removeSocket(placeholder);
       }
     };
@@ -505,9 +503,9 @@ var require_tunnel = __commonJS({
       }
       return target;
     }
-    var debug5;
+    var debug9;
     if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
-      debug5 = function() {
+      debug9 = function() {
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[0] === "string") {
           args[0] = "TUNNEL: " + args[0];
@@ -517,10 +515,10 @@ var require_tunnel = __commonJS({
         console.error.apply(console, args);
       };
     } else {
-      debug5 = function() {
+      debug9 = function() {
       };
     }
-    exports2.debug = debug5;
+    exports2.debug = debug9;
   }
 });
 
@@ -995,14 +993,14 @@ var require_util = __commonJS({
         }
         const port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80;
         let origin = url.origin != null ? url.origin : `${url.protocol}//${url.hostname}:${port}`;
-        let path4 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
+        let path7 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
         if (origin.endsWith("/")) {
           origin = origin.substring(0, origin.length - 1);
         }
-        if (path4 && !path4.startsWith("/")) {
-          path4 = `/${path4}`;
+        if (path7 && !path7.startsWith("/")) {
+          path7 = `/${path7}`;
         }
-        url = new URL(origin + path4);
+        url = new URL(origin + path7);
       }
       return url;
     }
@@ -2616,20 +2614,20 @@ var require_parseParams = __commonJS({
 var require_basename = __commonJS({
   "node_modules/undici/node_modules/@fastify/busboy/lib/utils/basename.js"(exports2, module2) {
     "use strict";
-    module2.exports = function basename2(path4) {
-      if (typeof path4 !== "string") {
+    module2.exports = function basename2(path7) {
+      if (typeof path7 !== "string") {
         return "";
       }
-      for (var i = path4.length - 1; i >= 0; --i) {
-        switch (path4.charCodeAt(i)) {
+      for (var i = path7.length - 1; i >= 0; --i) {
+        switch (path7.charCodeAt(i)) {
           case 47:
           // '/'
           case 92:
-            path4 = path4.slice(i + 1);
-            return path4 === ".." || path4 === "." ? "" : path4;
+            path7 = path7.slice(i + 1);
+            return path7 === ".." || path7 === "." ? "" : path7;
         }
       }
-      return path4 === ".." || path4 === "." ? "" : path4;
+      return path7 === ".." || path7 === "." ? "" : path7;
     };
   }
 });
@@ -3346,10 +3344,9 @@ var require_main = __commonJS({
     }
     inherits(Busboy, WritableStream);
     Busboy.prototype.emit = function(ev) {
-      var _a;
       if (ev === "finish") {
         if (!this._done) {
-          (_a = this._parser) == null ? void 0 : _a.end();
+          this._parser?.end();
           return;
         } else if (this._finished) {
           return;
@@ -3556,7 +3553,7 @@ var require_constants2 = __commonJS({
       }
       channel.port1.unref();
       channel.port2.unref();
-      channel.port1.postMessage(value, options == null ? void 0 : options.transfer);
+      channel.port1.postMessage(value, options?.transfer);
       return receiveMessageOnPort(channel.port2).message;
     };
     module2.exports = {
@@ -3670,8 +3667,7 @@ var require_util2 = __commonJS({
       return "allowed";
     }
     function isErrorLike(object) {
-      var _a, _b;
-      return object instanceof Error || (((_a = object == null ? void 0 : object.constructor) == null ? void 0 : _a.name) === "Error" || ((_b = object == null ? void 0 : object.constructor) == null ? void 0 : _b.name) === "DOMException");
+      return object instanceof Error || (object?.constructor?.name === "Error" || object?.constructor?.name === "DOMException");
     }
     function isValidReasonPhrase(statusText) {
       for (let i = 0; i < statusText.length; ++i) {
@@ -4282,10 +4278,10 @@ var require_webidl = __commonJS({
       });
     };
     webidl.brandCheck = function(V, I, opts = void 0) {
-      if ((opts == null ? void 0 : opts.strict) !== false && !(V instanceof I)) {
+      if (opts?.strict !== false && !(V instanceof I)) {
         throw new TypeError("Illegal invocation");
       } else {
-        return (V == null ? void 0 : V[Symbol.toStringTag]) === I.prototype[Symbol.toStringTag];
+        return V?.[Symbol.toStringTag] === I.prototype[Symbol.toStringTag];
       }
     };
     webidl.argumentLengthCheck = function({ length }, min, ctx) {
@@ -4390,14 +4386,13 @@ var require_webidl = __commonJS({
     };
     webidl.sequenceConverter = function(converter) {
       return (V) => {
-        var _a;
         if (webidl.util.Type(V) !== "Object") {
           throw webidl.errors.exception({
             header: "Sequence",
             message: `Value of type ${webidl.util.Type(V)} is not an Object.`
           });
         }
-        const method = (_a = V == null ? void 0 : V[Symbol.iterator]) == null ? void 0 : _a.call(V);
+        const method = V?.[Symbol.iterator]?.();
         const seq = [];
         if (method === void 0 || typeof method.next !== "function") {
           throw webidl.errors.exception({
@@ -4436,7 +4431,7 @@ var require_webidl = __commonJS({
         const keys = Reflect.ownKeys(O);
         for (const key of keys) {
           const desc = Reflect.getOwnPropertyDescriptor(O, key);
-          if (desc == null ? void 0 : desc.enumerable) {
+          if (desc?.enumerable) {
             const typedKey = keyConverter(key);
             const typedValue = valueConverter(O[key]);
             result[typedKey] = typedValue;
@@ -5581,7 +5576,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
         throw new TypeError("Body is unusable");
       }
       const promise = createDeferredPromise();
-      const errorSteps = (error4) => promise.reject(error4);
+      const errorSteps = (error10) => promise.reject(error10);
       const successSteps = (data) => {
         try {
           promise.resolve(convertBytesToJSValue(data));
@@ -5662,7 +5657,7 @@ var require_request = __commonJS({
     }
     var Request = class _Request {
       constructor(origin, {
-        path: path4,
+        path: path7,
         method,
         body,
         headers,
@@ -5676,11 +5671,11 @@ var require_request = __commonJS({
         throwOnError,
         expectContinue
       }, handler) {
-        if (typeof path4 !== "string") {
+        if (typeof path7 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path4[0] !== "/" && !(path4.startsWith("http://") || path4.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path7[0] !== "/" && !(path7.startsWith("http://") || path7.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.exec(path4) !== null) {
+        } else if (invalidPathRegex.exec(path7) !== null) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -5743,7 +5738,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? util.buildURL(path4, query) : path4;
+        this.path = query ? util.buildURL(path7, query) : path7;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -5867,16 +5862,16 @@ var require_request = __commonJS({
           this.onError(err);
         }
       }
-      onError(error4) {
+      onError(error10) {
         this.onFinally();
         if (channels.error.hasSubscribers) {
-          channels.error.publish({ request: this, error: error4 });
+          channels.error.publish({ request: this, error: error10 });
         }
         if (this.aborted) {
           return;
         }
         this.aborted = true;
-        return this[kHandler].onError(error4);
+        return this[kHandler].onError(error10);
       }
       onFinally() {
         if (this.errorHandler) {
@@ -6739,8 +6734,8 @@ var require_RedirectHandler = __commonJS({
       onUpgrade(statusCode, headers, socket) {
         this.handler.onUpgrade(statusCode, headers, socket);
       }
-      onError(error4) {
-        this.handler.onError(error4);
+      onError(error10) {
+        this.handler.onError(error10);
       }
       onHeaders(statusCode, headers, resume, statusText) {
         this.location = this.history.length >= this.maxRedirections || util.isDisturbed(this.opts.body) ? null : parseLocation(statusCode, headers);
@@ -6751,9 +6746,9 @@ var require_RedirectHandler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path4 = search ? `${pathname}${search}` : pathname;
+        const path7 = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path4;
+        this.opts.path = path7;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -7993,7 +7988,7 @@ var require_client = __commonJS({
         writeH2(client, client[kHTTP2Session], request);
         return;
       }
-      const { body, method, path: path4, host, upgrade, headers, blocking, reset } = request;
+      const { body, method, path: path7, host, upgrade, headers, blocking, reset } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8043,7 +8038,7 @@ var require_client = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path4} HTTP/1.1\r
+      let header = `${method} ${path7} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -8106,7 +8101,7 @@ upgrade: ${upgrade}\r
       return true;
     }
     function writeH2(client, session, request) {
-      const { body, method, path: path4, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
+      const { body, method, path: path7, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
       let headers;
       if (typeof reqHeaders === "string") headers = Request[kHTTP2CopyHeaders](reqHeaders.trim());
       else headers = reqHeaders;
@@ -8149,7 +8144,7 @@ upgrade: ${upgrade}\r
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path4;
+      headers[HTTP2_HEADER_PATH] = path7;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
@@ -8881,7 +8876,7 @@ var require_pool = __commonJS({
         this[kOptions] = { ...util.deepClone(options), connect, allowH2 };
         this[kOptions].interceptors = options.interceptors ? { ...options.interceptors } : void 0;
         this[kFactory] = factory;
-        this.on("connectionError", (origin2, targets, error4) => {
+        this.on("connectionError", (origin2, targets, error10) => {
           for (const target of targets) {
             const idx = this[kClients].indexOf(target);
             if (idx !== -1) {
@@ -10389,20 +10384,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path4) {
-      if (typeof path4 !== "string") {
-        return path4;
+    function safeUrl(path7) {
+      if (typeof path7 !== "string") {
+        return path7;
       }
-      const pathSegments = path4.split("?");
+      const pathSegments = path7.split("?");
       if (pathSegments.length !== 2) {
-        return path4;
+        return path7;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path4, method, body, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path4);
+    function matchKey(mockDispatch2, { path: path7, method, body, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path7);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -10420,7 +10415,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path4 }) => matchValue(safeUrl(path4), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path7 }) => matchValue(safeUrl(path7), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -10457,9 +10452,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path: path4, method, body, headers, query } = opts;
+      const { path: path7, method, body, headers, query } = opts;
       return {
-        path: path4,
+        path: path7,
         method,
         body,
         headers,
@@ -10490,13 +10485,13 @@ var require_mock_utils = __commonJS({
       if (mockDispatch2.data.callback) {
         mockDispatch2.data = { ...mockDispatch2.data, ...mockDispatch2.data.callback(opts) };
       }
-      const { data: { statusCode, data, headers, trailers, error: error4 }, delay: delay2, persist } = mockDispatch2;
+      const { data: { statusCode, data, headers, trailers, error: error10 }, delay: delay2, persist } = mockDispatch2;
       const { timesInvoked, times } = mockDispatch2;
       mockDispatch2.consumed = !persist && timesInvoked >= times;
       mockDispatch2.pending = timesInvoked < times;
-      if (error4 !== null) {
+      if (error10 !== null) {
         deleteMockDispatch(this[kDispatches], key);
-        handler.onError(error4);
+        handler.onError(error10);
         return true;
       }
       if (typeof delay2 === "number" && delay2 > 0) {
@@ -10534,19 +10529,19 @@ var require_mock_utils = __commonJS({
         if (agent.isMockActive) {
           try {
             mockDispatch.call(this, opts, handler);
-          } catch (error4) {
-            if (error4 instanceof MockNotMatchedError) {
+          } catch (error10) {
+            if (error10 instanceof MockNotMatchedError) {
               const netConnect = agent[kGetNetConnect]();
               if (netConnect === false) {
-                throw new MockNotMatchedError(`${error4.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
+                throw new MockNotMatchedError(`${error10.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
               }
               if (checkNetConnect(netConnect, origin)) {
                 originalDispatch.call(this, opts, handler);
               } else {
-                throw new MockNotMatchedError(`${error4.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
+                throw new MockNotMatchedError(`${error10.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
               }
             } else {
-              throw error4;
+              throw error10;
             }
           }
         } else {
@@ -10709,11 +10704,11 @@ var require_mock_interceptor = __commonJS({
       /**
        * Mock an undici request with a defined error.
        */
-      replyWithError(error4) {
-        if (typeof error4 === "undefined") {
+      replyWithError(error10) {
+        if (typeof error10 === "undefined") {
           throw new InvalidArgumentError("error must be defined");
         }
-        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error4 });
+        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error10 });
         return new MockScope(newMockDispatch);
       }
       /**
@@ -10908,10 +10903,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path4, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path7, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path4,
+            Path: path7,
             "Status code": statusCode,
             Persistent: persist ? "\u2705" : "\u274C",
             Invocations: timesInvoked,
@@ -12284,7 +12279,7 @@ var require_response = __commonJS({
       if (V instanceof ReadableStream) {
         return webidl.converters.ReadableStream(V);
       }
-      if (V == null ? void 0 : V[Symbol.asyncIterator]) {
+      if (V?.[Symbol.asyncIterator]) {
         return V;
       }
       return webidl.converters.XMLHttpRequestBodyInit(V);
@@ -12357,7 +12352,6 @@ var require_request2 = __commonJS({
     var Request = class _Request {
       // https://fetch.spec.whatwg.org/#dom-request
       constructor(input, init = {}) {
-        var _a, _b;
         if (input === kConstruct) {
           return;
         }
@@ -12368,8 +12362,7 @@ var require_request2 = __commonJS({
           settingsObject: {
             baseUrl: getGlobalOrigin(),
             get origin() {
-              var _a2;
-              return (_a2 = this.baseUrl) == null ? void 0 : _a2.origin;
+              return this.baseUrl?.origin;
             },
             policyContainer: makePolicyContainer()
           }
@@ -12399,7 +12392,7 @@ var require_request2 = __commonJS({
         }
         const origin = this[kRealm].settingsObject.origin;
         let window = "client";
-        if (((_b = (_a = request.window) == null ? void 0 : _a.constructor) == null ? void 0 : _b.name) === "EnvironmentSettingsObject" && sameOrigin(request.window, origin)) {
+        if (request.window?.constructor?.name === "EnvironmentSettingsObject" && sameOrigin(request.window, origin)) {
           window = request.window;
         }
         if (init.window != null) {
@@ -12758,9 +12751,8 @@ var require_request2 = __commonJS({
       }
       // Returns a clone of request.
       clone() {
-        var _a;
         webidl.brandCheck(this, _Request);
-        if (this.bodyUsed || ((_a = this.body) == null ? void 0 : _a.locked)) {
+        if (this.bodyUsed || this.body?.locked) {
           throw new TypeError("unusable");
         }
         const clonedRequest = cloneRequest(this[kState]);
@@ -13035,31 +13027,28 @@ var require_fetch = __commonJS({
         this.setMaxListeners(21);
       }
       terminate(reason) {
-        var _a;
         if (this.state !== "ongoing") {
           return;
         }
         this.state = "terminated";
-        (_a = this.connection) == null ? void 0 : _a.destroy(reason);
+        this.connection?.destroy(reason);
         this.emit("terminated", reason);
       }
       // https://fetch.spec.whatwg.org/#fetch-controller-abort
-      abort(error4) {
-        var _a;
+      abort(error10) {
         if (this.state !== "ongoing") {
           return;
         }
         this.state = "aborted";
-        if (!error4) {
-          error4 = new DOMException2("The operation was aborted.", "AbortError");
+        if (!error10) {
+          error10 = new DOMException2("The operation was aborted.", "AbortError");
         }
-        this.serializedAbortReason = error4;
-        (_a = this.connection) == null ? void 0 : _a.destroy(error4);
-        this.emit("terminated", error4);
+        this.serializedAbortReason = error10;
+        this.connection?.destroy(error10);
+        this.emit("terminated", error10);
       }
     };
     function fetch(input, init = {}) {
-      var _a;
       webidl.argumentLengthCheck(arguments, 1, { header: "globalThis.fetch" });
       const p = createDeferredPromise();
       let requestObject;
@@ -13075,7 +13064,7 @@ var require_fetch = __commonJS({
         return p.promise;
       }
       const globalObject = request.client.globalObject;
-      if (((_a = globalObject == null ? void 0 : globalObject.constructor) == null ? void 0 : _a.name) === "ServiceWorkerGlobalScope") {
+      if (globalObject?.constructor?.name === "ServiceWorkerGlobalScope") {
         request.serviceWorkers = "none";
       }
       let responseObject = null;
@@ -13124,11 +13113,10 @@ var require_fetch = __commonJS({
       return p.promise;
     }
     function finalizeAndReportTiming(response, initiatorType = "other") {
-      var _a;
       if (response.type === "error" && response.aborted) {
         return;
       }
-      if (!((_a = response.urlList) == null ? void 0 : _a.length)) {
+      if (!response.urlList?.length) {
         return;
       }
       const originalURL = response.urlList[0];
@@ -13161,14 +13149,13 @@ var require_fetch = __commonJS({
         performance.markResourceTiming(timingInfo, originalURL.href, initiatorType, globalThis2, cacheState);
       }
     }
-    function abortFetch(p, request, responseObject, error4) {
-      var _a, _b;
-      if (!error4) {
-        error4 = new DOMException2("The operation was aborted.", "AbortError");
+    function abortFetch(p, request, responseObject, error10) {
+      if (!error10) {
+        error10 = new DOMException2("The operation was aborted.", "AbortError");
       }
-      p.reject(error4);
-      if (request.body != null && isReadable((_a = request.body) == null ? void 0 : _a.stream)) {
-        request.body.stream.cancel(error4).catch((err) => {
+      p.reject(error10);
+      if (request.body != null && isReadable(request.body?.stream)) {
+        request.body.stream.cancel(error10).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13179,8 +13166,8 @@ var require_fetch = __commonJS({
         return;
       }
       const response = responseObject[kState];
-      if (response.body != null && isReadable((_b = response.body) == null ? void 0 : _b.stream)) {
-        response.body.stream.cancel(error4).catch((err) => {
+      if (response.body != null && isReadable(response.body?.stream)) {
+        response.body.stream.cancel(error10).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13199,7 +13186,6 @@ var require_fetch = __commonJS({
       dispatcher
       // undici
     }) {
-      var _a, _b, _c, _d;
       let taskDestination = null;
       let crossOriginIsolatedCapability = false;
       if (request.client != null) {
@@ -13224,10 +13210,10 @@ var require_fetch = __commonJS({
       };
       assert(!request.body || request.body.stream);
       if (request.window === "client") {
-        request.window = ((_c = (_b = (_a = request.client) == null ? void 0 : _a.globalObject) == null ? void 0 : _b.constructor) == null ? void 0 : _c.name) === "Window" ? request.client : "no-window";
+        request.window = request.client?.globalObject?.constructor?.name === "Window" ? request.client : "no-window";
       }
       if (request.origin === "client") {
-        request.origin = (_d = request.client) == null ? void 0 : _d.origin;
+        request.origin = request.client?.origin;
       }
       if (request.policyContainer === "client") {
         if (request.client != null) {
@@ -13698,10 +13684,9 @@ var require_fetch = __commonJS({
         abort: null,
         destroyed: false,
         destroy(err) {
-          var _a;
           if (!this.destroyed) {
             this.destroyed = true;
-            (_a = this.abort) == null ? void 0 : _a.call(this, err ?? new DOMException2("The operation was aborted.", "AbortError"));
+            this.abort?.(err ?? new DOMException2("The operation was aborted.", "AbortError"));
           }
         }
       };
@@ -13721,12 +13706,11 @@ var require_fetch = __commonJS({
         queueMicrotask(() => fetchParams.processRequestEndOfBody());
       } else if (request.body != null) {
         const processBodyChunk = async function* (bytes) {
-          var _a;
           if (isCancelled(fetchParams)) {
             return;
           }
           yield bytes;
-          (_a = fetchParams.processRequestBodyChunkLength) == null ? void 0 : _a.call(fetchParams, bytes.byteLength);
+          fetchParams.processRequestBodyChunkLength?.(bytes.byteLength);
         };
         const processEndOfBody = () => {
           if (isCancelled(fetchParams)) {
@@ -13826,7 +13810,7 @@ var require_fetch = __commonJS({
             finalizeResponse(fetchParams, response);
             return;
           }
-          timingInfo.decodedBodySize += (bytes == null ? void 0 : bytes.byteLength) ?? 0;
+          timingInfo.decodedBodySize += bytes?.byteLength ?? 0;
           if (isFailure) {
             fetchParams.controller.terminate(bytes);
             return;
@@ -13963,14 +13947,13 @@ var require_fetch = __commonJS({
               fetchParams.controller.ended = true;
               this.body.push(null);
             },
-            onError(error4) {
-              var _a;
+            onError(error10) {
               if (this.abort) {
                 fetchParams.controller.off("terminated", this.abort);
               }
-              (_a = this.body) == null ? void 0 : _a.destroy(error4);
-              fetchParams.controller.terminate(error4);
-              reject(error4);
+              this.body?.destroy(error10);
+              fetchParams.controller.terminate(error10);
+              reject(error10);
             },
             onUpgrade(status, headersList, socket) {
               if (status !== 101) {
@@ -14436,8 +14419,8 @@ var require_util4 = __commonJS({
                   }
                   fr[kResult] = result;
                   fireAProgressEvent("load", fr);
-                } catch (error4) {
-                  fr[kError] = error4;
+                } catch (error10) {
+                  fr[kError] = error10;
                   fireAProgressEvent("error", fr);
                 }
                 if (fr[kState] !== "loading") {
@@ -14446,13 +14429,13 @@ var require_util4 = __commonJS({
               });
               break;
             }
-          } catch (error4) {
+          } catch (error10) {
             if (fr[kAborted]) {
               return;
             }
             queueMicrotask(() => {
               fr[kState] = "done";
-              fr[kError] = error4;
+              fr[kError] = error10;
               fireAProgressEvent("error", fr);
               if (fr[kState] !== "loading") {
                 fireAProgressEvent("loadend", fr);
@@ -14900,7 +14883,6 @@ var require_cache = __commonJS({
         return p[0];
       }
       async matchAll(request = void 0, options = {}) {
-        var _a;
         webidl.brandCheck(this, _Cache);
         if (request !== void 0) request = webidl.converters.RequestInfo(request);
         options = webidl.converters.CacheQueryOptions(options);
@@ -14928,7 +14910,7 @@ var require_cache = __commonJS({
         }
         const responseList = [];
         for (const response of responses) {
-          const responseObject = new Response(((_a = response.body) == null ? void 0 : _a.source) ?? null);
+          const responseObject = new Response(response.body?.source ?? null);
           const body = responseObject[kState].body;
           responseObject[kState] = response;
           responseObject[kState].body = body;
@@ -15156,7 +15138,7 @@ var require_cache = __commonJS({
         }
         queueMicrotask(() => {
           if (errorData === null) {
-            cacheJobPromise.resolve(!!(requestResponses == null ? void 0 : requestResponses.length));
+            cacheJobPromise.resolve(!!requestResponses?.length);
           } else {
             cacheJobPromise.reject(errorData);
           }
@@ -15321,14 +15303,14 @@ var require_cache = __commonJS({
       #requestMatchesCachedItem(requestQuery, request, response = null, options) {
         const queryURL = new URL(requestQuery.url);
         const cachedURL = new URL(request.url);
-        if (options == null ? void 0 : options.ignoreSearch) {
+        if (options?.ignoreSearch) {
           cachedURL.search = "";
           queryURL.search = "";
         }
         if (!urlEquals(queryURL, cachedURL, true)) {
           return false;
         }
-        if (response == null || (options == null ? void 0 : options.ignoreVary) || !response.headersList.contains("vary")) {
+        if (response == null || options?.ignoreVary || !response.headersList.contains("vary")) {
           return true;
         }
         const fieldValues = getFieldValues(response.headersList.get("vary"));
@@ -15544,8 +15526,8 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path4) {
-      for (const char of path4) {
+    function validateCookiePath(path7) {
+      for (const char of path7) {
         const code = char.charCodeAt(0);
         if (code < 33 || char === ";") {
           throw new Error("Invalid cookie path");
@@ -16297,7 +16279,7 @@ var require_util7 = __commonJS({
     function failWebsocketConnection(ws, reason) {
       const { [kController]: controller, [kResponse]: response } = ws;
       controller.abort();
-      if ((response == null ? void 0 : response.socket) && !response.socket.destroyed) {
+      if (response?.socket && !response.socket.destroyed) {
         response.socket.destroy();
       }
       if (reason) {
@@ -16375,7 +16357,6 @@ var require_connection = __commonJS({
         useParallelQueue: true,
         dispatcher: options.dispatcher ?? getGlobalDispatcher(),
         processResponse(response) {
-          var _a, _b;
           if (response.type === "error" || response.status !== 101) {
             failWebsocketConnection(ws, "Received network error or non-101 status code.");
             return;
@@ -16384,11 +16365,11 @@ var require_connection = __commonJS({
             failWebsocketConnection(ws, "Server did not respond with sent protocols.");
             return;
           }
-          if (((_a = response.headersList.get("Upgrade")) == null ? void 0 : _a.toLowerCase()) !== "websocket") {
+          if (response.headersList.get("Upgrade")?.toLowerCase() !== "websocket") {
             failWebsocketConnection(ws, 'Server did not set Upgrade header to "websocket".');
             return;
           }
-          if (((_b = response.headersList.get("Connection")) == null ? void 0 : _b.toLowerCase()) !== "upgrade") {
+          if (response.headersList.get("Connection")?.toLowerCase() !== "upgrade") {
             failWebsocketConnection(ws, 'Server did not set Connection header to "upgrade".');
             return;
           }
@@ -16454,11 +16435,11 @@ var require_connection = __commonJS({
         });
       }
     }
-    function onSocketError(error4) {
+    function onSocketError(error10) {
       const { ws } = this;
       ws[kReadyState] = states.CLOSING;
       if (channels.socketError.hasSubscribers) {
-        channels.socketError.publish(error4);
+        channels.socketError.publish(error10);
       }
       this.destroy();
     }
@@ -16487,8 +16468,7 @@ var require_frame = __commonJS({
         this.maskKey = crypto.randomBytes(4);
       }
       createFrame(opcode) {
-        var _a;
-        const bodyLength = ((_a = this.frameData) == null ? void 0 : _a.byteLength) ?? 0;
+        const bodyLength = this.frameData?.byteLength ?? 0;
         let payloadLength = bodyLength;
         let offset = 6;
         if (bodyLength > maxUnsigned16Bit) {
@@ -17227,11 +17207,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path4 = opts.path;
+          let path7 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path4 = `/${path4}`;
+            path7 = `/${path7}`;
           }
-          url = new URL(util.parseOrigin(url).origin + path4);
+          url = new URL(util.parseOrigin(url).origin + path7);
         } else {
           if (!opts) {
             opts = typeof url === "object" ? url : {};
@@ -17603,12 +17583,12 @@ var require_lib = __commonJS({
             throw new Error("Client has already been disposed.");
           }
           const parsedUrl = new URL(requestUrl);
-          let info6 = this._prepareRequest(verb, parsedUrl, headers);
+          let info16 = this._prepareRequest(verb, parsedUrl, headers);
           const maxTries = this._allowRetries && RetryableHttpVerbs.includes(verb) ? this._maxRetries + 1 : 1;
           let numTries = 0;
           let response;
           do {
-            response = yield this.requestRaw(info6, data);
+            response = yield this.requestRaw(info16, data);
             if (response && response.message && response.message.statusCode === HttpCodes.Unauthorized) {
               let authenticationHandler;
               for (const handler of this.handlers) {
@@ -17618,7 +17598,7 @@ var require_lib = __commonJS({
                 }
               }
               if (authenticationHandler) {
-                return authenticationHandler.handleAuthentication(this, info6, data);
+                return authenticationHandler.handleAuthentication(this, info16, data);
               } else {
                 return response;
               }
@@ -17641,8 +17621,8 @@ var require_lib = __commonJS({
                   }
                 }
               }
-              info6 = this._prepareRequest(verb, parsedRedirectUrl, headers);
-              response = yield this.requestRaw(info6, data);
+              info16 = this._prepareRequest(verb, parsedRedirectUrl, headers);
+              response = yield this.requestRaw(info16, data);
               redirectsRemaining--;
             }
             if (!response.message.statusCode || !HttpResponseRetryCodes.includes(response.message.statusCode)) {
@@ -17671,7 +17651,7 @@ var require_lib = __commonJS({
        * @param info
        * @param data
        */
-      requestRaw(info6, data) {
+      requestRaw(info16, data) {
         return __awaiter(this, void 0, void 0, function* () {
           return new Promise((resolve, reject) => {
             function callbackForResult(err, res) {
@@ -17683,7 +17663,7 @@ var require_lib = __commonJS({
                 resolve(res);
               }
             }
-            this.requestRawWithCallback(info6, data, callbackForResult);
+            this.requestRawWithCallback(info16, data, callbackForResult);
           });
         });
       }
@@ -17693,12 +17673,12 @@ var require_lib = __commonJS({
        * @param data
        * @param onResult
        */
-      requestRawWithCallback(info6, data, onResult) {
+      requestRawWithCallback(info16, data, onResult) {
         if (typeof data === "string") {
-          if (!info6.options.headers) {
-            info6.options.headers = {};
+          if (!info16.options.headers) {
+            info16.options.headers = {};
           }
-          info6.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
+          info16.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
         }
         let callbackCalled = false;
         function handleResult(err, res) {
@@ -17707,7 +17687,7 @@ var require_lib = __commonJS({
             onResult(err, res);
           }
         }
-        const req = info6.httpModule.request(info6.options, (msg) => {
+        const req = info16.httpModule.request(info16.options, (msg) => {
           const res = new HttpClientResponse(msg);
           handleResult(void 0, res);
         });
@@ -17719,7 +17699,7 @@ var require_lib = __commonJS({
           if (socket) {
             socket.end();
           }
-          handleResult(new Error(`Request timeout: ${info6.options.path}`));
+          handleResult(new Error(`Request timeout: ${info16.options.path}`));
         });
         req.on("error", function(err) {
           handleResult(err);
@@ -17755,27 +17735,27 @@ var require_lib = __commonJS({
         return this._getProxyAgentDispatcher(parsedUrl, proxyUrl);
       }
       _prepareRequest(method, requestUrl, headers) {
-        const info6 = {};
-        info6.parsedUrl = requestUrl;
-        const usingSsl = info6.parsedUrl.protocol === "https:";
-        info6.httpModule = usingSsl ? https : http;
+        const info16 = {};
+        info16.parsedUrl = requestUrl;
+        const usingSsl = info16.parsedUrl.protocol === "https:";
+        info16.httpModule = usingSsl ? https : http;
         const defaultPort = usingSsl ? 443 : 80;
-        info6.options = {};
-        info6.options.host = info6.parsedUrl.hostname;
-        info6.options.port = info6.parsedUrl.port ? parseInt(info6.parsedUrl.port) : defaultPort;
-        info6.options.path = (info6.parsedUrl.pathname || "") + (info6.parsedUrl.search || "");
-        info6.options.method = method;
-        info6.options.headers = this._mergeHeaders(headers);
+        info16.options = {};
+        info16.options.host = info16.parsedUrl.hostname;
+        info16.options.port = info16.parsedUrl.port ? parseInt(info16.parsedUrl.port) : defaultPort;
+        info16.options.path = (info16.parsedUrl.pathname || "") + (info16.parsedUrl.search || "");
+        info16.options.method = method;
+        info16.options.headers = this._mergeHeaders(headers);
         if (this.userAgent != null) {
-          info6.options.headers["user-agent"] = this.userAgent;
+          info16.options.headers["user-agent"] = this.userAgent;
         }
-        info6.options.agent = this._getAgent(info6.parsedUrl);
+        info16.options.agent = this._getAgent(info16.parsedUrl);
         if (this.handlers) {
           for (const handler of this.handlers) {
-            handler.prepareRequest(info6.options);
+            handler.prepareRequest(info16.options);
           }
         }
-        return info6;
+        return info16;
       }
       _mergeHeaders(headers) {
         if (this.requestOptions && this.requestOptions.headers) {
@@ -18091,12 +18071,12 @@ var require_oidc_utils = __commonJS({
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
           const httpclient = _OidcClient.createHttpClient();
-          const res = yield httpclient.getJson(id_token_url).catch((error4) => {
+          const res = yield httpclient.getJson(id_token_url).catch((error10) => {
             throw new Error(`Failed to get ID Token. 
  
-        Error Code : ${error4.statusCode}
+        Error Code : ${error10.statusCode}
  
-        Error Message: ${error4.message}`);
+        Error Message: ${error10.message}`);
           });
           const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
           if (!id_token) {
@@ -18117,8 +18097,8 @@ var require_oidc_utils = __commonJS({
             const id_token = yield _OidcClient.getCall(id_token_url);
             (0, core_1.setSecret)(id_token);
             return id_token;
-          } catch (error4) {
-            throw new Error(`Error message: ${error4.message}`);
+          } catch (error10) {
+            throw new Error(`Error message: ${error10.message}`);
           }
         });
       }
@@ -18454,7 +18434,7 @@ var require_path_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.toPlatformPath = exports2.toWin32Path = exports2.toPosixPath = void 0;
-    var path4 = __importStar(require("path"));
+    var path7 = __importStar(require("path"));
     function toPosixPath(pth) {
       return pth.replace(/[\\]/g, "/");
     }
@@ -18464,7 +18444,7 @@ var require_path_utils = __commonJS({
     }
     exports2.toWin32Path = toWin32Path;
     function toPlatformPath(pth) {
-      return pth.replace(/[/\\]/g, path4.sep);
+      return pth.replace(/[/\\]/g, path7.sep);
     }
     exports2.toPlatformPath = toPlatformPath;
   }
@@ -18527,12 +18507,12 @@ var require_io_util = __commonJS({
     var _a;
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCmdPath = exports2.tryGetExecutablePath = exports2.isRooted = exports2.isDirectory = exports2.exists = exports2.READONLY = exports2.UV_FS_O_EXLOCK = exports2.IS_WINDOWS = exports2.unlink = exports2.symlink = exports2.stat = exports2.rmdir = exports2.rm = exports2.rename = exports2.readlink = exports2.readdir = exports2.open = exports2.mkdir = exports2.lstat = exports2.copyFile = exports2.chmod = void 0;
-    var fs4 = __importStar(require("fs"));
-    var path4 = __importStar(require("path"));
-    _a = fs4.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
+    var fs8 = __importStar(require("fs"));
+    var path7 = __importStar(require("path"));
+    _a = fs8.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
     exports2.IS_WINDOWS = process.platform === "win32";
     exports2.UV_FS_O_EXLOCK = 268435456;
-    exports2.READONLY = fs4.constants.O_RDONLY;
+    exports2.READONLY = fs8.constants.O_RDONLY;
     function exists2(fsPath) {
       return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -18577,7 +18557,7 @@ var require_io_util = __commonJS({
         }
         if (stats && stats.isFile()) {
           if (exports2.IS_WINDOWS) {
-            const upperExt = path4.extname(filePath).toUpperCase();
+            const upperExt = path7.extname(filePath).toUpperCase();
             if (extensions.some((validExt) => validExt.toUpperCase() === upperExt)) {
               return filePath;
             }
@@ -18601,11 +18581,11 @@ var require_io_util = __commonJS({
           if (stats && stats.isFile()) {
             if (exports2.IS_WINDOWS) {
               try {
-                const directory = path4.dirname(filePath);
-                const upperName = path4.basename(filePath).toUpperCase();
+                const directory = path7.dirname(filePath);
+                const upperName = path7.basename(filePath).toUpperCase();
                 for (const actualName of yield exports2.readdir(directory)) {
                   if (upperName === actualName.toUpperCase()) {
-                    filePath = path4.join(directory, actualName);
+                    filePath = path7.join(directory, actualName);
                     break;
                   }
                 }
@@ -18700,7 +18680,7 @@ var require_io = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.findInPath = exports2.which = exports2.mkdirP = exports2.rmRF = exports2.mv = exports2.cp = void 0;
     var assert_1 = require("assert");
-    var path4 = __importStar(require("path"));
+    var path7 = __importStar(require("path"));
     var ioUtil = __importStar(require_io_util());
     function cp(source, dest, options = {}) {
       return __awaiter(this, void 0, void 0, function* () {
@@ -18709,7 +18689,7 @@ var require_io = __commonJS({
         if (destStat && destStat.isFile() && !force) {
           return;
         }
-        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path4.join(dest, path4.basename(source)) : dest;
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path7.join(dest, path7.basename(source)) : dest;
         if (!(yield ioUtil.exists(source))) {
           throw new Error(`no such file or directory: ${source}`);
         }
@@ -18721,7 +18701,7 @@ var require_io = __commonJS({
             yield cpDirRecursive(source, newDest, 0, force);
           }
         } else {
-          if (path4.relative(source, newDest) === "") {
+          if (path7.relative(source, newDest) === "") {
             throw new Error(`'${newDest}' and '${source}' are the same file`);
           }
           yield copyFile2(source, newDest, force);
@@ -18734,7 +18714,7 @@ var require_io = __commonJS({
         if (yield ioUtil.exists(dest)) {
           let destExists = true;
           if (yield ioUtil.isDirectory(dest)) {
-            dest = path4.join(dest, path4.basename(source));
+            dest = path7.join(dest, path7.basename(source));
             destExists = yield ioUtil.exists(dest);
           }
           if (destExists) {
@@ -18745,7 +18725,7 @@ var require_io = __commonJS({
             }
           }
         }
-        yield mkdirP(path4.dirname(dest));
+        yield mkdirP(path7.dirname(dest));
         yield ioUtil.rename(source, dest);
       });
     }
@@ -18808,7 +18788,7 @@ var require_io = __commonJS({
         }
         const extensions = [];
         if (ioUtil.IS_WINDOWS && process.env["PATHEXT"]) {
-          for (const extension of process.env["PATHEXT"].split(path4.delimiter)) {
+          for (const extension of process.env["PATHEXT"].split(path7.delimiter)) {
             if (extension) {
               extensions.push(extension);
             }
@@ -18821,12 +18801,12 @@ var require_io = __commonJS({
           }
           return [];
         }
-        if (tool.includes(path4.sep)) {
+        if (tool.includes(path7.sep)) {
           return [];
         }
         const directories = [];
         if (process.env.PATH) {
-          for (const p of process.env.PATH.split(path4.delimiter)) {
+          for (const p of process.env.PATH.split(path7.delimiter)) {
             if (p) {
               directories.push(p);
             }
@@ -18834,7 +18814,7 @@ var require_io = __commonJS({
         }
         const matches = [];
         for (const directory of directories) {
-          const filePath = yield ioUtil.tryGetExecutablePath(path4.join(directory, tool), extensions);
+          const filePath = yield ioUtil.tryGetExecutablePath(path7.join(directory, tool), extensions);
           if (filePath) {
             matches.push(filePath);
           }
@@ -18947,10 +18927,10 @@ var require_toolrunner = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.argStringToArray = exports2.ToolRunner = void 0;
-    var os = __importStar(require("os"));
+    var os3 = __importStar(require("os"));
     var events = __importStar(require("events"));
     var child = __importStar(require("child_process"));
-    var path4 = __importStar(require("path"));
+    var path7 = __importStar(require("path"));
     var io = __importStar(require_io());
     var ioUtil = __importStar(require_io_util());
     var timers_1 = require("timers");
@@ -19002,12 +18982,12 @@ var require_toolrunner = __commonJS({
       _processLineBuffer(data, strBuffer, onLine) {
         try {
           let s = strBuffer + data.toString();
-          let n = s.indexOf(os.EOL);
+          let n = s.indexOf(os3.EOL);
           while (n > -1) {
             const line = s.substring(0, n);
             onLine(line);
-            s = s.substring(n + os.EOL.length);
-            n = s.indexOf(os.EOL);
+            s = s.substring(n + os3.EOL.length);
+            n = s.indexOf(os3.EOL);
           }
           return s;
         } catch (err) {
@@ -19165,7 +19145,7 @@ var require_toolrunner = __commonJS({
       exec() {
         return __awaiter(this, void 0, void 0, function* () {
           if (!ioUtil.isRooted(this.toolPath) && (this.toolPath.includes("/") || IS_WINDOWS && this.toolPath.includes("\\"))) {
-            this.toolPath = path4.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            this.toolPath = path7.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
           }
           this.toolPath = yield io.which(this.toolPath, true);
           return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -19176,7 +19156,7 @@ var require_toolrunner = __commonJS({
             }
             const optionsNonNull = this._cloneExecOptions(this.options);
             if (!optionsNonNull.silent && optionsNonNull.outStream) {
-              optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os.EOL);
+              optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os3.EOL);
             }
             const state = new ExecState(optionsNonNull, this.toolPath);
             state.on("debug", (message) => {
@@ -19240,7 +19220,7 @@ var require_toolrunner = __commonJS({
               this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
               state.CheckComplete();
             });
-            state.on("done", (error4, exitCode) => {
+            state.on("done", (error10, exitCode) => {
               if (stdbuffer.length > 0) {
                 this.emit("stdline", stdbuffer);
               }
@@ -19248,8 +19228,8 @@ var require_toolrunner = __commonJS({
                 this.emit("errline", errbuffer);
               }
               cp.removeAllListeners();
-              if (error4) {
-                reject(error4);
+              if (error10) {
+                reject(error10);
               } else {
                 resolve(exitCode);
               }
@@ -19344,14 +19324,14 @@ var require_toolrunner = __commonJS({
         this.emit("debug", message);
       }
       _setResult() {
-        let error4;
+        let error10;
         if (this.processExited) {
           if (this.processError) {
-            error4 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            error10 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
           } else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-            error4 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            error10 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
           } else if (this.processStderr && this.options.failOnStdErr) {
-            error4 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            error10 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
           }
         }
         if (this.timeout) {
@@ -19359,7 +19339,7 @@ var require_toolrunner = __commonJS({
           this.timeout = null;
         }
         this.done = true;
-        this.emit("done", error4, this.processExitCode);
+        this.emit("done", error10, this.processExitCode);
       }
       static HandleTimeout(state) {
         if (state.done) {
@@ -19664,8 +19644,8 @@ var require_core = __commonJS({
     var command_1 = require_command();
     var file_command_1 = require_file_command();
     var utils_1 = require_utils();
-    var os = __importStar(require("os"));
-    var path4 = __importStar(require("path"));
+    var os3 = __importStar(require("os"));
+    var path7 = __importStar(require("path"));
     var oidc_utils_1 = require_oidc_utils();
     var ExitCode;
     (function(ExitCode2) {
@@ -19693,7 +19673,7 @@ var require_core = __commonJS({
       } else {
         (0, command_1.issueCommand)("add-path", {}, inputPath);
       }
-      process.env["PATH"] = `${inputPath}${path4.delimiter}${process.env["PATH"]}`;
+      process.env["PATH"] = `${inputPath}${path7.delimiter}${process.env["PATH"]}`;
     }
     exports2.addPath = addPath;
     function getInput(name, options) {
@@ -19727,64 +19707,64 @@ var require_core = __commonJS({
 Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
     }
     exports2.getBooleanInput = getBooleanInput;
-    function setOutput2(name, value) {
+    function setOutput3(name, value) {
       const filePath = process.env["GITHUB_OUTPUT"] || "";
       if (filePath) {
         return (0, file_command_1.issueFileCommand)("OUTPUT", (0, file_command_1.prepareKeyValueMessage)(name, value));
       }
-      process.stdout.write(os.EOL);
+      process.stdout.write(os3.EOL);
       (0, command_1.issueCommand)("set-output", { name }, (0, utils_1.toCommandValue)(value));
     }
-    exports2.setOutput = setOutput2;
+    exports2.setOutput = setOutput3;
     function setCommandEcho(enabled) {
       (0, command_1.issue)("echo", enabled ? "on" : "off");
     }
     exports2.setCommandEcho = setCommandEcho;
-    function setFailed3(message) {
+    function setFailed10(message) {
       process.exitCode = ExitCode.Failure;
-      error4(message);
+      error10(message);
     }
-    exports2.setFailed = setFailed3;
+    exports2.setFailed = setFailed10;
     function isDebug2() {
       return process.env["RUNNER_DEBUG"] === "1";
     }
     exports2.isDebug = isDebug2;
-    function debug5(message) {
+    function debug9(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
-    exports2.debug = debug5;
-    function error4(message, properties = {}) {
+    exports2.debug = debug9;
+    function error10(message, properties = {}) {
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.error = error4;
-    function warning8(message, properties = {}) {
+    exports2.error = error10;
+    function warning15(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning8;
+    exports2.warning = warning15;
     function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.notice = notice;
-    function info6(message) {
-      process.stdout.write(message + os.EOL);
+    function info16(message) {
+      process.stdout.write(message + os3.EOL);
     }
-    exports2.info = info6;
-    function startGroup2(name) {
+    exports2.info = info16;
+    function startGroup3(name) {
       (0, command_1.issue)("group", name);
     }
-    exports2.startGroup = startGroup2;
-    function endGroup2() {
+    exports2.startGroup = startGroup3;
+    function endGroup3() {
       (0, command_1.issue)("endgroup");
     }
-    exports2.endGroup = endGroup2;
+    exports2.endGroup = endGroup3;
     function group(name, fn) {
       return __awaiter(this, void 0, void 0, function* () {
-        startGroup2(name);
+        startGroup3(name);
         let result;
         try {
           result = yield fn();
         } finally {
-          endGroup2();
+          endGroup3();
         }
         return result;
       });
@@ -19830,6 +19810,345 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
   }
 });
 
+// src/config/env-loader.ts
+function parseEnvFile(content) {
+  const result = {};
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const equalIndex = trimmed.indexOf("=");
+    if (equalIndex === -1) {
+      continue;
+    }
+    const key = trimmed.substring(0, equalIndex).trim();
+    let value = trimmed.substring(equalIndex + 1).trim();
+    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+      value = value.slice(1, -1);
+    }
+    result[key] = value;
+  }
+  return result;
+}
+function loadEnvLocal(rootDir) {
+  const projectRoot = rootDir || process.cwd();
+  const envLocalPath = path.join(projectRoot, ".env.local");
+  if (!fs.existsSync(envLocalPath)) {
+    return {};
+  }
+  try {
+    const content = fs.readFileSync(envLocalPath, "utf8");
+    return parseEnvFile(content);
+  } catch (error10) {
+    console.warn(`Warning: Could not load .env.local file: ${error10}`);
+    return {};
+  }
+}
+function loadEnvironmentConfig() {
+  const envLocal = loadEnvLocal();
+  const merged = {};
+  Object.assign(merged, envLocal);
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== void 0) {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+function initializeEnvironment() {
+  const envLocal = loadEnvLocal();
+  for (const [key, value] of Object.entries(envLocal)) {
+    if (process.env[key] === void 0) {
+      process.env[key] = value;
+    }
+  }
+}
+var fs, path;
+var init_env_loader = __esm({
+  "src/config/env-loader.ts"() {
+    fs = __toESM(require("fs"));
+    path = __toESM(require("path"));
+  }
+});
+
+// src/config/default.config.ts
+function getEnvWithDefaults(key) {
+  const envConfig = loadEnvironmentConfig();
+  if (envConfig[key] !== void 0) {
+    return envConfig[key];
+  }
+  return getEnvironmentDefault(key);
+}
+function getEnvironmentDefault(key) {
+  if (key === "GITHUB_TOKEN" || key === "INPUT_GITHUB_TOKEN") {
+    return environmentDefaults.github.token;
+  }
+  if (key === "GITHUB_REPOSITORY") {
+    return environmentDefaults.github.repository;
+  }
+  if (key === "GITHUB_SHA") {
+    return environmentDefaults.github.sha;
+  }
+  if (key === "GITHUB_ACTOR") {
+    return environmentDefaults.github.actor;
+  }
+  if (key === "GITHUB_EVENT_NAME") {
+    return environmentDefaults.github.eventName;
+  }
+  if (key === "GITHUB_ACTIONS") {
+    return environmentDefaults.github.actions;
+  }
+  if (key === "CLAUDE_API_KEY" || key === "CLAUDE_API_KEY") {
+    return environmentDefaults.ai.claudeApiKey;
+  }
+  if (key === "FIREBASE_PROJECT_ID") {
+    return environmentDefaults.storage.firebase.projectId;
+  }
+  if (key === "FIREBASE_CLIENT_EMAIL") {
+    return environmentDefaults.storage.firebase.clientEmail;
+  }
+  if (key === "FIREBASE_PRIVATE_KEY") {
+    return environmentDefaults.storage.firebase.privateKey;
+  }
+  if (key === "FIREBASE_STORAGE_BUCKET") {
+    return environmentDefaults.storage.firebase.storageBucket;
+  }
+  if (key === "AWS_ACCESS_KEY_ID") {
+    return environmentDefaults.storage.s3.accessKeyId;
+  }
+  if (key === "AWS_SECRET_ACCESS_KEY") {
+    return environmentDefaults.storage.s3.secretAccessKey;
+  }
+  if (key === "AWS_REGION") {
+    return environmentDefaults.storage.s3.region;
+  }
+  if (key === "S3_BUCKET") {
+    return environmentDefaults.storage.s3.bucket;
+  }
+  if (key === "NODE_ENV") {
+    return environmentDefaults.nodeEnv;
+  }
+  return void 0;
+}
+var environmentDefaults;
+var init_default_config = __esm({
+  "src/config/default.config.ts"() {
+    init_env_loader();
+    initializeEnvironment();
+    environmentDefaults = {
+      // GitHub Configuration (no real tokens, safe for testing)
+      github: {
+        token: "mock-github-token",
+        repository: "test-owner/test-repo",
+        sha: "mock-sha-123456",
+        actor: "yofix-bot",
+        eventName: "pull_request",
+        actions: "false"
+        // Not in GitHub Actions by default
+      },
+      // Storage Configuration (mock/test values)
+      storage: {
+        firebase: {
+          projectId: "yofix-test-project",
+          clientEmail: "test@yofix-test-project.iam.gserviceaccount.com",
+          privateKey: "-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY_FOR_TESTING\n-----END PRIVATE KEY-----\n",
+          storageBucket: "yofix-test-project.appspot.com"
+        },
+        s3: {
+          accessKeyId: "MOCK_ACCESS_KEY_ID",
+          secretAccessKey: "mock-secret-access-key",
+          region: "us-east-1",
+          bucket: "yofix-test-bucket"
+        }
+      },
+      // AI Configuration
+      ai: {
+        claudeApiKey: "mock-claude-api-key",
+        anthropicApiKey: "mock-anthropic-api-key"
+      },
+      // Environment
+      nodeEnv: "development"
+    };
+  }
+});
+
+// src/core/hooks/EnvironmentHook.ts
+function getEnvironment() {
+  return EnvironmentHookFactory.getHook();
+}
+var NodeEnvironmentHook, MockEnvironmentHook, EnvironmentHookFactory, env;
+var init_EnvironmentHook = __esm({
+  "src/core/hooks/EnvironmentHook.ts"() {
+    init_default_config();
+    NodeEnvironmentHook = class {
+      get(name, defaultValue) {
+        const value = process.env[name];
+        return value !== void 0 ? value : defaultValue;
+      }
+      getRequired(name) {
+        const value = process.env[name];
+        if (value === void 0) {
+          throw new Error(`Required environment variable ${name} is not set`);
+        }
+        return value;
+      }
+      has(name) {
+        return name in process.env;
+      }
+      getByPrefix(prefix) {
+        const result = {};
+        for (const [key, value] of Object.entries(process.env)) {
+          if (key.startsWith(prefix) && value !== void 0) {
+            result[key] = value;
+          }
+        }
+        return result;
+      }
+      set(name, value) {
+        process.env[name] = value;
+      }
+      unset(name) {
+        delete process.env[name];
+      }
+      getEnvironment() {
+        const nodeEnv = process.env.NODE_ENV?.toLowerCase();
+        switch (nodeEnv) {
+          case "production":
+            return "production";
+          case "development":
+            return "development";
+          case "test":
+            return "test";
+          default:
+            return "unknown";
+        }
+      }
+      getWithDefaults(name) {
+        return getEnvWithDefaults(name);
+      }
+    };
+    MockEnvironmentHook = class {
+      constructor(initialEnv = {}) {
+        this.env = /* @__PURE__ */ new Map();
+        for (const [key, value] of Object.entries(initialEnv)) {
+          this.env.set(key, value);
+        }
+      }
+      get(name, defaultValue) {
+        const value = this.env.get(name);
+        return value !== void 0 ? value : defaultValue;
+      }
+      getRequired(name) {
+        const value = this.env.get(name);
+        if (value === void 0) {
+          throw new Error(`Required environment variable ${name} is not set`);
+        }
+        return value;
+      }
+      has(name) {
+        return this.env.has(name);
+      }
+      getByPrefix(prefix) {
+        const result = {};
+        for (const [key, value] of this.env.entries()) {
+          if (key.startsWith(prefix)) {
+            result[key] = value;
+          }
+        }
+        return result;
+      }
+      set(name, value) {
+        this.env.set(name, value);
+      }
+      unset(name) {
+        this.env.delete(name);
+      }
+      getEnvironment() {
+        const nodeEnv = this.env.get("NODE_ENV")?.toLowerCase();
+        switch (nodeEnv) {
+          case "production":
+            return "production";
+          case "development":
+            return "development";
+          case "test":
+            return "test";
+          default:
+            return "unknown";
+        }
+      }
+      getWithDefaults(name) {
+        const mockValue = this.env.get(name);
+        if (mockValue !== void 0) {
+          return mockValue;
+        }
+        return getEnvWithDefaults(name);
+      }
+      /**
+       * Clear all environment variables (useful for testing)
+       */
+      clear() {
+        this.env.clear();
+      }
+      /**
+       * Load from object (useful for testing)
+       */
+      loadFromObject(env2) {
+        this.clear();
+        for (const [key, value] of Object.entries(env2)) {
+          this.env.set(key, value);
+        }
+      }
+    };
+    EnvironmentHookFactory = class {
+      /**
+       * Get or create environment hook instance
+       */
+      static getHook() {
+        if (!this.instance) {
+          this.instance = this.createDefaultHook();
+        }
+        return this.instance;
+      }
+      /**
+       * Set custom environment hook (useful for testing)
+       */
+      static setHook(hook) {
+        this.instance = hook;
+      }
+      /**
+       * Reset the factory (useful for testing)
+       */
+      static reset() {
+        this.instance = void 0;
+      }
+      /**
+       * Create default environment hook based on runtime
+       */
+      static createDefaultHook() {
+        if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+          return new MockEnvironmentHook(process.env);
+        }
+        if (typeof process !== "undefined" && process.env) {
+          return new NodeEnvironmentHook();
+        }
+        return new MockEnvironmentHook();
+      }
+    };
+    env = {
+      get: (name, defaultValue) => getEnvironment().get(name, defaultValue),
+      getRequired: (name) => getEnvironment().getRequired(name),
+      getWithDefaults: (name) => getEnvironment().getWithDefaults(name),
+      has: (name) => getEnvironment().has(name),
+      is: (name, value) => getEnvironment().get(name) === value,
+      isDevelopment: () => getEnvironment().getEnvironment() === "development",
+      isProduction: () => getEnvironment().getEnvironment() === "production",
+      isTest: () => getEnvironment().getEnvironment() === "test"
+    };
+  }
+});
+
 // node_modules/@actions/github/lib/context.js
 var require_context = __commonJS({
   "node_modules/@actions/github/lib/context.js"(exports2) {
@@ -19849,8 +20168,8 @@ var require_context = __commonJS({
           if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
             this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
           } else {
-            const path4 = process.env.GITHUB_EVENT_PATH;
-            process.stdout.write(`GITHUB_EVENT_PATH ${path4} does not exist${os_1.EOL}`);
+            const path7 = process.env.GITHUB_EVENT_PATH;
+            process.stdout.write(`GITHUB_EVENT_PATH ${path7} does not exist${os_1.EOL}`);
           }
         }
         this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -20058,8 +20377,8 @@ var require_add = __commonJS({
       }
       if (kind === "error") {
         hook = function(method, options) {
-          return Promise.resolve().then(method.bind(null, options)).catch(function(error4) {
-            return orig(error4, options);
+          return Promise.resolve().then(method.bind(null, options)).catch(function(error10) {
+            return orig(error10, options);
           });
         };
       }
@@ -20154,7 +20473,7 @@ var require_dist_node2 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -20166,12 +20485,12 @@ var require_dist_node2 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
-    __export2(dist_src_exports, {
+    __export(dist_src_exports, {
       endpoint: () => endpoint
     });
-    module2.exports = __toCommonJS2(dist_src_exports);
+    module2.exports = __toCommonJS(dist_src_exports);
     var import_universal_user_agent = require_dist_node();
     var VERSION = "9.0.6";
     var userAgent = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
@@ -20229,7 +20548,6 @@ var require_dist_node2 = __commonJS({
       return obj;
     }
     function merge(defaults, route, options) {
-      var _a;
       if (typeof route === "string") {
         let [method, url] = route.split(" ");
         options = Object.assign(url ? { method, url } : { url: method }, options);
@@ -20241,7 +20559,7 @@ var require_dist_node2 = __commonJS({
       removeUndefinedProperties(options.headers);
       const mergedOptions = mergeDeep(defaults || {}, options);
       if (options.url === "/graphql") {
-        if (defaults && ((_a = defaults.mediaType.previews) == null ? void 0 : _a.length)) {
+        if (defaults && defaults.mediaType.previews?.length) {
           mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
             (preview) => !mergedOptions.mediaType.previews.includes(preview)
           ).concat(mergedOptions.mediaType.previews);
@@ -20414,7 +20732,6 @@ var require_dist_node2 = __commonJS({
       }
     }
     function parse(options) {
-      var _a;
       let method = options.method.toUpperCase();
       let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
       let headers = Object.assign({}, options.headers);
@@ -20445,7 +20762,7 @@ var require_dist_node2 = __commonJS({
           ).join(",");
         }
         if (url.endsWith("/graphql")) {
-          if ((_a = options.mediaType.previews) == null ? void 0 : _a.length) {
+          if (options.mediaType.previews?.length) {
             const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
             headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
               const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
@@ -20596,7 +20913,7 @@ var require_dist_node4 = __commonJS({
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __getProtoOf2 = Object.getPrototypeOf;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -20616,12 +20933,12 @@ var require_dist_node4 = __commonJS({
       isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
       mod
     ));
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
-    __export2(dist_src_exports, {
+    __export(dist_src_exports, {
       RequestError: () => RequestError
     });
-    module2.exports = __toCommonJS2(dist_src_exports);
+    module2.exports = __toCommonJS(dist_src_exports);
     var import_deprecation = require_dist_node3();
     var import_once = __toESM2(require_once());
     var logOnceCode = (0, import_once.default)((deprecation) => console.warn(deprecation));
@@ -20686,7 +21003,7 @@ var require_dist_node5 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -20698,12 +21015,12 @@ var require_dist_node5 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
-    __export2(dist_src_exports, {
+    __export(dist_src_exports, {
       request: () => request
     });
-    module2.exports = __toCommonJS2(dist_src_exports);
+    module2.exports = __toCommonJS(dist_src_exports);
     var import_endpoint = require_dist_node2();
     var import_universal_user_agent = require_dist_node();
     var VERSION = "8.4.1";
@@ -20793,7 +21110,7 @@ var require_dist_node5 = __commonJS({
         }
         if (status >= 400) {
           const data = await getResponseData(response);
-          const error4 = new import_request_error.RequestError(toErrorMessage(data), status, {
+          const error10 = new import_request_error.RequestError(toErrorMessage(data), status, {
             response: {
               url,
               status,
@@ -20802,7 +21119,7 @@ var require_dist_node5 = __commonJS({
             },
             request: requestOptions
           });
-          throw error4;
+          throw error10;
         }
         return parseSuccessResponseBody ? await getResponseData(response) : response.body;
       }).then((data) => {
@@ -20812,17 +21129,17 @@ var require_dist_node5 = __commonJS({
           headers,
           data
         };
-      }).catch((error4) => {
-        if (error4 instanceof import_request_error.RequestError)
-          throw error4;
-        else if (error4.name === "AbortError")
-          throw error4;
-        let message = error4.message;
-        if (error4.name === "TypeError" && "cause" in error4) {
-          if (error4.cause instanceof Error) {
-            message = error4.cause.message;
-          } else if (typeof error4.cause === "string") {
-            message = error4.cause;
+      }).catch((error10) => {
+        if (error10 instanceof import_request_error.RequestError)
+          throw error10;
+        else if (error10.name === "AbortError")
+          throw error10;
+        let message = error10.message;
+        if (error10.name === "TypeError" && "cause" in error10) {
+          if (error10.cause instanceof Error) {
+            message = error10.cause.message;
+          } else if (typeof error10.cause === "string") {
+            message = error10.cause;
           }
         }
         throw new import_request_error.RequestError(message, 500, {
@@ -20896,7 +21213,7 @@ var require_dist_node6 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -20908,14 +21225,14 @@ var require_dist_node6 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var index_exports = {};
-    __export2(index_exports, {
+    __export(index_exports, {
       GraphqlResponseError: () => GraphqlResponseError,
       graphql: () => graphql2,
       withCustomRequest: () => withCustomRequest
     });
-    module2.exports = __toCommonJS2(index_exports);
+    module2.exports = __toCommonJS(index_exports);
     var import_request3 = require_dist_node5();
     var import_universal_user_agent = require_dist_node();
     var VERSION = "7.1.1";
@@ -21033,7 +21350,7 @@ var require_dist_node7 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -21045,12 +21362,12 @@ var require_dist_node7 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
-    __export2(dist_src_exports, {
+    __export(dist_src_exports, {
       createTokenAuth: () => createTokenAuth
     });
-    module2.exports = __toCommonJS2(dist_src_exports);
+    module2.exports = __toCommonJS(dist_src_exports);
     var REGEX_IS_INSTALLATION_LEGACY = /^v1\./;
     var REGEX_IS_INSTALLATION = /^ghs_/;
     var REGEX_IS_USER_TO_SERVER = /^ghu_/;
@@ -21104,7 +21421,7 @@ var require_dist_node8 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -21116,12 +21433,12 @@ var require_dist_node8 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var index_exports = {};
-    __export2(index_exports, {
+    __export(index_exports, {
       Octokit: () => Octokit
     });
-    module2.exports = __toCommonJS2(index_exports);
+    module2.exports = __toCommonJS(index_exports);
     var import_universal_user_agent = require_dist_node();
     var import_before_after_hook = require_before_after_hook();
     var import_request = require_dist_node5();
@@ -21148,8 +21465,10 @@ var require_dist_node8 = __commonJS({
       return logger5;
     }
     var userAgentTrail = `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
-    var _a;
-    var Octokit = (_a = class {
+    var Octokit = class {
+      static {
+        this.VERSION = VERSION;
+      }
       static defaults(defaults) {
         const OctokitWithDefaults = class extends this {
           constructor(...args) {
@@ -21172,6 +21491,9 @@ var require_dist_node8 = __commonJS({
         };
         return OctokitWithDefaults;
       }
+      static {
+        this.plugins = [];
+      }
       /**
        * Attach a plugin (or many) to your Octokit instance.
        *
@@ -21179,12 +21501,14 @@ var require_dist_node8 = __commonJS({
        * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
        */
       static plugin(...newPlugins) {
-        var _a2;
         const currentPlugins = this.plugins;
-        const NewOctokit = (_a2 = class extends this {
-        }, _a2.plugins = currentPlugins.concat(
-          newPlugins.filter((plugin) => !currentPlugins.includes(plugin))
-        ), _a2);
+        const NewOctokit = class extends this {
+          static {
+            this.plugins = currentPlugins.concat(
+              newPlugins.filter((plugin) => !currentPlugins.includes(plugin))
+            );
+          }
+        };
         return NewOctokit;
       }
       constructor(options = {}) {
@@ -21251,7 +21575,7 @@ var require_dist_node8 = __commonJS({
           Object.assign(this, classConstructor.plugins[i](this, options));
         }
       }
-    }, _a.VERSION = VERSION, _a.plugins = [], _a);
+    };
   }
 });
 
@@ -21263,7 +21587,7 @@ var require_dist_node9 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -21275,13 +21599,13 @@ var require_dist_node9 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
-    __export2(dist_src_exports, {
+    __export(dist_src_exports, {
       legacyRestEndpointMethods: () => legacyRestEndpointMethods,
       restEndpointMethods: () => restEndpointMethods
     });
-    module2.exports = __toCommonJS2(dist_src_exports);
+    module2.exports = __toCommonJS(dist_src_exports);
     var VERSION = "10.4.1";
     var Endpoints = {
       actions: {
@@ -23419,7 +23743,7 @@ var require_dist_node10 = __commonJS({
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
     var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    var __export2 = (target, all) => {
+    var __export = (target, all) => {
       for (var name in all)
         __defProp2(target, name, { get: all[name], enumerable: true });
     };
@@ -23431,15 +23755,15 @@ var require_dist_node10 = __commonJS({
       }
       return to;
     };
-    var __toCommonJS2 = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var dist_src_exports = {};
-    __export2(dist_src_exports, {
+    __export(dist_src_exports, {
       composePaginateRest: () => composePaginateRest,
       isPaginatingEndpoint: () => isPaginatingEndpoint,
       paginateRest: () => paginateRest,
       paginatingEndpoints: () => paginatingEndpoints
     });
-    module2.exports = __toCommonJS2(dist_src_exports);
+    module2.exports = __toCommonJS(dist_src_exports);
     var VERSION = "9.2.2";
     function normalizePaginatedListResponse(response) {
       if (!response.data) {
@@ -23487,9 +23811,9 @@ var require_dist_node10 = __commonJS({
                 /<([^<>]+)>;\s*rel="next"/
               ) || [])[1];
               return { value: normalizedResponse };
-            } catch (error4) {
-              if (error4.status !== 409)
-                throw error4;
+            } catch (error10) {
+              if (error10.status !== 409)
+                throw error10;
               url = "";
               return {
                 value: {
@@ -23894,1290 +24218,3127 @@ var require_github = __commonJS({
   }
 });
 
-// src/steps/0-initialize.step.ts
-var initialize_step_exports = {};
-__export(initialize_step_exports, {
-  initialize: () => initialize,
-  main: () => main
-});
-module.exports = __toCommonJS(initialize_step_exports);
-var core7 = __toESM(require_core());
-
-// src/config/env-loader.ts
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
-function parseEnvFile(content) {
-  const result = {};
-  const lines = content.split("\n");
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-    const equalIndex = trimmed.indexOf("=");
-    if (equalIndex === -1) {
-      continue;
-    }
-    const key = trimmed.substring(0, equalIndex).trim();
-    let value = trimmed.substring(equalIndex + 1).trim();
-    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
-      value = value.slice(1, -1);
-    }
-    result[key] = value;
-  }
-  return result;
-}
-function loadEnvLocal(rootDir) {
-  const projectRoot = rootDir || process.cwd();
-  const envLocalPath = path.join(projectRoot, ".env.local");
-  if (!fs.existsSync(envLocalPath)) {
-    return {};
-  }
-  try {
-    const content = fs.readFileSync(envLocalPath, "utf8");
-    return parseEnvFile(content);
-  } catch (error4) {
-    console.warn(`Warning: Could not load .env.local file: ${error4}`);
-    return {};
-  }
-}
-function loadEnvironmentConfig() {
-  const envLocal = loadEnvLocal();
-  const merged = {};
-  Object.assign(merged, envLocal);
-  for (const [key, value] of Object.entries(process.env)) {
-    if (value !== void 0) {
-      merged[key] = value;
-    }
-  }
-  return merged;
-}
-function initializeEnvironment() {
-  const envLocal = loadEnvLocal();
-  for (const [key, value] of Object.entries(envLocal)) {
-    if (process.env[key] === void 0) {
-      process.env[key] = value;
-    }
-  }
-}
-
-// src/config/default.config.ts
-initializeEnvironment();
-var environmentDefaults = {
-  // GitHub Configuration (no real tokens, safe for testing)
-  github: {
-    token: "mock-github-token",
-    repository: "test-owner/test-repo",
-    sha: "mock-sha-123456",
-    actor: "yofix-bot",
-    eventName: "pull_request",
-    actions: "false"
-    // Not in GitHub Actions by default
-  },
-  // Storage Configuration (mock/test values)
-  storage: {
-    firebase: {
-      projectId: "yofix-test-project",
-      clientEmail: "test@yofix-test-project.iam.gserviceaccount.com",
-      privateKey: "-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY_FOR_TESTING\n-----END PRIVATE KEY-----\n",
-      storageBucket: "yofix-test-project.appspot.com"
-    },
-    s3: {
-      accessKeyId: "MOCK_ACCESS_KEY_ID",
-      secretAccessKey: "mock-secret-access-key",
-      region: "us-east-1",
-      bucket: "yofix-test-bucket"
-    }
-  },
-  // AI Configuration
-  ai: {
-    claudeApiKey: "mock-claude-api-key",
-    anthropicApiKey: "mock-anthropic-api-key"
-  },
-  // Environment
-  nodeEnv: "development"
-};
-function getEnvWithDefaults(key) {
-  const envConfig = loadEnvironmentConfig();
-  if (envConfig[key] !== void 0) {
-    return envConfig[key];
-  }
-  return getEnvironmentDefault(key);
-}
-function getEnvironmentDefault(key) {
-  if (key === "GITHUB_TOKEN" || key === "INPUT_GITHUB_TOKEN") {
-    return environmentDefaults.github.token;
-  }
-  if (key === "GITHUB_REPOSITORY") {
-    return environmentDefaults.github.repository;
-  }
-  if (key === "GITHUB_SHA") {
-    return environmentDefaults.github.sha;
-  }
-  if (key === "GITHUB_ACTOR") {
-    return environmentDefaults.github.actor;
-  }
-  if (key === "GITHUB_EVENT_NAME") {
-    return environmentDefaults.github.eventName;
-  }
-  if (key === "GITHUB_ACTIONS") {
-    return environmentDefaults.github.actions;
-  }
-  if (key === "CLAUDE_API_KEY" || key === "ANTHROPIC_API_KEY") {
-    return environmentDefaults.ai.claudeApiKey;
-  }
-  if (key === "FIREBASE_PROJECT_ID") {
-    return environmentDefaults.storage.firebase.projectId;
-  }
-  if (key === "FIREBASE_CLIENT_EMAIL") {
-    return environmentDefaults.storage.firebase.clientEmail;
-  }
-  if (key === "FIREBASE_PRIVATE_KEY") {
-    return environmentDefaults.storage.firebase.privateKey;
-  }
-  if (key === "FIREBASE_STORAGE_BUCKET") {
-    return environmentDefaults.storage.firebase.storageBucket;
-  }
-  if (key === "AWS_ACCESS_KEY_ID") {
-    return environmentDefaults.storage.s3.accessKeyId;
-  }
-  if (key === "AWS_SECRET_ACCESS_KEY") {
-    return environmentDefaults.storage.s3.secretAccessKey;
-  }
-  if (key === "AWS_REGION") {
-    return environmentDefaults.storage.s3.region;
-  }
-  if (key === "S3_BUCKET") {
-    return environmentDefaults.storage.s3.bucket;
-  }
-  if (key === "NODE_ENV") {
-    return environmentDefaults.nodeEnv;
-  }
-  return void 0;
-}
-
-// src/core/hooks/EnvironmentHook.ts
-var NodeEnvironmentHook = class {
-  get(name, defaultValue) {
-    const value = process.env[name];
-    return value !== void 0 ? value : defaultValue;
-  }
-  getRequired(name) {
-    const value = process.env[name];
-    if (value === void 0) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    return value;
-  }
-  has(name) {
-    return name in process.env;
-  }
-  getByPrefix(prefix) {
-    const result = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (key.startsWith(prefix) && value !== void 0) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-  set(name, value) {
-    process.env[name] = value;
-  }
-  unset(name) {
-    delete process.env[name];
-  }
-  getEnvironment() {
-    var _a;
-    const nodeEnv = (_a = process.env.NODE_ENV) == null ? void 0 : _a.toLowerCase();
-    switch (nodeEnv) {
-      case "production":
-        return "production";
-      case "development":
-        return "development";
-      case "test":
-        return "test";
-      default:
-        return "unknown";
-    }
-  }
-  getWithDefaults(name) {
-    return getEnvWithDefaults(name);
-  }
-};
-var MockEnvironmentHook = class {
-  constructor(initialEnv = {}) {
-    this.env = /* @__PURE__ */ new Map();
-    for (const [key, value] of Object.entries(initialEnv)) {
-      this.env.set(key, value);
-    }
-  }
-  get(name, defaultValue) {
-    const value = this.env.get(name);
-    return value !== void 0 ? value : defaultValue;
-  }
-  getRequired(name) {
-    const value = this.env.get(name);
-    if (value === void 0) {
-      throw new Error(`Required environment variable ${name} is not set`);
-    }
-    return value;
-  }
-  has(name) {
-    return this.env.has(name);
-  }
-  getByPrefix(prefix) {
-    const result = {};
-    for (const [key, value] of this.env.entries()) {
-      if (key.startsWith(prefix)) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-  set(name, value) {
-    this.env.set(name, value);
-  }
-  unset(name) {
-    this.env.delete(name);
-  }
-  getEnvironment() {
-    var _a;
-    const nodeEnv = (_a = this.env.get("NODE_ENV")) == null ? void 0 : _a.toLowerCase();
-    switch (nodeEnv) {
-      case "production":
-        return "production";
-      case "development":
-        return "development";
-      case "test":
-        return "test";
-      default:
-        return "unknown";
-    }
-  }
-  getWithDefaults(name) {
-    const mockValue = this.env.get(name);
-    if (mockValue !== void 0) {
-      return mockValue;
-    }
-    return getEnvWithDefaults(name);
-  }
-  /**
-   * Clear all environment variables (useful for testing)
-   */
-  clear() {
-    this.env.clear();
-  }
-  /**
-   * Load from object (useful for testing)
-   */
-  loadFromObject(env2) {
-    this.clear();
-    for (const [key, value] of Object.entries(env2)) {
-      this.env.set(key, value);
-    }
-  }
-};
-var EnvironmentHookFactory = class {
-  /**
-   * Get or create environment hook instance
-   */
-  static getHook() {
-    if (!this.instance) {
-      this.instance = this.createDefaultHook();
-    }
-    return this.instance;
-  }
-  /**
-   * Set custom environment hook (useful for testing)
-   */
-  static setHook(hook) {
-    this.instance = hook;
-  }
-  /**
-   * Reset the factory (useful for testing)
-   */
-  static reset() {
-    this.instance = void 0;
-  }
-  /**
-   * Create default environment hook based on runtime
-   */
-  static createDefaultHook() {
-    var _a;
-    if (typeof process !== "undefined" && ((_a = process.env) == null ? void 0 : _a.NODE_ENV) === "test") {
-      return new MockEnvironmentHook(process.env);
-    }
-    if (typeof process !== "undefined" && process.env) {
-      return new NodeEnvironmentHook();
-    }
-    return new MockEnvironmentHook();
-  }
-};
-function getEnvironment() {
-  return EnvironmentHookFactory.getHook();
-}
-var env = {
-  get: (name, defaultValue) => getEnvironment().get(name, defaultValue),
-  getRequired: (name) => getEnvironment().getRequired(name),
-  getWithDefaults: (name) => getEnvironment().getWithDefaults(name),
-  has: (name) => getEnvironment().has(name),
-  is: (name, value) => getEnvironment().get(name) === value,
-  isDevelopment: () => getEnvironment().getEnvironment() === "development",
-  isProduction: () => getEnvironment().getEnvironment() === "production",
-  isTest: () => getEnvironment().getEnvironment() === "test"
-};
-
 // src/core/github/GitHubServiceFactory.ts
-var LRUCache = class {
-  constructor(maxSize = 100) {
-    this.maxSize = maxSize;
-    this.cache = /* @__PURE__ */ new Map();
-    this.accessOrder = /* @__PURE__ */ new Map();
-    this.accessCounter = 0;
-  }
-  get(key) {
-    const entry = this.cache.get(key);
-    if (!entry) return void 0;
-    if (Date.now() > entry.timestamp + entry.ttl) {
-      this.delete(key);
-      return void 0;
-    }
-    this.accessOrder.set(key, ++this.accessCounter);
-    return entry.data;
-  }
-  set(key, data, ttlMs) {
-    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      this.evictOldest();
-    }
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl: ttlMs
-    });
-    this.accessOrder.set(key, ++this.accessCounter);
-  }
-  delete(key) {
-    this.cache.delete(key);
-    this.accessOrder.delete(key);
-  }
-  clear() {
-    this.cache.clear();
-    this.accessOrder.clear();
-    this.accessCounter = 0;
-  }
-  evictOldest() {
-    let oldestKey = "";
-    let oldestAccess = Infinity;
-    for (const [key, access2] of this.accessOrder.entries()) {
-      if (access2 < oldestAccess) {
-        oldestAccess = access2;
-        oldestKey = key;
+var LRUCache, RateLimiter, RetryHelper, MockGitHubService, EnhancedGitHubService, OctokitGitHubService, LazyGitHubService, GitHubServiceFactory;
+var init_GitHubServiceFactory = __esm({
+  "src/core/github/GitHubServiceFactory.ts"() {
+    init_EnvironmentHook();
+    LRUCache = class {
+      constructor(maxSize = 100) {
+        this.maxSize = maxSize;
+        this.cache = /* @__PURE__ */ new Map();
+        this.accessOrder = /* @__PURE__ */ new Map();
+        this.accessCounter = 0;
       }
-    }
-    if (oldestKey) {
-      this.delete(oldestKey);
-    }
-  }
-};
-var RateLimiter = class {
-  constructor(maxTokens, refillRate) {
-    this.maxTokens = maxTokens;
-    this.refillRate = refillRate;
-    this.tokens = maxTokens;
-    this.lastRefill = Date.now();
-  }
-  async waitForToken() {
-    this.refillTokens();
-    if (this.tokens >= 1) {
-      this.tokens--;
-      return;
-    }
-    const waitTime = (1 - this.tokens) / this.refillRate * 1e3;
-    await new Promise((resolve) => setTimeout(resolve, waitTime));
-    this.tokens--;
-  }
-  refillTokens() {
-    const now = Date.now();
-    const timePassed = (now - this.lastRefill) / 1e3;
-    const tokensToAdd = timePassed * this.refillRate;
-    this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
-    this.lastRefill = now;
-  }
-  reset() {
-    this.tokens = this.maxTokens;
-    this.lastRefill = Date.now();
-  }
-};
-var RetryHelper = class {
-  static async withExponentialBackoff(operation, maxRetries = 3, baseDelayMs = 1e3, maxDelayMs = 3e4) {
-    let lastError;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error4) {
-        lastError = error4;
-        if (error4.status && error4.status >= 400 && error4.status < 500) {
-          throw error4;
+      get(key) {
+        const entry = this.cache.get(key);
+        if (!entry) return void 0;
+        if (Date.now() > entry.timestamp + entry.ttl) {
+          this.delete(key);
+          return void 0;
         }
-        if (attempt === maxRetries) {
-          break;
+        this.accessOrder.set(key, ++this.accessCounter);
+        return entry.data;
+      }
+      set(key, data, ttlMs) {
+        if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+          this.evictOldest();
         }
-        const delay2 = Math.min(
-          maxDelayMs,
-          baseDelayMs * Math.pow(2, attempt) + Math.random() * 1e3
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay2));
-      }
-    }
-    throw lastError;
-  }
-};
-var MockGitHubService = class {
-  constructor() {
-    this.configured = false;
-    this.config = {};
-    this.mockData = {
-      files: /* @__PURE__ */ new Map(),
-      comments: /* @__PURE__ */ new Map(),
-      fileContents: /* @__PURE__ */ new Map(),
-      checkRuns: /* @__PURE__ */ new Map(),
-      context: {
-        owner: "test-owner",
-        repo: "test-repo",
-        sha: "test-sha",
-        prNumber: 123,
-        actor: "test-actor",
-        eventName: "pull_request",
-        payload: {
-          pull_request: { number: 123, head: { sha: "test-sha" } },
-          issue: { number: 123, pull_request: {} },
-          comment: { id: 1, body: "test comment", user: { login: "test-user" } }
-        }
-      }
-    };
-  }
-  async configure(config2) {
-    this.config = config2;
-    this.configured = true;
-  }
-  isConfigured() {
-    return this.configured;
-  }
-  // Mock data setters for testing
-  setMockFiles(prNumber, files) {
-    this.mockData.files.set(`${prNumber}`, files);
-  }
-  setMockComments(issueNumber, comments) {
-    this.mockData.comments.set(`${issueNumber}`, comments);
-  }
-  setMockFileContent(path4, content) {
-    this.mockData.fileContents.set(path4, content);
-  }
-  setMockContext(context) {
-    this.mockData.context = { ...this.mockData.context, ...context };
-  }
-  // Implementation of interface methods
-  async listPullRequestFiles() {
-    const context = this.getContext();
-    return this.mockData.files.get(`${context.prNumber}`) || [];
-  }
-  async createComment(body) {
-    const context = this.getContext();
-    const comment = { id: Date.now(), body, user: { login: "test-bot" }, created_at: (/* @__PURE__ */ new Date()).toISOString() };
-    const comments = this.mockData.comments.get(`${context.prNumber}`) || [];
-    comments.push(comment);
-    this.mockData.comments.set(`${context.prNumber}`, comments);
-    return { id: comment.id, html_url: `https://github.com/${context.owner}/${context.repo}/pull/${context.prNumber}#comment-${comment.id}` };
-  }
-  async updateComment(commentId, body) {
-    for (const [issueNumber, comments] of this.mockData.comments.entries()) {
-      const commentIndex = comments.findIndex((c) => c.id === commentId);
-      if (commentIndex !== -1) {
-        comments[commentIndex].body = body;
-        this.mockData.comments.set(issueNumber, comments);
-        return;
-      }
-    }
-    console.log(`Mock: Updated comment ${commentId} with body: ${body}`);
-  }
-  async listComments() {
-    const context = this.getContext();
-    return this.mockData.comments.get(`${context.prNumber}`) || [];
-  }
-  async addReaction(commentId, reaction) {
-    console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
-  }
-  async getFileContent(path4, ref) {
-    return this.mockData.fileContents.get(path4) || null;
-  }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
-  }
-  async listCheckRuns(ref) {
-    const context = this.getContext();
-    const finalRef = ref || context.sha || "main";
-    return this.mockData.checkRuns.get(finalRef) || [];
-  }
-  async createCheckRun(data) {
-    const context = this.getContext();
-    const checkRun = { ...data, id: Date.now() };
-    const runs = this.mockData.checkRuns.get(context.sha || "main") || [];
-    runs.push(checkRun);
-    this.mockData.checkRuns.set(context.sha || "main", runs);
-    return { id: checkRun.id };
-  }
-  async updateCheckRun(checkRunId, data) {
-    for (const [ref, checkRuns] of this.mockData.checkRuns.entries()) {
-      const checkRunIndex = checkRuns.findIndex((c) => c.id === checkRunId);
-      if (checkRunIndex !== -1) {
-        checkRuns[checkRunIndex] = { ...checkRuns[checkRunIndex], ...data };
-        this.mockData.checkRuns.set(ref, checkRuns);
-        return;
-      }
-    }
-    console.log(`Mock: Updated check run ${checkRunId}`);
-  }
-  async createIssue(title, body, labels) {
-    const context = this.getContext();
-    const issueNumber = Date.now();
-    return {
-      number: issueNumber,
-      html_url: `https://github.com/${context.owner}/${context.repo}/issues/${issueNumber}`
-    };
-  }
-  getContext() {
-    return this.mockData.context;
-  }
-  getPRNumber() {
-    return this.mockData.context.prNumber;
-  }
-  // Test helper methods
-  setMockPRFiles(owner, repo, prNumber, files) {
-    this.mockData.files.set(`${prNumber}`, files);
-  }
-};
-var EnhancedGitHubService = class {
-  constructor() {
-    this.config = {};
-  }
-  async configure(config2) {
-    var _a, _b, _c, _d, _e;
-    this.config = { ...config2 };
-    if (((_a = config2.cache) == null ? void 0 : _a.enabled) !== false) {
-      this.cache = new LRUCache(((_b = config2.cache) == null ? void 0 : _b.maxSize) || 100);
-    }
-    if (((_c = config2.rateLimit) == null ? void 0 : _c.enabled) !== false) {
-      const requestsPerHour = ((_d = config2.rateLimit) == null ? void 0 : _d.requestsPerHour) || 5e3;
-      const requestsPerSecond = requestsPerHour / 3600;
-      this.rateLimiter = new RateLimiter(
-        ((_e = config2.rateLimit) == null ? void 0 : _e.burstLimit) || 10,
-        requestsPerSecond
-      );
-    }
-    if (config2.token) {
-      const github = await Promise.resolve().then(() => __toESM(require_github()));
-      this.octokit = github.getOctokit(config2.token);
-    }
-  }
-  isConfigured() {
-    return !!this.octokit;
-  }
-  ensureConfigured() {
-    if (!this.octokit) {
-      throw new Error("GitHub service not configured. Call configure() first.");
-    }
-  }
-  getCacheKey(method, ...args) {
-    return `${method}:${JSON.stringify(args)}`;
-  }
-  async withCacheAndRateLimit(cacheKey, operation, cacheable = true) {
-    var _a;
-    if (cacheable && this.cache) {
-      const cached = this.cache.get(cacheKey);
-      if (cached !== void 0) {
-        return cached;
-      }
-    }
-    if (this.rateLimiter) {
-      await this.rateLimiter.waitForToken();
-    }
-    const retryConfig = this.config.retry;
-    const result = await RetryHelper.withExponentialBackoff(
-      operation,
-      (retryConfig == null ? void 0 : retryConfig.enabled) !== false ? (retryConfig == null ? void 0 : retryConfig.maxRetries) || 3 : 0,
-      (retryConfig == null ? void 0 : retryConfig.baseDelayMs) || 1e3,
-      (retryConfig == null ? void 0 : retryConfig.maxDelayMs) || 3e4
-    );
-    if (cacheable && this.cache) {
-      const ttl = ((_a = this.config.cache) == null ? void 0 : _a.ttlMs) || 3e5;
-      this.cache.set(cacheKey, result, ttl);
-    }
-    return result;
-  }
-  async listPullRequestFiles() {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const cacheKey = this.getCacheKey("listPullRequestFiles", context.owner, context.repo, context.prNumber);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      console.log(`[EnhancedGitHubService] Listing PR files for PR #${context.prNumber}`);
-      if (!context.prNumber) {
-        throw new Error("[EnhancedGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
-      }
-      const { data } = await this.octokit.rest.pulls.listFiles({
-        owner: context.owner,
-        repo: context.repo,
-        pull_number: context.prNumber,
-        per_page: 100
-      });
-      console.log(`[EnhancedGitHubService] Found ${data.length} files in PR #${context.prNumber}:`);
-      data.forEach((file, index) => {
-        console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
-      });
-      return data;
-    });
-  }
-  async createComment(body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      const { data } = await this.octokit.rest.issues.createComment({
-        owner: context.owner,
-        repo: context.repo,
-        issue_number: context.prNumber,
-        body
-      });
-      if (this.cache) {
-        const listCommentsKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
-        this.cache.delete(listCommentsKey);
-      }
-      return { id: data.id, html_url: data.html_url };
-    }, false);
-  }
-  async updateComment(commentId, body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      await this.octokit.rest.issues.updateComment({
-        owner: context.owner,
-        repo: context.repo,
-        comment_id: commentId,
-        body
-      });
-      if (this.cache) {
-      }
-    }, false);
-  }
-  async listComments() {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const cacheKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      const { data } = await this.octokit.rest.issues.listComments({
-        owner: context.owner,
-        repo: context.repo,
-        issue_number: context.prNumber,
-        per_page: 100
-      });
-      return data;
-    });
-  }
-  async addReaction(commentId, reaction) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      await this.octokit.rest.reactions.createForIssueComment({
-        owner: context.owner,
-        repo: context.repo,
-        comment_id: commentId,
-        content: reaction
-      });
-    }, false);
-  }
-  async getFileContent(path4, ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path4, ref);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      try {
-        const { data } = await this.octokit.rest.repos.getContent({
-          owner: context.owner,
-          repo: context.repo,
-          path: path4,
-          ref
+        this.cache.set(key, {
+          data,
+          timestamp: Date.now(),
+          ttl: ttlMs
         });
-        if ("content" in data && !Array.isArray(data)) {
+        this.accessOrder.set(key, ++this.accessCounter);
+      }
+      delete(key) {
+        this.cache.delete(key);
+        this.accessOrder.delete(key);
+      }
+      clear() {
+        this.cache.clear();
+        this.accessOrder.clear();
+        this.accessCounter = 0;
+      }
+      evictOldest() {
+        let oldestKey = "";
+        let oldestAccess = Infinity;
+        for (const [key, access2] of this.accessOrder.entries()) {
+          if (access2 < oldestAccess) {
+            oldestAccess = access2;
+            oldestKey = key;
+          }
+        }
+        if (oldestKey) {
+          this.delete(oldestKey);
+        }
+      }
+    };
+    RateLimiter = class {
+      constructor(maxTokens, refillRate) {
+        this.maxTokens = maxTokens;
+        this.refillRate = refillRate;
+        this.tokens = maxTokens;
+        this.lastRefill = Date.now();
+      }
+      async waitForToken() {
+        this.refillTokens();
+        if (this.tokens >= 1) {
+          this.tokens--;
+          return;
+        }
+        const waitTime = (1 - this.tokens) / this.refillRate * 1e3;
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        this.tokens--;
+      }
+      refillTokens() {
+        const now = Date.now();
+        const timePassed = (now - this.lastRefill) / 1e3;
+        const tokensToAdd = timePassed * this.refillRate;
+        this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
+        this.lastRefill = now;
+      }
+      reset() {
+        this.tokens = this.maxTokens;
+        this.lastRefill = Date.now();
+      }
+    };
+    RetryHelper = class {
+      static async withExponentialBackoff(operation, maxRetries = 3, baseDelayMs = 1e3, maxDelayMs = 3e4) {
+        let lastError;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            return await operation();
+          } catch (error10) {
+            lastError = error10;
+            if (error10.status && error10.status >= 400 && error10.status < 500) {
+              throw error10;
+            }
+            if (attempt === maxRetries) {
+              break;
+            }
+            const delay2 = Math.min(
+              maxDelayMs,
+              baseDelayMs * Math.pow(2, attempt) + Math.random() * 1e3
+            );
+            await new Promise((resolve) => setTimeout(resolve, delay2));
+          }
+        }
+        throw lastError;
+      }
+    };
+    MockGitHubService = class {
+      constructor() {
+        this.configured = false;
+        this.config = {};
+        this.mockData = {
+          files: /* @__PURE__ */ new Map(),
+          comments: /* @__PURE__ */ new Map(),
+          fileContents: /* @__PURE__ */ new Map(),
+          checkRuns: /* @__PURE__ */ new Map(),
+          context: {
+            owner: "test-owner",
+            repo: "test-repo",
+            sha: "test-sha",
+            prNumber: 123,
+            actor: "test-actor",
+            eventName: "pull_request",
+            payload: {
+              pull_request: { number: 123, head: { sha: "test-sha" } },
+              issue: { number: 123, pull_request: {} },
+              comment: { id: 1, body: "test comment", user: { login: "test-user" } }
+            }
+          }
+        };
+      }
+      async configure(config2) {
+        this.config = config2;
+        this.configured = true;
+      }
+      isConfigured() {
+        return this.configured;
+      }
+      // Mock data setters for testing
+      setMockFiles(prNumber, files) {
+        this.mockData.files.set(`${prNumber}`, files);
+      }
+      setMockComments(issueNumber, comments) {
+        this.mockData.comments.set(`${issueNumber}`, comments);
+      }
+      setMockFileContent(path7, content) {
+        this.mockData.fileContents.set(path7, content);
+      }
+      setMockContext(context) {
+        this.mockData.context = { ...this.mockData.context, ...context };
+      }
+      // Implementation of interface methods
+      async listPullRequestFiles() {
+        const context = this.getContext();
+        return this.mockData.files.get(`${context.prNumber}`) || [];
+      }
+      async createComment(body) {
+        const context = this.getContext();
+        const comment = { id: Date.now(), body, user: { login: "test-bot" }, created_at: (/* @__PURE__ */ new Date()).toISOString() };
+        const comments = this.mockData.comments.get(`${context.prNumber}`) || [];
+        comments.push(comment);
+        this.mockData.comments.set(`${context.prNumber}`, comments);
+        return { id: comment.id, html_url: `https://github.com/${context.owner}/${context.repo}/pull/${context.prNumber}#comment-${comment.id}` };
+      }
+      async updateComment(commentId, body) {
+        for (const [issueNumber, comments] of this.mockData.comments.entries()) {
+          const commentIndex = comments.findIndex((c) => c.id === commentId);
+          if (commentIndex !== -1) {
+            comments[commentIndex].body = body;
+            this.mockData.comments.set(issueNumber, comments);
+            return;
+          }
+        }
+        console.log(`Mock: Updated comment ${commentId} with body: ${body}`);
+      }
+      async listComments() {
+        const context = this.getContext();
+        return this.mockData.comments.get(`${context.prNumber}`) || [];
+      }
+      async addReaction(commentId, reaction) {
+        console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
+      }
+      async getFileContent(path7, ref) {
+        return this.mockData.fileContents.get(path7) || null;
+      }
+      async getContent(path7, ref) {
+        return this.getFileContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        const context = this.getContext();
+        const finalRef = ref || context.sha || "main";
+        return this.mockData.checkRuns.get(finalRef) || [];
+      }
+      async createCheckRun(data) {
+        const context = this.getContext();
+        const checkRun = { ...data, id: Date.now() };
+        const runs = this.mockData.checkRuns.get(context.sha || "main") || [];
+        runs.push(checkRun);
+        this.mockData.checkRuns.set(context.sha || "main", runs);
+        return { id: checkRun.id };
+      }
+      async updateCheckRun(checkRunId, data) {
+        for (const [ref, checkRuns] of this.mockData.checkRuns.entries()) {
+          const checkRunIndex = checkRuns.findIndex((c) => c.id === checkRunId);
+          if (checkRunIndex !== -1) {
+            checkRuns[checkRunIndex] = { ...checkRuns[checkRunIndex], ...data };
+            this.mockData.checkRuns.set(ref, checkRuns);
+            return;
+          }
+        }
+        console.log(`Mock: Updated check run ${checkRunId}`);
+      }
+      async createIssue(title, body, labels) {
+        const context = this.getContext();
+        const issueNumber = Date.now();
+        return {
+          number: issueNumber,
+          html_url: `https://github.com/${context.owner}/${context.repo}/issues/${issueNumber}`
+        };
+      }
+      getContext() {
+        return this.mockData.context;
+      }
+      getPRNumber() {
+        return this.mockData.context.prNumber;
+      }
+      // Test helper methods
+      setMockPRFiles(owner, repo, prNumber, files) {
+        this.mockData.files.set(`${prNumber}`, files);
+      }
+    };
+    EnhancedGitHubService = class {
+      constructor() {
+        this.config = {};
+      }
+      async configure(config2) {
+        this.config = { ...config2 };
+        if (config2.cache?.enabled !== false) {
+          this.cache = new LRUCache(config2.cache?.maxSize || 100);
+        }
+        if (config2.rateLimit?.enabled !== false) {
+          const requestsPerHour = config2.rateLimit?.requestsPerHour || 5e3;
+          const requestsPerSecond = requestsPerHour / 3600;
+          this.rateLimiter = new RateLimiter(
+            config2.rateLimit?.burstLimit || 10,
+            requestsPerSecond
+          );
+        }
+        if (config2.token) {
+          const github = await Promise.resolve().then(() => __toESM(require_github()));
+          this.octokit = github.getOctokit(config2.token);
+        }
+      }
+      isConfigured() {
+        return !!this.octokit;
+      }
+      ensureConfigured() {
+        if (!this.octokit) {
+          throw new Error("GitHub service not configured. Call configure() first.");
+        }
+      }
+      getCacheKey(method, ...args) {
+        return `${method}:${JSON.stringify(args)}`;
+      }
+      async withCacheAndRateLimit(cacheKey, operation, cacheable = true) {
+        if (cacheable && this.cache) {
+          const cached = this.cache.get(cacheKey);
+          if (cached !== void 0) {
+            return cached;
+          }
+        }
+        if (this.rateLimiter) {
+          await this.rateLimiter.waitForToken();
+        }
+        const retryConfig = this.config.retry;
+        const result = await RetryHelper.withExponentialBackoff(
+          operation,
+          retryConfig?.enabled !== false ? retryConfig?.maxRetries || 3 : 0,
+          retryConfig?.baseDelayMs || 1e3,
+          retryConfig?.maxDelayMs || 3e4
+        );
+        if (cacheable && this.cache) {
+          const ttl = this.config.cache?.ttlMs || 3e5;
+          this.cache.set(cacheKey, result, ttl);
+        }
+        return result;
+      }
+      async listPullRequestFiles() {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const cacheKey = this.getCacheKey("listPullRequestFiles", context.owner, context.repo, context.prNumber);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          console.log(`[EnhancedGitHubService] Listing PR files for PR #${context.prNumber}`);
+          if (!context.prNumber) {
+            throw new Error("[EnhancedGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
+          }
+          const { data } = await this.octokit.rest.pulls.listFiles({
+            owner: context.owner,
+            repo: context.repo,
+            pull_number: context.prNumber,
+            per_page: 100
+          });
+          console.log(`[EnhancedGitHubService] Found ${data.length} files in PR #${context.prNumber}:`);
+          data.forEach((file, index) => {
+            console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
+          });
+          return data;
+        });
+      }
+      async createComment(body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          const { data } = await this.octokit.rest.issues.createComment({
+            owner: context.owner,
+            repo: context.repo,
+            issue_number: context.prNumber,
+            body
+          });
+          if (this.cache) {
+            const listCommentsKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
+            this.cache.delete(listCommentsKey);
+          }
+          return { id: data.id, html_url: data.html_url };
+        }, false);
+      }
+      async updateComment(commentId, body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          await this.octokit.rest.issues.updateComment({
+            owner: context.owner,
+            repo: context.repo,
+            comment_id: commentId,
+            body
+          });
+          if (this.cache) {
+          }
+        }, false);
+      }
+      async listComments() {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const cacheKey = this.getCacheKey("listComments", context.owner, context.repo, context.prNumber);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          const { data } = await this.octokit.rest.issues.listComments({
+            owner: context.owner,
+            repo: context.repo,
+            issue_number: context.prNumber,
+            per_page: 100
+          });
+          return data;
+        });
+      }
+      async addReaction(commentId, reaction) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          await this.octokit.rest.reactions.createForIssueComment({
+            owner: context.owner,
+            repo: context.repo,
+            comment_id: commentId,
+            content: reaction
+          });
+        }, false);
+      }
+      async getFileContent(path7, ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path7, ref);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          try {
+            const { data } = await this.octokit.rest.repos.getContent({
+              owner: context.owner,
+              repo: context.repo,
+              path: path7,
+              ref
+            });
+            if ("content" in data && !Array.isArray(data)) {
+              return {
+                path: data.path,
+                content: data.content,
+                encoding: data.encoding,
+                sha: data.sha
+              };
+            }
+            return null;
+          } catch (error10) {
+            if (error10.status === 404) {
+              return null;
+            }
+            throw error10;
+          }
+        });
+      }
+      async getContent(path7, ref) {
+        return this.getFileContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const finalRef = ref || context.sha || "main";
+        const cacheKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, finalRef);
+        return this.withCacheAndRateLimit(cacheKey, async () => {
+          const { data } = await this.octokit.rest.checks.listForRef({
+            owner: context.owner,
+            repo: context.repo,
+            ref: finalRef
+          });
+          return data.check_runs;
+        });
+      }
+      async createCheckRun(data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          const { data: result } = await this.octokit.rest.checks.create({
+            owner: context.owner,
+            repo: context.repo,
+            head_sha: context.sha || "main",
+            ...data
+          });
+          if (this.cache) {
+            const listCheckRunsKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, context.sha);
+            this.cache.delete(listCheckRunsKey);
+          }
+          return { id: result.id };
+        }, false);
+      }
+      async updateCheckRun(checkRunId, data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          await this.octokit.rest.checks.update({
+            owner: context.owner,
+            repo: context.repo,
+            check_run_id: checkRunId,
+            ...data
+          });
+        }, false);
+      }
+      async createIssue(title, body, labels) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        return this.withCacheAndRateLimit("", async () => {
+          const { data } = await this.octokit.rest.issues.create({
+            owner: context.owner,
+            repo: context.repo,
+            title,
+            body,
+            labels
+          });
+          return { number: data.number, html_url: data.html_url };
+        }, false);
+      }
+      getContext() {
+        if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
+          try {
+            const github = require_github();
+            const context = github.context;
+            console.log(`[EnhancedGitHubService] Using @actions/github context`);
+            console.log(`[EnhancedGitHubService] Event name: ${context.eventName}`);
+            console.log(`[EnhancedGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+            console.log(`[EnhancedGitHubService] SHA: ${context.sha}`);
+            console.log(`[EnhancedGitHubService] Actor: ${context.actor}`);
+            console.log(`[EnhancedGitHubService] Issue number: ${context.issue.number}`);
+            console.log(`[EnhancedGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+            console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
+            const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
+            console.log(`[EnhancedGitHubService] Final PR number: ${prNumber2}`);
+            return {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              prNumber: prNumber2,
+              actor: context.actor,
+              eventName: context.eventName,
+              payload: context.payload
+            };
+          } catch (error10) {
+            console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error10);
+            console.log("[EnhancedGitHubService] Falling back to environment variables");
+          }
+          const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
+          const [owner, repo] = repository.split("/");
+          let payload = {};
+          const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
+          try {
+            const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
+            if (eventPath) {
+              const fs8 = require("fs");
+              payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+            }
+          } catch (error10) {
+            console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error10);
+          }
+          const prNumber = payload?.pull_request?.number || payload?.issue?.number;
           return {
-            path: data.path,
-            content: data.content,
-            encoding: data.encoding,
-            sha: data.sha
+            owner,
+            repo,
+            sha: env.getWithDefaults("GITHUB_SHA"),
+            prNumber,
+            actor: env.getWithDefaults("GITHUB_ACTOR"),
+            eventName,
+            payload
           };
         }
-        return null;
-      } catch (error4) {
-        if (error4.status === 404) {
+        return {
+          owner: this.config.owner || "",
+          repo: this.config.repo || "",
+          sha: void 0,
+          prNumber: void 0,
+          actor: void 0,
+          eventName: void 0,
+          payload: {}
+        };
+      }
+      getPRNumber() {
+        return this.getContext().prNumber;
+      }
+      /**
+       * Clear cache (useful for testing)
+       */
+      clearCache() {
+        if (this.cache) {
+          this.cache.clear();
+        }
+      }
+      /**
+       * Reset rate limiter (useful for testing)
+       */
+      resetRateLimit() {
+        if (this.rateLimiter) {
+          this.rateLimiter.reset();
+        }
+      }
+    };
+    OctokitGitHubService = class {
+      constructor() {
+        this.config = {};
+      }
+      async configure(config2) {
+        this.config = config2;
+        if (config2.token) {
+          const github = await Promise.resolve().then(() => __toESM(require_github()));
+          this.octokit = github.getOctokit(config2.token);
+        }
+      }
+      isConfigured() {
+        return !!this.octokit;
+      }
+      ensureConfigured() {
+        if (!this.octokit) {
+          throw new Error("GitHub service not configured. Call configure() first.");
+        }
+      }
+      async listPullRequestFiles(owner, repo, prNumber) {
+        this.ensureConfigured();
+        let finalOwner;
+        let finalRepo;
+        let finalPrNumber;
+        if (arguments.length === 0) {
+          const context = this.getContext();
+          finalOwner = context.owner;
+          finalRepo = context.repo;
+          finalPrNumber = context.prNumber;
+          console.log(`[OctokitGitHubService] Listing PR files for PR #${finalPrNumber}`);
+          if (!context.prNumber) {
+            throw new Error("[OctokitGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
+          }
+        } else {
+          finalOwner = owner;
+          finalRepo = repo;
+          finalPrNumber = prNumber;
+        }
+        const { data } = await this.octokit.rest.pulls.listFiles({
+          owner: finalOwner,
+          repo: finalRepo,
+          pull_number: finalPrNumber,
+          per_page: 100
+        });
+        console.log(`[OctokitGitHubService] Found ${data.length} files in PR #${finalPrNumber}:`);
+        data.forEach((file, index) => {
+          console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
+        });
+        return data;
+      }
+      async createComment(body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data } = await this.octokit.rest.issues.createComment({
+          owner: context.owner,
+          repo: context.repo,
+          issue_number: context.prNumber,
+          body
+        });
+        return { id: data.id, html_url: data.html_url };
+      }
+      async updateComment(commentId, body) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        await this.octokit.rest.issues.updateComment({
+          owner: context.owner,
+          repo: context.repo,
+          comment_id: commentId,
+          body
+        });
+      }
+      async listComments() {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data } = await this.octokit.rest.issues.listComments({
+          owner: context.owner,
+          repo: context.repo,
+          issue_number: context.prNumber,
+          per_page: 100
+        });
+        return data;
+      }
+      async addReaction(commentId, reaction) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        await this.octokit.rest.reactions.createForIssueComment({
+          owner: context.owner,
+          repo: context.repo,
+          comment_id: commentId,
+          content: reaction
+        });
+      }
+      async getFileContent(path7, ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        try {
+          const { data } = await this.octokit.rest.repos.getContent({
+            owner: context.owner,
+            repo: context.repo,
+            path: path7,
+            ref
+          });
+          if ("content" in data && !Array.isArray(data)) {
+            return {
+              path: data.path,
+              content: data.content,
+              encoding: data.encoding,
+              sha: data.sha
+            };
+          }
+          return null;
+        } catch (error10) {
+          if (error10.status === 404) {
+            return null;
+          }
+          throw error10;
+        }
+      }
+      async getContent(path7, ref) {
+        return this.getFileContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const finalRef = ref || context.sha || "main";
+        const { data } = await this.octokit.rest.checks.listForRef({
+          owner: context.owner,
+          repo: context.repo,
+          ref: finalRef
+        });
+        return data.check_runs;
+      }
+      async createCheckRun(data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data: result } = await this.octokit.rest.checks.create({
+          owner: context.owner,
+          repo: context.repo,
+          head_sha: context.sha || "main",
+          ...data
+        });
+        return { id: result.id };
+      }
+      async updateCheckRun(checkRunId, data) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        await this.octokit.rest.checks.update({
+          owner: context.owner,
+          repo: context.repo,
+          check_run_id: checkRunId,
+          ...data
+        });
+      }
+      async createIssue(title, body, labels) {
+        this.ensureConfigured();
+        const context = this.getContext();
+        const { data } = await this.octokit.rest.issues.create({
+          owner: context.owner,
+          repo: context.repo,
+          title,
+          body,
+          labels
+        });
+        return { number: data.number, html_url: data.html_url };
+      }
+      getContext() {
+        if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
+          try {
+            const github = require_github();
+            const context = github.context;
+            console.log(`[OctokitGitHubService] Using @actions/github context`);
+            console.log(`[OctokitGitHubService] Event name: ${context.eventName}`);
+            console.log(`[OctokitGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
+            console.log(`[OctokitGitHubService] SHA: ${context.sha}`);
+            console.log(`[OctokitGitHubService] Actor: ${context.actor}`);
+            console.log(`[OctokitGitHubService] Issue number: ${context.issue.number}`);
+            console.log(`[OctokitGitHubService] Payload PR number: ${context.payload.pull_request?.number}`);
+            console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
+            const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
+            console.log(`[OctokitGitHubService] Final PR number: ${prNumber2}`);
+            return {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              prNumber: prNumber2,
+              actor: context.actor,
+              eventName: context.eventName,
+              payload: context.payload
+            };
+          } catch (error10) {
+            console.error("[OctokitGitHubService] Failed to use @actions/github context:", error10);
+            console.log("[OctokitGitHubService] Falling back to environment variables");
+          }
+          const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
+          const [owner, repo] = repository.split("/");
+          let payload = {};
+          const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
+          try {
+            const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
+            if (eventPath) {
+              const fs8 = require("fs");
+              payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+            }
+          } catch (error10) {
+            console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error10);
+          }
+          const prNumber = payload?.pull_request?.number || payload?.issue?.number;
+          return {
+            owner,
+            repo,
+            sha: env.getWithDefaults("GITHUB_SHA"),
+            prNumber,
+            actor: env.getWithDefaults("GITHUB_ACTOR"),
+            eventName,
+            payload
+          };
+        }
+        return {
+          owner: this.config.owner || "",
+          repo: this.config.repo || "",
+          sha: void 0,
+          prNumber: void 0,
+          actor: void 0,
+          eventName: void 0,
+          payload: {}
+        };
+      }
+      getPRNumber() {
+        return this.getContext().prNumber;
+      }
+    };
+    LazyGitHubService = class {
+      async configure(config2) {
+        this.pendingConfig = { ...this.pendingConfig, ...config2 };
+      }
+      isConfigured() {
+        return !!this.service || !!this.pendingConfig?.token || !!env.getWithDefaults("GITHUB_TOKEN") || !!env.getWithDefaults("INPUT_GITHUB_TOKEN");
+      }
+      async ensureService() {
+        if (!this.service) {
+          const token = this.pendingConfig?.token || env.getWithDefaults("GITHUB_TOKEN") || env.getWithDefaults("INPUT_GITHUB_TOKEN");
+          if (!token && env.getWithDefaults("NODE_ENV") !== "test") {
+            throw new Error("GitHub token not available. Configure with token or set GITHUB_TOKEN environment variable.");
+          }
+          this.service = env.getWithDefaults("NODE_ENV") === "test" ? new MockGitHubService() : new EnhancedGitHubService();
+          await this.service.configure({ ...this.pendingConfig, token });
+        }
+        return this.service;
+      }
+      // Delegate all methods to the underlying service
+      async listPullRequestFiles() {
+        const service = await this.ensureService();
+        return service.listPullRequestFiles();
+      }
+      async createComment(body) {
+        const service = await this.ensureService();
+        return service.createComment(body);
+      }
+      async updateComment(commentId, body) {
+        const service = await this.ensureService();
+        return service.updateComment(commentId, body);
+      }
+      async listComments() {
+        const service = await this.ensureService();
+        return service.listComments();
+      }
+      async addReaction(commentId, reaction) {
+        const service = await this.ensureService();
+        return service.addReaction(commentId, reaction);
+      }
+      async getFileContent(path7, ref) {
+        const service = await this.ensureService();
+        return service.getFileContent(path7, ref);
+      }
+      async getContent(path7, ref) {
+        const service = await this.ensureService();
+        return service.getContent(path7, ref);
+      }
+      async listCheckRuns(ref) {
+        const service = await this.ensureService();
+        return service.listCheckRuns(ref);
+      }
+      async createCheckRun(data) {
+        const service = await this.ensureService();
+        return service.createCheckRun(data);
+      }
+      async updateCheckRun(checkRunId, data) {
+        const service = await this.ensureService();
+        return service.updateCheckRun(checkRunId, data);
+      }
+      async createIssue(title, body, labels) {
+        const service = await this.ensureService();
+        return service.createIssue(title, body, labels);
+      }
+      getContext() {
+        if (this.service) {
+          return this.service.getContext();
+        }
+        if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
+          try {
+            const github = require_github();
+            const context = github.context;
+            const prNumber2 = context.payload.pull_request?.number || context.payload.number || context.issue.number;
+            return {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              prNumber: prNumber2,
+              actor: context.actor,
+              eventName: context.eventName,
+              payload: context.payload
+            };
+          } catch (error10) {
+            console.error("[LazyGitHubService] Failed to use @actions/github context:", error10);
+          }
+        }
+        const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
+        const [owner, repo] = repository.split("/");
+        let payload = {};
+        const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
+        try {
+          const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
+          if (eventPath) {
+            const fs8 = require("fs");
+            payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+          }
+        } catch (error10) {
+          console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error10);
+        }
+        const prNumber = payload?.pull_request?.number || payload?.issue?.number;
+        return {
+          owner: this.pendingConfig?.owner || owner || "",
+          repo: this.pendingConfig?.repo || repo || "",
+          sha: env.getWithDefaults("GITHUB_SHA"),
+          prNumber,
+          actor: env.getWithDefaults("GITHUB_ACTOR"),
+          eventName,
+          payload
+        };
+      }
+      getPRNumber() {
+        const context = this.getContext();
+        return context.prNumber;
+      }
+    };
+    GitHubServiceFactory = class {
+      /**
+       * Get or create a GitHub service instance
+       * Uses lazy initialization - token not required until first API call
+       */
+      static getService() {
+        if (!this.instance) {
+          this.instance = new LazyGitHubService();
+        }
+        return this.instance;
+      }
+      /**
+       * Set a custom service instance (useful for testing)
+       */
+      static setService(service) {
+        this.instance = service;
+      }
+      /**
+       * Reset the factory (useful for testing)
+       */
+      static reset() {
+        this.instance = void 0;
+      }
+      /**
+       * Create a new instance without singleton pattern
+       */
+      static createService(options = {}) {
+        const { mock = false, enhanced = true, config: config2 } = options;
+        if (mock || env.getWithDefaults("NODE_ENV") === "test" && mock !== false) {
+          const service2 = new MockGitHubService();
+          if (config2) {
+            service2.configure(config2);
+          }
+          return service2;
+        }
+        if (enhanced) {
+          const service2 = new EnhancedGitHubService();
+          if (config2) {
+            service2.configure(config2);
+          }
+          return service2;
+        }
+        const service = new OctokitGitHubService();
+        if (config2) {
+          service.configure(config2);
+        }
+        return service;
+      }
+      /**
+       * Create enhanced service with custom configuration
+       */
+      static createEnhancedService(config2) {
+        const service = new EnhancedGitHubService();
+        service.configure(config2);
+        return service;
+      }
+    };
+  }
+});
+
+// src/core/github/GitHubCommentEngine.ts
+function getGitHubCommentEngine() {
+  if (!globalInstance) {
+    globalInstance = new GitHubCommentEngine();
+  }
+  return globalInstance;
+}
+var core2, GitHubCommentEngine, globalInstance;
+var init_GitHubCommentEngine = __esm({
+  "src/core/github/GitHubCommentEngine.ts"() {
+    core2 = __toESM(require_core());
+    init_GitHubServiceFactory();
+    GitHubCommentEngine = class {
+      constructor() {
+        // Cache for comment threads
+        this.threadCache = /* @__PURE__ */ new Map();
+        // Error tracking
+        this.errorCount = 0;
+        this.errorSummary = [];
+        this.github = GitHubServiceFactory.getService();
+        this.context = this.github.getContext();
+        this.owner = this.context.owner;
+        this.repo = this.context.repo;
+        this.prNumber = this.context.prNumber || parseInt(process.env.PR_NUMBER || "0");
+      }
+      /**
+       * Post a comment to the PR
+       */
+      async postComment(message, options = {}) {
+        try {
+          if (this.prNumber === 0) {
+            core2.warning("No PR number found, cannot post comment");
+            return null;
+          }
+          let body = message;
+          if (options.inReplyTo) {
+            const replyUrl = `https://github.com/${this.owner}/${this.repo}/pull/${this.prNumber}#issuecomment-${options.inReplyTo}`;
+            body = `> In reply to [this comment](${replyUrl})
+
+${message}`;
+          }
+          if (options.signature) {
+            body += `
+
+<!-- ${options.signature} -->`;
+          }
+          if (options.threadId) {
+            const existingThreadId = this.threadCache.get(options.threadId);
+            if (existingThreadId) {
+              options.inReplyTo = existingThreadId;
+            }
+          }
+          if (options.isError) {
+            body = `\u274C **Error**
+
+${body}`;
+            this.errorCount++;
+          }
+          if (options.isProgress) {
+            body = `\u23F3 ${body}`;
+          }
+          let commentId;
+          if (options.updateExisting && options.signature) {
+            const existingComment = await this.findCommentBySignature(options.signature);
+            if (existingComment) {
+              await this.github.updateComment(
+                existingComment.id,
+                body
+              );
+              commentId = existingComment.id;
+              core2.info(`Updated existing comment #${commentId}`);
+            } else {
+              const result = await this.github.createComment(body);
+              commentId = result.id;
+              core2.info(`Created new comment #${commentId}`);
+            }
+          } else {
+            const result = await this.github.createComment(body);
+            commentId = result.id;
+            core2.info(`Created comment #${commentId}`);
+          }
+          if (options.threadId && !this.threadCache.has(options.threadId)) {
+            this.threadCache.set(options.threadId, commentId);
+          }
+          if (options.reactions && options.reactions.length > 0) {
+            for (const reaction of options.reactions) {
+              await this.addReaction(commentId, reaction);
+            }
+          }
+          return commentId;
+        } catch (error10) {
+          core2.error(`Failed to post comment: ${error10}`);
           return null;
         }
-        throw error4;
       }
-    });
-  }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
-  }
-  async listCheckRuns(ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const finalRef = ref || context.sha || "main";
-    const cacheKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, finalRef);
-    return this.withCacheAndRateLimit(cacheKey, async () => {
-      const { data } = await this.octokit.rest.checks.listForRef({
-        owner: context.owner,
-        repo: context.repo,
-        ref: finalRef
-      });
-      return data.check_runs;
-    });
-  }
-  async createCheckRun(data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      const { data: result } = await this.octokit.rest.checks.create({
-        owner: context.owner,
-        repo: context.repo,
-        head_sha: context.sha || "main",
-        ...data
-      });
-      if (this.cache) {
-        const listCheckRunsKey = this.getCacheKey("listCheckRuns", context.owner, context.repo, context.sha);
-        this.cache.delete(listCheckRunsKey);
-      }
-      return { id: result.id };
-    }, false);
-  }
-  async updateCheckRun(checkRunId, data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      await this.octokit.rest.checks.update({
-        owner: context.owner,
-        repo: context.repo,
-        check_run_id: checkRunId,
-        ...data
-      });
-    }, false);
-  }
-  async createIssue(title, body, labels) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    return this.withCacheAndRateLimit("", async () => {
-      const { data } = await this.octokit.rest.issues.create({
-        owner: context.owner,
-        repo: context.repo,
-        title,
-        body,
-        labels
-      });
-      return { number: data.number, html_url: data.html_url };
-    }, false);
-  }
-  getContext() {
-    var _a, _b, _c, _d;
-    if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
-      try {
-        const github = require_github();
-        const context = github.context;
-        console.log(`[EnhancedGitHubService] Using @actions/github context`);
-        console.log(`[EnhancedGitHubService] Event name: ${context.eventName}`);
-        console.log(`[EnhancedGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[EnhancedGitHubService] SHA: ${context.sha}`);
-        console.log(`[EnhancedGitHubService] Actor: ${context.actor}`);
-        console.log(`[EnhancedGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[EnhancedGitHubService] Payload PR number: ${(_a = context.payload.pull_request) == null ? void 0 : _a.number}`);
-        console.log(`[EnhancedGitHubService] Payload number: ${context.payload.number}`);
-        const prNumber2 = ((_b = context.payload.pull_request) == null ? void 0 : _b.number) || context.payload.number || context.issue.number;
-        console.log(`[EnhancedGitHubService] Final PR number: ${prNumber2}`);
-        return {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          sha: context.sha,
-          prNumber: prNumber2,
-          actor: context.actor,
-          eventName: context.eventName,
-          payload: context.payload
-        };
-      } catch (error4) {
-        console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error4);
-        console.log("[EnhancedGitHubService] Falling back to environment variables");
-      }
-      const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
-      const [owner, repo] = repository.split("/");
-      let payload = {};
-      const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
-      try {
-        const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
-        if (eventPath) {
-          const fs4 = require("fs");
-          payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
+      // postError() method removed - duplicate logic with CentralizedErrorHandler
+      // Use CentralizedErrorHandler.handleError() for error handling instead
+      // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
+      /**
+       * Post a progress update
+       */
+      async postProgress(message, options = {}) {
+        const commentId = await this.postComment(message, {
+          isProgress: true,
+          threadId: options.threadId,
+          reactions: options.reaction ? [options.reaction] : void 0
+        });
+        if (commentId && options.reaction) {
+          await this.addReaction(commentId, options.reaction);
         }
-      } catch (error4) {
-        console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error4);
       }
-      const prNumber = ((_c = payload == null ? void 0 : payload.pull_request) == null ? void 0 : _c.number) || ((_d = payload == null ? void 0 : payload.issue) == null ? void 0 : _d.number);
-      return {
-        owner,
-        repo,
-        sha: env.getWithDefaults("GITHUB_SHA"),
-        prNumber,
-        actor: env.getWithDefaults("GITHUB_ACTOR"),
-        eventName,
-        payload
-      };
-    }
-    return {
-      owner: this.config.owner || "",
-      repo: this.config.repo || "",
-      sha: void 0,
-      prNumber: void 0,
-      actor: void 0,
-      eventName: void 0,
-      payload: {}
-    };
-  }
-  getPRNumber() {
-    return this.getContext().prNumber;
-  }
-  /**
-   * Clear cache (useful for testing)
-   */
-  clearCache() {
-    if (this.cache) {
-      this.cache.clear();
-    }
-  }
-  /**
-   * Reset rate limiter (useful for testing)
-   */
-  resetRateLimit() {
-    if (this.rateLimiter) {
-      this.rateLimiter.reset();
-    }
-  }
-};
-var OctokitGitHubService = class {
-  constructor() {
-    this.config = {};
-  }
-  async configure(config2) {
-    this.config = config2;
-    if (config2.token) {
-      const github = await Promise.resolve().then(() => __toESM(require_github()));
-      this.octokit = github.getOctokit(config2.token);
-    }
-  }
-  isConfigured() {
-    return !!this.octokit;
-  }
-  ensureConfigured() {
-    if (!this.octokit) {
-      throw new Error("GitHub service not configured. Call configure() first.");
-    }
-  }
-  async listPullRequestFiles(owner, repo, prNumber) {
-    this.ensureConfigured();
-    let finalOwner;
-    let finalRepo;
-    let finalPrNumber;
-    if (arguments.length === 0) {
-      const context = this.getContext();
-      finalOwner = context.owner;
-      finalRepo = context.repo;
-      finalPrNumber = context.prNumber;
-      console.log(`[OctokitGitHubService] Listing PR files for PR #${finalPrNumber}`);
-      if (!context.prNumber) {
-        throw new Error("[OctokitGitHubService] No PR number found in GitHub context. This action requires a pull_request event.");
-      }
-    } else {
-      finalOwner = owner;
-      finalRepo = repo;
-      finalPrNumber = prNumber;
-    }
-    const { data } = await this.octokit.rest.pulls.listFiles({
-      owner: finalOwner,
-      repo: finalRepo,
-      pull_number: finalPrNumber,
-      per_page: 100
-    });
-    console.log(`[OctokitGitHubService] Found ${data.length} files in PR #${finalPrNumber}:`);
-    data.forEach((file, index) => {
-      console.log(`  ${index + 1}. ${file.filename} (${file.status}, +${file.additions}/-${file.deletions})`);
-    });
-    return data;
-  }
-  async createComment(body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data } = await this.octokit.rest.issues.createComment({
-      owner: context.owner,
-      repo: context.repo,
-      issue_number: context.prNumber,
-      body
-    });
-    return { id: data.id, html_url: data.html_url };
-  }
-  async updateComment(commentId, body) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    await this.octokit.rest.issues.updateComment({
-      owner: context.owner,
-      repo: context.repo,
-      comment_id: commentId,
-      body
-    });
-  }
-  async listComments() {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data } = await this.octokit.rest.issues.listComments({
-      owner: context.owner,
-      repo: context.repo,
-      issue_number: context.prNumber,
-      per_page: 100
-    });
-    return data;
-  }
-  async addReaction(commentId, reaction) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    await this.octokit.rest.reactions.createForIssueComment({
-      owner: context.owner,
-      repo: context.repo,
-      comment_id: commentId,
-      content: reaction
-    });
-  }
-  async getFileContent(path4, ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    try {
-      const { data } = await this.octokit.rest.repos.getContent({
-        owner: context.owner,
-        repo: context.repo,
-        path: path4,
-        ref
-      });
-      if ("content" in data && !Array.isArray(data)) {
-        return {
-          path: data.path,
-          content: data.content,
-          encoding: data.encoding,
-          sha: data.sha
+      /**
+       * Post a summary comment (typically at the end of processing)
+       */
+      async postSummary(summary) {
+        let message = `## ${summary.title}
+
+`;
+        const statusEmoji = {
+          success: "\u2705",
+          warning: "\u26A0\uFE0F",
+          error: "\u274C"
         };
-      }
-      return null;
-    } catch (error4) {
-      if (error4.status === 404) {
-        return null;
-      }
-      throw error4;
-    }
-  }
-  async getContent(path4, ref) {
-    return this.getFileContent(path4, ref);
-  }
-  async listCheckRuns(ref) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const finalRef = ref || context.sha || "main";
-    const { data } = await this.octokit.rest.checks.listForRef({
-      owner: context.owner,
-      repo: context.repo,
-      ref: finalRef
-    });
-    return data.check_runs;
-  }
-  async createCheckRun(data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data: result } = await this.octokit.rest.checks.create({
-      owner: context.owner,
-      repo: context.repo,
-      head_sha: context.sha || "main",
-      ...data
-    });
-    return { id: result.id };
-  }
-  async updateCheckRun(checkRunId, data) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    await this.octokit.rest.checks.update({
-      owner: context.owner,
-      repo: context.repo,
-      check_run_id: checkRunId,
-      ...data
-    });
-  }
-  async createIssue(title, body, labels) {
-    this.ensureConfigured();
-    const context = this.getContext();
-    const { data } = await this.octokit.rest.issues.create({
-      owner: context.owner,
-      repo: context.repo,
-      title,
-      body,
-      labels
-    });
-    return { number: data.number, html_url: data.html_url };
-  }
-  getContext() {
-    var _a, _b, _c, _d;
-    if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
-      try {
-        const github = require_github();
-        const context = github.context;
-        console.log(`[OctokitGitHubService] Using @actions/github context`);
-        console.log(`[OctokitGitHubService] Event name: ${context.eventName}`);
-        console.log(`[OctokitGitHubService] Repository: ${context.repo.owner}/${context.repo.repo}`);
-        console.log(`[OctokitGitHubService] SHA: ${context.sha}`);
-        console.log(`[OctokitGitHubService] Actor: ${context.actor}`);
-        console.log(`[OctokitGitHubService] Issue number: ${context.issue.number}`);
-        console.log(`[OctokitGitHubService] Payload PR number: ${(_a = context.payload.pull_request) == null ? void 0 : _a.number}`);
-        console.log(`[OctokitGitHubService] Payload number: ${context.payload.number}`);
-        const prNumber2 = ((_b = context.payload.pull_request) == null ? void 0 : _b.number) || context.payload.number || context.issue.number;
-        console.log(`[OctokitGitHubService] Final PR number: ${prNumber2}`);
-        return {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          sha: context.sha,
-          prNumber: prNumber2,
-          actor: context.actor,
-          eventName: context.eventName,
-          payload: context.payload
-        };
-      } catch (error4) {
-        console.error("[OctokitGitHubService] Failed to use @actions/github context:", error4);
-        console.log("[OctokitGitHubService] Falling back to environment variables");
-      }
-      const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
-      const [owner, repo] = repository.split("/");
-      let payload = {};
-      const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
-      try {
-        const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
-        if (eventPath) {
-          const fs4 = require("fs");
-          payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
+        if (summary.status) {
+          message = `${statusEmoji[summary.status]} ${message}`;
         }
-      } catch (error4) {
-        console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error4);
+        for (const section of summary.sections) {
+          message += `### ${section.heading}
+
+`;
+          message += `${section.content}
+
+`;
+        }
+        if (this.errorCount > 0) {
+          message += `### \u26A0\uFE0F Errors Encountered
+
+`;
+          message += `Total errors: ${this.errorCount}
+
+`;
+          if (this.errorSummary.length > 0) {
+            message += `<details>
+<summary>Error Details</summary>
+
+`;
+            for (const error10 of this.errorSummary) {
+              message += `- **${error10.timestamp.toISOString()}**`;
+              if (error10.location) {
+                message += ` at \`${error10.location}\``;
+              }
+              message += `: ${error10.error}
+`;
+            }
+            message += `
+</details>
+`;
+          }
+        }
+        await this.postComment(message, {
+          signature: "yofix-summary",
+          updateExisting: true
+        });
       }
-      const prNumber = ((_c = payload == null ? void 0 : payload.pull_request) == null ? void 0 : _c.number) || ((_d = payload == null ? void 0 : payload.issue) == null ? void 0 : _d.number);
-      return {
-        owner,
-        repo,
-        sha: env.getWithDefaults("GITHUB_SHA"),
-        prNumber,
-        actor: env.getWithDefaults("GITHUB_ACTOR"),
-        eventName,
-        payload
-      };
-    }
-    return {
-      owner: this.config.owner || "",
-      repo: this.config.repo || "",
-      sha: void 0,
-      prNumber: void 0,
-      actor: void 0,
-      eventName: void 0,
-      payload: {}
+      /**
+       * Add a reaction to a comment
+       */
+      async addReaction(commentId, reaction) {
+        try {
+          await this.github.addReaction(
+            commentId,
+            reaction
+          );
+          core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
+        } catch (error10) {
+          core2.warning(`Failed to add reaction: ${error10}`);
+        }
+      }
+      /**
+       * Post a quick reaction to the triggering comment
+       */
+      async postReaction(reaction) {
+        try {
+          const triggeringCommentId = this.getTriggeringCommentId();
+          if (triggeringCommentId) {
+            await this.addReaction(triggeringCommentId, reaction);
+          }
+        } catch (error10) {
+          core2.warning(`Failed to post reaction: ${error10}`);
+        }
+      }
+      /**
+       * React to a specific comment
+       */
+      async reactToComment(commentId, reaction) {
+        try {
+          await this.addReaction(commentId, reaction);
+        } catch (error10) {
+          core2.warning(`Failed to react to comment: ${error10}`);
+        }
+      }
+      /**
+       * Start a new thread
+       */
+      async startThread(threadId, message, options) {
+        const commentId = await this.postComment(message, {
+          threadId,
+          reactions: options?.reactions
+        });
+        return commentId;
+      }
+      /**
+       * Update a thread
+       */
+      async updateThread(threadId, message, options) {
+        await this.postComment(message, {
+          threadId,
+          updateExisting: true,
+          signature: `yofix-thread-${threadId}`,
+          reactions: options?.reactions
+        });
+      }
+      /**
+       * Reply to a thread
+       */
+      async replyToThread(threadId, message, options) {
+        const threadCommentId = this.threadCache.get(threadId);
+        await this.postComment(message, {
+          threadId,
+          inReplyTo: threadCommentId,
+          reactions: options?.reactions
+        });
+      }
+      /**
+       * Get the ID of the comment that triggered this action
+       */
+      getTriggeringCommentId() {
+        const commentId = parseInt(
+          process.env.GITHUB_EVENT_PATH ? JSON.parse(require("fs").readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"))?.comment?.id || "0" : "0"
+        );
+        return commentId || null;
+      }
+      /**
+       * Find a comment by its signature
+       */
+      async findCommentBySignature(signature) {
+        try {
+          const comments = await this.github.listComments();
+          const signaturePattern = `<!-- ${signature} -->`;
+          const existingComment = comments.find(
+            (comment) => comment.body.includes(signaturePattern)
+          );
+          return existingComment || null;
+        } catch (error10) {
+          core2.warning(`Failed to find comment by signature: ${error10}`);
+          return null;
+        }
+      }
+      /**
+       * Delete all bot comments (useful for cleanup)
+       */
+      async deleteAllBotComments() {
+        try {
+          const comments = await this.github.listComments();
+          const botComments = comments.filter(
+            (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
+          );
+          core2.info(`Found ${botComments.length} bot comments`);
+        } catch (error10) {
+          core2.warning(`Failed to list comments: ${error10}`);
+        }
+      }
+      /**
+       * Get the current PR number
+       */
+      getPRNumber() {
+        return this.prNumber;
+      }
+      /**
+       * Check if we're in a valid PR context
+       */
+      isValidContext() {
+        return this.prNumber > 0;
+      }
     };
+    globalInstance = null;
   }
-  getPRNumber() {
-    return this.getContext().prNumber;
-  }
-};
-var LazyGitHubService = class {
-  async configure(config2) {
-    this.pendingConfig = { ...this.pendingConfig, ...config2 };
-  }
-  isConfigured() {
-    var _a;
-    return !!this.service || !!((_a = this.pendingConfig) == null ? void 0 : _a.token) || !!env.getWithDefaults("GITHUB_TOKEN") || !!env.getWithDefaults("INPUT_GITHUB_TOKEN");
-  }
-  async ensureService() {
-    var _a;
-    if (!this.service) {
-      const token = ((_a = this.pendingConfig) == null ? void 0 : _a.token) || env.getWithDefaults("GITHUB_TOKEN") || env.getWithDefaults("INPUT_GITHUB_TOKEN");
-      if (!token && env.getWithDefaults("NODE_ENV") !== "test") {
-        throw new Error("GitHub token not available. Configure with token or set GITHUB_TOKEN environment variable.");
+});
+
+// src/core/error/CentralizedErrorHandler.ts
+var core3, ErrorSeverity, ErrorCategory, YoFixError, CentralizedErrorHandler, errorHandler;
+var init_CentralizedErrorHandler = __esm({
+  "src/core/error/CentralizedErrorHandler.ts"() {
+    core3 = __toESM(require_core());
+    init_GitHubServiceFactory();
+    ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity6) => {
+      ErrorSeverity6["LOW"] = "low";
+      ErrorSeverity6["MEDIUM"] = "medium";
+      ErrorSeverity6["HIGH"] = "high";
+      ErrorSeverity6["CRITICAL"] = "critical";
+      return ErrorSeverity6;
+    })(ErrorSeverity || {});
+    ErrorCategory = /* @__PURE__ */ ((ErrorCategory3) => {
+      ErrorCategory3["PACKAGE"] = "package";
+      ErrorCategory3["GITHUB"] = "github";
+      ErrorCategory3["CONFIGURATION"] = "configuration";
+      ErrorCategory3["ORCHESTRATION"] = "orchestration";
+      ErrorCategory3["MODULE"] = "module";
+      ErrorCategory3["NETWORK"] = "network";
+      ErrorCategory3["PROCESSING"] = "processing";
+      ErrorCategory3["FILE_SYSTEM"] = "file_system";
+      ErrorCategory3["VALIDATION"] = "validation";
+      ErrorCategory3["UNKNOWN"] = "unknown";
+      return ErrorCategory3;
+    })(ErrorCategory || {});
+    YoFixError = class extends Error {
+      constructor(message, options = {}) {
+        super(message);
+        this.name = "YoFixError";
+        this.severity = options.severity || "medium" /* MEDIUM */;
+        this.category = options.category || "unknown" /* UNKNOWN */;
+        this.recoverable = options.recoverable ?? false;
+        this.context = options;
       }
-      this.service = env.getWithDefaults("NODE_ENV") === "test" ? new MockGitHubService() : new EnhancedGitHubService();
-      await this.service.configure({ ...this.pendingConfig, token });
-    }
-    return this.service;
-  }
-  // Delegate all methods to the underlying service
-  async listPullRequestFiles() {
-    const service = await this.ensureService();
-    return service.listPullRequestFiles();
-  }
-  async createComment(body) {
-    const service = await this.ensureService();
-    return service.createComment(body);
-  }
-  async updateComment(commentId, body) {
-    const service = await this.ensureService();
-    return service.updateComment(commentId, body);
-  }
-  async listComments() {
-    const service = await this.ensureService();
-    return service.listComments();
-  }
-  async addReaction(commentId, reaction) {
-    const service = await this.ensureService();
-    return service.addReaction(commentId, reaction);
-  }
-  async getFileContent(path4, ref) {
-    const service = await this.ensureService();
-    return service.getFileContent(path4, ref);
-  }
-  async getContent(path4, ref) {
-    const service = await this.ensureService();
-    return service.getContent(path4, ref);
-  }
-  async listCheckRuns(ref) {
-    const service = await this.ensureService();
-    return service.listCheckRuns(ref);
-  }
-  async createCheckRun(data) {
-    const service = await this.ensureService();
-    return service.createCheckRun(data);
-  }
-  async updateCheckRun(checkRunId, data) {
-    const service = await this.ensureService();
-    return service.updateCheckRun(checkRunId, data);
-  }
-  async createIssue(title, body, labels) {
-    const service = await this.ensureService();
-    return service.createIssue(title, body, labels);
-  }
-  getContext() {
-    var _a, _b, _c, _d, _e;
-    if (this.service) {
-      return this.service.getContext();
-    }
-    if (env.getWithDefaults("GITHUB_ACTIONS") === "true") {
-      try {
-        const github = require_github();
-        const context = github.context;
-        const prNumber2 = ((_a = context.payload.pull_request) == null ? void 0 : _a.number) || context.payload.number || context.issue.number;
-        return {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          sha: context.sha,
-          prNumber: prNumber2,
-          actor: context.actor,
-          eventName: context.eventName,
-          payload: context.payload
+    };
+    CentralizedErrorHandler = class _CentralizedErrorHandler {
+      constructor() {
+        this.github = null;
+        this.errorBuffer = [];
+        this.isTestMode = process.env.NODE_ENV === "test";
+        this.prNumber = 0;
+        this.owner = "";
+        this.repo = "";
+        // Error statistics
+        this.errorStats = {
+          total: 0,
+          byCategory: {},
+          bySeverity: {},
+          recovered: 0
         };
-      } catch (error4) {
-        console.error("[LazyGitHubService] Failed to use @actions/github context:", error4);
+        this.initializeErrorStats();
+        this.setupGlobalHandlers();
+        this.initializeGitHub();
       }
-    }
-    const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
-    const [owner, repo] = repository.split("/");
-    let payload = {};
-    const eventName = env.getWithDefaults("GITHUB_EVENT_NAME");
-    try {
-      const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
-      if (eventPath) {
-        const fs4 = require("fs");
-        payload = JSON.parse(fs4.readFileSync(eventPath, "utf8"));
+      initializeErrorStats() {
+        Object.values(ErrorCategory).forEach((category) => {
+          this.errorStats.byCategory[category] = 0;
+        });
+        Object.values(ErrorSeverity).forEach((severity) => {
+          this.errorStats.bySeverity[severity] = 0;
+        });
       }
-    } catch (error4) {
-      console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error4);
+      initializeGitHub() {
+        try {
+          this.github = GitHubServiceFactory.getService();
+          const context = this.github.getContext();
+          this.owner = context.owner;
+          this.repo = context.repo;
+          this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
+          core3.info("Centralized error handler initialized with GitHub integration");
+        } catch (error10) {
+          core3.warning("Failed to initialize GitHub service, errors will only be logged");
+          this.github = null;
+        }
+      }
+      static getInstance() {
+        if (!_CentralizedErrorHandler.instance) {
+          _CentralizedErrorHandler.instance = new _CentralizedErrorHandler();
+        }
+        return _CentralizedErrorHandler.instance;
+      }
+      /**
+       * Handle an error with centralized logic
+       */
+      async handleError(error10, options = {}) {
+        this.updateErrorStats(options);
+        const errorEntry = {
+          error: error10,
+          context: options,
+          timestamp: /* @__PURE__ */ new Date()
+        };
+        this.errorBuffer.push(errorEntry);
+        this.logError(error10, options);
+        if (!options.recoverable) {
+          if (error10 instanceof Error) {
+            throw error10;
+          } else {
+            throw new YoFixError(error10, options);
+          }
+        }
+      }
+      /**
+       * Log error to console/GitHub Actions
+       */
+      logError(error10, options) {
+        if (options.silent) return;
+        const errorMessage = error10 instanceof Error ? error10.message : error10;
+        const location = options.location ? `[${options.location}]` : "";
+        const logMessage = `${location} ${errorMessage}`.trim();
+        switch (options.severity) {
+          case "critical" /* CRITICAL */:
+            core3.error(logMessage);
+            if (!this.isTestMode) {
+              core3.setFailed(logMessage);
+            }
+            break;
+          case "high" /* HIGH */:
+            core3.error(logMessage);
+            break;
+          case "medium" /* MEDIUM */:
+            core3.warning(logMessage);
+            break;
+          case "low" /* LOW */:
+            core3.info(logMessage);
+            break;
+        }
+      }
+      // Individual error posting removed - only post summary at end
+      // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
+      /**
+       * Update error statistics
+       */
+      updateErrorStats(options) {
+        this.errorStats.total++;
+        const category = options.category || "unknown" /* UNKNOWN */;
+        const severity = options.severity || "medium" /* MEDIUM */;
+        this.errorStats.byCategory[category]++;
+        this.errorStats.bySeverity[severity]++;
+        if (options.recoverable) {
+          this.errorStats.recovered++;
+        }
+      }
+      /**
+       * Set up global error handlers
+       */
+      setupGlobalHandlers() {
+        if (this.isTestMode) {
+          return;
+        }
+        process.on("uncaughtException", async (error10) => {
+          core3.error(`Uncaught Exception: ${error10.message}`);
+          if (error10.stack) {
+            core3.debug(error10.stack);
+          }
+          const errorEntry = {
+            error: error10,
+            context: {
+              severity: "critical" /* CRITICAL */,
+              category: "unknown" /* UNKNOWN */,
+              location: "uncaught-exception"
+            },
+            timestamp: /* @__PURE__ */ new Date()
+          };
+          this.errorBuffer.push(errorEntry);
+          this.updateErrorStats(errorEntry.context);
+          await this.postErrorSummary().catch(() => {
+          });
+          process.exit(1);
+        });
+        process.on("unhandledRejection", async (reason, promise) => {
+          const errorMessage = reason instanceof Error ? reason.message : String(reason);
+          core3.error(`Unhandled Rejection: ${errorMessage}`);
+          const errorEntry = {
+            error: new Error(errorMessage),
+            context: {
+              severity: "critical" /* CRITICAL */,
+              category: "unknown" /* UNKNOWN */,
+              location: "unhandled-rejection"
+            },
+            timestamp: /* @__PURE__ */ new Date()
+          };
+          this.errorBuffer.push(errorEntry);
+          this.updateErrorStats(errorEntry.context);
+          await this.postErrorSummary().catch(() => {
+          });
+          process.exit(1);
+        });
+      }
+      /**
+       * Get error statistics
+       */
+      getErrorStats() {
+        return { ...this.errorStats };
+      }
+      /**
+       * Get error buffer
+       */
+      getErrorBuffer() {
+        return [...this.errorBuffer];
+      }
+      /**
+       * Clear error buffer
+       */
+      clearErrorBuffer() {
+        this.errorBuffer = [];
+      }
+      /**
+       * Post a summary of all errors
+       */
+      async postErrorSummary() {
+        if (!this.github || this.prNumber === 0) {
+          core3.debug("Skipping error summary: No GitHub service or PR number");
+          return;
+        }
+        if (this.errorBuffer.length === 0) {
+          core3.info("\u2705 No errors to report");
+          return;
+        }
+        const byLocation = {};
+        for (const entry of this.errorBuffer) {
+          const location = entry.context?.location || "unknown";
+          byLocation[location] = (byLocation[location] || 0) + 1;
+        }
+        let message = `## \u26A0\uFE0F Error Summary
+
+`;
+        message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? "s" : ""} occurred`;
+        if (this.errorStats.recovered > 0) {
+          message += ` (${this.errorStats.recovered} recovered)`;
+        }
+        message += `
+
+`;
+        const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
+        if (severityCounts.length > 1) {
+          message += `**By Severity**: `;
+          message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(" \u2022 ");
+          message += `
+
+`;
+        }
+        const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
+        if (locationCounts.length > 0) {
+          message += `**By Source**: `;
+          message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(" \u2022 ");
+          message += `
+
+`;
+        }
+        message += `<details>
+<summary><strong>Error Details</strong></summary>
+
+`;
+        const recentErrors = this.errorBuffer.slice(-5);
+        for (const entry of recentErrors) {
+          const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
+          const time = entry.timestamp.toLocaleTimeString();
+          const location = entry.context?.location ? `[${entry.context.location}]` : "";
+          message += `- **${time}** ${location} ${errorMessage}
+`;
+        }
+        if (this.errorBuffer.length > 5) {
+          message += `
+...and ${this.errorBuffer.length - 5} more
+`;
+        }
+        message += `
+</details>
+`;
+        try {
+          await this.github.createComment(message);
+        } catch (error10) {
+          core3.warning(`Failed to post error summary: ${error10}`);
+        }
+      }
+    };
+    errorHandler = CentralizedErrorHandler.getInstance();
+  }
+});
+
+// src/core/bot/BotActivityHandler.ts
+var core4, BotActivityHandler, botActivity;
+var init_BotActivityHandler = __esm({
+  "src/core/bot/BotActivityHandler.ts"() {
+    core4 = __toESM(require_core());
+    init_GitHubCommentEngine();
+    init_CentralizedErrorHandler();
+    BotActivityHandler = class {
+      constructor() {
+        this.activities = /* @__PURE__ */ new Map();
+        this.currentActivity = null;
+        this.commentEngine = getGitHubCommentEngine();
+      }
+      /**
+       * Start a new bot activity
+       */
+      async startActivity(id, command, initialMessage) {
+        const activity = {
+          id,
+          command,
+          status: "pending",
+          startTime: /* @__PURE__ */ new Date(),
+          steps: []
+        };
+        this.activities.set(id, activity);
+        this.currentActivity = activity;
+        const message = initialMessage || `\u{1F916} **Processing \`${command}\`**
+
+\u23F3 Initializing...`;
+        await this.commentEngine.startThread(id, message, {
+          reactions: ["eyes"]
+        });
+        activity.status = "running";
+      }
+      /**
+       * Add a step to current activity
+       */
+      async addStep(stepName, status = "pending", message) {
+        if (!this.currentActivity) {
+          core4.warning("No active bot activity");
+          return;
+        }
+        const step = {
+          name: stepName,
+          status,
+          message,
+          timestamp: /* @__PURE__ */ new Date()
+        };
+        this.currentActivity.steps.push(step);
+        await this.updateProgress();
+      }
+      /**
+       * Update step status
+       */
+      async updateStep(stepName, status, message) {
+        if (!this.currentActivity) return;
+        const step = this.currentActivity.steps.find((s) => s.name === stepName);
+        if (!step) {
+          core4.warning(`Step ${stepName} not found`);
+          return;
+        }
+        const previousStatus = step.status;
+        step.status = status;
+        if (message) step.message = message;
+        if (status === "completed" || status === "failed") {
+          step.duration = Date.now() - step.timestamp.getTime();
+        }
+        await this.updateProgress();
+      }
+      /**
+       * Complete current activity
+       */
+      async completeActivity(result, finalMessage) {
+        if (!this.currentActivity) return;
+        this.currentActivity.status = "completed";
+        this.currentActivity.endTime = /* @__PURE__ */ new Date();
+        this.currentActivity.result = result;
+        const duration = this.currentActivity.endTime.getTime() - this.currentActivity.startTime.getTime();
+        const durationStr = this.formatDuration(duration);
+        let message = `\u2705 **Completed \`${this.currentActivity.command}\`**
+
+`;
+        if (finalMessage) {
+          message += finalMessage + "\n\n";
+        }
+        message += this.generateStepsSummary();
+        message += `
+\u23F1\uFE0F Total time: ${durationStr}`;
+        await this.commentEngine.updateThread(this.currentActivity.id, message, {
+          reactions: ["+1", "rocket"]
+        });
+        this.currentActivity = null;
+      }
+      /**
+       * Fail current activity
+       */
+      async failActivity(error10, context) {
+        if (!this.currentActivity) return;
+        this.currentActivity.status = "failed";
+        this.currentActivity.endTime = /* @__PURE__ */ new Date();
+        this.currentActivity.error = error10 instanceof Error ? error10 : new Error(error10);
+        await errorHandler.handleError(this.currentActivity.error, {
+          category: "unknown" /* UNKNOWN */,
+          severity: "high" /* HIGH */,
+          userAction: `Bot command: ${this.currentActivity.command}`,
+          metadata: context,
+          skipGitHubPost: true
+          // We'll post our own formatted message
+        });
+        let message = `\u274C **Failed \`${this.currentActivity.command}\`**
+
+`;
+        message += `**Error**: ${this.currentActivity.error.message}
+
+`;
+        message += this.generateStepsSummary();
+        const tips = this.getBotCommandTips(this.currentActivity.command, this.currentActivity.error.message);
+        if (tips.length > 0) {
+          message += "\n### \u{1F4A1} Suggestions:\n";
+          message += tips.map((tip) => `- ${tip}`).join("\n");
+        }
+        await this.commentEngine.updateThread(this.currentActivity.id, message, {
+          reactions: ["confused", "-1"]
+        });
+        this.currentActivity = null;
+      }
+      /**
+       * Post a simple bot response (for quick commands)
+       */
+      async postBotResponse(message, options) {
+        const formattedMessage = options?.success !== false ? `\u2705 ${message}` : `\u274C ${message}`;
+        if (options?.threadId) {
+          await this.commentEngine.replyToThread(options.threadId, formattedMessage, {
+            reactions: options.reactions
+          });
+        } else {
+          await this.commentEngine.postComment(formattedMessage, {
+            reactions: options.reactions
+          });
+        }
+      }
+      /**
+       * Post help message
+       */
+      async postHelpMessage(commands) {
+        let message = "## \u{1F527} YoFix Bot Commands\n\n";
+        for (const cmd of commands) {
+          message += `### \`${cmd.command}\`
+`;
+          message += `${cmd.description}
+`;
+          if (cmd.examples && cmd.examples.length > 0) {
+            message += "\n**Examples:**\n";
+            message += cmd.examples.map((ex) => `- \`${ex}\``).join("\n");
+            message += "\n";
+          }
+          message += "\n";
+        }
+        message += "---\n";
+        message += "\u{1F4A1} **Tips:**\n";
+        message += "- All commands start with `@yofix`\n";
+        message += "- Use `--help` with any command for more info\n";
+        message += "- Commands can be chained with `&&`\n";
+        await this.commentEngine.postComment(message, {
+          reactions: ["heart"]
+        });
+      }
+      /**
+       * Track an activity with automatic handling
+       */
+      async trackActivity(operation, handler) {
+        const activityId = `activity-${Date.now()}`;
+        try {
+          await this.startActivity(activityId, operation);
+          const result = await handler();
+          await this.completeActivity(result);
+          return result;
+        } catch (error10) {
+          await this.failActivity(error10);
+          throw error10;
+        }
+      }
+      /**
+       * Handle unknown command
+       */
+      async handleUnknownCommand(command, suggestions) {
+        let message = `\u2753 **Unknown command: \`${command}\`**
+
+`;
+        if (suggestions && suggestions.length > 0) {
+          message += "Did you mean:\n";
+          message += suggestions.map((s) => `- \`@yofix ${s}\``).join("\n");
+          message += "\n\n";
+        }
+        message += "Use `@yofix help` to see available commands.";
+        await this.commentEngine.postComment(message, {
+          reactions: ["confused"]
+        });
+      }
+      // Private methods
+      async updateProgress() {
+        if (!this.currentActivity) return;
+        const message = this.generateProgressMessage();
+        await this.commentEngine.updateThread(this.currentActivity.id, message);
+      }
+      generateProgressMessage() {
+        if (!this.currentActivity) return "";
+        let message = `\u{1F504} **Processing \`${this.currentActivity.command}\`**
+
+`;
+        for (const step of this.currentActivity.steps) {
+          const icon = this.getStepIcon(step.status);
+          const duration = step.duration ? ` (${this.formatDuration(step.duration)})` : "";
+          message += `${icon} ${step.name}${duration}
+`;
+          if (step.message) {
+            message += `   ${step.message}
+`;
+          }
+        }
+        const elapsed = Date.now() - this.currentActivity.startTime.getTime();
+        message += `
+\u23F1\uFE0F Elapsed: ${this.formatDuration(elapsed)}`;
+        return message;
+      }
+      generateStepsSummary() {
+        if (!this.currentActivity) return "";
+        let summary = "### Steps Summary\n";
+        const completed = this.currentActivity.steps.filter((s) => s.status === "completed").length;
+        const failed = this.currentActivity.steps.filter((s) => s.status === "failed").length;
+        const skipped = this.currentActivity.steps.filter((s) => s.status === "skipped").length;
+        const total = this.currentActivity.steps.length;
+        summary += `- \u2705 Completed: ${completed}/${total}
+`;
+        if (failed > 0) summary += `- \u274C Failed: ${failed}
+`;
+        if (skipped > 0) summary += `- \u23ED\uFE0F Skipped: ${skipped}
+`;
+        return summary + "\n";
+      }
+      getStepIcon(status) {
+        switch (status) {
+          case "pending":
+            return "\u23F3";
+          case "running":
+            return "\u{1F504}";
+          case "completed":
+            return "\u2705";
+          case "failed":
+            return "\u274C";
+          case "skipped":
+            return "\u23ED\uFE0F";
+          default:
+            return "\u2753";
+        }
+      }
+      formatDuration(ms) {
+        if (ms < 1e3) return `${ms}ms`;
+        if (ms < 6e4) return `${(ms / 1e3).toFixed(1)}s`;
+        const minutes = Math.floor(ms / 6e4);
+        const seconds = Math.floor(ms % 6e4 / 1e3);
+        return `${minutes}m ${seconds}s`;
+      }
+      getBotCommandTips(command, error10) {
+        const tips = [];
+        if (command.includes("scan")) {
+          tips.push("Ensure the preview URL is accessible");
+          tips.push("Check if authentication is required");
+          tips.push("Try specifying a specific route: `@yofix scan /dashboard`");
+        }
+        if (command.includes("fix")) {
+          tips.push("Run `@yofix scan` first to detect issues");
+          tips.push("Specify an issue number: `@yofix fix #3`");
+        }
+        if (command.includes("test")) {
+          tips.push("Ensure test credentials are configured");
+          tips.push("Check the login URL is correct");
+          tips.push("Try a different auth mode");
+        }
+        if (error10.includes("timeout")) {
+          tips.push("The operation took too long - try again");
+          tips.push("Check if the site is responding slowly");
+        }
+        if (error10.includes("not found")) {
+          tips.push("Check the spelling of your command");
+          tips.push("Use `@yofix help` to see available options");
+        }
+        return tips;
+      }
+    };
+    botActivity = new BotActivityHandler();
+  }
+});
+
+// src/core/error/ErrorHandlerFactory.ts
+function createModuleLogger(options) {
+  const { module: module2, debug: debug9 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
+  return {
+    debug: (message, ...args) => {
+      if (debug9 || core5.isDebug()) {
+        core5.debug(`[${module2}] ${message}`);
+        if (args.length > 0) {
+          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+        }
+      }
+    },
+    info: (message, ...args) => {
+      core5.info(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug9 || core5.isDebug())) {
+        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      }
+    },
+    warn: (message, ...args) => {
+      core5.warning(`[${module2}] ${message}`);
+      if (args.length > 0 && (debug9 || core5.isDebug())) {
+        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
+      }
+    },
+    error: async (error10, context) => {
+      const errorObj = error10 instanceof Error ? error10 : new Error(error10);
+      await errorHandler.handleError(errorObj, {
+        severity: context?.severity || defaultSeverity,
+        category: context?.category || defaultCategory,
+        userAction: context?.userAction || `${module2} operation`,
+        metadata: {
+          module: module2,
+          ...context?.metadata
+        },
+        recoverable: context?.recoverable !== false,
+        skipGitHubPost: context?.skipGitHubPost !== void 0 ? context.skipGitHubPost : skipGitHubPost
+      });
     }
-    const prNumber = ((_b = payload == null ? void 0 : payload.pull_request) == null ? void 0 : _b.number) || ((_c = payload == null ? void 0 : payload.issue) == null ? void 0 : _c.number);
+  };
+}
+var core5;
+var init_ErrorHandlerFactory = __esm({
+  "src/core/error/ErrorHandlerFactory.ts"() {
+    init_core();
+    core5 = __toESM(require_core());
+  }
+});
+
+// src/core/patterns/ConsistencyPatterns.ts
+async function executeOperation(operation, context) {
+  const startTime = Date.now();
+  try {
+    const data = await operation();
     return {
-      owner: ((_d = this.pendingConfig) == null ? void 0 : _d.owner) || owner || "",
-      repo: ((_e = this.pendingConfig) == null ? void 0 : _e.repo) || repo || "",
-      sha: env.getWithDefaults("GITHUB_SHA"),
-      prNumber,
-      actor: env.getWithDefaults("GITHUB_ACTOR"),
-      eventName,
-      payload
+      success: true,
+      data,
+      metadata: {
+        duration: Date.now() - startTime,
+        ...context.metadata
+      }
+    };
+  } catch (error10) {
+    await errorHandler.handleError(error10, {
+      severity: context.severity || "medium" /* MEDIUM */,
+      category: context.category || "unknown" /* UNKNOWN */,
+      userAction: context.name,
+      metadata: {
+        ...context.metadata,
+        duration: Date.now() - startTime
+      },
+      recoverable: true
+    });
+    return {
+      success: false,
+      error: error10 instanceof Error ? error10.message : "Unknown error",
+      data: context.fallback,
+      metadata: {
+        duration: Date.now() - startTime,
+        ...context.metadata
+      }
     };
   }
-  getPRNumber() {
-    const context = this.getContext();
-    return context.prNumber;
-  }
-};
-var GitHubServiceFactory = class {
-  /**
-   * Get or create a GitHub service instance
-   * Uses lazy initialization - token not required until first API call
-   */
-  static getService() {
-    if (!this.instance) {
-      this.instance = new LazyGitHubService();
-    }
-    return this.instance;
-  }
-  /**
-   * Set a custom service instance (useful for testing)
-   */
-  static setService(service) {
-    this.instance = service;
-  }
-  /**
-   * Reset the factory (useful for testing)
-   */
-  static reset() {
-    this.instance = void 0;
-  }
-  /**
-   * Create a new instance without singleton pattern
-   */
-  static createService(options = {}) {
-    const { mock = false, enhanced = true, config: config2 } = options;
-    if (mock || env.getWithDefaults("NODE_ENV") === "test" && mock !== false) {
-      const service2 = new MockGitHubService();
-      if (config2) {
-        service2.configure(config2);
+}
+async function retryOperation(operation, options = {}) {
+  const maxAttempts = options.maxAttempts || 3;
+  const delay2 = options.delay || 1e3;
+  const backoff = options.backoff || 2;
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error10) {
+      lastError = error10;
+      if (attempt < maxAttempts) {
+        if (options.onRetry) {
+          options.onRetry(attempt, lastError);
+        }
+        const waitTime = delay2 * Math.pow(backoff, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
-      return service2;
     }
-    if (enhanced) {
-      const service2 = new EnhancedGitHubService();
-      if (config2) {
-        service2.configure(config2);
+  }
+  throw lastError;
+}
+var core6, GitHubOperations;
+var init_ConsistencyPatterns = __esm({
+  "src/core/patterns/ConsistencyPatterns.ts"() {
+    init_CentralizedErrorHandler();
+    init_GitHubServiceFactory();
+    init_BotActivityHandler();
+    core6 = __toESM(require_core());
+    GitHubOperations = class {
+      static {
+        this.github = null;
       }
-      return service2;
-    }
-    const service = new OctokitGitHubService();
-    if (config2) {
-      service.configure(config2);
-    }
-    return service;
+      static {
+        this.context = null;
+      }
+      static ensureInitialized() {
+        if (!this.github) {
+          this.github = GitHubServiceFactory.getService();
+          this.context = this.github.getContext();
+        }
+      }
+      static async postProgress(message, threadId) {
+        this.ensureInitialized();
+        if (!this.context?.prNumber) {
+          core6.warning("No PR context available, skipping progress comment");
+          return;
+        }
+        const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
+        const body = `\u23F3 ${message}
+
+<!-- ${signature} -->`;
+        try {
+          const comments = await this.github.listComments();
+          const existingComment = comments.find(
+            (comment) => comment.body.includes(`<!-- ${signature} -->`)
+          );
+          if (existingComment) {
+            await this.github.updateComment(
+              existingComment.id,
+              body
+            );
+          } else {
+            await this.github.createComment(
+              body
+            );
+          }
+        } catch (error10) {
+          core6.warning(`Failed to post progress comment: ${error10}`);
+        }
+      }
+      static async postResult(result, operation) {
+        this.ensureInitialized();
+        if (!this.context?.prNumber) {
+          core6.warning("No PR context available, skipping result comment");
+          return;
+        }
+        const emoji = result.success ? "\u2705" : "\u274C";
+        const status = result.success ? "Success" : "Failed";
+        let message = `${emoji} **${operation}**: ${status}`;
+        if (result.error) {
+          message += `
+
+**Error**: ${result.error}`;
+        }
+        if (result.data && typeof result.data === "object") {
+          message += "\n\n**Details**:\n```json\n" + JSON.stringify(result.data, null, 2) + "\n```";
+        }
+        if (result.metadata && Object.keys(result.metadata).length > 0) {
+          message += "\n\n**Metadata**:\n";
+          for (const [key, value] of Object.entries(result.metadata)) {
+            message += `- ${key}: ${value}
+`;
+          }
+        }
+        const signature = `yofix-result-${operation.toLowerCase().replace(/\s+/g, "-")}`;
+        message += `
+
+<!-- ${signature} -->`;
+        try {
+          await this.github.createComment(
+            message
+          );
+        } catch (error10) {
+          core6.warning(`Failed to post result comment: ${error10}`);
+        }
+      }
+      static async addReaction(reaction) {
+        this.ensureInitialized();
+        if (!this.context?.prNumber) {
+          return;
+        }
+        try {
+          const triggeringCommentId = this.getTriggeringCommentId();
+          if (triggeringCommentId) {
+            await this.github.addReaction(
+              triggeringCommentId,
+              reaction
+            );
+          }
+        } catch (error10) {
+          core6.debug(`Failed to add reaction: ${error10}`);
+        }
+      }
+      static getTriggeringCommentId() {
+        try {
+          const eventPath = process.env.GITHUB_EVENT_PATH;
+          if (!eventPath) return null;
+          const event = JSON.parse(require("fs").readFileSync(eventPath, "utf8"));
+          return event?.comment?.id || null;
+        } catch {
+          return null;
+        }
+      }
+    };
   }
-  /**
-   * Create enhanced service with custom configuration
-   */
-  static createEnhancedService(config2) {
-    const service = new EnhancedGitHubService();
-    service.configure(config2);
-    return service;
+});
+
+// src/core/patterns/CircuitBreaker.ts
+var CircuitBreaker, CircuitBreakerError, CircuitBreakerFactory;
+var init_CircuitBreaker = __esm({
+  "src/core/patterns/CircuitBreaker.ts"() {
+    init_core();
+    init_ErrorHandlerFactory();
+    CircuitBreaker = class {
+      constructor(config2) {
+        this.config = config2;
+        this.state = "CLOSED" /* CLOSED */;
+        this.failures = 0;
+        this.successes = 0;
+        this.totalRequests = 0;
+        this.totalFailures = 0;
+        this.halfOpenRequests = 0;
+        this.halfOpenSuccesses = 0;
+        this.logger = createModuleLogger({
+          module: `CircuitBreaker.${this.config.serviceName}`,
+          defaultCategory: "network" /* NETWORK */
+        });
+        this.failureThreshold = config2.failureThreshold ?? 5;
+        this.resetTimeout = config2.resetTimeout ?? 6e4;
+        this.timeout = config2.timeout ?? 3e4;
+        this.successThreshold = config2.successThreshold ?? 0.5;
+        this.volumeThreshold = config2.volumeThreshold ?? 5;
+      }
+      /**
+       * Execute a function with circuit breaker protection
+       */
+      async execute(operation) {
+        this.totalRequests++;
+        if (this.state === "OPEN" /* OPEN */) {
+          if (Date.now() < this.nextAttempt) {
+            return this.handleOpen();
+          }
+          this.state = "HALF_OPEN" /* HALF_OPEN */;
+          this.halfOpenRequests = 0;
+          this.halfOpenSuccesses = 0;
+          this.logger.info(`Circuit moved to HALF_OPEN state for ${this.config.serviceName}`);
+        }
+        try {
+          const result = await this.executeWithTimeout(operation);
+          this.onSuccess();
+          return result;
+        } catch (error10) {
+          return this.onFailure(error10);
+        }
+      }
+      /**
+       * Execute operation with timeout
+       */
+      async executeWithTimeout(operation) {
+        return new Promise(async (resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error(`Operation timed out after ${this.timeout}ms`));
+          }, this.timeout);
+          try {
+            const result = await operation();
+            clearTimeout(timeoutId);
+            resolve(result);
+          } catch (error10) {
+            clearTimeout(timeoutId);
+            reject(error10);
+          }
+        });
+      }
+      /**
+       * Handle successful operation
+       */
+      onSuccess() {
+        this.failures = 0;
+        this.successes++;
+        this.lastSuccessTime = Date.now();
+        if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
+          this.halfOpenRequests++;
+          this.halfOpenSuccesses++;
+          if (this.halfOpenRequests >= this.volumeThreshold) {
+            const successRate = this.halfOpenSuccesses / this.halfOpenRequests;
+            if (successRate >= this.successThreshold) {
+              this.state = "CLOSED" /* CLOSED */;
+              this.logger.info(`Circuit CLOSED for ${this.config.serviceName} (success rate: ${(successRate * 100).toFixed(1)}%)`);
+            } else {
+              this.open();
+            }
+          }
+        }
+      }
+      /**
+       * Handle failed operation
+       */
+      onFailure(error10) {
+        this.failures++;
+        this.totalFailures++;
+        this.lastFailureTime = Date.now();
+        const shouldTrigger = this.config.isFailure ? this.config.isFailure(error10) : true;
+        if (!shouldTrigger) {
+          throw error10;
+        }
+        errorHandler.handleError(error10, {
+          severity: "medium" /* MEDIUM */,
+          category: "network" /* NETWORK */,
+          userAction: `${this.config.serviceName} operation`,
+          metadata: {
+            circuitState: this.state,
+            failures: this.failures,
+            totalFailures: this.totalFailures
+          },
+          skipGitHubPost: true
+        });
+        if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
+          this.halfOpenRequests++;
+          this.open();
+        } else if (this.state === "CLOSED" /* CLOSED */ && this.failures >= this.failureThreshold) {
+          this.open();
+        }
+        if (this.config.fallback) {
+          this.logger.info(`Using fallback for ${this.config.serviceName}`);
+          return this.config.fallback();
+        }
+        throw error10;
+      }
+      /**
+       * Open the circuit
+       */
+      open() {
+        this.state = "OPEN" /* OPEN */;
+        this.nextAttempt = Date.now() + this.resetTimeout;
+        this.logger.warn(`Circuit OPEN for ${this.config.serviceName} after ${this.failures} failures`);
+        if (this.failures >= this.failureThreshold * 2) {
+          errorHandler.handleError(
+            new Error(`Circuit breaker opened for ${this.config.serviceName}`),
+            {
+              severity: "high" /* HIGH */,
+              category: "network" /* NETWORK */,
+              userAction: "Circuit breaker activation",
+              metadata: this.getStats()
+            }
+          );
+        }
+      }
+      /**
+       * Handle open circuit
+       */
+      handleOpen() {
+        const error10 = new CircuitBreakerError(
+          `Circuit breaker is OPEN for ${this.config.serviceName}`,
+          this.config.serviceName,
+          this.state
+        );
+        if (this.config.fallback) {
+          this.logger.debug(`Circuit open, using fallback for ${this.config.serviceName}`);
+          return this.config.fallback();
+        }
+        throw error10;
+      }
+      /**
+       * Get circuit breaker statistics
+       */
+      getStats() {
+        const successRate = this.totalRequests > 0 ? (this.totalRequests - this.totalFailures) / this.totalRequests : 0;
+        return {
+          state: this.state,
+          failures: this.failures,
+          successes: this.successes,
+          lastFailureTime: this.lastFailureTime,
+          lastSuccessTime: this.lastSuccessTime,
+          totalRequests: this.totalRequests,
+          totalFailures: this.totalFailures,
+          consecutiveFailures: this.failures,
+          successRate
+        };
+      }
+      /**
+       * Reset the circuit breaker
+       */
+      reset() {
+        this.state = "CLOSED" /* CLOSED */;
+        this.failures = 0;
+        this.successes = 0;
+        this.halfOpenRequests = 0;
+        this.halfOpenSuccesses = 0;
+        this.nextAttempt = void 0;
+        this.logger.info(`Circuit reset for ${this.config.serviceName}`);
+      }
+      /**
+       * Force the circuit to open
+       */
+      forceOpen() {
+        this.open();
+      }
+      /**
+       * Force the circuit to close
+       */
+      forceClose() {
+        this.state = "CLOSED" /* CLOSED */;
+        this.failures = 0;
+        this.logger.info(`Circuit force closed for ${this.config.serviceName}`);
+      }
+    };
+    CircuitBreakerError = class extends Error {
+      constructor(message, serviceName, state) {
+        super(message);
+        this.serviceName = serviceName;
+        this.state = state;
+        this.name = "CircuitBreakerError";
+      }
+    };
+    CircuitBreakerFactory = class {
+      static {
+        this.breakers = /* @__PURE__ */ new Map();
+      }
+      /**
+       * Get or create a circuit breaker
+       */
+      static getBreaker(config2) {
+        const existing = this.breakers.get(config2.serviceName);
+        if (existing) {
+          return existing;
+        }
+        const breaker = new CircuitBreaker(config2);
+        this.breakers.set(config2.serviceName, breaker);
+        return breaker;
+      }
+      /**
+       * Get all circuit breakers
+       */
+      static getAllBreakers() {
+        return new Map(this.breakers);
+      }
+      /**
+       * Reset all circuit breakers
+       */
+      static resetAll() {
+        for (const breaker of this.breakers.values()) {
+          breaker.reset();
+        }
+      }
+      /**
+       * Get statistics for all breakers
+       */
+      static getAllStats() {
+        const stats = {};
+        for (const [name, breaker] of this.breakers) {
+          stats[name] = breaker.getStats();
+        }
+        return stats;
+      }
+    };
   }
-};
+});
+
+// src/core/config/ConfigurationManager.ts
+function getRequiredConfig(key) {
+  return config.get(key, { required: true });
+}
+function getBooleanConfig(key, defaultValue = false) {
+  return config.getBoolean(key, defaultValue);
+}
+var ConfigurationManager, config;
+var init_ConfigurationManager = __esm({
+  "src/core/config/ConfigurationManager.ts"() {
+    init_CentralizedErrorHandler();
+    init_ErrorHandlerFactory();
+    ConfigurationManager = class _ConfigurationManager {
+      constructor() {
+        this.cache = /* @__PURE__ */ new Map();
+        this.validators = /* @__PURE__ */ new Map();
+        this.logger = createModuleLogger({
+          module: "ConfigurationManager",
+          defaultCategory: "configuration" /* CONFIGURATION */
+        });
+        this.setupDefaultValidators();
+      }
+      static getInstance() {
+        if (!_ConfigurationManager.instance) {
+          _ConfigurationManager.instance = new _ConfigurationManager();
+        }
+        return _ConfigurationManager.instance;
+      }
+      /**
+       * Get configuration value with fallback chain
+       */
+      get(key, options = {}) {
+        const cacheKey = this.getCacheKey(key, options);
+        if (this.cache.has(cacheKey) && !options.sensitive) {
+          return this.cache.get(cacheKey);
+        }
+        let value;
+        const envKey = this.toEnvKey(key);
+        value = process.env[envKey];
+        if (value) {
+          this.logger.debug(`Found ${key} in environment`);
+        }
+        if (!value && options.defaultValue !== void 0) {
+          value = options.defaultValue;
+          this.logger.debug(`Using default value for ${key}`);
+        }
+        if (!value && options.required) {
+          const error10 = new Error(`Required configuration '${key}' is not set`);
+          errorHandler.handleError(error10, {
+            severity: "high" /* HIGH */,
+            category: "configuration" /* CONFIGURATION */,
+            userAction: `Set configuration value for ${key}`,
+            metadata: { key, options }
+          });
+          throw error10;
+        }
+        if (value && options.validate && !options.validate(value)) {
+          const error10 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
+          errorHandler.handleError(error10, {
+            severity: "high" /* HIGH */,
+            category: "configuration" /* CONFIGURATION */,
+            metadata: { key }
+          });
+          throw error10;
+        }
+        if (value && this.validators.has(key)) {
+          const rules = this.validators.get(key);
+          for (const rule of rules) {
+            if (!rule.test(value)) {
+              throw new Error(`Configuration '${key}' validation failed: ${rule.message}`);
+            }
+          }
+        }
+        if (value && options.transform) {
+          try {
+            value = options.transform(value);
+          } catch (error10) {
+            this.logger.error(`Failed to transform ${key}: ${error10}`);
+            throw error10;
+          }
+        }
+        if (value && !options.sensitive) {
+          this.cache.set(cacheKey, value);
+        }
+        return value || "";
+      }
+      /**
+       * Get boolean configuration value
+       */
+      getBoolean(key, defaultValue = false) {
+        const value = this.get(key, {
+          defaultValue: defaultValue.toString(),
+          transform: (v) => v.toLowerCase() === "true" || v === "1"
+        });
+        return typeof value === "boolean" ? value : value === "true";
+      }
+      /**
+       * Get number configuration value
+       */
+      getNumber(key, defaultValue) {
+        const value = this.get(key, {
+          defaultValue: defaultValue?.toString(),
+          validate: (v) => !isNaN(Number(v)),
+          transform: (v) => Number(v)
+        });
+        return Number(value);
+      }
+      /**
+       * Get JSON configuration value
+       */
+      getJSON(key, defaultValue) {
+        const value = this.get(key, {
+          defaultValue: defaultValue ? JSON.stringify(defaultValue) : void 0,
+          transform: (v) => {
+            try {
+              return JSON.parse(v);
+            } catch (error10) {
+              throw new Error(`Invalid JSON in ${key}: ${error10}`);
+            }
+          }
+        });
+        return value;
+      }
+      /**
+       * Get array configuration value (comma-separated)
+       */
+      getArray(key, defaultValue = []) {
+        const value = this.get(key, {
+          defaultValue: defaultValue.join(","),
+          transform: (v) => v.split(",").map((s) => s.trim()).filter(Boolean)
+        });
+        return Array.isArray(value) ? value : [];
+      }
+      /**
+       * Get sensitive configuration (no caching, no logging)
+       */
+      getSecret(key) {
+        return this.get(key, {
+          required: true,
+          sensitive: true
+        });
+      }
+      /**
+       * Set configuration value (for testing)
+       */
+      set(key, value) {
+        const envKey = this.toEnvKey(key);
+        process.env[envKey] = String(value);
+        this.cache.delete(key);
+      }
+      /**
+       * Clear cache
+       */
+      clearCache() {
+        this.cache.clear();
+      }
+      /**
+       * Register custom validator
+       */
+      addValidator(key, rule) {
+        if (!this.validators.has(key)) {
+          this.validators.set(key, []);
+        }
+        this.validators.get(key).push(rule);
+      }
+      /**
+       * Get all configuration keys
+       */
+      getAllKeys() {
+        const keys = /* @__PURE__ */ new Set();
+        Object.keys(process.env).forEach((key) => {
+          if (key.startsWith("INPUT_") || key.startsWith("YOFIX_")) {
+            keys.add(this.fromEnvKey(key));
+          }
+        });
+        return Array.from(keys);
+      }
+      /**
+       * Convert to GitHub input key format
+       */
+      toInputKey(key) {
+        return key.toLowerCase().replace(/_/g, "-");
+      }
+      /**
+       * Convert to environment variable key format
+       */
+      toEnvKey(key) {
+        return `INPUT_${key.toUpperCase().replace(/-/g, "_")}`;
+      }
+      /**
+       * Convert from environment variable key
+       */
+      fromEnvKey(envKey) {
+        return envKey.replace(/^INPUT_/, "").toLowerCase().replace(/_/g, "-");
+      }
+      /**
+       * Get cache key
+       */
+      getCacheKey(key, options) {
+        return `${key}:${JSON.stringify(options)}`;
+      }
+      /**
+       * Setup default validators
+       */
+      setupDefaultValidators() {
+        this.addValidator("preview-url", {
+          test: (value) => {
+            try {
+              new URL(value);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          message: "Must be a valid URL"
+        });
+        this.addValidator("test-timeout", {
+          test: (value) => {
+            const match = value.match(/^(\d+)(s|m|ms)?$/);
+            return !!match;
+          },
+          message: "Must be a valid timeout (e.g., 30s, 5m, 1000ms)"
+        });
+        this.addValidator("storage-provider", {
+          test: (value) => ["firebase", "s3", "github"].includes(value),
+          message: "Must be one of: firebase, s3, github"
+        });
+        this.addValidator("auth-mode", {
+          test: (value) => ["selectors", "ai", "llm", "smart", "none", "baseline"].includes(value),
+          message: "Must be one of: selectors, ai, llm, smart, none, baseline"
+        });
+      }
+    };
+    config = ConfigurationManager.getInstance();
+  }
+});
+
+// src/core/utils/JSONParser.ts
+var logger;
+var init_JSONParser = __esm({
+  "src/core/utils/JSONParser.ts"() {
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    logger = createModuleLogger({
+      module: "JSONParser",
+      defaultCategory: "processing" /* PROCESSING */
+    });
+  }
+});
+
+// src/core/utils/FileSystemWrapper.ts
+var fs3, fsSync, path3, logger2, FileSystem, exists, read, write, deleteFile, ensureDirectory, listDirectory, copy, move, getStats, watch2, createTempFile, cleanupOldFiles;
+var init_FileSystemWrapper = __esm({
+  "src/core/utils/FileSystemWrapper.ts"() {
+    fs3 = __toESM(require("fs/promises"));
+    fsSync = __toESM(require("fs"));
+    path3 = __toESM(require("path"));
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    init_ConsistencyPatterns();
+    logger2 = createModuleLogger({
+      module: "FileSystem",
+      defaultCategory: "file_system" /* FILE_SYSTEM */
+    });
+    FileSystem = class {
+      /**
+       * Check if file exists
+       */
+      static async exists(filePath) {
+        const result = await executeOperation(
+          async () => {
+            try {
+              await fs3.access(filePath, fsSync.constants.F_OK);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          {
+            name: `Check file exists: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Read file with error handling
+       */
+      static async read(filePath, options = {}) {
+        const result = await executeOperation(
+          async () => {
+            if (options.maxSize) {
+              const stats = await fs3.stat(filePath);
+              if (stats.size > options.maxSize) {
+                throw new Error(`File size ${stats.size} exceeds maximum ${options.maxSize}`);
+              }
+            }
+            const content = await fs3.readFile(filePath, {
+              encoding: options.encoding || "utf-8",
+              flag: options.flag
+            });
+            if (options.json) {
+              try {
+                return JSON.parse(content.toString());
+              } catch (error10) {
+                throw new Error(`Failed to parse JSON from ${filePath}: ${error10}`);
+              }
+            }
+            return content.toString();
+          },
+          {
+            name: `Read file: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "medium" /* MEDIUM */,
+            metadata: { filePath, options },
+            fallback: null
+          }
+        );
+        return result.data;
+      }
+      /**
+       * Write file with error handling
+       */
+      static async write(filePath, content, options = {}) {
+        const result = await executeOperation(
+          async () => {
+            if (options.createDirectories) {
+              await this.ensureDirectory(path3.dirname(filePath));
+            }
+            let data;
+            if (typeof content === "object" && !Buffer.isBuffer(content)) {
+              data = JSON.stringify(content, null, 2);
+            } else {
+              data = content;
+            }
+            if (options.backup && await this.exists(filePath)) {
+              const backupPath = `${filePath}.backup`;
+              await fs3.copyFile(filePath, backupPath);
+              logger2.debug(`Created backup: ${backupPath}`);
+            }
+            if (options.atomic) {
+              const tempPath = `${filePath}.tmp`;
+              await fs3.writeFile(tempPath, data, {
+                encoding: options.encoding || "utf-8",
+                mode: options.mode,
+                flag: options.flag || "w"
+              });
+              await fs3.rename(tempPath, filePath);
+            } else {
+              await fs3.writeFile(filePath, data, {
+                encoding: options.encoding || "utf-8",
+                mode: options.mode,
+                flag: options.flag || "w"
+              });
+            }
+            return true;
+          },
+          {
+            name: `Write file: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "medium" /* MEDIUM */,
+            metadata: { filePath, options },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Delete file or directory with error handling
+       */
+      static async delete(filePath) {
+        const result = await executeOperation(
+          async () => {
+            try {
+              const stats = await fs3.stat(filePath);
+              if (stats.isDirectory()) {
+                await fs3.rm(filePath, { recursive: true, force: true });
+              } else {
+                await fs3.unlink(filePath);
+              }
+              return true;
+            } catch (error10) {
+              if (error10.code === "ENOENT") {
+                return true;
+              }
+              throw error10;
+            }
+          },
+          {
+            name: `Delete: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { filePath },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Create directory with parents
+       */
+      static async ensureDirectory(dirPath) {
+        const result = await executeOperation(
+          async () => {
+            await fs3.mkdir(dirPath, { recursive: true });
+            return true;
+          },
+          {
+            name: `Create directory: ${path3.basename(dirPath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { dirPath },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * List directory contents
+       */
+      static async listDirectory(dirPath, options = {}) {
+        const result = await executeOperation(
+          async () => {
+            const entries = await fs3.readdir(dirPath, { withFileTypes: true });
+            const files = [];
+            for (const entry of entries) {
+              const fullPath = path3.join(dirPath, entry.name);
+              if (!options.includeHidden && entry.name.startsWith(".")) {
+                continue;
+              }
+              if (options.filter && !options.filter(entry.name)) {
+                continue;
+              }
+              if (entry.isDirectory() && options.recursive) {
+                const subFiles = await this.listDirectory(fullPath, options);
+                files.push(...subFiles);
+              } else if (entry.isFile()) {
+                files.push(fullPath);
+              }
+            }
+            return files;
+          },
+          {
+            name: `List directory: ${path3.basename(dirPath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { dirPath, options },
+            fallback: []
+          }
+        );
+        return result.data ?? [];
+      }
+      /**
+       * Copy file with retry
+       */
+      static async copy(source, destination, options = {}) {
+        return await retryOperation(
+          async () => {
+            if (!options.overwrite && await this.exists(destination)) {
+              throw new Error(`Destination file already exists: ${destination}`);
+            }
+            await this.ensureDirectory(path3.dirname(destination));
+            await fs3.copyFile(source, destination);
+            return true;
+          },
+          {
+            maxAttempts: 3,
+            delay: 1e3,
+            backoff: 2,
+            onRetry: (attempt, error10) => {
+              logger2.debug(`Copy retry ${attempt}: ${error10.message}`);
+            }
+          }
+        );
+      }
+      /**
+       * Move file (with cross-device support)
+       */
+      static async move(source, destination) {
+        const result = await executeOperation(
+          async () => {
+            try {
+              await fs3.rename(source, destination);
+            } catch (error10) {
+              if (error10.code === "EXDEV") {
+                await this.copy(source, destination);
+                await this.delete(source);
+              } else {
+                throw error10;
+              }
+            }
+            return true;
+          },
+          {
+            name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "medium" /* MEDIUM */,
+            metadata: { source, destination },
+            fallback: false
+          }
+        );
+        return result.data ?? false;
+      }
+      /**
+       * Get file stats
+       */
+      static async getStats(filePath) {
+        const result = await executeOperation(
+          async () => await fs3.stat(filePath),
+          {
+            name: `Get file stats: ${path3.basename(filePath)}`,
+            category: "file_system" /* FILE_SYSTEM */,
+            severity: "low" /* LOW */,
+            metadata: { filePath },
+            fallback: null
+          }
+        );
+        return result.data;
+      }
+      /**
+       * Watch file for changes
+       */
+      static async watch(filePath, callback) {
+        try {
+          return fsSync.watch(filePath, (event, filename) => {
+            logger2.debug(`File ${event}: ${filename}`);
+            callback(event, filename);
+          });
+        } catch (error10) {
+          logger2.error(`Failed to watch file ${filePath}: ${error10}`);
+          return null;
+        }
+      }
+      /**
+       * Create temporary file
+       */
+      static async createTempFile(prefix = "yofix", extension = ".tmp") {
+        const tempDir = process.env.TMPDIR || "/tmp";
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 8);
+        const tempPath = path3.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
+        await this.write(tempPath, "", { createDirectories: true });
+        return tempPath;
+      }
+      /**
+       * Clean up old files
+       */
+      static async cleanupOldFiles(directory, maxAgeMs, pattern) {
+        let deletedCount = 0;
+        const now = Date.now();
+        try {
+          const files = await this.listDirectory(directory);
+          for (const file of files) {
+            if (pattern && !pattern.test(path3.basename(file))) {
+              continue;
+            }
+            const stats = await this.getStats(file);
+            if (stats && now - stats.mtime.getTime() > maxAgeMs) {
+              if (await this.delete(file)) {
+                deletedCount++;
+                logger2.debug(`Deleted old file: ${file}`);
+              }
+            }
+          }
+        } catch (error10) {
+          logger2.error(`Cleanup failed: ${error10}`);
+        }
+        return deletedCount;
+      }
+    };
+    ({
+      exists,
+      read,
+      write,
+      delete: deleteFile,
+      ensureDirectory,
+      listDirectory,
+      copy,
+      move,
+      getStats,
+      watch: watch2,
+      createTempFile,
+      cleanupOldFiles
+    } = FileSystem);
+  }
+});
+
+// src/core/utils/ValidationPatterns.ts
+var logger3, Validators;
+var init_ValidationPatterns = __esm({
+  "src/core/utils/ValidationPatterns.ts"() {
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    logger3 = createModuleLogger({
+      module: "ValidationPatterns",
+      defaultCategory: "validation" /* VALIDATION */
+    });
+    Validators = class {
+      /**
+       * URL validation
+       */
+      static isURL(value, options = {}) {
+        if (!value) {
+          return { valid: false, error: "URL is required" };
+        }
+        try {
+          const url = new URL(value);
+          const allowedProtocols = options.protocols || ["http:", "https:"];
+          if (!allowedProtocols.includes(url.protocol)) {
+            return {
+              valid: false,
+              error: `Protocol ${url.protocol} not allowed. Use: ${allowedProtocols.join(", ")}`
+            };
+          }
+          return { valid: true };
+        } catch (error10) {
+          return { valid: false, error: "Invalid URL format" };
+        }
+      }
+      /**
+       * Email validation
+       */
+      static isEmail(value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!value) {
+          return { valid: false, error: "Email is required" };
+        }
+        if (!emailRegex.test(value)) {
+          return { valid: false, error: "Invalid email format" };
+        }
+        return { valid: true };
+      }
+      /**
+       * Selector validation (CSS/XPath)
+       */
+      static isSelector(value, type = "css") {
+        if (!value) {
+          return { valid: false, error: "Selector is required" };
+        }
+        if (type === "css") {
+          try {
+            document.createDocumentFragment().querySelector(value);
+            return { valid: true };
+          } catch {
+            return { valid: false, error: "Invalid CSS selector" };
+          }
+        } else {
+          if (!value.startsWith("/") && !value.startsWith("//")) {
+            return { valid: false, error: "XPath must start with / or //" };
+          }
+          return { valid: true };
+        }
+      }
+      /**
+       * GitHub token validation
+       */
+      static isGitHubToken(value) {
+        if (!value) {
+          return { valid: false, error: "GitHub token is required" };
+        }
+        const validPrefixes = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"];
+        const hasValidPrefix = validPrefixes.some((prefix) => value.startsWith(prefix));
+        if (!hasValidPrefix && !value.match(/^[a-f0-9]{40}$/)) {
+          return {
+            valid: false,
+            error: "Invalid GitHub token format",
+            details: {
+              hint: "Token should start with ghp_, gho_, etc. or be a 40-character hex string"
+            }
+          };
+        }
+        return { valid: true };
+      }
+      /**
+       * API key validation (generic)
+       */
+      static isAPIKey(value, options = {}) {
+        if (!value) {
+          return { valid: false, error: "API key is required" };
+        }
+        const { minLength = 20, maxLength = 200, pattern, prefix } = options;
+        if (value.length < minLength) {
+          return { valid: false, error: `API key must be at least ${minLength} characters` };
+        }
+        if (value.length > maxLength) {
+          return { valid: false, error: `API key must not exceed ${maxLength} characters` };
+        }
+        if (prefix && !value.startsWith(prefix)) {
+          return { valid: false, error: `API key must start with ${prefix}` };
+        }
+        if (pattern && !pattern.test(value)) {
+          return { valid: false, error: "API key format is invalid" };
+        }
+        return { valid: true };
+      }
+      /**
+       * Port number validation
+       */
+      static isPort(value) {
+        const port = typeof value === "string" ? parseInt(value, 10) : value;
+        if (isNaN(port)) {
+          return { valid: false, error: "Port must be a number" };
+        }
+        if (port < 1 || port > 65535) {
+          return { valid: false, error: "Port must be between 1 and 65535" };
+        }
+        return { valid: true };
+      }
+      /**
+       * Timeout validation (e.g., "30s", "5m", "1000ms")
+       */
+      static isTimeout(value) {
+        const match = value.match(/^(\d+)(ms|s|m|h)?$/);
+        if (!match) {
+          return {
+            valid: false,
+            error: "Invalid timeout format",
+            details: { example: "30s, 5m, 1000ms" }
+          };
+        }
+        const [, amount, unit = "ms"] = match;
+        const num = parseInt(amount, 10);
+        if (num <= 0) {
+          return { valid: false, error: "Timeout must be positive" };
+        }
+        const multipliers = { ms: 1, s: 1e3, m: 6e4, h: 36e5 };
+        const ms = num * multipliers[unit];
+        if (ms > 36e5) {
+          return { valid: false, error: "Timeout cannot exceed 1 hour" };
+        }
+        return { valid: true, details: { milliseconds: ms } };
+      }
+      /**
+       * File path validation
+       */
+      static isFilePath(value, options = {}) {
+        if (!value) {
+          return { valid: false, error: "File path is required" };
+        }
+        if (value.includes("..") && !options.allowRelative) {
+          return { valid: false, error: "Relative paths with .. are not allowed" };
+        }
+        if (options.extensions && options.extensions.length > 0) {
+          const hasValidExt = options.extensions.some(
+            (ext) => value.toLowerCase().endsWith(ext.toLowerCase())
+          );
+          if (!hasValidExt) {
+            return {
+              valid: false,
+              error: `File must have one of these extensions: ${options.extensions.join(", ")}`
+            };
+          }
+        }
+        return { valid: true };
+      }
+      /**
+       * JSON string validation
+       */
+      static isJSON(value) {
+        try {
+          JSON.parse(value);
+          return { valid: true };
+        } catch (error10) {
+          return {
+            valid: false,
+            error: "Invalid JSON format",
+            details: { parseError: error10 instanceof Error ? error10.message : String(error10) }
+          };
+        }
+      }
+      /**
+       * Semantic version validation
+       */
+      static isSemVer(value) {
+        const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+        if (!semverRegex.test(value)) {
+          return {
+            valid: false,
+            error: "Invalid semantic version",
+            details: { example: "1.2.3, 1.0.0-alpha, 2.1.0+build123" }
+          };
+        }
+        return { valid: true };
+      }
+    };
+  }
+});
+
+// src/core/utils/AsyncUtilities.ts
+var logger4;
+var init_AsyncUtilities = __esm({
+  "src/core/utils/AsyncUtilities.ts"() {
+    init_ErrorHandlerFactory();
+    init_CentralizedErrorHandler();
+    logger4 = createModuleLogger({
+      module: "AsyncUtilities",
+      defaultCategory: "processing" /* PROCESSING */
+    });
+  }
+});
+
+// src/core/index.ts
+function initializeCoreServices() {
+  console.log("\u2705 YoFix core services initialized");
+}
+var init_core = __esm({
+  "src/core/index.ts"() {
+    init_GitHubCommentEngine();
+    init_CentralizedErrorHandler();
+    init_BotActivityHandler();
+    init_ErrorHandlerFactory();
+    init_ConsistencyPatterns();
+    init_CircuitBreaker();
+    init_ConfigurationManager();
+    init_JSONParser();
+    init_FileSystemWrapper();
+    init_ValidationPatterns();
+    init_AsyncUtilities();
+    init_CentralizedErrorHandler();
+  }
+});
+
+// src/index.ts
+var core18 = __toESM(require_core());
+
+// src/steps/0-initialize.step.ts
+var core7 = __toESM(require_core());
+init_GitHubServiceFactory();
 
 // src/steps/shared/StepDataManager.ts
 var import_fs = require("fs");
 var import_path = __toESM(require("path"));
 var core = __toESM(require_core());
-var _StepDataManager = class _StepDataManager {
+var StepDataManager = class _StepDataManager {
+  static {
+    this.DATA_DIR = ".yofix-step-data";
+  }
+  static {
+    this.DATA_FILE = "step-data.json";
+  }
   constructor(workspacePath) {
     this.workspacePath = workspacePath || process.env.GITHUB_WORKSPACE || process.cwd();
     this.dataDir = import_path.default.join(this.workspacePath, _StepDataManager.DATA_DIR);
@@ -25189,9 +27350,9 @@ var _StepDataManager = class _StepDataManager {
     try {
       await import_fs.promises.mkdir(this.dataDir, { recursive: true });
       core.info(`\u{1F4C1} Initialized step data directory: ${this.dataDir}`);
-    } catch (error4) {
-      core.error(`Failed to initialize step data directory: ${error4}`);
-      throw error4;
+    } catch (error10) {
+      core.error(`Failed to initialize step data directory: ${error10}`);
+      throw error10;
     }
   }
   /**
@@ -25203,9 +27364,9 @@ var _StepDataManager = class _StepDataManager {
       await import_fs.promises.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
       core.info(`\u{1F4BE} Saved step data to ${dataPath}`);
       this.setOutputs(data);
-    } catch (error4) {
-      core.error(`Failed to save step data: ${error4}`);
-      throw error4;
+    } catch (error10) {
+      core.error(`Failed to save step data: ${error10}`);
+      throw error10;
     }
   }
   /**
@@ -25218,23 +27379,9 @@ var _StepDataManager = class _StepDataManager {
       const data = JSON.parse(content);
       core.info(`\u{1F4E5} Loaded step data from ${dataPath}`);
       return data;
-    } catch (error4) {
-      core.error(`Failed to load step data: ${error4}`);
-      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error4}`);
-    }
-  }
-  /**
-   * Update specific fields in step data (partial update)
-   */
-  async update(updates) {
-    try {
-      const data = await this.load();
-      const updatedData = { ...data, ...updates };
-      await this.save(updatedData);
-      core.info(`\u{1F504} Updated step data with: ${Object.keys(updates).join(", ")}`);
-    } catch (error4) {
-      core.error(`Failed to update step data: ${error4}`);
-      throw error4;
+    } catch (error10) {
+      core.error(`Failed to load step data: ${error10}`);
+      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error10}`);
     }
   }
   /**
@@ -25250,17 +27397,6 @@ var _StepDataManager = class _StepDataManager {
     }
   }
   /**
-   * Cleanup step data
-   */
-  async cleanup() {
-    try {
-      await import_fs.promises.rm(this.dataDir, { recursive: true, force: true });
-      core.info(`\u{1F9F9} Cleaned up step data directory`);
-    } catch (error4) {
-      core.warning(`Failed to cleanup step data: ${error4}`);
-    }
-  }
-  /**
    * Record step timing
    */
   async recordStepTiming(stepName, start, end) {
@@ -25273,8 +27409,8 @@ var _StepDataManager = class _StepDataManager {
       };
       await this.save(data);
       core.info(`\u23F1\uFE0F Recorded timing for ${stepName}: ${end - start}ms`);
-    } catch (error4) {
-      core.warning(`Failed to record step timing: ${error4}`);
+    } catch (error10) {
+      core.warning(`Failed to record step timing: ${error10}`);
     }
   }
   /**
@@ -25298,8 +27434,8 @@ var _StepDataManager = class _StepDataManager {
 `;
       }
       return summary;
-    } catch (error4) {
-      core.warning(`Failed to generate timing summary: ${error4}`);
+    } catch (error10) {
+      core.warning(`Failed to generate timing summary: ${error10}`);
       return "";
     }
   }
@@ -25319,54 +27455,11 @@ var _StepDataManager = class _StepDataManager {
         core.setOutput("has-changes", data.comparison.hasChanges ? "true" : "false");
         core.setOutput("diff-count", data.comparison.diffCount.toString());
       }
-    } catch (error4) {
-      core.warning(`Failed to set GitHub outputs: ${error4}`);
-    }
-  }
-  /**
-   * Get data directory path
-   */
-  getDataDir() {
-    return this.dataDir;
-  }
-  /**
-   * Get full path for a file within data directory
-   */
-  getFilePath(filename) {
-    return import_path.default.join(this.dataDir, filename);
-  }
-  /**
-   * Save arbitrary file to data directory
-   */
-  async saveFile(filename, content) {
-    try {
-      const filePath = this.getFilePath(filename);
-      await import_fs.promises.writeFile(filePath, content);
-      core.info(`\u{1F4BE} Saved file: ${filename}`);
-      return filePath;
-    } catch (error4) {
-      core.error(`Failed to save file ${filename}: ${error4}`);
-      throw error4;
-    }
-  }
-  /**
-   * Load arbitrary file from data directory
-   */
-  async loadFile(filename) {
-    try {
-      const filePath = this.getFilePath(filename);
-      const content = await import_fs.promises.readFile(filePath, "utf-8");
-      return content;
-    } catch (error4) {
-      core.error(`Failed to load file ${filename}: ${error4}`);
-      throw error4;
+    } catch (error10) {
+      core.warning(`Failed to set GitHub outputs: ${error10}`);
     }
   }
 };
-_StepDataManager.DATA_DIR = ".yofix-step-data";
-_StepDataManager.DATA_FILE = "step-data.json";
-_StepDataManager.METADATA_FILE = "metadata.json";
-var StepDataManager = _StepDataManager;
 var instance = null;
 function getStepDataManager(workspacePath) {
   if (!instance) {
@@ -25387,2224 +27480,16 @@ async function executeStep(stepName, stepFunction) {
       await manager.recordStepTiming(stepName, start, end);
     }
     return result;
-  } catch (error4) {
+  } catch (error10) {
     const end = Date.now();
-    core.error(`\u274C ${stepName} failed after ${end - start}ms: ${error4}`);
+    core.error(`\u274C ${stepName} failed after ${end - start}ms: ${error10}`);
     core.endGroup();
-    throw error4;
+    throw error10;
   }
-}
-
-// src/core/github/GitHubCommentEngine.ts
-var core2 = __toESM(require_core());
-var GitHubCommentEngine = class {
-  constructor() {
-    // Cache for comment threads
-    this.threadCache = /* @__PURE__ */ new Map();
-    // Error tracking
-    this.errorCount = 0;
-    this.errorSummary = [];
-    this.github = GitHubServiceFactory.getService();
-    this.context = this.github.getContext();
-    this.owner = this.context.owner;
-    this.repo = this.context.repo;
-    this.prNumber = this.context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-  }
-  /**
-   * Post a comment to the PR
-   */
-  async postComment(message, options = {}) {
-    try {
-      if (this.prNumber === 0) {
-        core2.warning("No PR number found, cannot post comment");
-        return null;
-      }
-      let body = message;
-      if (options.inReplyTo) {
-        const replyUrl = `https://github.com/${this.owner}/${this.repo}/pull/${this.prNumber}#issuecomment-${options.inReplyTo}`;
-        body = `> In reply to [this comment](${replyUrl})
-
-${message}`;
-      }
-      if (options.signature) {
-        body += `
-
-<!-- ${options.signature} -->`;
-      }
-      if (options.threadId) {
-        const existingThreadId = this.threadCache.get(options.threadId);
-        if (existingThreadId) {
-          options.inReplyTo = existingThreadId;
-        }
-      }
-      if (options.isError) {
-        body = `\u274C **Error**
-
-${body}`;
-        this.errorCount++;
-      }
-      if (options.isProgress) {
-        body = `\u23F3 ${body}`;
-      }
-      let commentId;
-      if (options.updateExisting && options.signature) {
-        const existingComment = await this.findCommentBySignature(options.signature);
-        if (existingComment) {
-          await this.github.updateComment(
-            existingComment.id,
-            body
-          );
-          commentId = existingComment.id;
-          core2.info(`Updated existing comment #${commentId}`);
-        } else {
-          const result = await this.github.createComment(body);
-          commentId = result.id;
-          core2.info(`Created new comment #${commentId}`);
-        }
-      } else {
-        const result = await this.github.createComment(body);
-        commentId = result.id;
-        core2.info(`Created comment #${commentId}`);
-      }
-      if (options.threadId && !this.threadCache.has(options.threadId)) {
-        this.threadCache.set(options.threadId, commentId);
-      }
-      if (options.reactions && options.reactions.length > 0) {
-        for (const reaction of options.reactions) {
-          await this.addReaction(commentId, reaction);
-        }
-      }
-      return commentId;
-    } catch (error4) {
-      core2.error(`Failed to post comment: ${error4}`);
-      return null;
-    }
-  }
-  // postError() method removed - duplicate logic with CentralizedErrorHandler
-  // Use CentralizedErrorHandler.handleError() for error handling instead
-  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
-  /**
-   * Post a progress update
-   */
-  async postProgress(message, options = {}) {
-    const commentId = await this.postComment(message, {
-      isProgress: true,
-      threadId: options.threadId,
-      reactions: options.reaction ? [options.reaction] : void 0
-    });
-    if (commentId && options.reaction) {
-      await this.addReaction(commentId, options.reaction);
-    }
-  }
-  /**
-   * Post a summary comment (typically at the end of processing)
-   */
-  async postSummary(summary) {
-    let message = `## ${summary.title}
-
-`;
-    const statusEmoji = {
-      success: "\u2705",
-      warning: "\u26A0\uFE0F",
-      error: "\u274C"
-    };
-    if (summary.status) {
-      message = `${statusEmoji[summary.status]} ${message}`;
-    }
-    for (const section of summary.sections) {
-      message += `### ${section.heading}
-
-`;
-      message += `${section.content}
-
-`;
-    }
-    if (this.errorCount > 0) {
-      message += `### \u26A0\uFE0F Errors Encountered
-
-`;
-      message += `Total errors: ${this.errorCount}
-
-`;
-      if (this.errorSummary.length > 0) {
-        message += `<details>
-<summary>Error Details</summary>
-
-`;
-        for (const error4 of this.errorSummary) {
-          message += `- **${error4.timestamp.toISOString()}**`;
-          if (error4.location) {
-            message += ` at \`${error4.location}\``;
-          }
-          message += `: ${error4.error}
-`;
-        }
-        message += `
-</details>
-`;
-      }
-    }
-    await this.postComment(message, {
-      signature: "yofix-summary",
-      updateExisting: true
-    });
-  }
-  /**
-   * Add a reaction to a comment
-   */
-  async addReaction(commentId, reaction) {
-    try {
-      await this.github.addReaction(
-        commentId,
-        reaction
-      );
-      core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
-    } catch (error4) {
-      core2.warning(`Failed to add reaction: ${error4}`);
-    }
-  }
-  /**
-   * Post a quick reaction to the triggering comment
-   */
-  async postReaction(reaction) {
-    try {
-      const triggeringCommentId = this.getTriggeringCommentId();
-      if (triggeringCommentId) {
-        await this.addReaction(triggeringCommentId, reaction);
-      }
-    } catch (error4) {
-      core2.warning(`Failed to post reaction: ${error4}`);
-    }
-  }
-  /**
-   * React to a specific comment
-   */
-  async reactToComment(commentId, reaction) {
-    try {
-      await this.addReaction(commentId, reaction);
-    } catch (error4) {
-      core2.warning(`Failed to react to comment: ${error4}`);
-    }
-  }
-  /**
-   * Start a new thread
-   */
-  async startThread(threadId, message, options) {
-    const commentId = await this.postComment(message, {
-      threadId,
-      reactions: options == null ? void 0 : options.reactions
-    });
-    return commentId;
-  }
-  /**
-   * Update a thread
-   */
-  async updateThread(threadId, message, options) {
-    await this.postComment(message, {
-      threadId,
-      updateExisting: true,
-      signature: `yofix-thread-${threadId}`,
-      reactions: options == null ? void 0 : options.reactions
-    });
-  }
-  /**
-   * Reply to a thread
-   */
-  async replyToThread(threadId, message, options) {
-    const threadCommentId = this.threadCache.get(threadId);
-    await this.postComment(message, {
-      threadId,
-      inReplyTo: threadCommentId,
-      reactions: options == null ? void 0 : options.reactions
-    });
-  }
-  /**
-   * Get the ID of the comment that triggered this action
-   */
-  getTriggeringCommentId() {
-    var _a, _b;
-    const commentId = parseInt(
-      process.env.GITHUB_EVENT_PATH ? ((_b = (_a = JSON.parse(require("fs").readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"))) == null ? void 0 : _a.comment) == null ? void 0 : _b.id) || "0" : "0"
-    );
-    return commentId || null;
-  }
-  /**
-   * Find a comment by its signature
-   */
-  async findCommentBySignature(signature) {
-    try {
-      const comments = await this.github.listComments();
-      const signaturePattern = `<!-- ${signature} -->`;
-      const existingComment = comments.find(
-        (comment) => comment.body.includes(signaturePattern)
-      );
-      return existingComment || null;
-    } catch (error4) {
-      core2.warning(`Failed to find comment by signature: ${error4}`);
-      return null;
-    }
-  }
-  /**
-   * Delete all bot comments (useful for cleanup)
-   */
-  async deleteAllBotComments() {
-    try {
-      const comments = await this.github.listComments();
-      const botComments = comments.filter(
-        (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
-      );
-      core2.info(`Found ${botComments.length} bot comments`);
-    } catch (error4) {
-      core2.warning(`Failed to list comments: ${error4}`);
-    }
-  }
-  /**
-   * Get the current PR number
-   */
-  getPRNumber() {
-    return this.prNumber;
-  }
-  /**
-   * Check if we're in a valid PR context
-   */
-  isValidContext() {
-    return this.prNumber > 0;
-  }
-};
-var globalInstance = null;
-function getGitHubCommentEngine() {
-  if (!globalInstance) {
-    globalInstance = new GitHubCommentEngine();
-  }
-  return globalInstance;
-}
-
-// src/core/error/CentralizedErrorHandler.ts
-var core3 = __toESM(require_core());
-var ErrorSeverity = /* @__PURE__ */ ((ErrorSeverity5) => {
-  ErrorSeverity5["LOW"] = "low";
-  ErrorSeverity5["MEDIUM"] = "medium";
-  ErrorSeverity5["HIGH"] = "high";
-  ErrorSeverity5["CRITICAL"] = "critical";
-  return ErrorSeverity5;
-})(ErrorSeverity || {});
-var ErrorCategory = /* @__PURE__ */ ((ErrorCategory2) => {
-  ErrorCategory2["PACKAGE"] = "package";
-  ErrorCategory2["GITHUB"] = "github";
-  ErrorCategory2["CONFIGURATION"] = "configuration";
-  ErrorCategory2["ORCHESTRATION"] = "orchestration";
-  ErrorCategory2["UNKNOWN"] = "unknown";
-  return ErrorCategory2;
-})(ErrorCategory || {});
-var YoFixError = class extends Error {
-  constructor(message, options = {}) {
-    super(message);
-    this.name = "YoFixError";
-    this.severity = options.severity || "medium" /* MEDIUM */;
-    this.category = options.category || "unknown" /* UNKNOWN */;
-    this.recoverable = options.recoverable ?? false;
-    this.context = options;
-  }
-};
-var CentralizedErrorHandler = class _CentralizedErrorHandler {
-  constructor() {
-    this.github = null;
-    this.errorBuffer = [];
-    this.isTestMode = process.env.NODE_ENV === "test";
-    this.prNumber = 0;
-    this.owner = "";
-    this.repo = "";
-    // Error statistics
-    this.errorStats = {
-      total: 0,
-      byCategory: {},
-      bySeverity: {},
-      recovered: 0
-    };
-    this.initializeErrorStats();
-    this.setupGlobalHandlers();
-    this.initializeGitHub();
-  }
-  initializeErrorStats() {
-    Object.values(ErrorCategory).forEach((category) => {
-      this.errorStats.byCategory[category] = 0;
-    });
-    Object.values(ErrorSeverity).forEach((severity) => {
-      this.errorStats.bySeverity[severity] = 0;
-    });
-  }
-  initializeGitHub() {
-    try {
-      this.github = GitHubServiceFactory.getService();
-      const context = this.github.getContext();
-      this.owner = context.owner;
-      this.repo = context.repo;
-      this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
-      core3.info("Centralized error handler initialized with GitHub integration");
-    } catch (error4) {
-      core3.warning("Failed to initialize GitHub service, errors will only be logged");
-      this.github = null;
-    }
-  }
-  static getInstance() {
-    if (!_CentralizedErrorHandler.instance) {
-      _CentralizedErrorHandler.instance = new _CentralizedErrorHandler();
-    }
-    return _CentralizedErrorHandler.instance;
-  }
-  /**
-   * Handle an error with centralized logic
-   */
-  async handleError(error4, options = {}) {
-    this.updateErrorStats(options);
-    const errorEntry = {
-      error: error4,
-      context: options,
-      timestamp: /* @__PURE__ */ new Date()
-    };
-    this.errorBuffer.push(errorEntry);
-    this.logError(error4, options);
-    if (!options.recoverable) {
-      if (error4 instanceof Error) {
-        throw error4;
-      } else {
-        throw new YoFixError(error4, options);
-      }
-    }
-  }
-  /**
-   * Log error to console/GitHub Actions
-   */
-  logError(error4, options) {
-    if (options.silent) return;
-    const errorMessage = error4 instanceof Error ? error4.message : error4;
-    const location = options.location ? `[${options.location}]` : "";
-    const logMessage = `${location} ${errorMessage}`.trim();
-    switch (options.severity) {
-      case "critical" /* CRITICAL */:
-        core3.error(logMessage);
-        if (!this.isTestMode) {
-          core3.setFailed(logMessage);
-        }
-        break;
-      case "high" /* HIGH */:
-        core3.error(logMessage);
-        break;
-      case "medium" /* MEDIUM */:
-        core3.warning(logMessage);
-        break;
-      case "low" /* LOW */:
-        core3.info(logMessage);
-        break;
-    }
-  }
-  // Individual error posting removed - only post summary at end
-  // User feedback: "We should post only the summary of error '🚨 Error Occurred' not needed"
-  /**
-   * Update error statistics
-   */
-  updateErrorStats(options) {
-    this.errorStats.total++;
-    const category = options.category || "unknown" /* UNKNOWN */;
-    const severity = options.severity || "medium" /* MEDIUM */;
-    this.errorStats.byCategory[category]++;
-    this.errorStats.bySeverity[severity]++;
-    if (options.recoverable) {
-      this.errorStats.recovered++;
-    }
-  }
-  /**
-   * Set up global error handlers
-   */
-  setupGlobalHandlers() {
-    if (this.isTestMode) {
-      return;
-    }
-    process.on("uncaughtException", async (error4) => {
-      core3.error(`Uncaught Exception: ${error4.message}`);
-      if (error4.stack) {
-        core3.debug(error4.stack);
-      }
-      const errorEntry = {
-        error: error4,
-        context: {
-          severity: "critical" /* CRITICAL */,
-          category: "unknown" /* UNKNOWN */,
-          location: "uncaught-exception"
-        },
-        timestamp: /* @__PURE__ */ new Date()
-      };
-      this.errorBuffer.push(errorEntry);
-      this.updateErrorStats(errorEntry.context);
-      await this.postErrorSummary().catch(() => {
-      });
-      process.exit(1);
-    });
-    process.on("unhandledRejection", async (reason, promise) => {
-      const errorMessage = reason instanceof Error ? reason.message : String(reason);
-      core3.error(`Unhandled Rejection: ${errorMessage}`);
-      const errorEntry = {
-        error: new Error(errorMessage),
-        context: {
-          severity: "critical" /* CRITICAL */,
-          category: "unknown" /* UNKNOWN */,
-          location: "unhandled-rejection"
-        },
-        timestamp: /* @__PURE__ */ new Date()
-      };
-      this.errorBuffer.push(errorEntry);
-      this.updateErrorStats(errorEntry.context);
-      await this.postErrorSummary().catch(() => {
-      });
-      process.exit(1);
-    });
-  }
-  /**
-   * Get error statistics
-   */
-  getErrorStats() {
-    return { ...this.errorStats };
-  }
-  /**
-   * Get error buffer
-   */
-  getErrorBuffer() {
-    return [...this.errorBuffer];
-  }
-  /**
-   * Clear error buffer
-   */
-  clearErrorBuffer() {
-    this.errorBuffer = [];
-  }
-  /**
-   * Post a summary of all errors
-   */
-  async postErrorSummary() {
-    var _a, _b;
-    if (!this.github || this.prNumber === 0) {
-      core3.debug("Skipping error summary: No GitHub service or PR number");
-      return;
-    }
-    if (this.errorBuffer.length === 0) {
-      core3.info("\u2705 No errors to report");
-      return;
-    }
-    const byLocation = {};
-    for (const entry of this.errorBuffer) {
-      const location = ((_a = entry.context) == null ? void 0 : _a.location) || "unknown";
-      byLocation[location] = (byLocation[location] || 0) + 1;
-    }
-    let message = `## \u26A0\uFE0F Error Summary
-
-`;
-    message += `**${this.errorStats.total}** error${this.errorStats.total !== 1 ? "s" : ""} occurred`;
-    if (this.errorStats.recovered > 0) {
-      message += ` (${this.errorStats.recovered} recovered)`;
-    }
-    message += `
-
-`;
-    const severityCounts = Object.entries(this.errorStats.bySeverity).filter(([_, count]) => count > 0);
-    if (severityCounts.length > 1) {
-      message += `**By Severity**: `;
-      message += severityCounts.map(([sev, count]) => `${sev}: ${count}`).join(" \u2022 ");
-      message += `
-
-`;
-    }
-    const locationCounts = Object.entries(byLocation).sort((a, b) => b[1] - a[1]);
-    if (locationCounts.length > 0) {
-      message += `**By Source**: `;
-      message += locationCounts.map(([loc, count]) => `${loc}: ${count}`).join(" \u2022 ");
-      message += `
-
-`;
-    }
-    message += `<details>
-<summary><strong>Error Details</strong></summary>
-
-`;
-    const recentErrors = this.errorBuffer.slice(-5);
-    for (const entry of recentErrors) {
-      const errorMessage = entry.error instanceof Error ? entry.error.message : entry.error;
-      const time = entry.timestamp.toLocaleTimeString();
-      const location = ((_b = entry.context) == null ? void 0 : _b.location) ? `[${entry.context.location}]` : "";
-      message += `- **${time}** ${location} ${errorMessage}
-`;
-    }
-    if (this.errorBuffer.length > 5) {
-      message += `
-...and ${this.errorBuffer.length - 5} more
-`;
-    }
-    message += `
-</details>
-`;
-    try {
-      await this.github.createComment(message);
-    } catch (error4) {
-      core3.warning(`Failed to post error summary: ${error4}`);
-    }
-  }
-};
-var errorHandler = CentralizedErrorHandler.getInstance();
-
-// src/core/bot/BotActivityHandler.ts
-var core4 = __toESM(require_core());
-var BotActivityHandler = class {
-  constructor() {
-    this.activities = /* @__PURE__ */ new Map();
-    this.currentActivity = null;
-    this.commentEngine = getGitHubCommentEngine();
-  }
-  /**
-   * Start a new bot activity
-   */
-  async startActivity(id, command, initialMessage) {
-    const activity = {
-      id,
-      command,
-      status: "pending",
-      startTime: /* @__PURE__ */ new Date(),
-      steps: []
-    };
-    this.activities.set(id, activity);
-    this.currentActivity = activity;
-    const message = initialMessage || `\u{1F916} **Processing \`${command}\`**
-
-\u23F3 Initializing...`;
-    await this.commentEngine.startThread(id, message, {
-      reactions: ["eyes"]
-    });
-    activity.status = "running";
-  }
-  /**
-   * Add a step to current activity
-   */
-  async addStep(stepName, status = "pending", message) {
-    if (!this.currentActivity) {
-      core4.warning("No active bot activity");
-      return;
-    }
-    const step = {
-      name: stepName,
-      status,
-      message,
-      timestamp: /* @__PURE__ */ new Date()
-    };
-    this.currentActivity.steps.push(step);
-    await this.updateProgress();
-  }
-  /**
-   * Update step status
-   */
-  async updateStep(stepName, status, message) {
-    if (!this.currentActivity) return;
-    const step = this.currentActivity.steps.find((s) => s.name === stepName);
-    if (!step) {
-      core4.warning(`Step ${stepName} not found`);
-      return;
-    }
-    const previousStatus = step.status;
-    step.status = status;
-    if (message) step.message = message;
-    if (status === "completed" || status === "failed") {
-      step.duration = Date.now() - step.timestamp.getTime();
-    }
-    await this.updateProgress();
-  }
-  /**
-   * Complete current activity
-   */
-  async completeActivity(result, finalMessage) {
-    if (!this.currentActivity) return;
-    this.currentActivity.status = "completed";
-    this.currentActivity.endTime = /* @__PURE__ */ new Date();
-    this.currentActivity.result = result;
-    const duration = this.currentActivity.endTime.getTime() - this.currentActivity.startTime.getTime();
-    const durationStr = this.formatDuration(duration);
-    let message = `\u2705 **Completed \`${this.currentActivity.command}\`**
-
-`;
-    if (finalMessage) {
-      message += finalMessage + "\n\n";
-    }
-    message += this.generateStepsSummary();
-    message += `
-\u23F1\uFE0F Total time: ${durationStr}`;
-    await this.commentEngine.updateThread(this.currentActivity.id, message, {
-      reactions: ["+1", "rocket"]
-    });
-    this.currentActivity = null;
-  }
-  /**
-   * Fail current activity
-   */
-  async failActivity(error4, context) {
-    if (!this.currentActivity) return;
-    this.currentActivity.status = "failed";
-    this.currentActivity.endTime = /* @__PURE__ */ new Date();
-    this.currentActivity.error = error4 instanceof Error ? error4 : new Error(error4);
-    await errorHandler.handleError(this.currentActivity.error, {
-      category: "unknown" /* UNKNOWN */,
-      severity: "high" /* HIGH */,
-      userAction: `Bot command: ${this.currentActivity.command}`,
-      metadata: context,
-      skipGitHubPost: true
-      // We'll post our own formatted message
-    });
-    let message = `\u274C **Failed \`${this.currentActivity.command}\`**
-
-`;
-    message += `**Error**: ${this.currentActivity.error.message}
-
-`;
-    message += this.generateStepsSummary();
-    const tips = this.getBotCommandTips(this.currentActivity.command, this.currentActivity.error.message);
-    if (tips.length > 0) {
-      message += "\n### \u{1F4A1} Suggestions:\n";
-      message += tips.map((tip) => `- ${tip}`).join("\n");
-    }
-    await this.commentEngine.updateThread(this.currentActivity.id, message, {
-      reactions: ["confused", "-1"]
-    });
-    this.currentActivity = null;
-  }
-  /**
-   * Post a simple bot response (for quick commands)
-   */
-  async postBotResponse(message, options) {
-    const formattedMessage = (options == null ? void 0 : options.success) !== false ? `\u2705 ${message}` : `\u274C ${message}`;
-    if (options == null ? void 0 : options.threadId) {
-      await this.commentEngine.replyToThread(options.threadId, formattedMessage, {
-        reactions: options.reactions
-      });
-    } else {
-      await this.commentEngine.postComment(formattedMessage, {
-        reactions: options.reactions
-      });
-    }
-  }
-  /**
-   * Post help message
-   */
-  async postHelpMessage(commands) {
-    let message = "## \u{1F527} YoFix Bot Commands\n\n";
-    for (const cmd of commands) {
-      message += `### \`${cmd.command}\`
-`;
-      message += `${cmd.description}
-`;
-      if (cmd.examples && cmd.examples.length > 0) {
-        message += "\n**Examples:**\n";
-        message += cmd.examples.map((ex) => `- \`${ex}\``).join("\n");
-        message += "\n";
-      }
-      message += "\n";
-    }
-    message += "---\n";
-    message += "\u{1F4A1} **Tips:**\n";
-    message += "- All commands start with `@yofix`\n";
-    message += "- Use `--help` with any command for more info\n";
-    message += "- Commands can be chained with `&&`\n";
-    await this.commentEngine.postComment(message, {
-      reactions: ["heart"]
-    });
-  }
-  /**
-   * Track an activity with automatic handling
-   */
-  async trackActivity(operation, handler) {
-    const activityId = `activity-${Date.now()}`;
-    try {
-      await this.startActivity(activityId, operation);
-      const result = await handler();
-      await this.completeActivity(result);
-      return result;
-    } catch (error4) {
-      await this.failActivity(error4);
-      throw error4;
-    }
-  }
-  /**
-   * Handle unknown command
-   */
-  async handleUnknownCommand(command, suggestions) {
-    let message = `\u2753 **Unknown command: \`${command}\`**
-
-`;
-    if (suggestions && suggestions.length > 0) {
-      message += "Did you mean:\n";
-      message += suggestions.map((s) => `- \`@yofix ${s}\``).join("\n");
-      message += "\n\n";
-    }
-    message += "Use `@yofix help` to see available commands.";
-    await this.commentEngine.postComment(message, {
-      reactions: ["confused"]
-    });
-  }
-  // Private methods
-  async updateProgress() {
-    if (!this.currentActivity) return;
-    const message = this.generateProgressMessage();
-    await this.commentEngine.updateThread(this.currentActivity.id, message);
-  }
-  generateProgressMessage() {
-    if (!this.currentActivity) return "";
-    let message = `\u{1F504} **Processing \`${this.currentActivity.command}\`**
-
-`;
-    for (const step of this.currentActivity.steps) {
-      const icon = this.getStepIcon(step.status);
-      const duration = step.duration ? ` (${this.formatDuration(step.duration)})` : "";
-      message += `${icon} ${step.name}${duration}
-`;
-      if (step.message) {
-        message += `   ${step.message}
-`;
-      }
-    }
-    const elapsed = Date.now() - this.currentActivity.startTime.getTime();
-    message += `
-\u23F1\uFE0F Elapsed: ${this.formatDuration(elapsed)}`;
-    return message;
-  }
-  generateStepsSummary() {
-    if (!this.currentActivity) return "";
-    let summary = "### Steps Summary\n";
-    const completed = this.currentActivity.steps.filter((s) => s.status === "completed").length;
-    const failed = this.currentActivity.steps.filter((s) => s.status === "failed").length;
-    const skipped = this.currentActivity.steps.filter((s) => s.status === "skipped").length;
-    const total = this.currentActivity.steps.length;
-    summary += `- \u2705 Completed: ${completed}/${total}
-`;
-    if (failed > 0) summary += `- \u274C Failed: ${failed}
-`;
-    if (skipped > 0) summary += `- \u23ED\uFE0F Skipped: ${skipped}
-`;
-    return summary + "\n";
-  }
-  getStepIcon(status) {
-    switch (status) {
-      case "pending":
-        return "\u23F3";
-      case "running":
-        return "\u{1F504}";
-      case "completed":
-        return "\u2705";
-      case "failed":
-        return "\u274C";
-      case "skipped":
-        return "\u23ED\uFE0F";
-      default:
-        return "\u2753";
-    }
-  }
-  formatDuration(ms) {
-    if (ms < 1e3) return `${ms}ms`;
-    if (ms < 6e4) return `${(ms / 1e3).toFixed(1)}s`;
-    const minutes = Math.floor(ms / 6e4);
-    const seconds = Math.floor(ms % 6e4 / 1e3);
-    return `${minutes}m ${seconds}s`;
-  }
-  getBotCommandTips(command, error4) {
-    const tips = [];
-    if (command.includes("scan")) {
-      tips.push("Ensure the preview URL is accessible");
-      tips.push("Check if authentication is required");
-      tips.push("Try specifying a specific route: `@yofix scan /dashboard`");
-    }
-    if (command.includes("fix")) {
-      tips.push("Run `@yofix scan` first to detect issues");
-      tips.push("Specify an issue number: `@yofix fix #3`");
-    }
-    if (command.includes("test")) {
-      tips.push("Ensure test credentials are configured");
-      tips.push("Check the login URL is correct");
-      tips.push("Try a different auth mode");
-    }
-    if (error4.includes("timeout")) {
-      tips.push("The operation took too long - try again");
-      tips.push("Check if the site is responding slowly");
-    }
-    if (error4.includes("not found")) {
-      tips.push("Check the spelling of your command");
-      tips.push("Use `@yofix help` to see available options");
-    }
-    return tips;
-  }
-};
-var botActivity = new BotActivityHandler();
-
-// src/core/error/ErrorHandlerFactory.ts
-var core5 = __toESM(require_core());
-function createModuleLogger(options) {
-  const { module: module2, debug: debug5 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = ErrorCategory.MODULE } = options;
-  return {
-    debug: (message, ...args) => {
-      if (debug5 || core5.isDebug()) {
-        core5.debug(`[${module2}] ${message}`);
-        if (args.length > 0) {
-          core5.debug(`[${module2}] ${JSON.stringify(args)}`);
-        }
-      }
-    },
-    info: (message, ...args) => {
-      core5.info(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug5 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
-      }
-    },
-    warn: (message, ...args) => {
-      core5.warning(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug5 || core5.isDebug())) {
-        core5.debug(`[${module2}] ${JSON.stringify(args)}`);
-      }
-    },
-    error: async (error4, context) => {
-      const errorObj = error4 instanceof Error ? error4 : new Error(error4);
-      await errorHandler.handleError(errorObj, {
-        severity: (context == null ? void 0 : context.severity) || defaultSeverity,
-        category: (context == null ? void 0 : context.category) || defaultCategory,
-        userAction: (context == null ? void 0 : context.userAction) || `${module2} operation`,
-        metadata: {
-          module: module2,
-          ...context == null ? void 0 : context.metadata
-        },
-        recoverable: (context == null ? void 0 : context.recoverable) !== false,
-        skipGitHubPost: (context == null ? void 0 : context.skipGitHubPost) !== void 0 ? context.skipGitHubPost : skipGitHubPost
-      });
-    }
-  };
-}
-
-// src/core/hooks/ConfigurationHook.ts
-var GitHubActionsConfigurationHook = class {
-  constructor(core8) {
-    this.core = core8;
-  }
-  getInput(name) {
-    return this.core.getInput(name);
-  }
-  getBooleanInput(name) {
-    return this.core.getBooleanInput(name);
-  }
-  getMultilineInput(name) {
-    return this.core.getMultilineInput(name);
-  }
-  getRequiredInput(name) {
-    const value = this.core.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return !!process.env.GITHUB_ACTIONS;
-  }
-};
-var EnvironmentConfigurationHook = class {
-  getInput(name) {
-    const inputKey = `INPUT_${name.toUpperCase().replace(/-/g, "_")}`;
-    return process.env[inputKey] || process.env[name] || "";
-  }
-  getBooleanInput(name) {
-    const value = this.getInput(name).toLowerCase();
-    return value === "true" || value === "1";
-  }
-  getMultilineInput(name) {
-    const value = this.getInput(name);
-    return value ? value.split("\n").map((line) => line.trim()) : [];
-  }
-  getRequiredInput(name) {
-    const value = this.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return !!process.env.GITHUB_ACTIONS;
-  }
-};
-var MockConfigurationHook = class {
-  constructor(mockValues = {}) {
-    this.mockValues = mockValues;
-  }
-  setMockValue(name, value) {
-    this.mockValues[name] = value;
-  }
-  getInput(name) {
-    return this.mockValues[name] || "";
-  }
-  getBooleanInput(name) {
-    const value = this.getInput(name).toLowerCase();
-    return value === "true" || value === "1";
-  }
-  getMultilineInput(name) {
-    const value = this.getInput(name);
-    return value ? value.split("\n").map((line) => line.trim()) : [];
-  }
-  getRequiredInput(name) {
-    const value = this.getInput(name);
-    if (!value) {
-      throw new Error(`Required input '${name}' not provided`);
-    }
-    return value;
-  }
-  isInGitHubActions() {
-    return false;
-  }
-};
-var ConfigurationFactory = class {
-  /**
-   * Get configuration hook instance
-   */
-  static getConfiguration() {
-    if (!this.instance) {
-      if (process.env.NODE_ENV === "test") {
-        this.instance = new MockConfigurationHook();
-      } else if (process.env.GITHUB_ACTIONS) {
-        const core8 = require_core();
-        this.instance = new GitHubActionsConfigurationHook(core8);
-      } else {
-        this.instance = new EnvironmentConfigurationHook();
-      }
-    }
-    return this.instance;
-  }
-  /**
-   * Set configuration instance (for testing)
-   */
-  static setConfiguration(config2) {
-    this.instance = config2;
-  }
-  /**
-   * Reset configuration instance
-   */
-  static reset() {
-    this.instance = null;
-  }
-};
-ConfigurationFactory.instance = null;
-function getConfiguration() {
-  return ConfigurationFactory.getConfiguration();
-}
-
-// src/core/patterns/ConsistencyPatterns.ts
-var core6 = __toESM(require_core());
-async function executeOperation(operation, context) {
-  const startTime = Date.now();
-  try {
-    const data = await operation();
-    return {
-      success: true,
-      data,
-      metadata: {
-        duration: Date.now() - startTime,
-        ...context.metadata
-      }
-    };
-  } catch (error4) {
-    await errorHandler.handleError(error4, {
-      severity: context.severity || "medium" /* MEDIUM */,
-      category: context.category || "unknown" /* UNKNOWN */,
-      userAction: context.name,
-      metadata: {
-        ...context.metadata,
-        duration: Date.now() - startTime
-      },
-      recoverable: true
-    });
-    return {
-      success: false,
-      error: error4 instanceof Error ? error4.message : "Unknown error",
-      data: context.fallback,
-      metadata: {
-        duration: Date.now() - startTime,
-        ...context.metadata
-      }
-    };
-  }
-}
-var GitHubOperations = class {
-  static ensureInitialized() {
-    if (!this.github) {
-      this.github = GitHubServiceFactory.getService();
-      this.context = this.github.getContext();
-    }
-  }
-  static async postProgress(message, threadId) {
-    var _a;
-    this.ensureInitialized();
-    if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core6.warning("No PR context available, skipping progress comment");
-      return;
-    }
-    const signature = threadId ? `yofix-progress-${threadId}` : "yofix-progress";
-    const body = `\u23F3 ${message}
-
-<!-- ${signature} -->`;
-    try {
-      const comments = await this.github.listComments();
-      const existingComment = comments.find(
-        (comment) => comment.body.includes(`<!-- ${signature} -->`)
-      );
-      if (existingComment) {
-        await this.github.updateComment(
-          existingComment.id,
-          body
-        );
-      } else {
-        await this.github.createComment(
-          body
-        );
-      }
-    } catch (error4) {
-      core6.warning(`Failed to post progress comment: ${error4}`);
-    }
-  }
-  static async postResult(result, operation) {
-    var _a;
-    this.ensureInitialized();
-    if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      core6.warning("No PR context available, skipping result comment");
-      return;
-    }
-    const emoji = result.success ? "\u2705" : "\u274C";
-    const status = result.success ? "Success" : "Failed";
-    let message = `${emoji} **${operation}**: ${status}`;
-    if (result.error) {
-      message += `
-
-**Error**: ${result.error}`;
-    }
-    if (result.data && typeof result.data === "object") {
-      message += "\n\n**Details**:\n```json\n" + JSON.stringify(result.data, null, 2) + "\n```";
-    }
-    if (result.metadata && Object.keys(result.metadata).length > 0) {
-      message += "\n\n**Metadata**:\n";
-      for (const [key, value] of Object.entries(result.metadata)) {
-        message += `- ${key}: ${value}
-`;
-      }
-    }
-    const signature = `yofix-result-${operation.toLowerCase().replace(/\s+/g, "-")}`;
-    message += `
-
-<!-- ${signature} -->`;
-    try {
-      await this.github.createComment(
-        message
-      );
-    } catch (error4) {
-      core6.warning(`Failed to post result comment: ${error4}`);
-    }
-  }
-  static async addReaction(reaction) {
-    var _a;
-    this.ensureInitialized();
-    if (!((_a = this.context) == null ? void 0 : _a.prNumber)) {
-      return;
-    }
-    try {
-      const triggeringCommentId = this.getTriggeringCommentId();
-      if (triggeringCommentId) {
-        await this.github.addReaction(
-          triggeringCommentId,
-          reaction
-        );
-      }
-    } catch (error4) {
-      core6.debug(`Failed to add reaction: ${error4}`);
-    }
-  }
-  static getTriggeringCommentId() {
-    var _a;
-    try {
-      const eventPath = process.env.GITHUB_EVENT_PATH;
-      if (!eventPath) return null;
-      const event = JSON.parse(require("fs").readFileSync(eventPath, "utf8"));
-      return ((_a = event == null ? void 0 : event.comment) == null ? void 0 : _a.id) || null;
-    } catch {
-      return null;
-    }
-  }
-};
-GitHubOperations.github = null;
-GitHubOperations.context = null;
-var ConfigPattern = class {
-  static get(key, defaultValue) {
-    return this.config.getInput(key) || defaultValue || "";
-  }
-  static getBoolean(key, defaultValue = false) {
-    return this.config.getBooleanInput(key) || defaultValue;
-  }
-  static getNumber(key, defaultValue = 0) {
-    const value = this.config.getInput(key);
-    if (!value) return defaultValue;
-    const num = parseInt(value, 10);
-    return isNaN(num) ? defaultValue : num;
-  }
-  static getJson(key, defaultValue) {
-    const value = this.config.getInput(key);
-    if (!value) return defaultValue;
-    try {
-      return JSON.parse(value);
-    } catch {
-      return defaultValue;
-    }
-  }
-};
-ConfigPattern.config = getConfiguration();
-async function retryOperation(operation, options = {}) {
-  const maxAttempts = options.maxAttempts || 3;
-  const delay2 = options.delay || 1e3;
-  const backoff = options.backoff || 2;
-  let lastError;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await operation();
-    } catch (error4) {
-      lastError = error4;
-      if (attempt < maxAttempts) {
-        if (options.onRetry) {
-          options.onRetry(attempt, lastError);
-        }
-        const waitTime = delay2 * Math.pow(backoff, attempt - 1);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      }
-    }
-  }
-  throw lastError;
-}
-
-// src/core/patterns/CircuitBreaker.ts
-var CircuitBreaker = class {
-  constructor(config2) {
-    this.config = config2;
-    this.state = "CLOSED" /* CLOSED */;
-    this.failures = 0;
-    this.successes = 0;
-    this.totalRequests = 0;
-    this.totalFailures = 0;
-    this.halfOpenRequests = 0;
-    this.halfOpenSuccesses = 0;
-    this.logger = createModuleLogger({
-      module: `CircuitBreaker.${this.config.serviceName}`,
-      defaultCategory: ErrorCategory.NETWORK
-    });
-    this.failureThreshold = config2.failureThreshold ?? 5;
-    this.resetTimeout = config2.resetTimeout ?? 6e4;
-    this.timeout = config2.timeout ?? 3e4;
-    this.successThreshold = config2.successThreshold ?? 0.5;
-    this.volumeThreshold = config2.volumeThreshold ?? 5;
-  }
-  /**
-   * Execute a function with circuit breaker protection
-   */
-  async execute(operation) {
-    this.totalRequests++;
-    if (this.state === "OPEN" /* OPEN */) {
-      if (Date.now() < this.nextAttempt) {
-        return this.handleOpen();
-      }
-      this.state = "HALF_OPEN" /* HALF_OPEN */;
-      this.halfOpenRequests = 0;
-      this.halfOpenSuccesses = 0;
-      this.logger.info(`Circuit moved to HALF_OPEN state for ${this.config.serviceName}`);
-    }
-    try {
-      const result = await this.executeWithTimeout(operation);
-      this.onSuccess();
-      return result;
-    } catch (error4) {
-      return this.onFailure(error4);
-    }
-  }
-  /**
-   * Execute operation with timeout
-   */
-  async executeWithTimeout(operation) {
-    return new Promise(async (resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(`Operation timed out after ${this.timeout}ms`));
-      }, this.timeout);
-      try {
-        const result = await operation();
-        clearTimeout(timeoutId);
-        resolve(result);
-      } catch (error4) {
-        clearTimeout(timeoutId);
-        reject(error4);
-      }
-    });
-  }
-  /**
-   * Handle successful operation
-   */
-  onSuccess() {
-    this.failures = 0;
-    this.successes++;
-    this.lastSuccessTime = Date.now();
-    if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
-      this.halfOpenRequests++;
-      this.halfOpenSuccesses++;
-      if (this.halfOpenRequests >= this.volumeThreshold) {
-        const successRate = this.halfOpenSuccesses / this.halfOpenRequests;
-        if (successRate >= this.successThreshold) {
-          this.state = "CLOSED" /* CLOSED */;
-          this.logger.info(`Circuit CLOSED for ${this.config.serviceName} (success rate: ${(successRate * 100).toFixed(1)}%)`);
-        } else {
-          this.open();
-        }
-      }
-    }
-  }
-  /**
-   * Handle failed operation
-   */
-  onFailure(error4) {
-    this.failures++;
-    this.totalFailures++;
-    this.lastFailureTime = Date.now();
-    const shouldTrigger = this.config.isFailure ? this.config.isFailure(error4) : true;
-    if (!shouldTrigger) {
-      throw error4;
-    }
-    errorHandler.handleError(error4, {
-      severity: "medium" /* MEDIUM */,
-      category: ErrorCategory.NETWORK,
-      userAction: `${this.config.serviceName} operation`,
-      metadata: {
-        circuitState: this.state,
-        failures: this.failures,
-        totalFailures: this.totalFailures
-      },
-      skipGitHubPost: true
-    });
-    if (this.state === "HALF_OPEN" /* HALF_OPEN */) {
-      this.halfOpenRequests++;
-      this.open();
-    } else if (this.state === "CLOSED" /* CLOSED */ && this.failures >= this.failureThreshold) {
-      this.open();
-    }
-    if (this.config.fallback) {
-      this.logger.info(`Using fallback for ${this.config.serviceName}`);
-      return this.config.fallback();
-    }
-    throw error4;
-  }
-  /**
-   * Open the circuit
-   */
-  open() {
-    this.state = "OPEN" /* OPEN */;
-    this.nextAttempt = Date.now() + this.resetTimeout;
-    this.logger.warn(`Circuit OPEN for ${this.config.serviceName} after ${this.failures} failures`);
-    if (this.failures >= this.failureThreshold * 2) {
-      errorHandler.handleError(
-        new Error(`Circuit breaker opened for ${this.config.serviceName}`),
-        {
-          severity: "high" /* HIGH */,
-          category: ErrorCategory.NETWORK,
-          userAction: "Circuit breaker activation",
-          metadata: this.getStats()
-        }
-      );
-    }
-  }
-  /**
-   * Handle open circuit
-   */
-  handleOpen() {
-    const error4 = new CircuitBreakerError(
-      `Circuit breaker is OPEN for ${this.config.serviceName}`,
-      this.config.serviceName,
-      this.state
-    );
-    if (this.config.fallback) {
-      this.logger.debug(`Circuit open, using fallback for ${this.config.serviceName}`);
-      return this.config.fallback();
-    }
-    throw error4;
-  }
-  /**
-   * Get circuit breaker statistics
-   */
-  getStats() {
-    const successRate = this.totalRequests > 0 ? (this.totalRequests - this.totalFailures) / this.totalRequests : 0;
-    return {
-      state: this.state,
-      failures: this.failures,
-      successes: this.successes,
-      lastFailureTime: this.lastFailureTime,
-      lastSuccessTime: this.lastSuccessTime,
-      totalRequests: this.totalRequests,
-      totalFailures: this.totalFailures,
-      consecutiveFailures: this.failures,
-      successRate
-    };
-  }
-  /**
-   * Reset the circuit breaker
-   */
-  reset() {
-    this.state = "CLOSED" /* CLOSED */;
-    this.failures = 0;
-    this.successes = 0;
-    this.halfOpenRequests = 0;
-    this.halfOpenSuccesses = 0;
-    this.nextAttempt = void 0;
-    this.logger.info(`Circuit reset for ${this.config.serviceName}`);
-  }
-  /**
-   * Force the circuit to open
-   */
-  forceOpen() {
-    this.open();
-  }
-  /**
-   * Force the circuit to close
-   */
-  forceClose() {
-    this.state = "CLOSED" /* CLOSED */;
-    this.failures = 0;
-    this.logger.info(`Circuit force closed for ${this.config.serviceName}`);
-  }
-};
-var CircuitBreakerError = class extends Error {
-  constructor(message, serviceName, state) {
-    super(message);
-    this.serviceName = serviceName;
-    this.state = state;
-    this.name = "CircuitBreakerError";
-  }
-};
-var CircuitBreakerFactory = class {
-  /**
-   * Get or create a circuit breaker
-   */
-  static getBreaker(config2) {
-    const existing = this.breakers.get(config2.serviceName);
-    if (existing) {
-      return existing;
-    }
-    const breaker = new CircuitBreaker(config2);
-    this.breakers.set(config2.serviceName, breaker);
-    return breaker;
-  }
-  /**
-   * Get all circuit breakers
-   */
-  static getAllBreakers() {
-    return new Map(this.breakers);
-  }
-  /**
-   * Reset all circuit breakers
-   */
-  static resetAll() {
-    for (const breaker of this.breakers.values()) {
-      breaker.reset();
-    }
-  }
-  /**
-   * Get statistics for all breakers
-   */
-  static getAllStats() {
-    const stats = {};
-    for (const [name, breaker] of this.breakers) {
-      stats[name] = breaker.getStats();
-    }
-    return stats;
-  }
-};
-CircuitBreakerFactory.breakers = /* @__PURE__ */ new Map();
-
-// src/core/config/ConfigurationManager.ts
-var ConfigurationManager = class _ConfigurationManager {
-  constructor() {
-    this.cache = /* @__PURE__ */ new Map();
-    this.validators = /* @__PURE__ */ new Map();
-    this.logger = createModuleLogger({
-      module: "ConfigurationManager",
-      defaultCategory: "configuration" /* CONFIGURATION */
-    });
-    this.setupDefaultValidators();
-  }
-  static getInstance() {
-    if (!_ConfigurationManager.instance) {
-      _ConfigurationManager.instance = new _ConfigurationManager();
-    }
-    return _ConfigurationManager.instance;
-  }
-  /**
-   * Get configuration value with fallback chain
-   */
-  get(key, options = {}) {
-    const cacheKey = this.getCacheKey(key, options);
-    if (this.cache.has(cacheKey) && !options.sensitive) {
-      return this.cache.get(cacheKey);
-    }
-    let value;
-    try {
-      const inputKey = this.toInputKey(key);
-      value = getConfiguration().getInput(inputKey);
-      if (value) {
-        this.logger.debug(`Found ${key} in GitHub inputs`);
-      }
-    } catch (error4) {
-    }
-    if (!value) {
-      const envKey = this.toEnvKey(key);
-      value = process.env[envKey];
-      if (value) {
-        this.logger.debug(`Found ${key} in environment`);
-      }
-    }
-    if (!value && options.defaultValue !== void 0) {
-      value = options.defaultValue;
-      this.logger.debug(`Using default value for ${key}`);
-    }
-    if (!value && options.required) {
-      const error4 = new Error(`Required configuration '${key}' is not set`);
-      errorHandler.handleError(error4, {
-        severity: "high" /* HIGH */,
-        category: "configuration" /* CONFIGURATION */,
-        userAction: `Set configuration value for ${key}`,
-        metadata: { key, options }
-      });
-      throw error4;
-    }
-    if (value && options.validate && !options.validate(value)) {
-      const error4 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
-      errorHandler.handleError(error4, {
-        severity: "high" /* HIGH */,
-        category: "configuration" /* CONFIGURATION */,
-        metadata: { key }
-      });
-      throw error4;
-    }
-    if (value && this.validators.has(key)) {
-      const rules = this.validators.get(key);
-      for (const rule of rules) {
-        if (!rule.test(value)) {
-          throw new Error(`Configuration '${key}' validation failed: ${rule.message}`);
-        }
-      }
-    }
-    if (value && options.transform) {
-      try {
-        value = options.transform(value);
-      } catch (error4) {
-        this.logger.error(`Failed to transform ${key}: ${error4}`);
-        throw error4;
-      }
-    }
-    if (value && !options.sensitive) {
-      this.cache.set(cacheKey, value);
-    }
-    return value || "";
-  }
-  /**
-   * Get boolean configuration value
-   */
-  getBoolean(key, defaultValue = false) {
-    const value = this.get(key, {
-      defaultValue: defaultValue.toString(),
-      transform: (v) => v.toLowerCase() === "true" || v === "1"
-    });
-    return typeof value === "boolean" ? value : value === "true";
-  }
-  /**
-   * Get number configuration value
-   */
-  getNumber(key, defaultValue) {
-    const value = this.get(key, {
-      defaultValue: defaultValue == null ? void 0 : defaultValue.toString(),
-      validate: (v) => !isNaN(Number(v)),
-      transform: (v) => Number(v)
-    });
-    return Number(value);
-  }
-  /**
-   * Get JSON configuration value
-   */
-  getJSON(key, defaultValue) {
-    const value = this.get(key, {
-      defaultValue: defaultValue ? JSON.stringify(defaultValue) : void 0,
-      transform: (v) => {
-        try {
-          return JSON.parse(v);
-        } catch (error4) {
-          throw new Error(`Invalid JSON in ${key}: ${error4}`);
-        }
-      }
-    });
-    return value;
-  }
-  /**
-   * Get array configuration value (comma-separated)
-   */
-  getArray(key, defaultValue = []) {
-    const value = this.get(key, {
-      defaultValue: defaultValue.join(","),
-      transform: (v) => v.split(",").map((s) => s.trim()).filter(Boolean)
-    });
-    return Array.isArray(value) ? value : [];
-  }
-  /**
-   * Get sensitive configuration (no caching, no logging)
-   */
-  getSecret(key) {
-    return this.get(key, {
-      required: true,
-      sensitive: true
-    });
-  }
-  /**
-   * Set configuration value (for testing)
-   */
-  set(key, value) {
-    const envKey = this.toEnvKey(key);
-    process.env[envKey] = String(value);
-    this.cache.delete(key);
-  }
-  /**
-   * Clear cache
-   */
-  clearCache() {
-    this.cache.clear();
-  }
-  /**
-   * Register custom validator
-   */
-  addValidator(key, rule) {
-    if (!this.validators.has(key)) {
-      this.validators.set(key, []);
-    }
-    this.validators.get(key).push(rule);
-  }
-  /**
-   * Get all configuration keys
-   */
-  getAllKeys() {
-    const keys = /* @__PURE__ */ new Set();
-    Object.keys(process.env).forEach((key) => {
-      if (key.startsWith("INPUT_") || key.startsWith("YOFIX_")) {
-        keys.add(this.fromEnvKey(key));
-      }
-    });
-    return Array.from(keys);
-  }
-  /**
-   * Convert to GitHub input key format
-   */
-  toInputKey(key) {
-    return key.toLowerCase().replace(/_/g, "-");
-  }
-  /**
-   * Convert to environment variable key format
-   */
-  toEnvKey(key) {
-    return `INPUT_${key.toUpperCase().replace(/-/g, "_")}`;
-  }
-  /**
-   * Convert from environment variable key
-   */
-  fromEnvKey(envKey) {
-    return envKey.replace(/^INPUT_/, "").toLowerCase().replace(/_/g, "-");
-  }
-  /**
-   * Get cache key
-   */
-  getCacheKey(key, options) {
-    return `${key}:${JSON.stringify(options)}`;
-  }
-  /**
-   * Setup default validators
-   */
-  setupDefaultValidators() {
-    this.addValidator("preview-url", {
-      test: (value) => {
-        try {
-          new URL(value);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      message: "Must be a valid URL"
-    });
-    this.addValidator("test-timeout", {
-      test: (value) => {
-        const match = value.match(/^(\d+)(s|m|ms)?$/);
-        return !!match;
-      },
-      message: "Must be a valid timeout (e.g., 30s, 5m, 1000ms)"
-    });
-    this.addValidator("storage-provider", {
-      test: (value) => ["firebase", "s3", "github"].includes(value),
-      message: "Must be one of: firebase, s3, github"
-    });
-    this.addValidator("auth-mode", {
-      test: (value) => ["selectors", "ai", "llm", "smart", "none", "baseline"].includes(value),
-      message: "Must be one of: selectors, ai, llm, smart, none, baseline"
-    });
-  }
-};
-var config = ConfigurationManager.getInstance();
-function getRequiredConfig(key) {
-  return config.get(key, { required: true });
-}
-function getBooleanConfig(key, defaultValue = false) {
-  return config.getBoolean(key, defaultValue);
-}
-
-// src/core/utils/JSONParser.ts
-var logger = createModuleLogger({
-  module: "JSONParser",
-  defaultCategory: ErrorCategory.PROCESSING
-});
-
-// src/core/utils/FileSystemWrapper.ts
-var fs3 = __toESM(require("fs/promises"));
-var fsSync = __toESM(require("fs"));
-var path3 = __toESM(require("path"));
-var logger2 = createModuleLogger({
-  module: "FileSystem",
-  defaultCategory: ErrorCategory.FILE_SYSTEM
-});
-var FileSystem = class {
-  /**
-   * Check if file exists
-   */
-  static async exists(filePath) {
-    const result = await executeOperation(
-      async () => {
-        try {
-          await fs3.access(filePath, fsSync.constants.F_OK);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      {
-        name: `Check file exists: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "low" /* LOW */,
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Read file with error handling
-   */
-  static async read(filePath, options = {}) {
-    const result = await executeOperation(
-      async () => {
-        if (options.maxSize) {
-          const stats = await fs3.stat(filePath);
-          if (stats.size > options.maxSize) {
-            throw new Error(`File size ${stats.size} exceeds maximum ${options.maxSize}`);
-          }
-        }
-        const content = await fs3.readFile(filePath, {
-          encoding: options.encoding || "utf-8",
-          flag: options.flag
-        });
-        if (options.json) {
-          try {
-            return JSON.parse(content.toString());
-          } catch (error4) {
-            throw new Error(`Failed to parse JSON from ${filePath}: ${error4}`);
-          }
-        }
-        return content.toString();
-      },
-      {
-        name: `Read file: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "medium" /* MEDIUM */,
-        metadata: { filePath, options },
-        fallback: null
-      }
-    );
-    return result.data;
-  }
-  /**
-   * Write file with error handling
-   */
-  static async write(filePath, content, options = {}) {
-    const result = await executeOperation(
-      async () => {
-        if (options.createDirectories) {
-          await this.ensureDirectory(path3.dirname(filePath));
-        }
-        let data;
-        if (typeof content === "object" && !Buffer.isBuffer(content)) {
-          data = JSON.stringify(content, null, 2);
-        } else {
-          data = content;
-        }
-        if (options.backup && await this.exists(filePath)) {
-          const backupPath = `${filePath}.backup`;
-          await fs3.copyFile(filePath, backupPath);
-          logger2.debug(`Created backup: ${backupPath}`);
-        }
-        if (options.atomic) {
-          const tempPath = `${filePath}.tmp`;
-          await fs3.writeFile(tempPath, data, {
-            encoding: options.encoding || "utf-8",
-            mode: options.mode,
-            flag: options.flag || "w"
-          });
-          await fs3.rename(tempPath, filePath);
-        } else {
-          await fs3.writeFile(filePath, data, {
-            encoding: options.encoding || "utf-8",
-            mode: options.mode,
-            flag: options.flag || "w"
-          });
-        }
-        return true;
-      },
-      {
-        name: `Write file: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "medium" /* MEDIUM */,
-        metadata: { filePath, options },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Delete file or directory with error handling
-   */
-  static async delete(filePath) {
-    const result = await executeOperation(
-      async () => {
-        try {
-          const stats = await fs3.stat(filePath);
-          if (stats.isDirectory()) {
-            await fs3.rm(filePath, { recursive: true, force: true });
-          } else {
-            await fs3.unlink(filePath);
-          }
-          return true;
-        } catch (error4) {
-          if (error4.code === "ENOENT") {
-            return true;
-          }
-          throw error4;
-        }
-      },
-      {
-        name: `Delete: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "low" /* LOW */,
-        metadata: { filePath },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Create directory with parents
-   */
-  static async ensureDirectory(dirPath) {
-    const result = await executeOperation(
-      async () => {
-        await fs3.mkdir(dirPath, { recursive: true });
-        return true;
-      },
-      {
-        name: `Create directory: ${path3.basename(dirPath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "low" /* LOW */,
-        metadata: { dirPath },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * List directory contents
-   */
-  static async listDirectory(dirPath, options = {}) {
-    const result = await executeOperation(
-      async () => {
-        const entries = await fs3.readdir(dirPath, { withFileTypes: true });
-        const files = [];
-        for (const entry of entries) {
-          const fullPath = path3.join(dirPath, entry.name);
-          if (!options.includeHidden && entry.name.startsWith(".")) {
-            continue;
-          }
-          if (options.filter && !options.filter(entry.name)) {
-            continue;
-          }
-          if (entry.isDirectory() && options.recursive) {
-            const subFiles = await this.listDirectory(fullPath, options);
-            files.push(...subFiles);
-          } else if (entry.isFile()) {
-            files.push(fullPath);
-          }
-        }
-        return files;
-      },
-      {
-        name: `List directory: ${path3.basename(dirPath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "low" /* LOW */,
-        metadata: { dirPath, options },
-        fallback: []
-      }
-    );
-    return result.data ?? [];
-  }
-  /**
-   * Copy file with retry
-   */
-  static async copy(source, destination, options = {}) {
-    return await retryOperation(
-      async () => {
-        if (!options.overwrite && await this.exists(destination)) {
-          throw new Error(`Destination file already exists: ${destination}`);
-        }
-        await this.ensureDirectory(path3.dirname(destination));
-        await fs3.copyFile(source, destination);
-        return true;
-      },
-      {
-        maxAttempts: 3,
-        delay: 1e3,
-        backoff: 2,
-        onRetry: (attempt, error4) => {
-          logger2.debug(`Copy retry ${attempt}: ${error4.message}`);
-        }
-      }
-    );
-  }
-  /**
-   * Move file (with cross-device support)
-   */
-  static async move(source, destination) {
-    const result = await executeOperation(
-      async () => {
-        try {
-          await fs3.rename(source, destination);
-        } catch (error4) {
-          if (error4.code === "EXDEV") {
-            await this.copy(source, destination);
-            await this.delete(source);
-          } else {
-            throw error4;
-          }
-        }
-        return true;
-      },
-      {
-        name: `Move file: ${path3.basename(source)} to ${path3.basename(destination)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "medium" /* MEDIUM */,
-        metadata: { source, destination },
-        fallback: false
-      }
-    );
-    return result.data ?? false;
-  }
-  /**
-   * Get file stats
-   */
-  static async getStats(filePath) {
-    const result = await executeOperation(
-      async () => await fs3.stat(filePath),
-      {
-        name: `Get file stats: ${path3.basename(filePath)}`,
-        category: ErrorCategory.FILE_SYSTEM,
-        severity: "low" /* LOW */,
-        metadata: { filePath },
-        fallback: null
-      }
-    );
-    return result.data;
-  }
-  /**
-   * Watch file for changes
-   */
-  static async watch(filePath, callback) {
-    try {
-      return fsSync.watch(filePath, (event, filename) => {
-        logger2.debug(`File ${event}: ${filename}`);
-        callback(event, filename);
-      });
-    } catch (error4) {
-      logger2.error(`Failed to watch file ${filePath}: ${error4}`);
-      return null;
-    }
-  }
-  /**
-   * Create temporary file
-   */
-  static async createTempFile(prefix = "yofix", extension = ".tmp") {
-    const tempDir = process.env.TMPDIR || "/tmp";
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    const tempPath = path3.join(tempDir, `${prefix}-${timestamp}-${random}${extension}`);
-    await this.write(tempPath, "", { createDirectories: true });
-    return tempPath;
-  }
-  /**
-   * Clean up old files
-   */
-  static async cleanupOldFiles(directory, maxAgeMs, pattern) {
-    let deletedCount = 0;
-    const now = Date.now();
-    try {
-      const files = await this.listDirectory(directory);
-      for (const file of files) {
-        if (pattern && !pattern.test(path3.basename(file))) {
-          continue;
-        }
-        const stats = await this.getStats(file);
-        if (stats && now - stats.mtime.getTime() > maxAgeMs) {
-          if (await this.delete(file)) {
-            deletedCount++;
-            logger2.debug(`Deleted old file: ${file}`);
-          }
-        }
-      }
-    } catch (error4) {
-      logger2.error(`Cleanup failed: ${error4}`);
-    }
-    return deletedCount;
-  }
-};
-var {
-  exists,
-  read,
-  write,
-  delete: deleteFile,
-  ensureDirectory,
-  listDirectory,
-  copy,
-  move,
-  getStats,
-  watch: watch2,
-  createTempFile,
-  cleanupOldFiles
-} = FileSystem;
-
-// src/core/utils/ValidationPatterns.ts
-var logger3 = createModuleLogger({
-  module: "ValidationPatterns",
-  defaultCategory: ErrorCategory.VALIDATION
-});
-var Validators = class {
-  /**
-   * URL validation
-   */
-  static isURL(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "URL is required" };
-    }
-    try {
-      const url = new URL(value);
-      const allowedProtocols = options.protocols || ["http:", "https:"];
-      if (!allowedProtocols.includes(url.protocol)) {
-        return {
-          valid: false,
-          error: `Protocol ${url.protocol} not allowed. Use: ${allowedProtocols.join(", ")}`
-        };
-      }
-      return { valid: true };
-    } catch (error4) {
-      return { valid: false, error: "Invalid URL format" };
-    }
-  }
-  /**
-   * Email validation
-   */
-  static isEmail(value) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!value) {
-      return { valid: false, error: "Email is required" };
-    }
-    if (!emailRegex.test(value)) {
-      return { valid: false, error: "Invalid email format" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Selector validation (CSS/XPath)
-   */
-  static isSelector(value, type = "css") {
-    if (!value) {
-      return { valid: false, error: "Selector is required" };
-    }
-    if (type === "css") {
-      try {
-        document.createDocumentFragment().querySelector(value);
-        return { valid: true };
-      } catch {
-        return { valid: false, error: "Invalid CSS selector" };
-      }
-    } else {
-      if (!value.startsWith("/") && !value.startsWith("//")) {
-        return { valid: false, error: "XPath must start with / or //" };
-      }
-      return { valid: true };
-    }
-  }
-  /**
-   * GitHub token validation
-   */
-  static isGitHubToken(value) {
-    if (!value) {
-      return { valid: false, error: "GitHub token is required" };
-    }
-    const validPrefixes = ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"];
-    const hasValidPrefix = validPrefixes.some((prefix) => value.startsWith(prefix));
-    if (!hasValidPrefix && !value.match(/^[a-f0-9]{40}$/)) {
-      return {
-        valid: false,
-        error: "Invalid GitHub token format",
-        details: {
-          hint: "Token should start with ghp_, gho_, etc. or be a 40-character hex string"
-        }
-      };
-    }
-    return { valid: true };
-  }
-  /**
-   * API key validation (generic)
-   */
-  static isAPIKey(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "API key is required" };
-    }
-    const { minLength = 20, maxLength = 200, pattern, prefix } = options;
-    if (value.length < minLength) {
-      return { valid: false, error: `API key must be at least ${minLength} characters` };
-    }
-    if (value.length > maxLength) {
-      return { valid: false, error: `API key must not exceed ${maxLength} characters` };
-    }
-    if (prefix && !value.startsWith(prefix)) {
-      return { valid: false, error: `API key must start with ${prefix}` };
-    }
-    if (pattern && !pattern.test(value)) {
-      return { valid: false, error: "API key format is invalid" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Port number validation
-   */
-  static isPort(value) {
-    const port = typeof value === "string" ? parseInt(value, 10) : value;
-    if (isNaN(port)) {
-      return { valid: false, error: "Port must be a number" };
-    }
-    if (port < 1 || port > 65535) {
-      return { valid: false, error: "Port must be between 1 and 65535" };
-    }
-    return { valid: true };
-  }
-  /**
-   * Timeout validation (e.g., "30s", "5m", "1000ms")
-   */
-  static isTimeout(value) {
-    const match = value.match(/^(\d+)(ms|s|m|h)?$/);
-    if (!match) {
-      return {
-        valid: false,
-        error: "Invalid timeout format",
-        details: { example: "30s, 5m, 1000ms" }
-      };
-    }
-    const [, amount, unit = "ms"] = match;
-    const num = parseInt(amount, 10);
-    if (num <= 0) {
-      return { valid: false, error: "Timeout must be positive" };
-    }
-    const multipliers = { ms: 1, s: 1e3, m: 6e4, h: 36e5 };
-    const ms = num * multipliers[unit];
-    if (ms > 36e5) {
-      return { valid: false, error: "Timeout cannot exceed 1 hour" };
-    }
-    return { valid: true, details: { milliseconds: ms } };
-  }
-  /**
-   * File path validation
-   */
-  static isFilePath(value, options = {}) {
-    if (!value) {
-      return { valid: false, error: "File path is required" };
-    }
-    if (value.includes("..") && !options.allowRelative) {
-      return { valid: false, error: "Relative paths with .. are not allowed" };
-    }
-    if (options.extensions && options.extensions.length > 0) {
-      const hasValidExt = options.extensions.some(
-        (ext) => value.toLowerCase().endsWith(ext.toLowerCase())
-      );
-      if (!hasValidExt) {
-        return {
-          valid: false,
-          error: `File must have one of these extensions: ${options.extensions.join(", ")}`
-        };
-      }
-    }
-    return { valid: true };
-  }
-  /**
-   * JSON string validation
-   */
-  static isJSON(value) {
-    try {
-      JSON.parse(value);
-      return { valid: true };
-    } catch (error4) {
-      return {
-        valid: false,
-        error: "Invalid JSON format",
-        details: { parseError: error4 instanceof Error ? error4.message : String(error4) }
-      };
-    }
-  }
-  /**
-   * Semantic version validation
-   */
-  static isSemVer(value) {
-    const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-    if (!semverRegex.test(value)) {
-      return {
-        valid: false,
-        error: "Invalid semantic version",
-        details: { example: "1.2.3, 1.0.0-alpha, 2.1.0+build123" }
-      };
-    }
-    return { valid: true };
-  }
-};
-
-// src/core/utils/AsyncUtilities.ts
-var logger4 = createModuleLogger({
-  module: "AsyncUtilities",
-  defaultCategory: ErrorCategory.PROCESSING
-});
-
-// src/core/index.ts
-function initializeCoreServices() {
-  console.log("\u2705 YoFix core services initialized");
 }
 
 // src/steps/0-initialize.step.ts
+init_core();
 function parseInputs() {
   return {
     previewUrl: getRequiredConfig("preview-url"),
@@ -27627,8 +27512,7 @@ function parseInputs() {
     mcpProvider: config.get("mcp-provider"),
     mcpOptions: config.get("mcp-options"),
     enableAINavigation: getBooleanConfig("enable-ai-navigation"),
-    enableAITestGeneration: getBooleanConfig("enable-ai-test-generation"),
-    testRoutes: config.get("test-routes")
+    enableAITestGeneration: getBooleanConfig("enable-ai-test-generation")
   };
 }
 function validateInputs(inputs) {
@@ -27714,25 +27598,1997 @@ async function initialize() {
     return stepData;
   });
 }
-async function main() {
-  try {
-    const manager = getStepDataManager();
-    await manager.initialize();
-    const stepData = await initialize();
-    await manager.save(stepData);
-    core7.info("\u2705 Step 0: Initialize completed successfully");
-  } catch (error4) {
-    core7.setFailed(`Step 0 failed: ${error4}`);
-    throw error4;
+
+// src/steps/1-analyze-routes.step.ts
+var core9 = __toESM(require_core());
+var import_path2 = __toESM(require("path"));
+init_GitHubServiceFactory();
+
+// src/core/analysis/ThirdPartyRouteImpactAnalyzer.ts
+var core8 = __toESM(require_core());
+var import_analyzer = require("@yofix/analyzer");
+init_core();
+function createEmptyImpactTree(totalFilesChanged) {
+  return {
+    affectedRoutes: [],
+    sharedComponents: /* @__PURE__ */ new Map(),
+    totalFilesChanged,
+    totalRoutesAffected: 0,
+    componentRouteMapping: /* @__PURE__ */ new Map()
+  };
+}
+async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
+  const claudeApiKey = config.get("claude-api-key", { required: true });
+  const modelFromConfig = config.get("claude-model", { required: true });
+  const forceRefreshInput = config.get("route-impact-force-refresh", { defaultValue: "false" });
+  if (!claudeApiKey) {
+    throw new Error(
+      "Claude API key is required for route-impact-analyzer integration."
+    );
+  }
+  if (!modelFromConfig) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
+    );
+  }
+  const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
+  core8.info(
+    `\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`
+  );
+  if (changedFiles.length === 0) {
+    core8.info(
+      "No changed files detected, skipping external route impact analysis."
+    );
+    const emptyTree = createEmptyImpactTree(0);
+    return {
+      routes: [],
+      impactTree: emptyTree,
+      routesToTest: emptyTree,
+      commentBody: ""
+    };
+  }
+  const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
+  core8.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
+  core8.info(`  - Codebase path: ${codebasePath}`);
+  core8.info(`  - Changed files count: ${changedFiles.length}`);
+  core8.info(`  - Base URL: ${previewUrl}`);
+  core8.info(`  - Model: ${modelFromConfig}`);
+  core8.info(`  - Force refresh: ${forceRefresh}`);
+  const result = await (0, import_analyzer.analyzeRouteImpact)({
+    codebase: { path: codebasePath },
+    changedFiles,
+    options: {
+      baseUrl: previewUrl,
+      llm: {
+        provider: "anthropic",
+        apiKey: claudeApiKey,
+        model: modelFromConfig
+      },
+      cache: {
+        enabled: true,
+        provider: "file-system",
+        forceRefresh
+      },
+      analysis: {
+        includeLayouts: true,
+        maxDepth: 10,
+        verbose: true
+      }
+    }
+  });
+  core8.info(`\u{1F4CA} Route analysis result: success=${result.success}`);
+  if (!result.success) {
+    const messages = result.errors?.map((err) => `${err.code}: ${err.message}`) || [];
+    const errorMessage = messages.length > 0 ? messages.join("\n") : "route-impact-analyzer failed with unknown error";
+    core8.error(`\u274C Route impact analysis failed: ${errorMessage}`);
+    throw new Error(errorMessage);
+  }
+  const uniqueRoutes = /* @__PURE__ */ new Set();
+  const componentRouteMapping = /* @__PURE__ */ new Map();
+  const routeImpactMap = /* @__PURE__ */ new Map();
+  const impactReasons = /* @__PURE__ */ new Map();
+  result.impacts.forEach((impact) => {
+    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
+    if (impactedRoutes.length === 0) {
+      return;
+    }
+    componentRouteMapping.set(
+      impact.changedFile,
+      impactedRoutes.map((route) => ({
+        routePath: route,
+        routeFile: impact.changedFile
+      }))
+    );
+    impactedRoutes.forEach((route) => {
+      uniqueRoutes.add(route);
+      if (!routeImpactMap.has(route)) {
+        routeImpactMap.set(route, {
+          route,
+          changedFiles: [],
+          reason: impact.reason,
+          confidence: impact.confidence
+        });
+      }
+      const impactEntry = routeImpactMap.get(route);
+      if (!impactEntry.changedFiles.includes(impact.changedFile)) {
+        impactEntry.changedFiles.push(impact.changedFile);
+      }
+      if (!impactReasons.has(route) || impact.reason === "direct") {
+        impactReasons.set(route, {
+          reason: impact.reason,
+          confidence: impact.confidence
+        });
+      }
+    });
+  });
+  const sharedComponents = /* @__PURE__ */ new Map();
+  componentRouteMapping.forEach((routes, componentFile) => {
+    const uniqueRoutePaths = Array.from(
+      new Set(
+        routes.map((route) => route.routePath).filter((routePath) => !!routePath)
+      )
+    );
+    if (uniqueRoutePaths.length > 1) {
+      sharedComponents.set(componentFile, uniqueRoutePaths);
+    }
+  });
+  const impactTree = {
+    affectedRoutes: Array.from(routeImpactMap.values()),
+    sharedComponents,
+    totalFilesChanged: changedFiles.length,
+    totalRoutesAffected: uniqueRoutes.size,
+    componentRouteMapping,
+    framework: result.metadata?.framework
+  };
+  const routesToTestMap = /* @__PURE__ */ new Map();
+  const routesToTestComponentMapping = /* @__PURE__ */ new Map();
+  result.impacts.forEach((impact) => {
+    const impactedRoutes = Array.from(new Set(impact.impactedRoutes || []));
+    if (impactedRoutes.length === 0) {
+      return;
+    }
+    const routesToInclude = impact.reason === "layout" ? impactedRoutes.slice(0, 1) : impactedRoutes;
+    if (routesToInclude.length > 0) {
+      const newRoutes = [];
+      routesToInclude.forEach((route) => {
+        if (!routesToTestMap.has(route)) {
+          routesToTestMap.set(route, {
+            route,
+            changedFiles: [impact.changedFile],
+            reason: impact.reason,
+            confidence: impact.confidence
+          });
+          newRoutes.push({
+            routePath: route,
+            routeFile: impact.changedFile
+          });
+        } else {
+          const existing = routesToTestMap.get(route);
+          if (!existing.changedFiles.includes(impact.changedFile)) {
+            existing.changedFiles.push(impact.changedFile);
+          }
+        }
+      });
+      if (newRoutes.length > 0) {
+        routesToTestComponentMapping.set(impact.changedFile, newRoutes);
+      }
+    }
+    if (impact.reason === "layout" && impactedRoutes.length > 1) {
+      core8.info(
+        `\u{1F4CA} Layout impact for ${impact.changedFile}: Testing 1 of ${impactedRoutes.length} routes (${routesToInclude[0]})`
+      );
+    }
+  });
+  const routesToTest = {
+    affectedRoutes: Array.from(routesToTestMap.values()),
+    sharedComponents,
+    totalFilesChanged: changedFiles.length,
+    totalRoutesAffected: routesToTestMap.size,
+    componentRouteMapping: routesToTestComponentMapping,
+    framework: result.metadata?.framework
+  };
+  core8.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
+  const basePreviewUrl = previewUrl.replace(/\/$/, "");
+  const header = "## \u{1F310} Route Impact (route-impact-analyzer)\n";
+  const summaryLines = [
+    `- Files analyzed: **${result.metadata?.totalFiles ?? changedFiles.length}**`,
+    `- Routes impacted: **${uniqueRoutes.size}**`,
+    `- Routes to test: **${routesToTestMap.size}**`,
+    `- Framework: **${result.metadata?.framework ?? "unknown"}**`,
+    `- Preview URL: **${basePreviewUrl}**`,
+    ""
+  ];
+  const routeLines = [];
+  let lineCount = 0;
+  componentRouteMapping.forEach((routes, file) => {
+    const fileImpact = result.impacts.find((i) => i.changedFile === file);
+    const reason = fileImpact?.reason || "unknown";
+    const routeCount = routes.length;
+    const testCount = routesToTestComponentMapping.get(file)?.length || 0;
+    routeLines.push(`- \`${file}\` (${reason}: ${testCount} to test / ${routeCount} affected)`);
+    const routesToShow = routesToTestComponentMapping.get(file) || routes.slice(0, 5);
+    routesToShow.forEach((routeInfo, idx) => {
+      if (lineCount < 20 && idx < 5) {
+        const fullUrl = `${basePreviewUrl}${routeInfo.routePath}`;
+        routeLines.push(`  - [${routeInfo.routePath}](${fullUrl})`);
+        lineCount++;
+      }
+    });
+    if (routes.length > 5) {
+      routeLines.push(`  - \u2026and ${routes.length - 5} more routes`);
+    }
+  });
+  const commentBody = uniqueRoutes.size > 0 ? [header, ...summaryLines, ...routeLines].join("\n") : `${header}
+No impacted routes detected.`;
+  return {
+    routes: Array.from(uniqueRoutes),
+    impactTree,
+    routesToTest,
+    commentBody
+  };
+}
+
+// src/steps/1-analyze-routes.step.ts
+init_core();
+async function analyzeRoutes(stepData) {
+  return executeStep("Analyze Routes", async () => {
+    const { previewUrl, prNumber, githubContext } = stepData;
+    let impactTree = null;
+    let routesToTest = null;
+    let affectedRoutes = [];
+    let components = ["App"];
+    try {
+      core9.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
+      const githubToken = config.get("github-token");
+      const github = GitHubServiceFactory.getService();
+      if (githubToken) {
+        await github.configure({ token: githubToken });
+      }
+      const prFiles = await github.listPullRequestFiles();
+      core9.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f) => f.filename).join(", ")}`);
+      const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, previewUrl);
+      core9.info(
+        `\u{1F3AF} Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected, ${externalAnalysis.routesToTest.totalRoutesAffected} routes to test`
+      );
+      impactTree = externalAnalysis.impactTree;
+      routesToTest = externalAnalysis.routesToTest;
+      affectedRoutes = extractRoutesFromImpactTree(routesToTest || impactTree);
+      components = extractComponentsFromImpactTree(routesToTest || impactTree);
+      logImpactTreeSummary(routesToTest || impactTree);
+    } catch (error10) {
+      core9.error(`\u274C Route impact analyzer error: ${error10}`);
+      await errorHandler.handleError(error10, {
+        severity: "medium" /* MEDIUM */,
+        category: "package" /* PACKAGE */,
+        location: "@yofix/analyzer",
+        recoverable: true
+      });
+      core9.warning("Route analyzer failed. Falling back to testing homepage only.");
+      affectedRoutes = ["/"];
+    }
+    if (affectedRoutes.length === 0) {
+      core9.info("\u2139\uFE0F No specific routes identified, defaulting to homepage");
+      affectedRoutes = ["/"];
+    }
+    core9.info(`\u{1F4CD} Total routes to test: ${affectedRoutes.length}`);
+    core9.info(`\u{1F4E6} Components found: ${components.length}`);
+    return {
+      ...stepData,
+      routes: {
+        affectedRoutes,
+        impactTree,
+        routesToTest,
+        components
+      }
+    };
+  });
+}
+function extractRoutesFromImpactTree(impactTree) {
+  const routes = /* @__PURE__ */ new Set();
+  if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+    for (const componentRoutes of impactTree.componentRouteMapping.values()) {
+      for (const routeInfo of componentRoutes) {
+        if (routeInfo.routePath) {
+          routes.add(routeInfo.routePath);
+        }
+      }
+    }
+  }
+  if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+    for (const impact of impactTree.affectedRoutes) {
+      if (impact.route) {
+        routes.add(impact.route);
+      }
+    }
+  }
+  return Array.from(routes);
+}
+function extractComponentsFromImpactTree(impactTree) {
+  const allComponents = /* @__PURE__ */ new Set();
+  if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+    for (const route of impactTree.affectedRoutes) {
+      if (route.changedFiles) {
+        route.changedFiles.forEach((file) => {
+          const componentName = import_path2.default.basename(file, import_path2.default.extname(file));
+          if (componentName && componentName !== "index") {
+            allComponents.add(componentName);
+          }
+        });
+      }
+    }
+  }
+  if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+    for (const [componentFile] of impactTree.componentRouteMapping) {
+      const componentName = import_path2.default.basename(componentFile, import_path2.default.extname(componentFile));
+      if (componentName && componentName !== "index") {
+        allComponents.add(componentName);
+      }
+    }
+  }
+  const components = Array.from(allComponents).slice(0, 10);
+  return components.length > 0 ? components : ["App"];
+}
+function logImpactTreeSummary(impactTree) {
+  if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
+    core9.info("\u{1F3AF} Component mappings found:");
+    for (const [component, routes] of impactTree.componentRouteMapping) {
+      core9.info(`  ${component} affects ${routes.length} routes:`);
+      for (const route of routes) {
+        if (route.routePath) {
+          core9.info(`    - ${route.routePath} (in ${route.routeFile || "unknown"})`);
+        }
+      }
+    }
+  }
+  if (impactTree.affectedRoutes && impactTree.affectedRoutes.length > 0) {
+    const mappedRoutes = /* @__PURE__ */ new Set();
+    if (impactTree.componentRouteMapping) {
+      for (const routes of impactTree.componentRouteMapping.values()) {
+        routes.forEach((route) => {
+          if (route.routePath) {
+            mappedRoutes.add(route.routePath);
+          }
+        });
+      }
+    }
+    const additionalRoutes = impactTree.affectedRoutes.filter((impact) => impact.route && !mappedRoutes.has(impact.route)).map((impact) => impact.route);
+    if (additionalRoutes.length > 0) {
+      core9.info(`\u{1F3AF} Found ${additionalRoutes.length} additional routes from direct changes`);
+    }
+  }
+  const allRoutes = extractRoutesFromImpactTree(impactTree);
+  core9.info(`\u{1F4CD} Total unique routes: ${allRoutes.length}`);
+  if (allRoutes.length > 0 && allRoutes.length <= 20) {
+    core9.info(`\u{1F4CD} Routes: ${allRoutes.join(", ")}`);
+  } else if (allRoutes.length > 20) {
+    core9.info(`\u{1F4CD} Routes: ${allRoutes.slice(0, 20).join(", ")} ... and ${allRoutes.length - 20} more`);
   }
 }
-if (require.main === module) {
-  main();
+
+// src/steps/2-browse-routes.step.ts
+var core11 = __toESM(require_core());
+var import_fs2 = require("fs");
+var import_os = __toESM(require("os"));
+var import_path3 = __toESM(require("path"));
+
+// src/core/screenshot/BrowserScreenshotCapture.ts
+var core10 = __toESM(require_core());
+var import_browser = require("@yofix/browser");
+init_core();
+async function captureScreenshotsWithBrowser(options) {
+  const claudeApiKey = config.get("claude-api-key", { required: true });
+  const claudeModel = config.get("claude-model", { required: true });
+  core10.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? "EXISTS" : "NULL"}`);
+  core10.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || "NULL"}`);
+  if (!claudeApiKey) {
+    throw new Error(
+      "Claude API key is required for route-impact-browser integration."
+    );
+  }
+  if (!claudeModel) {
+    throw new Error(
+      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
+    );
+  }
+  core10.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
+  core10.info(`  - Routes: ${options.routes.length}`);
+  core10.info(`  - Base URL: ${options.baseUrl}`);
+  core10.info(`  - Viewports: ${options.viewports.length}`);
+  const startTime = Date.now();
+  const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
+  const result = await (0, import_browser.captureRouteScreenshots)({
+    codebase: { path: codebasePath },
+    routes: options.routes,
+    baseUrl: options.baseUrl,
+    credentials: options.credentials,
+    loginUrl: options.loginUrl,
+    options: {
+      viewports: options.viewports.map((vp) => ({
+        width: vp.width,
+        height: vp.height,
+        name: vp.name || `${vp.width}x${vp.height}`
+      })),
+      llm: {
+        provider: "anthropic",
+        apiKey: claudeApiKey,
+        model: claudeModel
+      },
+      auth: options.credentials ? {
+        enabled: true,
+        skipLoginIfAuthenticated: false,
+        cache: {
+          enabled: true,
+          provider: "file-system",
+          ttl: 30 * 24 * 60 * 60 * 1e3
+          // 30 days
+        }
+      } : {
+        enabled: false
+      },
+      browser: {
+        headless: true,
+        timeout: 6e4,
+        waitUntil: "networkidle",
+        fullPage: options.fullPage !== void 0 ? options.fullPage : true
+      },
+      storage: {
+        provider: "local"
+        // Always use local storage
+      },
+      verbose: options.verbose ?? false
+    }
+  });
+  const totalDuration = Date.now() - startTime;
+  core10.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
+  core10.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
+  core10.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
+  core10.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
+  core10.info(`  - Output directory: ${result.metadata.outputDirectory}`);
+  return {
+    success: result.success,
+    screenshots: result.screenshots,
+    outputDirectory: result.metadata.outputDirectory,
+    totalDuration,
+    errors: result.errors
+  };
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  initialize,
-  main
+
+// src/steps/2-browse-routes.step.ts
+init_core();
+async function browseRoutes(stepData) {
+  return executeStep("Browse Routes & Capture Screenshots", async () => {
+    const { previewUrl, routes } = stepData;
+    if (!routes || routes.affectedRoutes.length === 0) {
+      throw new Error("No routes available for screenshot capture. Run analyze-routes step first.");
+    }
+    core11.info(`\u{1F4F8} Preparing to capture screenshots for ${routes.affectedRoutes.length} routes`);
+    const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
+    const viewports = viewportsConfig.split(",").map((viewport) => {
+      const [width, height] = viewport.trim().split("x").map(Number);
+      return { width, height, name: `${width}x${height}` };
+    });
+    core11.info(`\u{1F4F1} Using ${viewports.length} viewports: ${viewports.map((v) => v.name).join(", ")}`);
+    const fullPage = config.getBoolean("full-page", true);
+    core11.info(`\u{1F4CF} Full-page capture: ${fullPage ? "Enabled (viewport width + full height)" : "Disabled (fixed viewport dimensions)"}`);
+    const authEmail = config.get("auth-email");
+    const authPassword = config.get("auth-password");
+    const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
+    const credentials = authEmail && authPassword ? { email: authEmail, password: authPassword } : void 0;
+    if (credentials) {
+      core11.info(`\u{1F510} Authentication configured for: ${credentials.email}`);
+    } else {
+      core11.info("\u2139\uFE0F No authentication configured");
+    }
+    const outputDir = await import_fs2.promises.mkdtemp(import_path3.default.join(import_os.default.tmpdir(), "yofix-screenshots-"));
+    core11.info(`\u{1F4C1} Output directory: ${outputDir}`);
+    core11.info("\u{1F680} Starting screenshot capture...");
+    const screenshotResult = await captureScreenshotsWithBrowser({
+      routes: routes.affectedRoutes,
+      baseUrl: previewUrl,
+      viewports,
+      credentials,
+      loginUrl: authLoginUrl,
+      fullPage,
+      verbose: true
+    });
+    if (!screenshotResult.success) {
+      const errorMessage = screenshotResult.errors?.map((e) => e.message).join(", ");
+      throw new Error(`Screenshot capture failed: ${errorMessage}`);
+    }
+    core11.info(`\u2705 Successfully captured ${screenshotResult.screenshots.length} route screenshots`);
+    core11.info(`\u{1F4CA} Total screenshots: ${screenshotResult.screenshots.reduce((sum, r) => sum + r.screenshots.length, 0)}`);
+    core11.info(`\u23F1\uFE0F Capture duration: ${screenshotResult.totalDuration}ms`);
+    const screenshotFiles = screenshotResult.screenshots.flatMap(
+      (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => screenshot.path)
+    );
+    stepData.outputDir = screenshotResult.outputDirectory;
+    return {
+      ...stepData,
+      screenshots: {
+        files: screenshotFiles,
+        viewports,
+        timestamp: Date.now()
+      },
+      // Store raw screenshot result for next step
+      _internal: {
+        screenshotResult,
+        outputDirectory: screenshotResult.outputDirectory
+      }
+    };
+  });
+}
+
+// src/steps/2.5-compare-baselines.step.ts
+var core13 = __toESM(require_core());
+var import_fs3 = require("fs");
+var import_path4 = __toESM(require("path"));
+var import_os2 = __toESM(require("os"));
+var import_comparator = require("@yofix/comparator");
+
+// src/steps/shared/route.utils.ts
+var core12 = __toESM(require_core());
+function extractRoutePath(route, separator = "-") {
+  let pathname = route;
+  if (pathname.startsWith("http://") || pathname.startsWith("https://")) {
+    try {
+      const url = new URL(pathname);
+      pathname = url.pathname;
+    } catch (error10) {
+      core12.debug(`Failed to parse route URL: ${pathname}`);
+    }
+  }
+  let sanitized;
+  if (pathname === "/" || pathname === "") {
+    sanitized = "home";
+  } else {
+    sanitized = pathname.replace(/^\//, "").replace(/\//g, separator).toLowerCase();
+  }
+  return { pathname, sanitized };
+}
+
+// src/steps/2.5-compare-baselines.step.ts
+init_core();
+async function compareWithBaselines(stepData) {
+  return executeStep("Compare with Baselines", async () => {
+    const { prNumber, screenshots, _internal: internal } = stepData;
+    if (!screenshots || !internal?.screenshotResult) {
+      throw new Error("No screenshots available for comparison. Run browse-routes step first.");
+    }
+    core13.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
+    const firebaseCredentials = config.get("firebase-credentials");
+    const storageBucket = config.get("storage-bucket");
+    const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
+    const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
+    const comparisonThreshold = parseFloat(config.get("comparison-threshold", { defaultValue: "0.01" }));
+    const allowHeightMismatch = config.getBoolean("allow-height-mismatch", false);
+    const heightComparisonStrategy = config.get("height-comparison-strategy", { defaultValue: "pad" });
+    const productionUrl = config.get("production-url");
+    core13.info(`\u{1F4C1} Storage directory: ${storageDirectory}/`);
+    if (productionUrl) {
+      core13.info(`\u{1F310} Production URL configured: ${productionUrl}`);
+      core13.info(`   Baselines will be auto-created from production if missing`);
+    } else {
+      core13.info(`\u2139\uFE0F  No production URL configured - new routes will be marked as NEW`);
+    }
+    const authEmail = config.get("auth-email");
+    const authPassword = config.get("auth-password");
+    const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
+    const credentials = authEmail && authPassword ? { email: authEmail, password: authPassword } : void 0;
+    if (!firebaseCredentials || !storageBucket) {
+      core13.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
+      core13.warning('   All screenshots will be marked as "new"');
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: "Baseline comparison skipped - no storage configured"
+        },
+        _internal: {
+          ...internal,
+          diffFiles: []
+        }
+      };
+    }
+    const diffOutputDir = await import_fs3.promises.mkdtemp(import_path4.default.join(import_os2.default.tmpdir(), "yofix-diffs-"));
+    core13.info(`\u{1F4C1} Diff output directory: ${diffOutputDir}`);
+    const { downloadFiles, uploadFiles } = await import("@yofix/storage");
+    let credentialsBase64 = firebaseCredentials;
+    if (firebaseCredentials.endsWith(".json")) {
+      try {
+        const credentialsContent = await import_fs3.promises.readFile(firebaseCredentials, "utf-8");
+        credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
+        core13.info("  Using Firebase credentials from file");
+      } catch (error10) {
+        core13.debug(`Not a file path, treating as base64: ${error10}`);
+      }
+    }
+    const storageConfig = storageProvider === "firebase" ? {
+      provider: "firebase",
+      config: {
+        bucket: storageBucket,
+        credentials: credentialsBase64,
+        basePath: storageDirectory
+      }
+    } : {
+      provider: "s3",
+      config: {
+        bucket: storageBucket,
+        region: config.get("aws-region", { defaultValue: "us-east-1" }),
+        accessKeyId: config.get("aws-access-key-id"),
+        secretAccessKey: config.get("aws-secret-access-key"),
+        basePath: storageDirectory
+      }
+    };
+    const comparisonsToRun = [];
+    const diffFilesInfo = [];
+    const baselineUrlMap = /* @__PURE__ */ new Map();
+    const baselineMetadataMap = /* @__PURE__ */ new Map();
+    let newScreenshots = 0;
+    for (const routeScreenshot of internal.screenshotResult.screenshots) {
+      const route = routeScreenshot.route;
+      const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, "_");
+      for (const screenshot of routeScreenshot.screenshots) {
+        const viewport = `${screenshot.width}x${screenshot.height}`;
+        const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
+        core13.info(`  Checking baseline for ${route} (${viewport})`);
+        try {
+          const baselineResult = await downloadFiles({
+            storage: storageConfig,
+            files: [baselineKey]
+          });
+          if (!baselineResult.success || baselineResult.files.length === 0) {
+            if (productionUrl) {
+              core13.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${routePath}`);
+              try {
+                const [actualWidth, actualHeight] = viewport.split("x").map(Number);
+                const viewportConfig = {
+                  width: actualWidth,
+                  height: actualHeight,
+                  name: viewport
+                };
+                const fullPage = config.getBoolean("full-page", true);
+                const productionCapture = await captureScreenshotsWithBrowser({
+                  routes: [routePath],
+                  baseUrl: productionUrl,
+                  viewports: [viewportConfig],
+                  credentials,
+                  loginUrl: authLoginUrl,
+                  fullPage,
+                  verbose: false
+                });
+                if (!productionCapture.success || productionCapture.screenshots.length === 0) {
+                  throw new Error("Production screenshot capture failed");
+                }
+                const productionScreenshot = productionCapture.screenshots[0].screenshots[0];
+                const productionBuffer = await import_fs3.promises.readFile(productionScreenshot.path);
+                core13.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
+                const uploadResult = await uploadFiles({
+                  storage: storageConfig,
+                  files: [{
+                    path: productionScreenshot.path,
+                    destination: baselineKey,
+                    contentType: "image/png",
+                    metadata: {
+                      type: "baseline",
+                      route: routePath,
+                      viewport,
+                      source: "production",
+                      createdAt: Date.now().toString()
+                    }
+                  }],
+                  verbose: false
+                });
+                if (!uploadResult.success) {
+                  throw new Error("Failed to upload baseline");
+                }
+                core13.info(`    \u2705 Baseline created from production`);
+                const comparisonKey2 = `${routePath}_${viewport}`;
+                const uploadedBaseline = uploadResult.files[0];
+                if (uploadedBaseline?.url) {
+                  baselineUrlMap.set(comparisonKey2, uploadedBaseline.url);
+                  baselineMetadataMap.set(comparisonKey2, {
+                    timeCreated: (/* @__PURE__ */ new Date()).toISOString(),
+                    customMetadata: {
+                      createdAt: Date.now().toString(),
+                      source: "production"
+                    }
+                  });
+                }
+                const currentBuffer2 = await import_fs3.promises.readFile(screenshot.path);
+                comparisonsToRun.push({
+                  route: routePath,
+                  viewport,
+                  current: currentBuffer2,
+                  baseline: productionBuffer
+                });
+              } catch (error10) {
+                core13.warning(`    \u274C Failed to create baseline from production: ${error10}`);
+                core13.warning(`    Marking as NEW instead`);
+                newScreenshots++;
+                diffFilesInfo.push({
+                  route: routePath,
+                  viewport,
+                  localPath: screenshot.path,
+                  destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+                  hasDifference: false,
+                  diffPercentage: 0,
+                  status: "new"
+                });
+              }
+            } else {
+              core13.info(`    \u26A0\uFE0F  No baseline found - marking as NEW`);
+              newScreenshots++;
+              diffFilesInfo.push({
+                route: routePath,
+                viewport,
+                localPath: screenshot.path,
+                destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+                hasDifference: false,
+                diffPercentage: 0,
+                status: "new"
+              });
+            }
+            continue;
+          }
+          const baselineBuffer = baselineResult.files[0].buffer;
+          const baselineUrl = baselineResult.files[0].url;
+          const downloadedFile = baselineResult.files[0];
+          const baselineMetadata = {
+            timeCreated: downloadedFile.timeCreated,
+            customMetadata: downloadedFile.customMetadata
+          };
+          const currentBuffer = await import_fs3.promises.readFile(screenshot.path);
+          const comparisonKey = `${routePath}_${viewport}`;
+          if (baselineUrl) {
+            baselineUrlMap.set(comparisonKey, baselineUrl);
+            baselineMetadataMap.set(comparisonKey, baselineMetadata);
+          }
+          comparisonsToRun.push({
+            route: routePath,
+            viewport,
+            current: currentBuffer,
+            baseline: baselineBuffer
+          });
+        } catch (error10) {
+          core13.warning(`    \u274C Error fetching baseline: ${error10}`);
+          diffFilesInfo.push({
+            route: routePath,
+            viewport,
+            localPath: screenshot.path,
+            destination: `pr-${prNumber}/diffs/${sanitizedRoute}_${viewport}_diff.png`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: "error"
+          });
+        }
+      }
+    }
+    if (newScreenshots > 0) {
+      core13.info(`
+\u{1F4DD} ${newScreenshots} screenshot(s) have no baseline (new routes/viewports)`);
+    }
+    if (comparisonsToRun.length === 0) {
+      core13.info("\n\u2705 No baseline comparisons needed (all screenshots are new)");
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: `All ${newScreenshots} screenshot(s) are new (no existing baselines)`
+        },
+        _internal: {
+          ...internal,
+          diffFiles: diffFilesInfo
+        }
+      };
+    }
+    core13.info(`
+\u{1F4CA} Running ${comparisonsToRun.length} baseline comparison(s)...`);
+    core13.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
+    core13.info(`   Diff Format: side-by-side`);
+    core13.info(`   Parallel Processing: enabled (concurrency: 3)`);
+    if (allowHeightMismatch) {
+      core13.info(`   Height Mismatch: allowed (strategy: ${heightComparisonStrategy})`);
+    }
+    try {
+      const result = await (0, import_comparator.compareBaselines)({
+        comparisons: comparisonsToRun,
+        options: {
+          threshold: comparisonThreshold,
+          diffFormat: "side-by-side",
+          // Baseline | Diff | Current
+          parallel: {
+            enabled: true,
+            concurrency: 3
+          },
+          generateHash: true,
+          detectRegions: true,
+          verbose: true,
+          // Height mismatch handling
+          allowHeightMismatch,
+          cropMode: heightComparisonStrategy,
+          reportDimensionDiff: true
+        }
+      });
+      if (!result.success) {
+        core13.warning("Comparison failed:");
+        result.errors?.forEach((error10) => {
+          core13.warning(`  - ${error10.message}`);
+        });
+        return {
+          ...stepData,
+          comparison: {
+            hasChanges: false,
+            diffCount: 0,
+            diffFiles: [],
+            summary: "Baseline comparison failed"
+          },
+          _internal: {
+            ...internal,
+            diffFiles: diffFilesInfo
+          }
+        };
+      }
+      let changedCount = 0;
+      let unchangedCount = 0;
+      for (const comparison of result.comparisons) {
+        const { sanitized: sanitizedRoute } = extractRoutePath(comparison.route, "_");
+        const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
+        const diffFilePath = import_path4.default.join(diffOutputDir, diffFileName);
+        if (comparison.error) {
+          core13.warning(`
+  \u26A0\uFE0F  ${comparison.route} (${comparison.viewport}):`);
+          core13.warning(`     Error: ${comparison.error}`);
+          const comparisonKey2 = `${comparison.route}_${comparison.viewport}`;
+          const baselineUrl2 = baselineUrlMap.get(comparisonKey2);
+          const baselineMetadata2 = baselineMetadataMap.get(comparisonKey2);
+          diffFilesInfo.push({
+            route: comparison.route,
+            viewport: comparison.viewport,
+            localPath: void 0,
+            destination: `pr-${prNumber}/diffs/${diffFileName}`,
+            hasDifference: false,
+            diffPercentage: 0,
+            status: "error",
+            baselineUrl: baselineUrl2,
+            baselineMetadata: baselineMetadata2,
+            metrics: {},
+            error: comparison.error
+          });
+          continue;
+        }
+        if (comparison.diff && comparison.diff.buffer) {
+          await import_fs3.promises.writeFile(diffFilePath, comparison.diff.buffer);
+          core13.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);
+        }
+        const status = comparison.match ? "unchanged" : "changed";
+        if (status === "changed") changedCount++;
+        else unchangedCount++;
+        const comparisonKey = `${comparison.route}_${comparison.viewport}`;
+        const baselineUrl = baselineUrlMap.get(comparisonKey);
+        const baselineMetadata = baselineMetadataMap.get(comparisonKey);
+        diffFilesInfo.push({
+          route: comparison.route,
+          viewport: comparison.viewport,
+          // Only set localPath if diff file was actually written to disk
+          localPath: comparison.diff && comparison.diff.buffer ? diffFilePath : void 0,
+          destination: `pr-${prNumber}/diffs/${diffFileName}`,
+          hasDifference: !comparison.match,
+          diffPercentage: comparison.diffPercentage,
+          status,
+          baselineUrl,
+          baselineMetadata,
+          metrics: {
+            similarity: comparison.similarity,
+            pixelDifference: comparison.pixelDifference,
+            perceptualHash: comparison.metrics.perceptualHash,
+            mse: comparison.metrics.mse,
+            psnr: comparison.metrics.psnr,
+            regions: comparison.diff?.regions?.length || 0
+          }
+        });
+        core13.info(`
+  \u{1F4C8} ${comparison.route} (${comparison.viewport}):`);
+        core13.info(`     Status: ${status === "changed" ? "\u274C CHANGED" : "\u2705 UNCHANGED"}`);
+        core13.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
+        core13.info(`     Pixels Different: ${comparison.pixelDifference}`);
+        if (comparison.metrics.perceptualHash) {
+          core13.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
+        }
+        if (comparison.metrics.psnr !== void 0) {
+          const psnrValue = comparison.metrics.psnr === Infinity ? "\u221E (identical)" : `${comparison.metrics.psnr.toFixed(2)} dB`;
+          core13.info(`     PSNR: ${psnrValue}`);
+        }
+        if (comparison.diff?.regions) {
+          const critical = comparison.diff.regions.filter((r) => r.severity === "critical").length;
+          const moderate = comparison.diff.regions.filter((r) => r.severity === "moderate").length;
+          core13.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+        }
+        if (comparison.dimensionDiff) {
+          const { heightDiff, cropped, comparedHeight } = comparison.dimensionDiff;
+          if (heightDiff !== 0) {
+            if (cropped) {
+              core13.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (cropped to ${comparedHeight}px for comparison)`);
+            } else {
+              core13.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (padded to ${comparedHeight}px for comparison)`);
+            }
+          }
+        }
+      }
+      const totalComparisons = result.comparisons.length;
+      const overallSimilarity = (result.summary.overallSimilarity * 100).toFixed(2);
+      core13.info(`
+\u2705 Comparison complete:`);
+      core13.info(`   Total Comparisons: ${totalComparisons}`);
+      core13.info(`   New Screenshots: ${newScreenshots}`);
+      core13.info(`   Unchanged: ${unchangedCount}`);
+      core13.info(`   Changed: ${changedCount}`);
+      core13.info(`   Overall Similarity: ${overallSimilarity}%`);
+      core13.info(`   Duration: ${result.metadata.duration}ms`);
+      const summary = `Compared ${totalComparisons} screenshot(s): ${unchangedCount} unchanged, ${changedCount} changed${newScreenshots > 0 ? `, ${newScreenshots} new` : ""}`;
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: changedCount > 0,
+          diffCount: changedCount,
+          diffFiles: diffFilesInfo.filter((d) => d.hasDifference).map((d) => d.localPath).filter((path7) => path7 !== void 0),
+          summary
+        },
+        _internal: {
+          ...internal,
+          diffFiles: diffFilesInfo,
+          diffOutputDir
+        }
+      };
+    } catch (error10) {
+      core13.error(`Error during comparison: ${error10}`);
+      throw error10;
+    }
+  });
+}
+
+// src/steps/3-upload-storage.step.ts
+var core14 = __toESM(require_core());
+var import_fs4 = require("fs");
+init_core();
+async function uploadToStorage(stepData) {
+  return executeStep("Upload Screenshots to Storage", async () => {
+    const { prNumber, screenshots, _internal: internal } = stepData;
+    if (!screenshots || !internal?.screenshotResult) {
+      throw new Error("No screenshots available for upload. Run browse-routes step first.");
+    }
+    const firebaseCredentials = config.get("firebase-credentials");
+    const storageBucket = config.get("storage-bucket");
+    const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
+    const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
+    if (!firebaseCredentials || !storageBucket) {
+      core14.warning("\u26A0\uFE0F Firebase storage not configured. Screenshots saved locally only.");
+      core14.warning(`  Firebase credentials present: ${!!firebaseCredentials}`);
+      core14.warning(`  Storage bucket configured: ${!!storageBucket}`);
+      return {
+        ...stepData,
+        _internal: {
+          ...internal,
+          uploadedFiles: [],
+          storageUrl: ""
+        }
+      };
+    }
+    core14.info(`\u{1F4E4} Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
+    core14.info(`  Storage Bucket: ${storageBucket}`);
+    core14.info(`  Storage Directory: ${storageDirectory}/`);
+    const screenshotMetadataMap = /* @__PURE__ */ new Map();
+    const filesForUpload = internal.screenshotResult.screenshots.flatMap(
+      (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
+        screenshotMetadataMap.set(screenshot.path, {
+          route: routeScreenshot.route,
+          viewport: {
+            width: screenshot.width,
+            height: screenshot.height,
+            name: screenshot.viewport
+          },
+          metadata: screenshot.metadata,
+          duration: screenshot.duration || screenshot.metadata?.duration
+        });
+        return {
+          path: screenshot.path,
+          destination: screenshot.destination,
+          contentType: screenshot.contentType,
+          metadata: screenshot.metadata
+        };
+      })
+    );
+    if (internal.diffFiles && Array.isArray(internal.diffFiles)) {
+      core14.info(`\u{1F4CA} Adding ${internal.diffFiles.length} diff image(s) to upload`);
+      for (const diffFile of internal.diffFiles) {
+        if (diffFile.hasDifference && diffFile.localPath) {
+          filesForUpload.push({
+            path: diffFile.localPath,
+            destination: diffFile.destination,
+            contentType: "image/png",
+            metadata: {
+              type: "diff",
+              route: diffFile.route,
+              viewport: diffFile.viewport,
+              diffPercentage: diffFile.diffPercentage,
+              status: diffFile.status
+            }
+          });
+          screenshotMetadataMap.set(diffFile.localPath, {
+            route: diffFile.route,
+            viewport: { name: diffFile.viewport },
+            metadata: {
+              type: "diff",
+              diffPercentage: diffFile.diffPercentage,
+              metrics: diffFile.metrics
+            }
+          });
+        }
+      }
+    }
+    let credentialsBase64 = firebaseCredentials;
+    if (firebaseCredentials.endsWith(".json")) {
+      try {
+        const credentialsContent = await import_fs4.promises.readFile(firebaseCredentials, "utf-8");
+        credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
+        core14.info("  Using Firebase credentials from file");
+      } catch (error10) {
+        core14.debug(`Not a file path, treating as base64: ${error10}`);
+      }
+    }
+    let uploadedFiles = [];
+    let storageUrl = "";
+    try {
+      const { uploadFiles } = await import("@yofix/storage");
+      const storageConfig = storageProvider === "firebase" ? {
+        provider: "firebase",
+        config: {
+          bucket: storageBucket,
+          credentials: credentialsBase64,
+          basePath: storageDirectory
+        }
+      } : {
+        provider: "s3",
+        config: {
+          bucket: storageBucket,
+          region: config.get("aws-region", { defaultValue: "us-east-1" }),
+          accessKeyId: config.get("aws-access-key-id"),
+          secretAccessKey: config.get("aws-secret-access-key"),
+          basePath: storageDirectory
+        }
+      };
+      const basePath = storageDirectory ? `${storageDirectory}/pr-${prNumber}/screenshots` : `pr-${prNumber}/screenshots`;
+      const uploadResult = await uploadFiles({
+        storage: storageConfig,
+        files: filesForUpload,
+        verbose: true,
+        onProgress: (progress) => {
+          const percentage = (progress.filesUploaded / progress.totalFiles * 100).toFixed(1);
+          core14.info(`  Upload progress: ${progress.filesUploaded}/${progress.totalFiles} files (${percentage}%)`);
+        }
+      });
+      if (!uploadResult.success) {
+        const errorMessage = uploadResult.errors?.map((e) => e.message).join(", ");
+        throw new Error(`Upload failed: ${errorMessage}`);
+      }
+      uploadedFiles = uploadResult.files;
+      core14.info("\u2705 Screenshots uploaded successfully:");
+      uploadedFiles.slice(0, 5).forEach((file) => {
+        core14.info(`  \u{1F4F8} ${file.remotePath}: ${file.url || "pending"}`);
+      });
+      if (uploadedFiles.length > 5) {
+        core14.info(`  ... and ${uploadedFiles.length - 5} more files`);
+      }
+      core14.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
+      if (storageProvider === "firebase") {
+        const projectId = storageBucket.split(".")[0] || "unknown";
+        storageUrl = `https://console.firebase.google.com/project/${projectId}/storage/${storageBucket}`;
+      } else if (storageProvider === "s3") {
+        const region = config.get("aws-region", { defaultValue: "us-east-1" });
+        storageUrl = `https://s3.console.aws.amazon.com/s3/buckets/${storageBucket}?region=${region}`;
+      }
+      core14.info(`
+\u{1F517} View all screenshots: ${storageUrl}`);
+    } catch (error10) {
+      core14.warning(`Failed to upload screenshots: ${error10}`);
+      core14.warning("Screenshots are saved locally but not uploaded to cloud storage");
+      await errorHandler.handleError(error10, {
+        severity: "medium" /* MEDIUM */,
+        category: "package" /* PACKAGE */,
+        location: "@yofix/storage",
+        recoverable: true
+      });
+    }
+    const metadataObject = Object.fromEntries(screenshotMetadataMap.entries());
+    return {
+      ...stepData,
+      _internal: {
+        ...internal,
+        uploadedFiles,
+        storageUrl,
+        screenshotMetadataMap: metadataObject
+      }
+    };
+  });
+}
+
+// src/steps/4-post-results.step.ts
+var core16 = __toESM(require_core());
+
+// src/github/PRReporter.ts
+var core15 = __toESM(require_core());
+init_core();
+init_GitHubServiceFactory();
+var PRReporter = class {
+  constructor() {
+    this.commentEngine = getGitHubCommentEngine();
+    const githubService = GitHubServiceFactory.getService();
+    const context = githubService.getContext();
+    this.prNumber = context.prNumber;
+    if (!this.prNumber) {
+      core15.warning("No PR number found, cannot post comment");
+    }
+  }
+  /**
+   * Post comprehensive verification results to PR
+   */
+  async postResults(result, storageConsoleUrl) {
+    if (!this.prNumber) {
+      core15.warning("No PR number found, cannot post comment");
+      return;
+    }
+    try {
+      core15.info(`Posting verification results to PR #${this.prNumber}...`);
+      const comment = this.generateCommentBody(result, storageConsoleUrl);
+      await this.commentEngine.postComment(comment, {
+        updateExisting: true,
+        signature: "yofix-verification-results"
+      });
+      core15.info("Posted verification results to PR");
+    } catch (error10) {
+      await errorHandler.handleError(error10, {
+        severity: "high" /* HIGH */,
+        category: "github" /* GITHUB */,
+        location: "pr-reporter"
+      });
+      throw error10;
+    }
+  }
+  /**
+   * Post a simple status update (for early failures)
+   */
+  async postStatusUpdate(status, message) {
+    if (!this.prNumber) {
+      core15.warning("No PR number found, cannot post status update");
+      return;
+    }
+    try {
+      const statusEmoji = {
+        running: "\u{1F504}",
+        failed: "\u274C",
+        skipped: "\u23ED\uFE0F"
+      };
+      const comment = `## ${statusEmoji[status]} Runtime PR Verification
+
+**Status**: ${status.charAt(0).toUpperCase() + status.slice(1)}
+
+${message}
+
+---
+*Generated by [YoFix](https://github.com/yofix/yofix) \u2022 ${(/* @__PURE__ */ new Date()).toLocaleString()}*`;
+      await this.commentEngine.postComment(comment, {
+        updateExisting: true,
+        signature: "yofix-status-update"
+      });
+    } catch (error10) {
+      await errorHandler.handleError(error10, {
+        severity: "medium" /* MEDIUM */,
+        category: "github" /* GITHUB */,
+        location: "pr-reporter",
+        recoverable: true
+      });
+    }
+  }
+  /**
+   * Generate comprehensive comment body with React-specific results
+   */
+  generateCommentBody(result, storageConsoleUrl) {
+    const statusEmoji = result.status === "success" ? "\u2705" : result.status === "partial" ? "\u26A0\uFE0F" : "\u274C";
+    const firebaseEmoji = "\u{1F525}";
+    const reactEmoji = "\u269B\uFE0F";
+    const frameworkName = result.framework || "Web App";
+    let comment = `## ${statusEmoji} Runtime PR Verification - ${frameworkName}
+
+`;
+    comment += `**Test Results**: ${result.passedTests}/${result.totalTests} passed`;
+    if (result.failedTests > 0) {
+      comment += ` \u2022 ${result.failedTests} failed`;
+    }
+    if (result.skippedTests > 0) {
+      comment += ` \u2022 ${result.skippedTests} skipped`;
+    }
+    comment += ` \u2022 ${this.formatDuration(result.duration)}
+
+`;
+    const screenshots = result.testResults.flatMap((t) => t.screenshots);
+    const videos = result.testResults.flatMap((t) => t.videos);
+    if (screenshots.length > 0 || videos.length > 0) {
+      comment += `**Visual Evidence**: `;
+      comment += `\u{1F4F8} ${screenshots.length} screenshot${screenshots.length !== 1 ? "s" : ""}`;
+      if (videos.length > 0) {
+        comment += ` \u2022 \u{1F3A5} ${videos.length} video${videos.length !== 1 ? "s" : ""}`;
+      }
+      if (storageConsoleUrl) {
+        comment += ` \u2022 [Firebase Console](${storageConsoleUrl})`;
+      }
+      comment += "\n\n";
+    }
+    if (screenshots.length > 0) {
+      core15.info(`Embedding ${screenshots.length} screenshots in PR comment`);
+      const screenshotsWithUrls = screenshots.filter((s) => s.firebaseUrl);
+      core15.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
+      const hasBaselineData = screenshots.some((s) => s.comparison || s.baseline);
+      if (hasBaselineData) {
+        comment += this.generateVisualComparisonTable(screenshots, result);
+      } else {
+        comment += this.generateEmbeddedScreenshots(screenshots, result);
+      }
+    }
+    if (videos.length > 0) {
+      core15.info(`Embedding ${videos.length} videos in PR comment`);
+      const videosWithUrls = videos.filter((v) => v.firebaseUrl);
+      core15.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
+      comment += this.generateEmbeddedVideos(videos);
+    }
+    comment += "<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n";
+    if (result.summary.issuesFound.length > 0) {
+      comment += "### \u26A0\uFE0F Issues Detected\n\n";
+      for (const issue of result.summary.issuesFound.slice(0, 5)) {
+        comment += `- ${issue}
+`;
+      }
+      if (result.summary.issuesFound.length > 5) {
+        comment += `- ...and ${result.summary.issuesFound.length - 5} more issues
+`;
+      }
+      comment += "\n";
+    }
+    comment += "### \u{1F525} Firebase Configuration\n\n";
+    comment += `- **Project**: \`${result.firebaseConfig.projectId}\`
+`;
+    comment += `- **Target**: \`${result.firebaseConfig.target}\`
+`;
+    comment += `- **Build System**: ${result.firebaseConfig.buildSystem === "vite" ? "Vite" : "Create React App"}
+`;
+    comment += `- **Preview URL**: [${result.firebaseConfig.previewUrl}](${result.firebaseConfig.previewUrl})
+
+`;
+    const consoleErrors = result.testResults.flatMap(
+      (t) => t.consoleMessages.filter((m) => m.type === "error")
+    );
+    if (consoleErrors.length > 0) {
+      comment += "### \u{1F41B} Console Errors\n\n";
+      comment += `Found ${consoleErrors.length} console error${consoleErrors.length !== 1 ? "s" : ""} during testing:
+
+`;
+      for (const error10 of consoleErrors.slice(0, 3)) {
+        comment += `- \`${error10.text.substring(0, 100)}${error10.text.length > 100 ? "..." : ""}\`
+`;
+      }
+      if (consoleErrors.length > 3) {
+        comment += `- ...and ${consoleErrors.length - 3} more errors
+`;
+      }
+      comment += "\n";
+    }
+    comment += "</details>\n\n";
+    const timestamp = (/* @__PURE__ */ new Date()).toLocaleString();
+    comment += `---
+*Generated by [YoFix](https://github.com/yofix/yofix) \u2022 ${timestamp}*`;
+    return comment;
+  }
+  /**
+   * Format duration in human-readable format
+   */
+  formatDuration(durationMs) {
+    if (durationMs < 1e3) {
+      return `${durationMs}ms`;
+    } else if (durationMs < 6e4) {
+      return `${(durationMs / 1e3).toFixed(1)}s`;
+    } else {
+      const minutes = Math.floor(durationMs / 6e4);
+      const seconds = (durationMs % 6e4 / 1e3).toFixed(0);
+      return `${minutes}m ${seconds}s`;
+    }
+  }
+  /**
+   * Generate visual comparison table with baseline vs current screenshots
+   */
+  generateVisualComparisonTable(screenshots, result) {
+    if (screenshots.length === 0) {
+      return "";
+    }
+    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
+      const route = screenshot.route || this.extractRouteFromScreenshotName(screenshot.name);
+      if (!acc[route]) {
+        acc[route] = [];
+      }
+      acc[route].push(screenshot);
+      return acc;
+    }, {});
+    const totalRoutes = Object.keys(groupedByRoute).length;
+    const routesWithIssues = Object.values(groupedByRoute).filter(
+      (screenshots2) => screenshots2.some((s) => s.comparison?.hasDifference || s.comparison?.issues?.length > 0)
+    ).length;
+    const newRoutes = Object.values(groupedByRoute).filter(
+      (screenshots2) => screenshots2.some((s) => s.comparison?.status === "new")
+    ).length;
+    let content = `## \u{1F4F8} Visual Testing Results
+
+`;
+    content += `### \u{1F3AF} Summary: ${totalRoutes} route${totalRoutes !== 1 ? "s" : ""} tested`;
+    if (routesWithIssues > 0) {
+      content += ` \u2022 \u26A0\uFE0F ${routesWithIssues} with issues`;
+    }
+    if (newRoutes > 0) {
+      content += ` \u2022 \u{1F195} ${newRoutes} new`;
+    }
+    content += `
+
+`;
+    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
+      const routeHasIssues = routeScreenshots.some(
+        (s) => s.comparison?.hasDifference || s.comparison?.issues?.length > 0
+      );
+      const isNewRoute = routeScreenshots.some((s) => s.comparison?.status === "new");
+      const statusIcon = isNewRoute ? "\u{1F195}" : routeHasIssues ? "\u26A0\uFE0F" : "\u2705";
+      const statusText = isNewRoute ? "New Route" : routeHasIssues ? "Issues Detected" : "No Issues";
+      content += `<details>
+`;
+      content += `<summary><strong>\u{1F4CD} ${this.createRouteLink(route, result)}</strong> - ${statusIcon} ${statusText}</summary>
+
+`;
+      content += `| Baseline (Last Updated) | Current Screenshot | Comparison |
+`;
+      content += `|------------------------|-------------------|------------|
+`;
+      const sortedScreenshots = routeScreenshots.sort((a, b) => b.viewport.width - a.viewport.width);
+      for (const screenshot of sortedScreenshots) {
+        content += this.generateComparisonTableRow(screenshot);
+      }
+      const allIssues = routeScreenshots.flatMap((s) => s.comparison?.issues || []);
+      if (allIssues.length > 0) {
+        content += `
+**Issues Found:**
+`;
+        for (const issue of allIssues) {
+          const severityIcon = issue.severity === "critical" ? "\u{1F6A8}" : issue.severity === "warning" ? "\u26A0\uFE0F" : "\u2139\uFE0F";
+          content += `- ${severityIcon} **${issue.type}**: ${issue.description}
+`;
+          if (issue.fix) {
+            content += `  - \u{1F527} **Fix**: ${issue.fix}
+`;
+          }
+        }
+      }
+      content += `
+</details>
+
+`;
+    }
+    return content;
+  }
+  /**
+   * Generate a single row for the comparison table
+   */
+  generateComparisonTableRow(screenshot) {
+    const viewport = `**${screenshot.viewport.width}\xD7${screenshot.viewport.height}**`;
+    let baselineCell = `${viewport}<br/>`;
+    if (screenshot.baseline?.url) {
+      const updatedDate = screenshot.baseline.updatedDate || "Unknown";
+      baselineCell += `![Baseline](${screenshot.baseline.url})<br/>*Updated: ${updatedDate}*`;
+    } else if (screenshot.comparison?.status === "new") {
+      baselineCell += "\u{1F195} *New baseline created*";
+    } else {
+      baselineCell += "\u274C *No baseline*";
+    }
+    let currentCell = `${viewport}<br/>`;
+    if (screenshot.firebaseUrl) {
+      const captureDate = new Date(screenshot.timestamp).toLocaleDateString();
+      currentCell += `![Current](${screenshot.firebaseUrl})<br/>*Captured: ${captureDate}*`;
+    } else {
+      currentCell += "\u274C *Screenshot not available*";
+    }
+    let comparisonCell = "";
+    if (screenshot.comparison) {
+      const comp = screenshot.comparison;
+      switch (comp.status) {
+        case "new":
+          comparisonCell = `\u{1F195} **New Route**<br/>Baseline created from current`;
+          break;
+        case "unchanged":
+          comparisonCell = `\u2705 **${comp.diffPercentage.toFixed(2)}% diff**<br/>No issues detected`;
+          break;
+        case "changed":
+          const displayPercentage = comp.diffPercentage < 0.01 ? comp.diffPercentage.toFixed(4) : comp.diffPercentage.toFixed(2);
+          const diffIcon = comp.diffPercentage > 5 ? "\u{1F6A8}" : comp.diffPercentage > 1 ? "\u26A0\uFE0F" : "\u2139\uFE0F";
+          comparisonCell = `${diffIcon} **${displayPercentage}% diff**<br/>`;
+          if (comp.diffImageUrl) {
+            comparisonCell += `[View Diff](${comp.diffImageUrl})`;
+          } else {
+            comparisonCell += "Visual changes detected";
+          }
+          break;
+        case "error":
+          let errorMsg = comp.metrics?.error || "Unable to compare images";
+          if (errorMsg.includes("dimensions do not match")) {
+            errorMsg = errorMsg.replace(
+              "Image dimensions do not match:",
+              "\u{1F4CF} **Dimension Mismatch**<br/>Images have different sizes:"
+            );
+            errorMsg += "<br/><br/>\u2139\uFE0F **Why?** Baseline was captured at different settings (likely viewport-only vs full-page)";
+            errorMsg += "<br/>\u{1F527} **Fix:** Delete old baselines from storage and re-run to create new full-page baselines";
+          }
+          comparisonCell = `\u274C **Cannot Compare**<br/>${errorMsg}`;
+          break;
+        default:
+          comparisonCell = `\u2753 **Unknown Status**`;
+      }
+      if (comp.issues && comp.issues.length > 0) {
+        const criticalIssues = comp.issues.filter((i) => i.severity === "critical").length;
+        const warningIssues = comp.issues.filter((i) => i.severity === "warning").length;
+        if (criticalIssues > 0) {
+          comparisonCell += `<br/>\u{1F6A8} ${criticalIssues} critical issue${criticalIssues !== 1 ? "s" : ""}`;
+        }
+        if (warningIssues > 0) {
+          comparisonCell += `<br/>\u26A0\uFE0F ${warningIssues} warning${warningIssues !== 1 ? "s" : ""}`;
+        }
+      }
+    } else {
+      comparisonCell = "\u2139\uFE0F **No comparison data**";
+    }
+    return `| ${baselineCell} | ${currentCell} | ${comparisonCell} |
+`;
+  }
+  /**
+   * Extract route name from screenshot filename
+   */
+  extractRouteFromScreenshotName(screenshotName) {
+    let route = screenshotName.replace(/-\d+x\d+.*$/, "").replace(/\.(png|jpg|jpeg)$/, "");
+    route = route.replace(/_/g, "/");
+    if (!route.startsWith("/")) {
+      route = "/" + route;
+    }
+    if (route === "/root" || route === "/") {
+      return "/";
+    }
+    return route;
+  }
+  /**
+   * Get base preview URL without trailing slash
+   */
+  getBasePreviewUrl(result) {
+    return result.firebaseConfig.previewUrl.replace(/\/$/, "");
+  }
+  /**
+   * Create clickable route link with preview URL
+   */
+  createRouteLink(route, result) {
+    const baseUrl = this.getBasePreviewUrl(result);
+    return `[${route}](${baseUrl}${route})`;
+  }
+  /**
+   * Generate embedded screenshots for PR comment (legacy method)
+   */
+  generateEmbeddedScreenshots(screenshots, result) {
+    if (screenshots.length === 0) {
+      return "";
+    }
+    let gallery = "### \u{1F4F8} Screenshots\n\n";
+    const groupedByRoute = screenshots.reduce((acc, screenshot) => {
+      const route = screenshot.route || "/";
+      if (!acc[route]) {
+        acc[route] = [];
+      }
+      acc[route].push(screenshot);
+      return acc;
+    }, {});
+    for (const [route, routeScreenshots] of Object.entries(groupedByRoute)) {
+      const screenshotsWithUrls = routeScreenshots.filter((s) => s.firebaseUrl);
+      if (screenshotsWithUrls.length === 0) {
+        continue;
+      }
+      const fullUrl = screenshotsWithUrls[0].fullUrl || `${this.getBasePreviewUrl(result)}${route}`;
+      const testResult = result.testResults.find((test) => {
+        let testRoute = test.testId.replace("test-", "");
+        if (testRoute.startsWith("http://") || testRoute.startsWith("https://")) {
+          try {
+            const url = new URL(testRoute);
+            testRoute = url.pathname;
+          } catch (error10) {
+          }
+        }
+        return testRoute === route;
+      });
+      const totalTimeText = testResult?.duration ? ` \u2022 ${this.formatDuration(testResult.duration)}` : "";
+      gallery += `<details>
+`;
+      gallery += `<summary><strong>\u{1F4CD} Route: <a href="${fullUrl}">${route}</a></strong> (${screenshotsWithUrls.length} screenshots${totalTimeText})</summary>
+
+`;
+      gallery += "<table>\n<tr>\n";
+      const sorted = screenshotsWithUrls.sort((a, b) => b.viewport.width - a.viewport.width);
+      for (const screenshot of sorted) {
+        const durationText = screenshot.duration ? ` \u2022 ${this.formatDuration(screenshot.duration)}` : "";
+        gallery += `<td align="center">
+`;
+        gallery += `<strong>${screenshot.viewport.name || `${screenshot.viewport.width}\xD7${screenshot.viewport.height}`}${durationText}</strong><br>
+`;
+        gallery += `<img src="${screenshot.firebaseUrl}" width="300" alt="${route} at ${screenshot.viewport.width}x${screenshot.viewport.height}" />
+`;
+        gallery += `</td>
+`;
+      }
+      gallery += "</tr>\n</table>\n\n";
+      gallery += `</details>
+
+`;
+    }
+    return gallery;
+  }
+  /**
+   * Generate embedded videos for PR comment
+   */
+  generateEmbeddedVideos(videos) {
+    if (videos.length === 0) {
+      return "";
+    }
+    let gallery = "### \u{1F3A5} Test Videos\n\n";
+    const videosWithUrls = videos.filter((v) => v.firebaseUrl);
+    if (videosWithUrls.length === 0) {
+      gallery += "_Videos captured but URLs not available_\n\n";
+      return gallery;
+    }
+    gallery += "<table>\n";
+    for (let i = 0; i < videosWithUrls.length; i += 3) {
+      gallery += "<tr>\n";
+      for (let j = i; j < Math.min(i + 3, videosWithUrls.length); j++) {
+        const video = videosWithUrls[j];
+        gallery += `<td align="center" width="33%">
+`;
+        gallery += `<a href="${video.firebaseUrl}">
+`;
+        gallery += `<div>\u{1F3AC}</div>
+`;
+        gallery += `<strong>${video.name.replace(/\.(webm|mp4)$/, "")}</strong><br>
+`;
+        gallery += `<em>${this.formatDuration(video.duration)}</em><br>
+`;
+        gallery += `<kbd>\u25B6\uFE0F Click to Play</kbd>
+`;
+        gallery += `</a>
+`;
+        gallery += `</td>
+`;
+      }
+      for (let k = videosWithUrls.length % 3; k < 3 && k > 0 && i + 3 > videosWithUrls.length; k++) {
+        gallery += `<td></td>
+`;
+      }
+      gallery += "</tr>\n";
+    }
+    gallery += "</table>\n\n";
+    gallery += "<details>\n<summary>Direct video links</summary>\n\n";
+    for (const video of videosWithUrls) {
+      gallery += `- [${video.name}](${video.firebaseUrl}) - ${this.formatDuration(video.duration)}
+`;
+    }
+    gallery += "\n</details>\n\n";
+    return gallery;
+  }
+  /**
+   * Generate compact status badge for quick overview
+   */
+  generateStatusBadge(result) {
+    const status = result.status;
+    const color = status === "success" ? "brightgreen" : status === "partial" ? "yellow" : "red";
+    const tests = `${result.passedTests}/${result.totalTests}`;
+    return `![Tests](https://img.shields.io/badge/tests-${tests}-${color}) ![Status](https://img.shields.io/badge/status-${status}-${color})`;
+  }
+};
+
+// src/steps/4-post-results.step.ts
+init_core();
+init_GitHubServiceFactory();
+async function postResults(stepData) {
+  return executeStep("Post Results to PR", async () => {
+    const { prNumber, previewUrl, routes, screenshots, firebaseConfig, metadata, _internal: internal } = stepData;
+    if (!routes || !screenshots) {
+      throw new Error("Missing routes or screenshots data. Run previous steps first.");
+    }
+    const githubToken = config.get("github-token");
+    const github = GitHubServiceFactory.getService();
+    if (githubToken) {
+      await github.configure({ token: githubToken });
+    }
+    core16.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
+    const analysis = {
+      hasUIChanges: routes.affectedRoutes.length > 0,
+      changedPaths: routes.affectedRoutes,
+      components: routes.components,
+      routes: routes.affectedRoutes,
+      testSuggestions: routes.affectedRoutes.map((r) => `Test route ${r} for visual regressions`),
+      riskLevel: (routes.routesToTest?.sharedComponents?.size || 0) > 0 ? "high" : "medium"
+    };
+    const screenshotResult = internal?.screenshotResult;
+    const uploadedFiles = internal?.uploadedFiles || [];
+    const storageUrl = internal?.storageUrl || "";
+    const screenshotMetadataMap = internal?.screenshotMetadataMap || {};
+    const comparison = stepData.comparison || { hasChanges: false, diffCount: 0, diffFiles: [] };
+    const diffFiles = internal?.diffFiles || [];
+    if (!screenshotResult) {
+      throw new Error("Screenshot result not found in step data");
+    }
+    const totalDuration = Date.now() - metadata.startTime;
+    const verificationResult = {
+      status: screenshotResult.success ? "success" : "failure",
+      firebaseConfig: {
+        projectId: firebaseConfig.projectId,
+        target: firebaseConfig.target,
+        buildSystem: firebaseConfig.buildSystem,
+        previewUrl,
+        region: firebaseConfig.region
+      },
+      framework: routes.routesToTest?.framework || routes.impactTree?.framework,
+      totalTests: screenshotResult.screenshots.length,
+      passedTests: screenshotResult.screenshots.filter((r) => r.success !== false).length,
+      failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
+      skippedTests: 0,
+      duration: totalDuration,
+      testResults: screenshotResult.screenshots.map((r) => {
+        const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(r.route, "-");
+        return {
+          testId: `test-${r.route}`,
+          testName: `Route Test: ${r.route}`,
+          status: r.success !== false ? "passed" : "failed",
+          duration: r.timing?.totalTime || 0,
+          screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes("/diffs/")).map((f) => {
+            const metadata2 = screenshotMetadataMap[f.localPath];
+            const actualScreenshot = r.screenshots.find((s) => s.path === f.localPath);
+            const viewport = actualScreenshot ? {
+              width: actualScreenshot.width,
+              height: actualScreenshot.height,
+              name: `${actualScreenshot.width}x${actualScreenshot.height}`
+            } : metadata2?.viewport || { width: 0, height: 0, name: "" };
+            const viewportKey = `${viewport.width}x${viewport.height}`;
+            const diffFile = diffFiles.find(
+              (d) => d.route === routePath && d.viewport === viewportKey
+            );
+            const diffImageFile = diffFile ? uploadedFiles.find(
+              (uf) => uf.localPath === diffFile.localPath
+            ) : null;
+            const comparisonData = diffFile ? {
+              status: diffFile.status,
+              hasDifference: diffFile.hasDifference,
+              diffPercentage: diffFile.diffPercentage || 0,
+              diffImageUrl: diffImageFile?.url || null,
+              metrics: {
+                ...diffFile.metrics,
+                error: diffFile.error
+                // Include error message if present
+              }
+            } : null;
+            const baselineData = diffFile?.baselineUrl ? {
+              url: diffFile.baselineUrl,
+              updatedDate: (() => {
+                if (diffFile.baselineMetadata?.customMetadata?.createdAt) {
+                  const timestamp = parseInt(diffFile.baselineMetadata.customMetadata.createdAt);
+                  return new Date(timestamp).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric"
+                  });
+                }
+                if (diffFile.baselineMetadata?.timeCreated) {
+                  return new Date(diffFile.baselineMetadata.timeCreated).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric"
+                  });
+                }
+                return "From storage";
+              })()
+            } : null;
+            return {
+              name: `${routePath}-${viewport.width}x${viewport.height}.png`,
+              path: f.localPath,
+              viewport,
+              timestamp: Date.now(),
+              firebaseUrl: f.url || "",
+              route: routePath,
+              duration: metadata2?.duration,
+              comparison: comparisonData,
+              baseline: baselineData
+            };
+          }),
+          videos: [],
+          errors: r.error ? [r.error] : [],
+          consoleMessages: []
+        };
+      }),
+      screenshotsUrl: storageUrl,
+      summary: {
+        componentsVerified: analysis.components,
+        routesTested: analysis.routes,
+        issuesFound: screenshotResult.errors?.map((e) => e.message) || []
+      }
+    };
+    core16.info(`\u{1F4CA} Verification Summary:`);
+    core16.info(`  Total tests: ${verificationResult.totalTests}`);
+    core16.info(`  Passed: ${verificationResult.passedTests}`);
+    core16.info(`  Failed: ${verificationResult.failedTests}`);
+    core16.info(`  Duration: ${(totalDuration / 1e3).toFixed(2)}s`);
+    const timingSummary = await getStepDataManager().getTimingSummary();
+    if (timingSummary) {
+      core16.info(`
+${timingSummary}`);
+    }
+    core16.info("\u{1F4E4} Posting results to PR...");
+    const reporter = new PRReporter();
+    try {
+      await Promise.race([
+        reporter.postResults(verificationResult, prNumber.toString()),
+        new Promise(
+          (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 3e4)
+        )
+      ]);
+      core16.info(`\u2705 PR report posted successfully`);
+    } catch (error10) {
+      core16.warning(`Failed to post PR report: ${error10}`);
+      await errorHandler.handleError(error10, {
+        severity: "medium" /* MEDIUM */,
+        category: "github" /* GITHUB */,
+        location: "pr-reporter",
+        recoverable: true
+      });
+    }
+    core16.setOutput("success", verificationResult.status === "success");
+    core16.setOutput("issues-found", screenshotResult.errors?.length || 0);
+    core16.setOutput("critical-issues", 0);
+    core16.setOutput("warning-issues", 0);
+    core16.setOutput("total-tests", verificationResult.totalTests);
+    core16.setOutput("passed-tests", verificationResult.passedTests);
+    core16.setOutput("failed-tests", verificationResult.failedTests);
+    core16.setOutput("duration-ms", totalDuration);
+    core16.setOutput("duration-seconds", (totalDuration / 1e3).toFixed(2));
+    if (verificationResult.status === "success") {
+      core16.info("\n\u2705 All visual tests completed successfully!");
+    } else {
+      core16.error("\n\u274C Visual tests completed with errors");
+    }
+    core16.info(`\u23F1\uFE0F Total execution time: ${(totalDuration / 1e3).toFixed(2)}s`);
+    return stepData;
+  });
+}
+
+// src/steps/5-update-baselines.step.ts
+var core17 = __toESM(require_core());
+var import_fs5 = require("fs");
+init_core();
+async function updateBaselines(stepData) {
+  return executeStep("Update Baselines (Post-Merge)", async () => {
+    const { prNumber, screenshots, _internal: internal } = stepData;
+    if (!screenshots || !internal?.screenshotResult) {
+      throw new Error("No screenshots available for baseline update. Run browse-routes step first.");
+    }
+    const updateConfig = config.get("update-baselines-on-merge", { defaultValue: '["", "false"]' });
+    let targetBranch = "";
+    let enabled = false;
+    try {
+      const parsed = JSON.parse(updateConfig);
+      if (Array.isArray(parsed) && parsed.length === 2) {
+        targetBranch = parsed[0];
+        enabled = parsed[1] === "true" || parsed[1] === true;
+      }
+    } catch (error10) {
+      core17.warning(`Failed to parse update-baselines-on-merge config: ${error10}`);
+    }
+    if (!enabled) {
+      core17.info("\u2139\uFE0F Baseline update disabled in configuration");
+      return {
+        ...stepData,
+        baselinesUpdated: 0,
+        updateSummary: "Baseline update disabled"
+      };
+    }
+    const currentBranch = process.env.GITHUB_REF?.replace("refs/heads/", "") || "";
+    if (targetBranch && currentBranch !== targetBranch) {
+      core17.info(`\u2139\uFE0F Skipping baseline update - current branch: ${currentBranch}, target branch: ${targetBranch}`);
+      return {
+        ...stepData,
+        baselinesUpdated: 0,
+        updateSummary: `Baseline update skipped - branch mismatch (current: ${currentBranch}, target: ${targetBranch})`
+      };
+    }
+    core17.info(`\u{1F504} Starting baseline update for merged PR #${prNumber}`);
+    core17.info(`   Branch: ${currentBranch}`);
+    const firebaseCredentials = config.get("firebase-credentials");
+    const storageBucket = config.get("storage-bucket");
+    const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
+    if (!firebaseCredentials || !storageBucket) {
+      core17.warning("\u26A0\uFE0F Storage not configured - skipping baseline update");
+      return {
+        ...stepData,
+        baselinesUpdated: 0,
+        updateSummary: "Baseline update skipped - no storage configured"
+      };
+    }
+    const { downloadFiles, uploadFiles } = await import("@yofix/storage");
+    let credentialsBase64 = firebaseCredentials;
+    if (firebaseCredentials.endsWith(".json")) {
+      try {
+        const credentialsContent = await import_fs5.promises.readFile(firebaseCredentials, "utf-8");
+        credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
+        core17.info("  Using Firebase credentials from file");
+      } catch (error10) {
+        core17.debug(`Not a file path, treating as base64: ${error10}`);
+      }
+    }
+    const baselinestoUpdate = [];
+    let successCount = 0;
+    let failureCount = 0;
+    core17.info(`\u{1F4E6} Preparing to update ${internal.screenshotResult.screenshots.length} route baselines...`);
+    for (const routeScreenshot of internal.screenshotResult.screenshots) {
+      const route = routeScreenshot.route;
+      const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, "_");
+      for (const screenshot of routeScreenshot.screenshots) {
+        const viewport = `${screenshot.width}x${screenshot.height}`;
+        const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
+        try {
+          baselinestoUpdate.push({
+            path: screenshot.path,
+            destination: baselineKey,
+            contentType: "image/png",
+            metadata: {
+              type: "baseline",
+              route: routePath,
+              viewport,
+              source: "merged-pr",
+              prNumber,
+              updatedAt: Date.now().toString()
+            }
+          });
+          core17.info(`  \u2713 Queued: ${routePath} (${viewport})`);
+        } catch (error10) {
+          core17.warning(`  \u2717 Failed to read screenshot for ${route} (${viewport}): ${error10}`);
+          failureCount++;
+        }
+      }
+    }
+    if (baselinestoUpdate.length === 0) {
+      core17.warning("\u26A0\uFE0F No baselines to update");
+      return {
+        ...stepData,
+        baselinesUpdated: 0,
+        updateSummary: "No baselines to update"
+      };
+    }
+    core17.info(`
+\u2601\uFE0F  Uploading ${baselinestoUpdate.length} baseline(s)...`);
+    try {
+      const uploadResult = await uploadFiles({
+        storage: {
+          provider: storageProvider,
+          config: {
+            bucket: storageBucket,
+            credentials: credentialsBase64
+          }
+        },
+        files: baselinestoUpdate,
+        verbose: true,
+        onProgress: (progress) => {
+          const percentage = (progress.filesUploaded / progress.totalFiles * 100).toFixed(1);
+          core17.info(`  Progress: ${progress.filesUploaded}/${progress.totalFiles} (${percentage}%)`);
+        }
+      });
+      if (!uploadResult.success) {
+        const errorMessage = uploadResult.errors?.map((e) => e.message).join(", ");
+        throw new Error(`Baseline upload failed: ${errorMessage}`);
+      }
+      successCount = uploadResult.files.length;
+      core17.info(`
+\u2705 Successfully updated ${successCount} baseline(s)`);
+    } catch (error10) {
+      core17.error(`Failed to update baselines: ${error10}`);
+      failureCount += baselinestoUpdate.length;
+    }
+    const summary = `Updated ${successCount} baseline(s)${failureCount > 0 ? `, ${failureCount} failed` : ""}`;
+    return {
+      ...stepData,
+      baselinesUpdated: successCount,
+      updateSummary: summary
+    };
+  });
+}
+
+// src/index.ts
+init_CentralizedErrorHandler();
+async function main() {
+  const workflowStartTime = Date.now();
+  const manager = getStepDataManager();
+  try {
+    core18.info("\u2501".repeat(60));
+    core18.info("\u{1F680} YoFix Visual Testing Action");
+    core18.info("\u2501".repeat(60));
+    await manager.initialize();
+    core18.startGroup("\u{1F4CB} Step 0: Initialize Workflow");
+    let stepData = await initialize();
+    await manager.save(stepData);
+    core18.endGroup();
+    core18.startGroup("\u{1F50D} Step 1: Analyze Routes");
+    stepData = await analyzeRoutes(stepData);
+    await manager.save(stepData);
+    core18.endGroup();
+    if (!stepData.routes || stepData.routes.affectedRoutes.length === 0) {
+      core18.warning("\u26A0\uFE0F  No routes to test. Skipping screenshot capture and comparison.");
+      core18.info("\n\u2705 YoFix workflow completed (no routes to test)");
+      return;
+    }
+    core18.startGroup("\u{1F4F8} Step 2: Browse Routes & Capture Screenshots");
+    stepData = await browseRoutes(stepData);
+    await manager.save(stepData);
+    core18.endGroup();
+    core18.startGroup("\u{1F50D} Step 2.5: Compare Screenshots with Baselines");
+    stepData = await compareWithBaselines(stepData);
+    await manager.save(stepData);
+    core18.endGroup();
+    core18.startGroup("\u2601\uFE0F  Step 3: Upload Screenshots to Storage");
+    stepData = await uploadToStorage(stepData);
+    await manager.save(stepData);
+    core18.endGroup();
+    core18.startGroup("\u{1F4AC} Step 4: Post Results to GitHub PR");
+    stepData = await postResults(stepData);
+    await manager.save(stepData);
+    core18.endGroup();
+    core18.startGroup("\u{1F504} Step 5: Update Baselines (Post-Merge)");
+    stepData = await updateBaselines(stepData);
+    await manager.save(stepData);
+    core18.endGroup();
+    const workflowDuration = Date.now() - workflowStartTime;
+    core18.info("\n" + "\u2501".repeat(60));
+    core18.info("\u2705 YoFix Visual Testing Completed Successfully");
+    core18.info(`\u23F1\uFE0F  Total Duration: ${(workflowDuration / 1e3).toFixed(2)}s`);
+    core18.info("\u2501".repeat(60));
+    const timingSummary = await manager.getTimingSummary();
+    if (timingSummary) {
+      core18.info("\n" + timingSummary);
+    }
+  } catch (error10) {
+    const workflowDuration = Date.now() - workflowStartTime;
+    core18.error("\u2501".repeat(60));
+    core18.error("\u274C YoFix Visual Testing Failed");
+    core18.error(`\u23F1\uFE0F  Duration before failure: ${(workflowDuration / 1e3).toFixed(2)}s`);
+    core18.error("\u2501".repeat(60));
+    errorHandler.handleError(error10, {
+      severity: "critical" /* CRITICAL */,
+      category: "orchestration" /* ORCHESTRATION */,
+      userAction: "Review the error message and check your configuration",
+      metadata: {
+        workflowDuration,
+        step: "unknown"
+      }
+    });
+    core18.setFailed(`YoFix workflow failed: ${error10 instanceof Error ? error10.message : String(error10)}`);
+    throw error10;
+  }
+}
+main().catch((error10) => {
+  console.error("Fatal error in YoFix workflow:", error10);
+  process.exit(1);
 });
 /*! Bundled license information:
 
@@ -27742,4 +29598,4 @@ undici/lib/fetch/body.js:
 undici/lib/websocket/frame.js:
   (*! ws. MIT License. Einar Otto Stangvik <einaros@gmail.com> *)
 */
-//# sourceMappingURL=0-initialize.step.js.map
+//# sourceMappingURL=index.js.map

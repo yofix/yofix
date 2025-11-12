@@ -45,8 +45,7 @@ function parseInputs(): ActionInputs {
     mcpProvider: config.get('mcp-provider'),
     mcpOptions: config.get('mcp-options'),
     enableAINavigation: getBooleanConfig('enable-ai-navigation'),
-    enableAITestGeneration: getBooleanConfig('enable-ai-test-generation'),
-    testRoutes: config.get('test-routes')
+    enableAITestGeneration: getBooleanConfig('enable-ai-test-generation')
   };
 }
 
@@ -186,9 +185,4 @@ export async function main(): Promise<void> {
     core.setFailed(`Step 0 failed: ${error}`);
     throw error;
   }
-}
-
-// Run if executed directly
-if (require.main === module) {
-  main();
 }

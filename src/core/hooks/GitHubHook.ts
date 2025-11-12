@@ -119,8 +119,8 @@ export class GitHubActionsHook implements GitHubHook {
   }
   
   getInput(name: string): string {
-    const { getConfiguration } = require('./ConfigurationHook');
-    return getConfiguration().getInput(name) || '';
+    const { config } = require('../index');
+    return config.get(name) || '';
   }
 }
 

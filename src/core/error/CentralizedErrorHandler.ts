@@ -13,6 +13,11 @@ export enum ErrorCategory {
   GITHUB = 'github',             // GitHub API/PR integration
   CONFIGURATION = 'configuration', // Input validation, missing config
   ORCHESTRATION = 'orchestration', // Main workflow logic
+  MODULE = 'module',             // Module-related errors
+  NETWORK = 'network',           // Network/connectivity errors
+  PROCESSING = 'processing',     // Data processing errors
+  FILE_SYSTEM = 'file_system',   // File system operations
+  VALIDATION = 'validation',     // Validation errors
   UNKNOWN = 'unknown'            // Fallback
 }
 
@@ -33,6 +38,7 @@ export interface ErrorOptions extends ErrorContext {
   recoverable?: boolean;
   skipGitHubPost?: boolean;
   silent?: boolean;
+  userAction?: string;  // Suggested action for user to take
 }
 
 export class YoFixError extends Error {

@@ -7,6 +7,7 @@
 
 import * as core from '@actions/core';
 import { initialize } from './steps/0-initialize.step';
+import { handleCommentCommand, markCommandComplete } from './steps/0.5-handle-comment-command.step';
 import { analyzeRoutes } from './steps/1-analyze-routes.step';
 import { browseRoutes } from './steps/2-browse-routes.step';
 import { compareWithBaselines } from './steps/2.5-compare-baselines.step';
@@ -37,17 +38,41 @@ async function main(): Promise<void> {
     await manager.save(stepData);
     core.endGroup();
 
-    // Step 1: Analyze Routes
-    core.startGroup('🔍 Step 1: Analyze Routes');
-    stepData = await analyzeRoutes(stepData);
+    // Step 0.5: Handle Comment Command (if applicable)
+    core.startGroup('💬 Step 0.5: Handle Comment Command');
+    stepData = await handleCommentCommand(stepData);
     await manager.save(stepData);
     core.endGroup();
 
-    // Check if we have routes to test
-    if (!stepData.routes || stepData.routes.affectedRoutes.length === 0) {
-      core.warning('⚠️  No routes to test. Skipping screenshot capture and comparison.');
-      core.info('\n✅ YoFix workflow completed (no routes to test)');
-      return;
+    const isCommentCommand = stepData.commandContext?.isCommentCommand || false;
+    const hasTestUrl = !!stepData.testUrl;
+
+    // Step 1: Analyze Routes (skip if comment command with explicit URL)
+    if (!hasTestUrl) {
+      core.startGroup('🔍 Step 1: Analyze Routes');
+      stepData = await analyzeRoutes(stepData);
+      await manager.save(stepData);
+      core.endGroup();
+
+      // Check if we have routes to test
+      if (!stepData.routes || stepData.routes.affectedRoutes.length === 0) {
+        core.warning('⚠️  No routes to test. Skipping screenshot capture and comparison.');
+        core.info('\n✅ YoFix workflow completed (no routes to test)');
+        return;
+      }
+    } else {
+      core.info('ℹ️ Skipping route analysis - using explicit test URL from comment command');
+      // Create a synthetic route for the test URL
+      stepData.routes = {
+        affectedRoutes: [stepData.testUrl],
+        impactTree: null,
+        routesToTest: null,
+        components: [],
+        metadata: {
+          totalRoutes: 1,
+          source: 'comment-command',
+        },
+      };
     }
 
     // Step 2: Browse Routes & Capture Screenshots
@@ -79,6 +104,11 @@ async function main(): Promise<void> {
     stepData = await updateBaselines(stepData);
     await manager.save(stepData);
     core.endGroup();
+
+    // Mark comment command as complete (if applicable)
+    if (isCommentCommand && stepData.commandContext?.commentId) {
+      await markCommandComplete(stepData.commandContext.commentId);
+    }
 
     // Print summary
     const workflowDuration = Date.now() - workflowStartTime;

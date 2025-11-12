@@ -31,6 +31,21 @@ export async function uploadToStorage(stepData: StepData): Promise<StepData> {
       throw new Error('No screenshots available for upload. Run browse-routes step first.');
     }
 
+    // Skip upload if no screenshots captured
+    if (screenshots.files.length === 0) {
+      core.info('ℹ️ No screenshots to upload - skipping storage upload');
+
+      return {
+        ...stepData,
+        _internal: {
+          ...internal,
+          uploadedFiles: [],
+          storageUrl: '',
+          screenshotMetadataMap: {}
+        }
+      };
+    }
+
     const firebaseCredentials = config.get('firebase-credentials');
     const storageBucket = config.get('storage-bucket');
     const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });

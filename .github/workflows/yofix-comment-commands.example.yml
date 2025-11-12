@@ -1,0 +1,92 @@
+# Example: YoFix with Comment Commands Support
+#
+# This workflow demonstrates how to enable @yofix comment commands in your PRs.
+# Users can trigger visual testing by commenting:
+#   @yofix test "https://example.com/page"
+#   @yofix test https://example.com/page 360x700,1080x1200
+#
+# To use this example:
+# 1. Copy this file to .github/workflows/yofix.yml in your repository
+# 2. Configure the required secrets (FIREBASE_SERVICE_ACCOUNT, CLAUDE_API_KEY)
+# 3. Update the configuration values as needed
+
+name: YoFix Visual Testing
+
+on:
+  # Trigger on pull requests for automatic testing
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  # Trigger on issue comments for @yofix commands
+  issue_comment:
+    types: [created]
+
+jobs:
+  visual-testing:
+    # Only run on pull requests or when comment contains @yofix
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@yofix'))
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run YoFix Visual Testing
+        uses: yofix/yofix@main
+        with:
+          # Required: Your deployed preview URL
+          preview-url: ${{ secrets.PREVIEW_URL || 'https://preview.example.com' }}
+
+          # Required: GitHub token for PR comments
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Required: Claude API key for AI-powered analysis
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          claude-model: 'claude-sonnet-4-5-20250929'
+
+          # Optional: Production URL for baseline creation
+          production-url: 'https://example.com'
+
+          # Storage Configuration (Firebase example)
+          storage-provider: 'firebase'
+          firebase-credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          storage-bucket: 'my-app-screenshots'
+
+          # Testing Configuration
+          viewports: '1920x1080,768x1024,375x667'
+          max-routes: '10'
+
+          # Authentication (if required)
+          auth-email: ${{ secrets.AUTH_EMAIL }}
+          auth-password: ${{ secrets.AUTH_PASSWORD }}
+          auth-login-url: '/login'
+
+# Comment Commands Usage:
+#
+# Once this workflow is configured, you can trigger visual testing from PR comments:
+#
+# 1. Test a specific URL with default viewports:
+#    @yofix test "https://app.example.com/dashboard"
+#
+# 2. Test with custom viewports:
+#    @yofix test https://app.example.com/dashboard 360x700,1080x1200
+#
+# 3. Test with multiple viewports:
+#    @yofix test https://app.example.com/dashboard 375x667,768x1024,1920x1080
+#
+# YoFix will:
+# - React with 👀 to acknowledge the command
+# - Capture screenshots in the specified viewports
+# - Compare with baselines (or create them from production)
+# - Post results as a comment
+# - React with ✅ when complete

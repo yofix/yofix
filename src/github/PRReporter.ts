@@ -47,23 +47,43 @@ export class PRReporter {
 
   /**
    * Post comprehensive verification results to PR
+   *
+   * @param result - Verification result data
+   * @param storageConsoleUrl - Optional storage URL
+   * @param options - Optional posting options
+   * @param options.replyToCommentId - If provided, posts as a reply to this comment (for @yofix commands)
    */
-  async postResults(result: VerificationResult, storageConsoleUrl?: string): Promise<void> {
+  async postResults(
+    result: VerificationResult,
+    storageConsoleUrl?: string,
+    options?: { replyToCommentId?: number }
+  ): Promise<void> {
     if (!this.prNumber) {
       core.warning('No PR number found, cannot post comment');
       return;
     }
-    
+
     try {
       core.info(`Posting verification results to PR #${this.prNumber}...`);
-      
+
       const comment = this.generateCommentBody(result, storageConsoleUrl);
-      
-      await this.commentEngine.postComment(comment, {
-        updateExisting: true,
-        signature: 'yofix-verification-results'
-      });
-      
+
+      // If replying to a comment (e.g., @yofix command), post as a reply
+      // Otherwise, update the main YoFix results comment
+      if (options?.replyToCommentId) {
+        core.info(`📝 Posting results as reply to comment #${options.replyToCommentId}`);
+        await this.commentEngine.postComment(comment, {
+          inReplyTo: options.replyToCommentId,
+          signature: `yofix-command-result-${options.replyToCommentId}`
+        });
+      } else {
+        core.info('📝 Posting results as main YoFix comment');
+        await this.commentEngine.postComment(comment, {
+          updateExisting: true,
+          signature: 'yofix-verification-results'
+        });
+      }
+
       core.info('Posted verification results to PR');
     } catch (error) {
       await errorHandler.handleError(error as Error, {

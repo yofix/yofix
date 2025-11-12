@@ -179,7 +179,7 @@ var require_file_command = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.prepareKeyValueMessage = exports2.issueFileCommand = void 0;
     var crypto = __importStar(require("crypto"));
-    var fs8 = __importStar(require("fs"));
+    var fs9 = __importStar(require("fs"));
     var os3 = __importStar(require("os"));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
@@ -187,10 +187,10 @@ var require_file_command = __commonJS({
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs8.existsSync(filePath)) {
+      if (!fs9.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs8.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os3.EOL}`, {
+      fs9.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os3.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -395,7 +395,7 @@ var require_tunnel = __commonJS({
         connectOptions.headers = connectOptions.headers || {};
         connectOptions.headers["Proxy-Authorization"] = "Basic " + new Buffer(connectOptions.proxyAuth).toString("base64");
       }
-      debug9("making CONNECT request");
+      debug10("making CONNECT request");
       var connectReq = self.request(connectOptions);
       connectReq.useChunkedEncodingByDefault = false;
       connectReq.once("response", onResponse);
@@ -415,40 +415,40 @@ var require_tunnel = __commonJS({
         connectReq.removeAllListeners();
         socket.removeAllListeners();
         if (res.statusCode !== 200) {
-          debug9(
+          debug10(
             "tunneling socket could not be established, statusCode=%d",
             res.statusCode
           );
           socket.destroy();
-          var error10 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
-          error10.code = "ECONNRESET";
-          options.request.emit("error", error10);
+          var error11 = new Error("tunneling socket could not be established, statusCode=" + res.statusCode);
+          error11.code = "ECONNRESET";
+          options.request.emit("error", error11);
           self.removeSocket(placeholder);
           return;
         }
         if (head.length > 0) {
-          debug9("got illegal response body from proxy");
+          debug10("got illegal response body from proxy");
           socket.destroy();
-          var error10 = new Error("got illegal response body from proxy");
-          error10.code = "ECONNRESET";
-          options.request.emit("error", error10);
+          var error11 = new Error("got illegal response body from proxy");
+          error11.code = "ECONNRESET";
+          options.request.emit("error", error11);
           self.removeSocket(placeholder);
           return;
         }
-        debug9("tunneling connection has established");
+        debug10("tunneling connection has established");
         self.sockets[self.sockets.indexOf(placeholder)] = socket;
         return cb(socket);
       }
       function onError(cause) {
         connectReq.removeAllListeners();
-        debug9(
+        debug10(
           "tunneling socket could not be established, cause=%s\n",
           cause.message,
           cause.stack
         );
-        var error10 = new Error("tunneling socket could not be established, cause=" + cause.message);
-        error10.code = "ECONNRESET";
-        options.request.emit("error", error10);
+        var error11 = new Error("tunneling socket could not be established, cause=" + cause.message);
+        error11.code = "ECONNRESET";
+        options.request.emit("error", error11);
         self.removeSocket(placeholder);
       }
     };
@@ -503,9 +503,9 @@ var require_tunnel = __commonJS({
       }
       return target;
     }
-    var debug9;
+    var debug10;
     if (process.env.NODE_DEBUG && /\btunnel\b/.test(process.env.NODE_DEBUG)) {
-      debug9 = function() {
+      debug10 = function() {
         var args = Array.prototype.slice.call(arguments);
         if (typeof args[0] === "string") {
           args[0] = "TUNNEL: " + args[0];
@@ -515,10 +515,10 @@ var require_tunnel = __commonJS({
         console.error.apply(console, args);
       };
     } else {
-      debug9 = function() {
+      debug10 = function() {
       };
     }
-    exports2.debug = debug9;
+    exports2.debug = debug10;
   }
 });
 
@@ -993,14 +993,14 @@ var require_util = __commonJS({
         }
         const port = url.port != null ? url.port : url.protocol === "https:" ? 443 : 80;
         let origin = url.origin != null ? url.origin : `${url.protocol}//${url.hostname}:${port}`;
-        let path7 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
+        let path8 = url.path != null ? url.path : `${url.pathname || ""}${url.search || ""}`;
         if (origin.endsWith("/")) {
           origin = origin.substring(0, origin.length - 1);
         }
-        if (path7 && !path7.startsWith("/")) {
-          path7 = `/${path7}`;
+        if (path8 && !path8.startsWith("/")) {
+          path8 = `/${path8}`;
         }
-        url = new URL(origin + path7);
+        url = new URL(origin + path8);
       }
       return url;
     }
@@ -2614,20 +2614,20 @@ var require_parseParams = __commonJS({
 var require_basename = __commonJS({
   "node_modules/undici/node_modules/@fastify/busboy/lib/utils/basename.js"(exports2, module2) {
     "use strict";
-    module2.exports = function basename2(path7) {
-      if (typeof path7 !== "string") {
+    module2.exports = function basename2(path8) {
+      if (typeof path8 !== "string") {
         return "";
       }
-      for (var i = path7.length - 1; i >= 0; --i) {
-        switch (path7.charCodeAt(i)) {
+      for (var i = path8.length - 1; i >= 0; --i) {
+        switch (path8.charCodeAt(i)) {
           case 47:
           // '/'
           case 92:
-            path7 = path7.slice(i + 1);
-            return path7 === ".." || path7 === "." ? "" : path7;
+            path8 = path8.slice(i + 1);
+            return path8 === ".." || path8 === "." ? "" : path8;
         }
       }
-      return path7 === ".." || path7 === "." ? "" : path7;
+      return path8 === ".." || path8 === "." ? "" : path8;
     };
   }
 });
@@ -5576,7 +5576,7 @@ Content-Type: ${value.type || "application/octet-stream"}\r
         throw new TypeError("Body is unusable");
       }
       const promise = createDeferredPromise();
-      const errorSteps = (error10) => promise.reject(error10);
+      const errorSteps = (error11) => promise.reject(error11);
       const successSteps = (data) => {
         try {
           promise.resolve(convertBytesToJSValue(data));
@@ -5657,7 +5657,7 @@ var require_request = __commonJS({
     }
     var Request = class _Request {
       constructor(origin, {
-        path: path7,
+        path: path8,
         method,
         body,
         headers,
@@ -5671,11 +5671,11 @@ var require_request = __commonJS({
         throwOnError,
         expectContinue
       }, handler) {
-        if (typeof path7 !== "string") {
+        if (typeof path8 !== "string") {
           throw new InvalidArgumentError("path must be a string");
-        } else if (path7[0] !== "/" && !(path7.startsWith("http://") || path7.startsWith("https://")) && method !== "CONNECT") {
+        } else if (path8[0] !== "/" && !(path8.startsWith("http://") || path8.startsWith("https://")) && method !== "CONNECT") {
           throw new InvalidArgumentError("path must be an absolute URL or start with a slash");
-        } else if (invalidPathRegex.exec(path7) !== null) {
+        } else if (invalidPathRegex.exec(path8) !== null) {
           throw new InvalidArgumentError("invalid request path");
         }
         if (typeof method !== "string") {
@@ -5738,7 +5738,7 @@ var require_request = __commonJS({
         this.completed = false;
         this.aborted = false;
         this.upgrade = upgrade || null;
-        this.path = query ? util.buildURL(path7, query) : path7;
+        this.path = query ? util.buildURL(path8, query) : path8;
         this.origin = origin;
         this.idempotent = idempotent == null ? method === "HEAD" || method === "GET" : idempotent;
         this.blocking = blocking == null ? false : blocking;
@@ -5862,16 +5862,16 @@ var require_request = __commonJS({
           this.onError(err);
         }
       }
-      onError(error10) {
+      onError(error11) {
         this.onFinally();
         if (channels.error.hasSubscribers) {
-          channels.error.publish({ request: this, error: error10 });
+          channels.error.publish({ request: this, error: error11 });
         }
         if (this.aborted) {
           return;
         }
         this.aborted = true;
-        return this[kHandler].onError(error10);
+        return this[kHandler].onError(error11);
       }
       onFinally() {
         if (this.errorHandler) {
@@ -6734,8 +6734,8 @@ var require_RedirectHandler = __commonJS({
       onUpgrade(statusCode, headers, socket) {
         this.handler.onUpgrade(statusCode, headers, socket);
       }
-      onError(error10) {
-        this.handler.onError(error10);
+      onError(error11) {
+        this.handler.onError(error11);
       }
       onHeaders(statusCode, headers, resume, statusText) {
         this.location = this.history.length >= this.maxRedirections || util.isDisturbed(this.opts.body) ? null : parseLocation(statusCode, headers);
@@ -6746,9 +6746,9 @@ var require_RedirectHandler = __commonJS({
           return this.handler.onHeaders(statusCode, headers, resume, statusText);
         }
         const { origin, pathname, search } = util.parseURL(new URL(this.location, this.opts.origin && new URL(this.opts.path, this.opts.origin)));
-        const path7 = search ? `${pathname}${search}` : pathname;
+        const path8 = search ? `${pathname}${search}` : pathname;
         this.opts.headers = cleanRequestHeaders(this.opts.headers, statusCode === 303, this.opts.origin !== origin);
-        this.opts.path = path7;
+        this.opts.path = path8;
         this.opts.origin = origin;
         this.opts.maxRedirections = 0;
         this.opts.query = null;
@@ -7988,7 +7988,7 @@ var require_client = __commonJS({
         writeH2(client, client[kHTTP2Session], request);
         return;
       }
-      const { body, method, path: path7, host, upgrade, headers, blocking, reset } = request;
+      const { body, method, path: path8, host, upgrade, headers, blocking, reset } = request;
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8038,7 +8038,7 @@ var require_client = __commonJS({
       if (blocking) {
         socket[kBlocking] = true;
       }
-      let header = `${method} ${path7} HTTP/1.1\r
+      let header = `${method} ${path8} HTTP/1.1\r
 `;
       if (typeof host === "string") {
         header += `host: ${host}\r
@@ -8101,7 +8101,7 @@ upgrade: ${upgrade}\r
       return true;
     }
     function writeH2(client, session, request) {
-      const { body, method, path: path7, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
+      const { body, method, path: path8, host, upgrade, expectContinue, signal, headers: reqHeaders } = request;
       let headers;
       if (typeof reqHeaders === "string") headers = Request[kHTTP2CopyHeaders](reqHeaders.trim());
       else headers = reqHeaders;
@@ -8144,7 +8144,7 @@ upgrade: ${upgrade}\r
         });
         return true;
       }
-      headers[HTTP2_HEADER_PATH] = path7;
+      headers[HTTP2_HEADER_PATH] = path8;
       headers[HTTP2_HEADER_SCHEME] = "https";
       const expectsPayload = method === "PUT" || method === "POST" || method === "PATCH";
       if (body && typeof body.read === "function") {
@@ -8876,7 +8876,7 @@ var require_pool = __commonJS({
         this[kOptions] = { ...util.deepClone(options), connect, allowH2 };
         this[kOptions].interceptors = options.interceptors ? { ...options.interceptors } : void 0;
         this[kFactory] = factory;
-        this.on("connectionError", (origin2, targets, error10) => {
+        this.on("connectionError", (origin2, targets, error11) => {
           for (const target of targets) {
             const idx = this[kClients].indexOf(target);
             if (idx !== -1) {
@@ -10384,20 +10384,20 @@ var require_mock_utils = __commonJS({
       }
       return true;
     }
-    function safeUrl(path7) {
-      if (typeof path7 !== "string") {
-        return path7;
+    function safeUrl(path8) {
+      if (typeof path8 !== "string") {
+        return path8;
       }
-      const pathSegments = path7.split("?");
+      const pathSegments = path8.split("?");
       if (pathSegments.length !== 2) {
-        return path7;
+        return path8;
       }
       const qp = new URLSearchParams(pathSegments.pop());
       qp.sort();
       return [...pathSegments, qp.toString()].join("?");
     }
-    function matchKey(mockDispatch2, { path: path7, method, body, headers }) {
-      const pathMatch = matchValue(mockDispatch2.path, path7);
+    function matchKey(mockDispatch2, { path: path8, method, body, headers }) {
+      const pathMatch = matchValue(mockDispatch2.path, path8);
       const methodMatch = matchValue(mockDispatch2.method, method);
       const bodyMatch = typeof mockDispatch2.body !== "undefined" ? matchValue(mockDispatch2.body, body) : true;
       const headersMatch = matchHeaders(mockDispatch2, headers);
@@ -10415,7 +10415,7 @@ var require_mock_utils = __commonJS({
     function getMockDispatch(mockDispatches, key) {
       const basePath = key.query ? buildURL(key.path, key.query) : key.path;
       const resolvedPath = typeof basePath === "string" ? safeUrl(basePath) : basePath;
-      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path7 }) => matchValue(safeUrl(path7), resolvedPath));
+      let matchedMockDispatches = mockDispatches.filter(({ consumed }) => !consumed).filter(({ path: path8 }) => matchValue(safeUrl(path8), resolvedPath));
       if (matchedMockDispatches.length === 0) {
         throw new MockNotMatchedError(`Mock dispatch not matched for path '${resolvedPath}'`);
       }
@@ -10452,9 +10452,9 @@ var require_mock_utils = __commonJS({
       }
     }
     function buildKey(opts) {
-      const { path: path7, method, body, headers, query } = opts;
+      const { path: path8, method, body, headers, query } = opts;
       return {
-        path: path7,
+        path: path8,
         method,
         body,
         headers,
@@ -10485,13 +10485,13 @@ var require_mock_utils = __commonJS({
       if (mockDispatch2.data.callback) {
         mockDispatch2.data = { ...mockDispatch2.data, ...mockDispatch2.data.callback(opts) };
       }
-      const { data: { statusCode, data, headers, trailers, error: error10 }, delay: delay2, persist } = mockDispatch2;
+      const { data: { statusCode, data, headers, trailers, error: error11 }, delay: delay2, persist } = mockDispatch2;
       const { timesInvoked, times } = mockDispatch2;
       mockDispatch2.consumed = !persist && timesInvoked >= times;
       mockDispatch2.pending = timesInvoked < times;
-      if (error10 !== null) {
+      if (error11 !== null) {
         deleteMockDispatch(this[kDispatches], key);
-        handler.onError(error10);
+        handler.onError(error11);
         return true;
       }
       if (typeof delay2 === "number" && delay2 > 0) {
@@ -10529,19 +10529,19 @@ var require_mock_utils = __commonJS({
         if (agent.isMockActive) {
           try {
             mockDispatch.call(this, opts, handler);
-          } catch (error10) {
-            if (error10 instanceof MockNotMatchedError) {
+          } catch (error11) {
+            if (error11 instanceof MockNotMatchedError) {
               const netConnect = agent[kGetNetConnect]();
               if (netConnect === false) {
-                throw new MockNotMatchedError(`${error10.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
+                throw new MockNotMatchedError(`${error11.message}: subsequent request to origin ${origin} was not allowed (net.connect disabled)`);
               }
               if (checkNetConnect(netConnect, origin)) {
                 originalDispatch.call(this, opts, handler);
               } else {
-                throw new MockNotMatchedError(`${error10.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
+                throw new MockNotMatchedError(`${error11.message}: subsequent request to origin ${origin} was not allowed (net.connect is not enabled for this origin)`);
               }
             } else {
-              throw error10;
+              throw error11;
             }
           }
         } else {
@@ -10704,11 +10704,11 @@ var require_mock_interceptor = __commonJS({
       /**
        * Mock an undici request with a defined error.
        */
-      replyWithError(error10) {
-        if (typeof error10 === "undefined") {
+      replyWithError(error11) {
+        if (typeof error11 === "undefined") {
           throw new InvalidArgumentError("error must be defined");
         }
-        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error10 });
+        const newMockDispatch = addMockDispatch(this[kDispatches], this[kDispatchKey], { error: error11 });
         return new MockScope(newMockDispatch);
       }
       /**
@@ -10903,10 +10903,10 @@ var require_pending_interceptors_formatter = __commonJS({
       }
       format(pendingInterceptors) {
         const withPrettyHeaders = pendingInterceptors.map(
-          ({ method, path: path7, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
+          ({ method, path: path8, data: { statusCode }, persist, times, timesInvoked, origin }) => ({
             Method: method,
             Origin: origin,
-            Path: path7,
+            Path: path8,
             "Status code": statusCode,
             Persistent: persist ? "\u2705" : "\u274C",
             Invocations: timesInvoked,
@@ -13035,17 +13035,17 @@ var require_fetch = __commonJS({
         this.emit("terminated", reason);
       }
       // https://fetch.spec.whatwg.org/#fetch-controller-abort
-      abort(error10) {
+      abort(error11) {
         if (this.state !== "ongoing") {
           return;
         }
         this.state = "aborted";
-        if (!error10) {
-          error10 = new DOMException2("The operation was aborted.", "AbortError");
+        if (!error11) {
+          error11 = new DOMException2("The operation was aborted.", "AbortError");
         }
-        this.serializedAbortReason = error10;
-        this.connection?.destroy(error10);
-        this.emit("terminated", error10);
+        this.serializedAbortReason = error11;
+        this.connection?.destroy(error11);
+        this.emit("terminated", error11);
       }
     };
     function fetch(input, init = {}) {
@@ -13149,13 +13149,13 @@ var require_fetch = __commonJS({
         performance.markResourceTiming(timingInfo, originalURL.href, initiatorType, globalThis2, cacheState);
       }
     }
-    function abortFetch(p, request, responseObject, error10) {
-      if (!error10) {
-        error10 = new DOMException2("The operation was aborted.", "AbortError");
+    function abortFetch(p, request, responseObject, error11) {
+      if (!error11) {
+        error11 = new DOMException2("The operation was aborted.", "AbortError");
       }
-      p.reject(error10);
+      p.reject(error11);
       if (request.body != null && isReadable(request.body?.stream)) {
-        request.body.stream.cancel(error10).catch((err) => {
+        request.body.stream.cancel(error11).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13167,7 +13167,7 @@ var require_fetch = __commonJS({
       }
       const response = responseObject[kState];
       if (response.body != null && isReadable(response.body?.stream)) {
-        response.body.stream.cancel(error10).catch((err) => {
+        response.body.stream.cancel(error11).catch((err) => {
           if (err.code === "ERR_INVALID_STATE") {
             return;
           }
@@ -13947,13 +13947,13 @@ var require_fetch = __commonJS({
               fetchParams.controller.ended = true;
               this.body.push(null);
             },
-            onError(error10) {
+            onError(error11) {
               if (this.abort) {
                 fetchParams.controller.off("terminated", this.abort);
               }
-              this.body?.destroy(error10);
-              fetchParams.controller.terminate(error10);
-              reject(error10);
+              this.body?.destroy(error11);
+              fetchParams.controller.terminate(error11);
+              reject(error11);
             },
             onUpgrade(status, headersList, socket) {
               if (status !== 101) {
@@ -14419,8 +14419,8 @@ var require_util4 = __commonJS({
                   }
                   fr[kResult] = result;
                   fireAProgressEvent("load", fr);
-                } catch (error10) {
-                  fr[kError] = error10;
+                } catch (error11) {
+                  fr[kError] = error11;
                   fireAProgressEvent("error", fr);
                 }
                 if (fr[kState] !== "loading") {
@@ -14429,13 +14429,13 @@ var require_util4 = __commonJS({
               });
               break;
             }
-          } catch (error10) {
+          } catch (error11) {
             if (fr[kAborted]) {
               return;
             }
             queueMicrotask(() => {
               fr[kState] = "done";
-              fr[kError] = error10;
+              fr[kError] = error11;
               fireAProgressEvent("error", fr);
               if (fr[kState] !== "loading") {
                 fireAProgressEvent("loadend", fr);
@@ -15526,8 +15526,8 @@ var require_util6 = __commonJS({
         }
       }
     }
-    function validateCookiePath(path7) {
-      for (const char of path7) {
+    function validateCookiePath(path8) {
+      for (const char of path8) {
         const code = char.charCodeAt(0);
         if (code < 33 || char === ";") {
           throw new Error("Invalid cookie path");
@@ -16435,11 +16435,11 @@ var require_connection = __commonJS({
         });
       }
     }
-    function onSocketError(error10) {
+    function onSocketError(error11) {
       const { ws } = this;
       ws[kReadyState] = states.CLOSING;
       if (channels.socketError.hasSubscribers) {
-        channels.socketError.publish(error10);
+        channels.socketError.publish(error11);
       }
       this.destroy();
     }
@@ -17207,11 +17207,11 @@ var require_undici = __commonJS({
           if (typeof opts.path !== "string") {
             throw new InvalidArgumentError("invalid opts.path");
           }
-          let path7 = opts.path;
+          let path8 = opts.path;
           if (!opts.path.startsWith("/")) {
-            path7 = `/${path7}`;
+            path8 = `/${path8}`;
           }
-          url = new URL(util.parseOrigin(url).origin + path7);
+          url = new URL(util.parseOrigin(url).origin + path8);
         } else {
           if (!opts) {
             opts = typeof url === "object" ? url : {};
@@ -17583,12 +17583,12 @@ var require_lib = __commonJS({
             throw new Error("Client has already been disposed.");
           }
           const parsedUrl = new URL(requestUrl);
-          let info16 = this._prepareRequest(verb, parsedUrl, headers);
+          let info18 = this._prepareRequest(verb, parsedUrl, headers);
           const maxTries = this._allowRetries && RetryableHttpVerbs.includes(verb) ? this._maxRetries + 1 : 1;
           let numTries = 0;
           let response;
           do {
-            response = yield this.requestRaw(info16, data);
+            response = yield this.requestRaw(info18, data);
             if (response && response.message && response.message.statusCode === HttpCodes.Unauthorized) {
               let authenticationHandler;
               for (const handler of this.handlers) {
@@ -17598,7 +17598,7 @@ var require_lib = __commonJS({
                 }
               }
               if (authenticationHandler) {
-                return authenticationHandler.handleAuthentication(this, info16, data);
+                return authenticationHandler.handleAuthentication(this, info18, data);
               } else {
                 return response;
               }
@@ -17621,8 +17621,8 @@ var require_lib = __commonJS({
                   }
                 }
               }
-              info16 = this._prepareRequest(verb, parsedRedirectUrl, headers);
-              response = yield this.requestRaw(info16, data);
+              info18 = this._prepareRequest(verb, parsedRedirectUrl, headers);
+              response = yield this.requestRaw(info18, data);
               redirectsRemaining--;
             }
             if (!response.message.statusCode || !HttpResponseRetryCodes.includes(response.message.statusCode)) {
@@ -17651,7 +17651,7 @@ var require_lib = __commonJS({
        * @param info
        * @param data
        */
-      requestRaw(info16, data) {
+      requestRaw(info18, data) {
         return __awaiter(this, void 0, void 0, function* () {
           return new Promise((resolve, reject) => {
             function callbackForResult(err, res) {
@@ -17663,7 +17663,7 @@ var require_lib = __commonJS({
                 resolve(res);
               }
             }
-            this.requestRawWithCallback(info16, data, callbackForResult);
+            this.requestRawWithCallback(info18, data, callbackForResult);
           });
         });
       }
@@ -17673,12 +17673,12 @@ var require_lib = __commonJS({
        * @param data
        * @param onResult
        */
-      requestRawWithCallback(info16, data, onResult) {
+      requestRawWithCallback(info18, data, onResult) {
         if (typeof data === "string") {
-          if (!info16.options.headers) {
-            info16.options.headers = {};
+          if (!info18.options.headers) {
+            info18.options.headers = {};
           }
-          info16.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
+          info18.options.headers["Content-Length"] = Buffer.byteLength(data, "utf8");
         }
         let callbackCalled = false;
         function handleResult(err, res) {
@@ -17687,7 +17687,7 @@ var require_lib = __commonJS({
             onResult(err, res);
           }
         }
-        const req = info16.httpModule.request(info16.options, (msg) => {
+        const req = info18.httpModule.request(info18.options, (msg) => {
           const res = new HttpClientResponse(msg);
           handleResult(void 0, res);
         });
@@ -17699,7 +17699,7 @@ var require_lib = __commonJS({
           if (socket) {
             socket.end();
           }
-          handleResult(new Error(`Request timeout: ${info16.options.path}`));
+          handleResult(new Error(`Request timeout: ${info18.options.path}`));
         });
         req.on("error", function(err) {
           handleResult(err);
@@ -17735,27 +17735,27 @@ var require_lib = __commonJS({
         return this._getProxyAgentDispatcher(parsedUrl, proxyUrl);
       }
       _prepareRequest(method, requestUrl, headers) {
-        const info16 = {};
-        info16.parsedUrl = requestUrl;
-        const usingSsl = info16.parsedUrl.protocol === "https:";
-        info16.httpModule = usingSsl ? https : http;
+        const info18 = {};
+        info18.parsedUrl = requestUrl;
+        const usingSsl = info18.parsedUrl.protocol === "https:";
+        info18.httpModule = usingSsl ? https : http;
         const defaultPort = usingSsl ? 443 : 80;
-        info16.options = {};
-        info16.options.host = info16.parsedUrl.hostname;
-        info16.options.port = info16.parsedUrl.port ? parseInt(info16.parsedUrl.port) : defaultPort;
-        info16.options.path = (info16.parsedUrl.pathname || "") + (info16.parsedUrl.search || "");
-        info16.options.method = method;
-        info16.options.headers = this._mergeHeaders(headers);
+        info18.options = {};
+        info18.options.host = info18.parsedUrl.hostname;
+        info18.options.port = info18.parsedUrl.port ? parseInt(info18.parsedUrl.port) : defaultPort;
+        info18.options.path = (info18.parsedUrl.pathname || "") + (info18.parsedUrl.search || "");
+        info18.options.method = method;
+        info18.options.headers = this._mergeHeaders(headers);
         if (this.userAgent != null) {
-          info16.options.headers["user-agent"] = this.userAgent;
+          info18.options.headers["user-agent"] = this.userAgent;
         }
-        info16.options.agent = this._getAgent(info16.parsedUrl);
+        info18.options.agent = this._getAgent(info18.parsedUrl);
         if (this.handlers) {
           for (const handler of this.handlers) {
-            handler.prepareRequest(info16.options);
+            handler.prepareRequest(info18.options);
           }
         }
-        return info16;
+        return info18;
       }
       _mergeHeaders(headers) {
         if (this.requestOptions && this.requestOptions.headers) {
@@ -18071,12 +18071,12 @@ var require_oidc_utils = __commonJS({
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
           const httpclient = _OidcClient.createHttpClient();
-          const res = yield httpclient.getJson(id_token_url).catch((error10) => {
+          const res = yield httpclient.getJson(id_token_url).catch((error11) => {
             throw new Error(`Failed to get ID Token. 
  
-        Error Code : ${error10.statusCode}
+        Error Code : ${error11.statusCode}
  
-        Error Message: ${error10.message}`);
+        Error Message: ${error11.message}`);
           });
           const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
           if (!id_token) {
@@ -18097,8 +18097,8 @@ var require_oidc_utils = __commonJS({
             const id_token = yield _OidcClient.getCall(id_token_url);
             (0, core_1.setSecret)(id_token);
             return id_token;
-          } catch (error10) {
-            throw new Error(`Error message: ${error10.message}`);
+          } catch (error11) {
+            throw new Error(`Error message: ${error11.message}`);
           }
         });
       }
@@ -18142,7 +18142,7 @@ var require_summary = __commonJS({
     exports2.summary = exports2.markdownSummary = exports2.SUMMARY_DOCS_URL = exports2.SUMMARY_ENV_VAR = void 0;
     var os_1 = require("os");
     var fs_1 = require("fs");
-    var { access: access2, appendFile, writeFile: writeFile2 } = fs_1.promises;
+    var { access: access2, appendFile, writeFile: writeFile3 } = fs_1.promises;
     exports2.SUMMARY_ENV_VAR = "GITHUB_STEP_SUMMARY";
     exports2.SUMMARY_DOCS_URL = "https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary";
     var Summary = class {
@@ -18200,7 +18200,7 @@ var require_summary = __commonJS({
         return __awaiter(this, void 0, void 0, function* () {
           const overwrite = !!(options === null || options === void 0 ? void 0 : options.overwrite);
           const filePath = yield this.filePath();
-          const writeFunc = overwrite ? writeFile2 : appendFile;
+          const writeFunc = overwrite ? writeFile3 : appendFile;
           yield writeFunc(filePath, this._buffer, { encoding: "utf8" });
           return this.emptyBuffer();
         });
@@ -18434,7 +18434,7 @@ var require_path_utils = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.toPlatformPath = exports2.toWin32Path = exports2.toPosixPath = void 0;
-    var path7 = __importStar(require("path"));
+    var path8 = __importStar(require("path"));
     function toPosixPath(pth) {
       return pth.replace(/[\\]/g, "/");
     }
@@ -18444,7 +18444,7 @@ var require_path_utils = __commonJS({
     }
     exports2.toWin32Path = toWin32Path;
     function toPlatformPath(pth) {
-      return pth.replace(/[/\\]/g, path7.sep);
+      return pth.replace(/[/\\]/g, path8.sep);
     }
     exports2.toPlatformPath = toPlatformPath;
   }
@@ -18507,12 +18507,12 @@ var require_io_util = __commonJS({
     var _a;
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getCmdPath = exports2.tryGetExecutablePath = exports2.isRooted = exports2.isDirectory = exports2.exists = exports2.READONLY = exports2.UV_FS_O_EXLOCK = exports2.IS_WINDOWS = exports2.unlink = exports2.symlink = exports2.stat = exports2.rmdir = exports2.rm = exports2.rename = exports2.readlink = exports2.readdir = exports2.open = exports2.mkdir = exports2.lstat = exports2.copyFile = exports2.chmod = void 0;
-    var fs8 = __importStar(require("fs"));
-    var path7 = __importStar(require("path"));
-    _a = fs8.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
+    var fs9 = __importStar(require("fs"));
+    var path8 = __importStar(require("path"));
+    _a = fs9.promises, exports2.chmod = _a.chmod, exports2.copyFile = _a.copyFile, exports2.lstat = _a.lstat, exports2.mkdir = _a.mkdir, exports2.open = _a.open, exports2.readdir = _a.readdir, exports2.readlink = _a.readlink, exports2.rename = _a.rename, exports2.rm = _a.rm, exports2.rmdir = _a.rmdir, exports2.stat = _a.stat, exports2.symlink = _a.symlink, exports2.unlink = _a.unlink;
     exports2.IS_WINDOWS = process.platform === "win32";
     exports2.UV_FS_O_EXLOCK = 268435456;
-    exports2.READONLY = fs8.constants.O_RDONLY;
+    exports2.READONLY = fs9.constants.O_RDONLY;
     function exists2(fsPath) {
       return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -18557,7 +18557,7 @@ var require_io_util = __commonJS({
         }
         if (stats && stats.isFile()) {
           if (exports2.IS_WINDOWS) {
-            const upperExt = path7.extname(filePath).toUpperCase();
+            const upperExt = path8.extname(filePath).toUpperCase();
             if (extensions.some((validExt) => validExt.toUpperCase() === upperExt)) {
               return filePath;
             }
@@ -18581,11 +18581,11 @@ var require_io_util = __commonJS({
           if (stats && stats.isFile()) {
             if (exports2.IS_WINDOWS) {
               try {
-                const directory = path7.dirname(filePath);
-                const upperName = path7.basename(filePath).toUpperCase();
+                const directory = path8.dirname(filePath);
+                const upperName = path8.basename(filePath).toUpperCase();
                 for (const actualName of yield exports2.readdir(directory)) {
                   if (upperName === actualName.toUpperCase()) {
-                    filePath = path7.join(directory, actualName);
+                    filePath = path8.join(directory, actualName);
                     break;
                   }
                 }
@@ -18680,7 +18680,7 @@ var require_io = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.findInPath = exports2.which = exports2.mkdirP = exports2.rmRF = exports2.mv = exports2.cp = void 0;
     var assert_1 = require("assert");
-    var path7 = __importStar(require("path"));
+    var path8 = __importStar(require("path"));
     var ioUtil = __importStar(require_io_util());
     function cp(source, dest, options = {}) {
       return __awaiter(this, void 0, void 0, function* () {
@@ -18689,7 +18689,7 @@ var require_io = __commonJS({
         if (destStat && destStat.isFile() && !force) {
           return;
         }
-        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path7.join(dest, path7.basename(source)) : dest;
+        const newDest = destStat && destStat.isDirectory() && copySourceDirectory ? path8.join(dest, path8.basename(source)) : dest;
         if (!(yield ioUtil.exists(source))) {
           throw new Error(`no such file or directory: ${source}`);
         }
@@ -18701,7 +18701,7 @@ var require_io = __commonJS({
             yield cpDirRecursive(source, newDest, 0, force);
           }
         } else {
-          if (path7.relative(source, newDest) === "") {
+          if (path8.relative(source, newDest) === "") {
             throw new Error(`'${newDest}' and '${source}' are the same file`);
           }
           yield copyFile2(source, newDest, force);
@@ -18714,7 +18714,7 @@ var require_io = __commonJS({
         if (yield ioUtil.exists(dest)) {
           let destExists = true;
           if (yield ioUtil.isDirectory(dest)) {
-            dest = path7.join(dest, path7.basename(source));
+            dest = path8.join(dest, path8.basename(source));
             destExists = yield ioUtil.exists(dest);
           }
           if (destExists) {
@@ -18725,7 +18725,7 @@ var require_io = __commonJS({
             }
           }
         }
-        yield mkdirP(path7.dirname(dest));
+        yield mkdirP(path8.dirname(dest));
         yield ioUtil.rename(source, dest);
       });
     }
@@ -18788,7 +18788,7 @@ var require_io = __commonJS({
         }
         const extensions = [];
         if (ioUtil.IS_WINDOWS && process.env["PATHEXT"]) {
-          for (const extension of process.env["PATHEXT"].split(path7.delimiter)) {
+          for (const extension of process.env["PATHEXT"].split(path8.delimiter)) {
             if (extension) {
               extensions.push(extension);
             }
@@ -18801,12 +18801,12 @@ var require_io = __commonJS({
           }
           return [];
         }
-        if (tool.includes(path7.sep)) {
+        if (tool.includes(path8.sep)) {
           return [];
         }
         const directories = [];
         if (process.env.PATH) {
-          for (const p of process.env.PATH.split(path7.delimiter)) {
+          for (const p of process.env.PATH.split(path8.delimiter)) {
             if (p) {
               directories.push(p);
             }
@@ -18814,7 +18814,7 @@ var require_io = __commonJS({
         }
         const matches = [];
         for (const directory of directories) {
-          const filePath = yield ioUtil.tryGetExecutablePath(path7.join(directory, tool), extensions);
+          const filePath = yield ioUtil.tryGetExecutablePath(path8.join(directory, tool), extensions);
           if (filePath) {
             matches.push(filePath);
           }
@@ -18930,7 +18930,7 @@ var require_toolrunner = __commonJS({
     var os3 = __importStar(require("os"));
     var events = __importStar(require("events"));
     var child = __importStar(require("child_process"));
-    var path7 = __importStar(require("path"));
+    var path8 = __importStar(require("path"));
     var io = __importStar(require_io());
     var ioUtil = __importStar(require_io_util());
     var timers_1 = require("timers");
@@ -19145,7 +19145,7 @@ var require_toolrunner = __commonJS({
       exec() {
         return __awaiter(this, void 0, void 0, function* () {
           if (!ioUtil.isRooted(this.toolPath) && (this.toolPath.includes("/") || IS_WINDOWS && this.toolPath.includes("\\"))) {
-            this.toolPath = path7.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            this.toolPath = path8.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
           }
           this.toolPath = yield io.which(this.toolPath, true);
           return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -19220,7 +19220,7 @@ var require_toolrunner = __commonJS({
               this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
               state.CheckComplete();
             });
-            state.on("done", (error10, exitCode) => {
+            state.on("done", (error11, exitCode) => {
               if (stdbuffer.length > 0) {
                 this.emit("stdline", stdbuffer);
               }
@@ -19228,8 +19228,8 @@ var require_toolrunner = __commonJS({
                 this.emit("errline", errbuffer);
               }
               cp.removeAllListeners();
-              if (error10) {
-                reject(error10);
+              if (error11) {
+                reject(error11);
               } else {
                 resolve(exitCode);
               }
@@ -19324,14 +19324,14 @@ var require_toolrunner = __commonJS({
         this.emit("debug", message);
       }
       _setResult() {
-        let error10;
+        let error11;
         if (this.processExited) {
           if (this.processError) {
-            error10 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            error11 = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
           } else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
-            error10 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            error11 = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
           } else if (this.processStderr && this.options.failOnStdErr) {
-            error10 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            error11 = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
           }
         }
         if (this.timeout) {
@@ -19339,7 +19339,7 @@ var require_toolrunner = __commonJS({
           this.timeout = null;
         }
         this.done = true;
-        this.emit("done", error10, this.processExitCode);
+        this.emit("done", error11, this.processExitCode);
       }
       static HandleTimeout(state) {
         if (state.done) {
@@ -19645,7 +19645,7 @@ var require_core = __commonJS({
     var file_command_1 = require_file_command();
     var utils_1 = require_utils();
     var os3 = __importStar(require("os"));
-    var path7 = __importStar(require("path"));
+    var path8 = __importStar(require("path"));
     var oidc_utils_1 = require_oidc_utils();
     var ExitCode;
     (function(ExitCode2) {
@@ -19673,7 +19673,7 @@ var require_core = __commonJS({
       } else {
         (0, command_1.issueCommand)("add-path", {}, inputPath);
       }
-      process.env["PATH"] = `${inputPath}${path7.delimiter}${process.env["PATH"]}`;
+      process.env["PATH"] = `${inputPath}${path8.delimiter}${process.env["PATH"]}`;
     }
     exports2.addPath = addPath;
     function getInput(name, options) {
@@ -19720,35 +19720,35 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       (0, command_1.issue)("echo", enabled ? "on" : "off");
     }
     exports2.setCommandEcho = setCommandEcho;
-    function setFailed10(message) {
+    function setFailed11(message) {
       process.exitCode = ExitCode.Failure;
-      error10(message);
+      error11(message);
     }
-    exports2.setFailed = setFailed10;
+    exports2.setFailed = setFailed11;
     function isDebug2() {
       return process.env["RUNNER_DEBUG"] === "1";
     }
     exports2.isDebug = isDebug2;
-    function debug9(message) {
+    function debug10(message) {
       (0, command_1.issueCommand)("debug", {}, message);
     }
-    exports2.debug = debug9;
-    function error10(message, properties = {}) {
+    exports2.debug = debug10;
+    function error11(message, properties = {}) {
       (0, command_1.issueCommand)("error", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.error = error10;
-    function warning15(message, properties = {}) {
+    exports2.error = error11;
+    function warning18(message, properties = {}) {
       (0, command_1.issueCommand)("warning", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
-    exports2.warning = warning15;
+    exports2.warning = warning18;
     function notice(message, properties = {}) {
       (0, command_1.issueCommand)("notice", (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
     }
     exports2.notice = notice;
-    function info16(message) {
+    function info18(message) {
       process.stdout.write(message + os3.EOL);
     }
-    exports2.info = info16;
+    exports2.info = info18;
     function startGroup3(name) {
       (0, command_1.issue)("group", name);
     }
@@ -19841,8 +19841,8 @@ function loadEnvLocal(rootDir) {
   try {
     const content = fs.readFileSync(envLocalPath, "utf8");
     return parseEnvFile(content);
-  } catch (error10) {
-    console.warn(`Warning: Could not load .env.local file: ${error10}`);
+  } catch (error11) {
+    console.warn(`Warning: Could not load .env.local file: ${error11}`);
     return {};
   }
 }
@@ -20168,8 +20168,8 @@ var require_context = __commonJS({
           if ((0, fs_1.existsSync)(process.env.GITHUB_EVENT_PATH)) {
             this.payload = JSON.parse((0, fs_1.readFileSync)(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
           } else {
-            const path7 = process.env.GITHUB_EVENT_PATH;
-            process.stdout.write(`GITHUB_EVENT_PATH ${path7} does not exist${os_1.EOL}`);
+            const path8 = process.env.GITHUB_EVENT_PATH;
+            process.stdout.write(`GITHUB_EVENT_PATH ${path8} does not exist${os_1.EOL}`);
           }
         }
         this.eventName = process.env.GITHUB_EVENT_NAME;
@@ -20377,8 +20377,8 @@ var require_add = __commonJS({
       }
       if (kind === "error") {
         hook = function(method, options) {
-          return Promise.resolve().then(method.bind(null, options)).catch(function(error10) {
-            return orig(error10, options);
+          return Promise.resolve().then(method.bind(null, options)).catch(function(error11) {
+            return orig(error11, options);
           });
         };
       }
@@ -21110,7 +21110,7 @@ var require_dist_node5 = __commonJS({
         }
         if (status >= 400) {
           const data = await getResponseData(response);
-          const error10 = new import_request_error.RequestError(toErrorMessage(data), status, {
+          const error11 = new import_request_error.RequestError(toErrorMessage(data), status, {
             response: {
               url,
               status,
@@ -21119,7 +21119,7 @@ var require_dist_node5 = __commonJS({
             },
             request: requestOptions
           });
-          throw error10;
+          throw error11;
         }
         return parseSuccessResponseBody ? await getResponseData(response) : response.body;
       }).then((data) => {
@@ -21129,17 +21129,17 @@ var require_dist_node5 = __commonJS({
           headers,
           data
         };
-      }).catch((error10) => {
-        if (error10 instanceof import_request_error.RequestError)
-          throw error10;
-        else if (error10.name === "AbortError")
-          throw error10;
-        let message = error10.message;
-        if (error10.name === "TypeError" && "cause" in error10) {
-          if (error10.cause instanceof Error) {
-            message = error10.cause.message;
-          } else if (typeof error10.cause === "string") {
-            message = error10.cause;
+      }).catch((error11) => {
+        if (error11 instanceof import_request_error.RequestError)
+          throw error11;
+        else if (error11.name === "AbortError")
+          throw error11;
+        let message = error11.message;
+        if (error11.name === "TypeError" && "cause" in error11) {
+          if (error11.cause instanceof Error) {
+            message = error11.cause.message;
+          } else if (typeof error11.cause === "string") {
+            message = error11.cause;
           }
         }
         throw new import_request_error.RequestError(message, 500, {
@@ -23811,9 +23811,9 @@ var require_dist_node10 = __commonJS({
                 /<([^<>]+)>;\s*rel="next"/
               ) || [])[1];
               return { value: normalizedResponse };
-            } catch (error10) {
-              if (error10.status !== 409)
-                throw error10;
+            } catch (error11) {
+              if (error11.status !== 409)
+                throw error11;
               url = "";
               return {
                 value: {
@@ -24309,10 +24309,10 @@ var init_GitHubServiceFactory = __esm({
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
             return await operation();
-          } catch (error10) {
-            lastError = error10;
-            if (error10.status && error10.status >= 400 && error10.status < 500) {
-              throw error10;
+          } catch (error11) {
+            lastError = error11;
+            if (error11.status && error11.status >= 400 && error11.status < 500) {
+              throw error11;
             }
             if (attempt === maxRetries) {
               break;
@@ -24365,8 +24365,8 @@ var init_GitHubServiceFactory = __esm({
       setMockComments(issueNumber, comments) {
         this.mockData.comments.set(`${issueNumber}`, comments);
       }
-      setMockFileContent(path7, content) {
-        this.mockData.fileContents.set(path7, content);
+      setMockFileContent(path8, content) {
+        this.mockData.fileContents.set(path8, content);
       }
       setMockContext(context) {
         this.mockData.context = { ...this.mockData.context, ...context };
@@ -24402,11 +24402,11 @@ var init_GitHubServiceFactory = __esm({
       async addReaction(commentId, reaction) {
         console.log(`Mock: Added ${reaction} reaction to comment ${commentId}`);
       }
-      async getFileContent(path7, ref) {
-        return this.mockData.fileContents.get(path7) || null;
+      async getFileContent(path8, ref) {
+        return this.mockData.fileContents.get(path8) || null;
       }
-      async getContent(path7, ref) {
-        return this.getFileContent(path7, ref);
+      async getContent(path8, ref) {
+        return this.getFileContent(path8, ref);
       }
       async listCheckRuns(ref) {
         const context = this.getContext();
@@ -24586,16 +24586,16 @@ var init_GitHubServiceFactory = __esm({
           });
         }, false);
       }
-      async getFileContent(path7, ref) {
+      async getFileContent(path8, ref) {
         this.ensureConfigured();
         const context = this.getContext();
-        const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path7, ref);
+        const cacheKey = this.getCacheKey("getFileContent", context.owner, context.repo, path8, ref);
         return this.withCacheAndRateLimit(cacheKey, async () => {
           try {
             const { data } = await this.octokit.rest.repos.getContent({
               owner: context.owner,
               repo: context.repo,
-              path: path7,
+              path: path8,
               ref
             });
             if ("content" in data && !Array.isArray(data)) {
@@ -24607,16 +24607,16 @@ var init_GitHubServiceFactory = __esm({
               };
             }
             return null;
-          } catch (error10) {
-            if (error10.status === 404) {
+          } catch (error11) {
+            if (error11.status === 404) {
               return null;
             }
-            throw error10;
+            throw error11;
           }
         });
       }
-      async getContent(path7, ref) {
-        return this.getFileContent(path7, ref);
+      async getContent(path8, ref) {
+        return this.getFileContent(path8, ref);
       }
       async listCheckRuns(ref) {
         this.ensureConfigured();
@@ -24699,8 +24699,8 @@ var init_GitHubServiceFactory = __esm({
               eventName: context.eventName,
               payload: context.payload
             };
-          } catch (error10) {
-            console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error10);
+          } catch (error11) {
+            console.error("[EnhancedGitHubService] Failed to use @actions/github context:", error11);
             console.log("[EnhancedGitHubService] Falling back to environment variables");
           }
           const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
@@ -24710,11 +24710,11 @@ var init_GitHubServiceFactory = __esm({
           try {
             const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
             if (eventPath) {
-              const fs8 = require("fs");
-              payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+              const fs9 = require("fs");
+              payload = JSON.parse(fs9.readFileSync(eventPath, "utf8"));
             }
-          } catch (error10) {
-            console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error10);
+          } catch (error11) {
+            console.error("[EnhancedGitHubService] Failed to parse GitHub event payload:", error11);
           }
           const prNumber = payload?.pull_request?.number || payload?.issue?.number;
           return {
@@ -24849,14 +24849,14 @@ var init_GitHubServiceFactory = __esm({
           content: reaction
         });
       }
-      async getFileContent(path7, ref) {
+      async getFileContent(path8, ref) {
         this.ensureConfigured();
         const context = this.getContext();
         try {
           const { data } = await this.octokit.rest.repos.getContent({
             owner: context.owner,
             repo: context.repo,
-            path: path7,
+            path: path8,
             ref
           });
           if ("content" in data && !Array.isArray(data)) {
@@ -24868,15 +24868,15 @@ var init_GitHubServiceFactory = __esm({
             };
           }
           return null;
-        } catch (error10) {
-          if (error10.status === 404) {
+        } catch (error11) {
+          if (error11.status === 404) {
             return null;
           }
-          throw error10;
+          throw error11;
         }
       }
-      async getContent(path7, ref) {
-        return this.getFileContent(path7, ref);
+      async getContent(path8, ref) {
+        return this.getFileContent(path8, ref);
       }
       async listCheckRuns(ref) {
         this.ensureConfigured();
@@ -24946,8 +24946,8 @@ var init_GitHubServiceFactory = __esm({
               eventName: context.eventName,
               payload: context.payload
             };
-          } catch (error10) {
-            console.error("[OctokitGitHubService] Failed to use @actions/github context:", error10);
+          } catch (error11) {
+            console.error("[OctokitGitHubService] Failed to use @actions/github context:", error11);
             console.log("[OctokitGitHubService] Falling back to environment variables");
           }
           const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
@@ -24957,11 +24957,11 @@ var init_GitHubServiceFactory = __esm({
           try {
             const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
             if (eventPath) {
-              const fs8 = require("fs");
-              payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+              const fs9 = require("fs");
+              payload = JSON.parse(fs9.readFileSync(eventPath, "utf8"));
             }
-          } catch (error10) {
-            console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error10);
+          } catch (error11) {
+            console.error("[OctokitGitHubService] Failed to parse GitHub event payload:", error11);
           }
           const prNumber = payload?.pull_request?.number || payload?.issue?.number;
           return {
@@ -25027,13 +25027,13 @@ var init_GitHubServiceFactory = __esm({
         const service = await this.ensureService();
         return service.addReaction(commentId, reaction);
       }
-      async getFileContent(path7, ref) {
+      async getFileContent(path8, ref) {
         const service = await this.ensureService();
-        return service.getFileContent(path7, ref);
+        return service.getFileContent(path8, ref);
       }
-      async getContent(path7, ref) {
+      async getContent(path8, ref) {
         const service = await this.ensureService();
-        return service.getContent(path7, ref);
+        return service.getContent(path8, ref);
       }
       async listCheckRuns(ref) {
         const service = await this.ensureService();
@@ -25069,8 +25069,8 @@ var init_GitHubServiceFactory = __esm({
               eventName: context.eventName,
               payload: context.payload
             };
-          } catch (error10) {
-            console.error("[LazyGitHubService] Failed to use @actions/github context:", error10);
+          } catch (error11) {
+            console.error("[LazyGitHubService] Failed to use @actions/github context:", error11);
           }
         }
         const repository = env.getWithDefaults("GITHUB_REPOSITORY") || "test-owner/test-repo";
@@ -25080,11 +25080,11 @@ var init_GitHubServiceFactory = __esm({
         try {
           const eventPath = env.getWithDefaults("GITHUB_EVENT_PATH");
           if (eventPath) {
-            const fs8 = require("fs");
-            payload = JSON.parse(fs8.readFileSync(eventPath, "utf8"));
+            const fs9 = require("fs");
+            payload = JSON.parse(fs9.readFileSync(eventPath, "utf8"));
           }
-        } catch (error10) {
-          console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error10);
+        } catch (error11) {
+          console.error("[LazyGitHubService] Failed to parse GitHub event payload:", error11);
         }
         const prNumber = payload?.pull_request?.number || payload?.issue?.number;
         return {
@@ -25252,8 +25252,8 @@ ${body}`;
             }
           }
           return commentId;
-        } catch (error10) {
-          core2.error(`Failed to post comment: ${error10}`);
+        } catch (error11) {
+          core2.error(`Failed to post comment: ${error11}`);
           return null;
         }
       }
@@ -25308,12 +25308,12 @@ ${body}`;
 <summary>Error Details</summary>
 
 `;
-            for (const error10 of this.errorSummary) {
-              message += `- **${error10.timestamp.toISOString()}**`;
-              if (error10.location) {
-                message += ` at \`${error10.location}\``;
+            for (const error11 of this.errorSummary) {
+              message += `- **${error11.timestamp.toISOString()}**`;
+              if (error11.location) {
+                message += ` at \`${error11.location}\``;
               }
-              message += `: ${error10.error}
+              message += `: ${error11.error}
 `;
             }
             message += `
@@ -25336,8 +25336,8 @@ ${body}`;
             reaction
           );
           core2.debug(`Added ${reaction} reaction to comment #${commentId}`);
-        } catch (error10) {
-          core2.warning(`Failed to add reaction: ${error10}`);
+        } catch (error11) {
+          core2.warning(`Failed to add reaction: ${error11}`);
         }
       }
       /**
@@ -25349,8 +25349,8 @@ ${body}`;
           if (triggeringCommentId) {
             await this.addReaction(triggeringCommentId, reaction);
           }
-        } catch (error10) {
-          core2.warning(`Failed to post reaction: ${error10}`);
+        } catch (error11) {
+          core2.warning(`Failed to post reaction: ${error11}`);
         }
       }
       /**
@@ -25359,8 +25359,8 @@ ${body}`;
       async reactToComment(commentId, reaction) {
         try {
           await this.addReaction(commentId, reaction);
-        } catch (error10) {
-          core2.warning(`Failed to react to comment: ${error10}`);
+        } catch (error11) {
+          core2.warning(`Failed to react to comment: ${error11}`);
         }
       }
       /**
@@ -25415,8 +25415,8 @@ ${body}`;
             (comment) => comment.body.includes(signaturePattern)
           );
           return existingComment || null;
-        } catch (error10) {
-          core2.warning(`Failed to find comment by signature: ${error10}`);
+        } catch (error11) {
+          core2.warning(`Failed to find comment by signature: ${error11}`);
           return null;
         }
       }
@@ -25430,8 +25430,8 @@ ${body}`;
             (comment) => comment.user.login.includes("[bot]") || comment.body.includes("<!-- yofix-")
           );
           core2.info(`Found ${botComments.length} bot comments`);
-        } catch (error10) {
-          core2.warning(`Failed to list comments: ${error10}`);
+        } catch (error11) {
+          core2.warning(`Failed to list comments: ${error11}`);
         }
       }
       /**
@@ -25522,7 +25522,7 @@ var init_CentralizedErrorHandler = __esm({
           this.repo = context.repo;
           this.prNumber = context.prNumber || parseInt(process.env.PR_NUMBER || "0");
           core3.info("Centralized error handler initialized with GitHub integration");
-        } catch (error10) {
+        } catch (error11) {
           core3.warning("Failed to initialize GitHub service, errors will only be logged");
           this.github = null;
         }
@@ -25536,29 +25536,29 @@ var init_CentralizedErrorHandler = __esm({
       /**
        * Handle an error with centralized logic
        */
-      async handleError(error10, options = {}) {
+      async handleError(error11, options = {}) {
         this.updateErrorStats(options);
         const errorEntry = {
-          error: error10,
+          error: error11,
           context: options,
           timestamp: /* @__PURE__ */ new Date()
         };
         this.errorBuffer.push(errorEntry);
-        this.logError(error10, options);
+        this.logError(error11, options);
         if (!options.recoverable) {
-          if (error10 instanceof Error) {
-            throw error10;
+          if (error11 instanceof Error) {
+            throw error11;
           } else {
-            throw new YoFixError(error10, options);
+            throw new YoFixError(error11, options);
           }
         }
       }
       /**
        * Log error to console/GitHub Actions
        */
-      logError(error10, options) {
+      logError(error11, options) {
         if (options.silent) return;
-        const errorMessage = error10 instanceof Error ? error10.message : error10;
+        const errorMessage = error11 instanceof Error ? error11.message : error11;
         const location = options.location ? `[${options.location}]` : "";
         const logMessage = `${location} ${errorMessage}`.trim();
         switch (options.severity) {
@@ -25601,13 +25601,13 @@ var init_CentralizedErrorHandler = __esm({
         if (this.isTestMode) {
           return;
         }
-        process.on("uncaughtException", async (error10) => {
-          core3.error(`Uncaught Exception: ${error10.message}`);
-          if (error10.stack) {
-            core3.debug(error10.stack);
+        process.on("uncaughtException", async (error11) => {
+          core3.error(`Uncaught Exception: ${error11.message}`);
+          if (error11.stack) {
+            core3.debug(error11.stack);
           }
           const errorEntry = {
-            error: error10,
+            error: error11,
             context: {
               severity: "critical" /* CRITICAL */,
               category: "unknown" /* UNKNOWN */,
@@ -25723,8 +25723,8 @@ var init_CentralizedErrorHandler = __esm({
 `;
         try {
           await this.github.createComment(message);
-        } catch (error10) {
-          core3.warning(`Failed to post error summary: ${error10}`);
+        } catch (error11) {
+          core3.warning(`Failed to post error summary: ${error11}`);
         }
       }
     };
@@ -25828,11 +25828,11 @@ var init_BotActivityHandler = __esm({
       /**
        * Fail current activity
        */
-      async failActivity(error10, context) {
+      async failActivity(error11, context) {
         if (!this.currentActivity) return;
         this.currentActivity.status = "failed";
         this.currentActivity.endTime = /* @__PURE__ */ new Date();
-        this.currentActivity.error = error10 instanceof Error ? error10 : new Error(error10);
+        this.currentActivity.error = error11 instanceof Error ? error11 : new Error(error11);
         await errorHandler.handleError(this.currentActivity.error, {
           category: "unknown" /* UNKNOWN */,
           severity: "high" /* HIGH */,
@@ -25909,9 +25909,9 @@ var init_BotActivityHandler = __esm({
           const result = await handler();
           await this.completeActivity(result);
           return result;
-        } catch (error10) {
-          await this.failActivity(error10);
-          throw error10;
+        } catch (error11) {
+          await this.failActivity(error11);
+          throw error11;
         }
       }
       /**
@@ -25995,7 +25995,7 @@ var init_BotActivityHandler = __esm({
         const seconds = Math.floor(ms % 6e4 / 1e3);
         return `${minutes}m ${seconds}s`;
       }
-      getBotCommandTips(command, error10) {
+      getBotCommandTips(command, error11) {
         const tips = [];
         if (command.includes("scan")) {
           tips.push("Ensure the preview URL is accessible");
@@ -26011,11 +26011,11 @@ var init_BotActivityHandler = __esm({
           tips.push("Check the login URL is correct");
           tips.push("Try a different auth mode");
         }
-        if (error10.includes("timeout")) {
+        if (error11.includes("timeout")) {
           tips.push("The operation took too long - try again");
           tips.push("Check if the site is responding slowly");
         }
-        if (error10.includes("not found")) {
+        if (error11.includes("not found")) {
           tips.push("Check the spelling of your command");
           tips.push("Use `@yofix help` to see available options");
         }
@@ -26028,10 +26028,10 @@ var init_BotActivityHandler = __esm({
 
 // src/core/error/ErrorHandlerFactory.ts
 function createModuleLogger(options) {
-  const { module: module2, debug: debug9 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
+  const { module: module2, debug: debug10 = false, skipGitHubPost = true, defaultSeverity = "medium" /* MEDIUM */, defaultCategory = "module" /* MODULE */ } = options;
   return {
     debug: (message, ...args) => {
-      if (debug9 || core5.isDebug()) {
+      if (debug10 || core5.isDebug()) {
         core5.debug(`[${module2}] ${message}`);
         if (args.length > 0) {
           core5.debug(`[${module2}] ${JSON.stringify(args)}`);
@@ -26040,18 +26040,18 @@ function createModuleLogger(options) {
     },
     info: (message, ...args) => {
       core5.info(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug9 || core5.isDebug())) {
+      if (args.length > 0 && (debug10 || core5.isDebug())) {
         core5.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
     warn: (message, ...args) => {
       core5.warning(`[${module2}] ${message}`);
-      if (args.length > 0 && (debug9 || core5.isDebug())) {
+      if (args.length > 0 && (debug10 || core5.isDebug())) {
         core5.debug(`[${module2}] ${JSON.stringify(args)}`);
       }
     },
-    error: async (error10, context) => {
-      const errorObj = error10 instanceof Error ? error10 : new Error(error10);
+    error: async (error11, context) => {
+      const errorObj = error11 instanceof Error ? error11 : new Error(error11);
       await errorHandler.handleError(errorObj, {
         severity: context?.severity || defaultSeverity,
         category: context?.category || defaultCategory,
@@ -26087,8 +26087,8 @@ async function executeOperation(operation, context) {
         ...context.metadata
       }
     };
-  } catch (error10) {
-    await errorHandler.handleError(error10, {
+  } catch (error11) {
+    await errorHandler.handleError(error11, {
       severity: context.severity || "medium" /* MEDIUM */,
       category: context.category || "unknown" /* UNKNOWN */,
       userAction: context.name,
@@ -26100,7 +26100,7 @@ async function executeOperation(operation, context) {
     });
     return {
       success: false,
-      error: error10 instanceof Error ? error10.message : "Unknown error",
+      error: error11 instanceof Error ? error11.message : "Unknown error",
       data: context.fallback,
       metadata: {
         duration: Date.now() - startTime,
@@ -26117,8 +26117,8 @@ async function retryOperation(operation, options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await operation();
-    } catch (error10) {
-      lastError = error10;
+    } catch (error11) {
+      lastError = error11;
       if (attempt < maxAttempts) {
         if (options.onRetry) {
           options.onRetry(attempt, lastError);
@@ -26175,8 +26175,8 @@ var init_ConsistencyPatterns = __esm({
               body
             );
           }
-        } catch (error10) {
-          core6.warning(`Failed to post progress comment: ${error10}`);
+        } catch (error11) {
+          core6.warning(`Failed to post progress comment: ${error11}`);
         }
       }
       static async postResult(result, operation) {
@@ -26211,8 +26211,8 @@ var init_ConsistencyPatterns = __esm({
           await this.github.createComment(
             message
           );
-        } catch (error10) {
-          core6.warning(`Failed to post result comment: ${error10}`);
+        } catch (error11) {
+          core6.warning(`Failed to post result comment: ${error11}`);
         }
       }
       static async addReaction(reaction) {
@@ -26228,8 +26228,8 @@ var init_ConsistencyPatterns = __esm({
               reaction
             );
           }
-        } catch (error10) {
-          core6.debug(`Failed to add reaction: ${error10}`);
+        } catch (error11) {
+          core6.debug(`Failed to add reaction: ${error11}`);
         }
       }
       static getTriggeringCommentId() {
@@ -26290,8 +26290,8 @@ var init_CircuitBreaker = __esm({
           const result = await this.executeWithTimeout(operation);
           this.onSuccess();
           return result;
-        } catch (error10) {
-          return this.onFailure(error10);
+        } catch (error11) {
+          return this.onFailure(error11);
         }
       }
       /**
@@ -26306,9 +26306,9 @@ var init_CircuitBreaker = __esm({
             const result = await operation();
             clearTimeout(timeoutId);
             resolve(result);
-          } catch (error10) {
+          } catch (error11) {
             clearTimeout(timeoutId);
-            reject(error10);
+            reject(error11);
           }
         });
       }
@@ -26336,15 +26336,15 @@ var init_CircuitBreaker = __esm({
       /**
        * Handle failed operation
        */
-      onFailure(error10) {
+      onFailure(error11) {
         this.failures++;
         this.totalFailures++;
         this.lastFailureTime = Date.now();
-        const shouldTrigger = this.config.isFailure ? this.config.isFailure(error10) : true;
+        const shouldTrigger = this.config.isFailure ? this.config.isFailure(error11) : true;
         if (!shouldTrigger) {
-          throw error10;
+          throw error11;
         }
-        errorHandler.handleError(error10, {
+        errorHandler.handleError(error11, {
           severity: "medium" /* MEDIUM */,
           category: "network" /* NETWORK */,
           userAction: `${this.config.serviceName} operation`,
@@ -26365,7 +26365,7 @@ var init_CircuitBreaker = __esm({
           this.logger.info(`Using fallback for ${this.config.serviceName}`);
           return this.config.fallback();
         }
-        throw error10;
+        throw error11;
       }
       /**
        * Open the circuit
@@ -26390,7 +26390,7 @@ var init_CircuitBreaker = __esm({
        * Handle open circuit
        */
       handleOpen() {
-        const error10 = new CircuitBreakerError(
+        const error11 = new CircuitBreakerError(
           `Circuit breaker is OPEN for ${this.config.serviceName}`,
           this.config.serviceName,
           this.state
@@ -26399,7 +26399,7 @@ var init_CircuitBreaker = __esm({
           this.logger.debug(`Circuit open, using fallback for ${this.config.serviceName}`);
           return this.config.fallback();
         }
-        throw error10;
+        throw error11;
       }
       /**
        * Get circuit breaker statistics
@@ -26544,23 +26544,23 @@ var init_ConfigurationManager = __esm({
           this.logger.debug(`Using default value for ${key}`);
         }
         if (!value && options.required) {
-          const error10 = new Error(`Required configuration '${key}' is not set`);
-          errorHandler.handleError(error10, {
+          const error11 = new Error(`Required configuration '${key}' is not set`);
+          errorHandler.handleError(error11, {
             severity: "high" /* HIGH */,
             category: "configuration" /* CONFIGURATION */,
             userAction: `Set configuration value for ${key}`,
             metadata: { key, options }
           });
-          throw error10;
+          throw error11;
         }
         if (value && options.validate && !options.validate(value)) {
-          const error10 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
-          errorHandler.handleError(error10, {
+          const error11 = new Error(`Invalid value for configuration '${key}': ${options.sensitive ? "[REDACTED]" : value}`);
+          errorHandler.handleError(error11, {
             severity: "high" /* HIGH */,
             category: "configuration" /* CONFIGURATION */,
             metadata: { key }
           });
-          throw error10;
+          throw error11;
         }
         if (value && this.validators.has(key)) {
           const rules = this.validators.get(key);
@@ -26573,9 +26573,9 @@ var init_ConfigurationManager = __esm({
         if (value && options.transform) {
           try {
             value = options.transform(value);
-          } catch (error10) {
-            this.logger.error(`Failed to transform ${key}: ${error10}`);
-            throw error10;
+          } catch (error11) {
+            this.logger.error(`Failed to transform ${key}: ${error11}`);
+            throw error11;
           }
         }
         if (value && !options.sensitive) {
@@ -26613,8 +26613,8 @@ var init_ConfigurationManager = __esm({
           transform: (v) => {
             try {
               return JSON.parse(v);
-            } catch (error10) {
-              throw new Error(`Invalid JSON in ${key}: ${error10}`);
+            } catch (error11) {
+              throw new Error(`Invalid JSON in ${key}: ${error11}`);
             }
           }
         });
@@ -26803,8 +26803,8 @@ var init_FileSystemWrapper = __esm({
             if (options.json) {
               try {
                 return JSON.parse(content.toString());
-              } catch (error10) {
-                throw new Error(`Failed to parse JSON from ${filePath}: ${error10}`);
+              } catch (error11) {
+                throw new Error(`Failed to parse JSON from ${filePath}: ${error11}`);
               }
             }
             return content.toString();
@@ -26880,11 +26880,11 @@ var init_FileSystemWrapper = __esm({
                 await fs3.unlink(filePath);
               }
               return true;
-            } catch (error10) {
-              if (error10.code === "ENOENT") {
+            } catch (error11) {
+              if (error11.code === "ENOENT") {
                 return true;
               }
-              throw error10;
+              throw error11;
             }
           },
           {
@@ -26968,8 +26968,8 @@ var init_FileSystemWrapper = __esm({
             maxAttempts: 3,
             delay: 1e3,
             backoff: 2,
-            onRetry: (attempt, error10) => {
-              logger2.debug(`Copy retry ${attempt}: ${error10.message}`);
+            onRetry: (attempt, error11) => {
+              logger2.debug(`Copy retry ${attempt}: ${error11.message}`);
             }
           }
         );
@@ -26982,12 +26982,12 @@ var init_FileSystemWrapper = __esm({
           async () => {
             try {
               await fs3.rename(source, destination);
-            } catch (error10) {
-              if (error10.code === "EXDEV") {
+            } catch (error11) {
+              if (error11.code === "EXDEV") {
                 await this.copy(source, destination);
                 await this.delete(source);
               } else {
-                throw error10;
+                throw error11;
               }
             }
             return true;
@@ -27027,8 +27027,8 @@ var init_FileSystemWrapper = __esm({
             logger2.debug(`File ${event}: ${filename}`);
             callback(event, filename);
           });
-        } catch (error10) {
-          logger2.error(`Failed to watch file ${filePath}: ${error10}`);
+        } catch (error11) {
+          logger2.error(`Failed to watch file ${filePath}: ${error11}`);
           return null;
         }
       }
@@ -27063,8 +27063,8 @@ var init_FileSystemWrapper = __esm({
               }
             }
           }
-        } catch (error10) {
-          logger2.error(`Cleanup failed: ${error10}`);
+        } catch (error11) {
+          logger2.error(`Cleanup failed: ${error11}`);
         }
         return deletedCount;
       }
@@ -27114,7 +27114,7 @@ var init_ValidationPatterns = __esm({
             };
           }
           return { valid: true };
-        } catch (error10) {
+        } catch (error11) {
           return { valid: false, error: "Invalid URL format" };
         }
       }
@@ -27261,11 +27261,11 @@ var init_ValidationPatterns = __esm({
         try {
           JSON.parse(value);
           return { valid: true };
-        } catch (error10) {
+        } catch (error11) {
           return {
             valid: false,
             error: "Invalid JSON format",
-            details: { parseError: error10 instanceof Error ? error10.message : String(error10) }
+            details: { parseError: error11 instanceof Error ? error11.message : String(error11) }
           };
         }
       }
@@ -27322,7 +27322,7 @@ var init_core = __esm({
 });
 
 // src/index.ts
-var core18 = __toESM(require_core());
+var core21 = __toESM(require_core());
 
 // src/steps/0-initialize.step.ts
 var core7 = __toESM(require_core());
@@ -27350,9 +27350,9 @@ var StepDataManager = class _StepDataManager {
     try {
       await import_fs.promises.mkdir(this.dataDir, { recursive: true });
       core.info(`\u{1F4C1} Initialized step data directory: ${this.dataDir}`);
-    } catch (error10) {
-      core.error(`Failed to initialize step data directory: ${error10}`);
-      throw error10;
+    } catch (error11) {
+      core.error(`Failed to initialize step data directory: ${error11}`);
+      throw error11;
     }
   }
   /**
@@ -27364,9 +27364,9 @@ var StepDataManager = class _StepDataManager {
       await import_fs.promises.writeFile(dataPath, JSON.stringify(data, null, 2), "utf-8");
       core.info(`\u{1F4BE} Saved step data to ${dataPath}`);
       this.setOutputs(data);
-    } catch (error10) {
-      core.error(`Failed to save step data: ${error10}`);
-      throw error10;
+    } catch (error11) {
+      core.error(`Failed to save step data: ${error11}`);
+      throw error11;
     }
   }
   /**
@@ -27379,9 +27379,9 @@ var StepDataManager = class _StepDataManager {
       const data = JSON.parse(content);
       core.info(`\u{1F4E5} Loaded step data from ${dataPath}`);
       return data;
-    } catch (error10) {
-      core.error(`Failed to load step data: ${error10}`);
-      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error10}`);
+    } catch (error11) {
+      core.error(`Failed to load step data: ${error11}`);
+      throw new Error(`Step data not found. Make sure previous steps completed successfully. Error: ${error11}`);
     }
   }
   /**
@@ -27409,8 +27409,8 @@ var StepDataManager = class _StepDataManager {
       };
       await this.save(data);
       core.info(`\u23F1\uFE0F Recorded timing for ${stepName}: ${end - start}ms`);
-    } catch (error10) {
-      core.warning(`Failed to record step timing: ${error10}`);
+    } catch (error11) {
+      core.warning(`Failed to record step timing: ${error11}`);
     }
   }
   /**
@@ -27434,8 +27434,8 @@ var StepDataManager = class _StepDataManager {
 `;
       }
       return summary;
-    } catch (error10) {
-      core.warning(`Failed to generate timing summary: ${error10}`);
+    } catch (error11) {
+      core.warning(`Failed to generate timing summary: ${error11}`);
       return "";
     }
   }
@@ -27455,8 +27455,8 @@ var StepDataManager = class _StepDataManager {
         core.setOutput("has-changes", data.comparison.hasChanges ? "true" : "false");
         core.setOutput("diff-count", data.comparison.diffCount.toString());
       }
-    } catch (error10) {
-      core.warning(`Failed to set GitHub outputs: ${error10}`);
+    } catch (error11) {
+      core.warning(`Failed to set GitHub outputs: ${error11}`);
     }
   }
 };
@@ -27480,11 +27480,11 @@ async function executeStep(stepName, stepFunction) {
       await manager.recordStepTiming(stepName, start, end);
     }
     return result;
-  } catch (error10) {
+  } catch (error11) {
     const end = Date.now();
-    core.error(`\u274C ${stepName} failed after ${end - start}ms: ${error10}`);
+    core.error(`\u274C ${stepName} failed after ${end - start}ms: ${error11}`);
     core.endGroup();
-    throw error10;
+    throw error11;
   }
 }
 
@@ -27599,14 +27599,366 @@ async function initialize() {
   });
 }
 
-// src/steps/1-analyze-routes.step.ts
+// src/steps/0.5-handle-comment-command.step.ts
+var core10 = __toESM(require_core());
+init_GitHubServiceFactory();
+init_GitHubCommentEngine();
+
+// src/core/github/commands/CommandRegistry.ts
 var core9 = __toESM(require_core());
+
+// src/core/github/commands/TestCommand.ts
+var core8 = __toESM(require_core());
+
+// src/core/github/commands/BaseCommand.ts
+var BaseCommand = class {
+  /**
+   * Helper to extract URL from string (handles quoted and unquoted)
+   */
+  extractUrl(arg) {
+    const cleaned = arg.replace(/^["']|["']$/g, "");
+    if (/^https?:\/\/.+/.test(cleaned)) {
+      return cleaned;
+    }
+    return null;
+  }
+  /**
+   * Helper to validate viewport format
+   */
+  validateViewportFormat(viewportStr) {
+    return /^(\d+x\d+)(,\d+x\d+)*$/.test(viewportStr);
+  }
+  /**
+   * Helper to parse viewports
+   */
+  parseViewports(viewportStr) {
+    if (!this.validateViewportFormat(viewportStr)) {
+      return [];
+    }
+    return viewportStr.split(",").map((viewport) => {
+      const [width, height] = viewport.trim().split("x").map(Number);
+      return { width, height, name: `${width}x${height}` };
+    });
+  }
+};
+
+// src/core/github/commands/TestCommand.ts
+var TestCommand = class extends BaseCommand {
+  constructor() {
+    super(...arguments);
+    this.name = "test";
+    this.description = "Test a specific URL with visual regression testing";
+    this.usage = '@yofix test <url> [viewports]\n\nExamples:\n  @yofix test "https://app.example.com/page"\n  @yofix test https://app.example.com/page 360x700,1080x1200';
+  }
+  /**
+   * Parse test command from comment body
+   */
+  parse(commentBody) {
+    const pattern = /@yofix\s+test\s+([^\s]+)(?:\s+([^\s]+))?/i;
+    const match = commentBody.match(pattern);
+    if (!match) {
+      return null;
+    }
+    const [raw, urlArg, viewportsArg] = match;
+    return {
+      command: "test",
+      args: [urlArg, viewportsArg].filter(Boolean),
+      raw
+    };
+  }
+  /**
+   * Validate test command arguments
+   */
+  validate(parsed) {
+    if (parsed.args.length === 0) {
+      return {
+        valid: false,
+        error: "Test command requires a URL.\n\nUsage:\n" + this.usage
+      };
+    }
+    const urlArg = parsed.args[0];
+    const url = this.extractUrl(urlArg);
+    if (!url) {
+      return {
+        valid: false,
+        error: `Invalid URL format: "${urlArg}"
+
+Expected: https://example.com/page`
+      };
+    }
+    if (parsed.args.length > 1) {
+      const viewportsArg = parsed.args[1];
+      if (!this.validateViewportFormat(viewportsArg)) {
+        return {
+          valid: false,
+          error: `Invalid viewport format: "${viewportsArg}"
+
+Expected: widthxheight,widthxheight (e.g., 360x700,1080x1200)`
+        };
+      }
+    }
+    return { valid: true };
+  }
+  /**
+   * Execute test command
+   */
+  async execute(parsed, context, stepData) {
+    try {
+      const urlArg = parsed.args[0];
+      const url = this.extractUrl(urlArg);
+      core8.info(`\u{1F9EA} Executing test command for URL: ${url}`);
+      let customViewports;
+      if (parsed.args.length > 1) {
+        const viewportsArg = parsed.args[1];
+        customViewports = this.parseViewports(viewportsArg);
+        core8.info(`\u{1F4F1} Custom viewports: ${customViewports.map((v) => v.name).join(", ")}`);
+      } else {
+        core8.info("\u{1F4F1} Using default viewports from action configuration");
+      }
+      return {
+        success: true,
+        stepData: {
+          testUrl: url,
+          ...customViewports && { customViewports }
+        }
+      };
+    } catch (error11) {
+      return {
+        success: false,
+        error: `Failed to execute test command: ${error11}`
+      };
+    }
+  }
+};
+
+// src/core/github/commands/CommandRegistry.ts
+var CommandRegistry = class _CommandRegistry {
+  constructor() {
+    this.commands = /* @__PURE__ */ new Map();
+    this.registerBuiltInCommands();
+  }
+  static {
+    this.instance = null;
+  }
+  /**
+   * Get singleton instance
+   */
+  static getInstance() {
+    if (!_CommandRegistry.instance) {
+      _CommandRegistry.instance = new _CommandRegistry();
+    }
+    return _CommandRegistry.instance;
+  }
+  /**
+   * Register built-in commands
+   */
+  registerBuiltInCommands() {
+    this.registerCommand(new TestCommand());
+  }
+  /**
+   * Register a new command
+   */
+  registerCommand(command) {
+    if (this.commands.has(command.name)) {
+      core9.warning(`Command "${command.name}" is already registered. Overwriting...`);
+    }
+    this.commands.set(command.name, command);
+    core9.debug(`Registered command: ${command.name}`);
+  }
+  /**
+   * Get a command by name
+   */
+  getCommand(name) {
+    return this.commands.get(name.toLowerCase());
+  }
+  /**
+   * Get all registered commands
+   */
+  getAllCommands() {
+    return Array.from(this.commands.values());
+  }
+  /**
+   * Check if a command exists
+   */
+  hasCommand(name) {
+    return this.commands.has(name.toLowerCase());
+  }
+  /**
+   * Parse comment body to find and extract command
+   */
+  parseComment(commentBody) {
+    if (!commentBody || typeof commentBody !== "string") {
+      return null;
+    }
+    if (!commentBody.toLowerCase().includes("@yofix")) {
+      return null;
+    }
+    for (const command of this.commands.values()) {
+      const parsed = command.parse(commentBody);
+      if (parsed) {
+        return { command, parsed };
+      }
+    }
+    return null;
+  }
+  /**
+   * Generate help text for all commands
+   */
+  generateHelpText() {
+    let help = "## \u{1F916} YoFix Commands\n\n";
+    help += "You can trigger YoFix operations by commenting on pull requests:\n\n";
+    for (const command of this.commands.values()) {
+      help += `### \`@yofix ${command.name}\`
+
+`;
+      help += `${command.description}
+
+`;
+      help += "**Usage:**\n```\n" + command.usage + "\n```\n\n";
+    }
+    return help;
+  }
+  /**
+   * Reset registry (useful for testing)
+   */
+  reset() {
+    this.commands.clear();
+    this.registerBuiltInCommands();
+  }
+};
+function getCommandRegistry() {
+  return CommandRegistry.getInstance();
+}
+
+// src/steps/0.5-handle-comment-command.step.ts
+async function reactToComment(commentId, reaction) {
+  try {
+    const commentEngine = getGitHubCommentEngine();
+    await commentEngine.reactToComment(commentId, reaction);
+  } catch (error11) {
+    core10.warning(`Failed to react to comment: ${error11}`);
+  }
+}
+async function postErrorReply(commentId, errorMessage) {
+  try {
+    const commentEngine = getGitHubCommentEngine();
+    await commentEngine.postComment(
+      `\u274C **Command Error**
+
+${errorMessage}`,
+      { inReplyTo: commentId }
+    );
+  } catch (error11) {
+    core10.warning(`Failed to post error reply: ${error11}`);
+  }
+}
+function detectCommentCommand() {
+  const githubService = GitHubServiceFactory.getService();
+  const context = githubService.getContext();
+  if (context.eventName !== "issue_comment") {
+    return null;
+  }
+  if (!context.payload?.issue?.pull_request) {
+    core10.info("\u2139\uFE0F Comment is not on a pull request, skipping");
+    return null;
+  }
+  const comment = context.payload.comment;
+  if (!comment) {
+    core10.warning("\u26A0\uFE0F No comment found in issue_comment event payload");
+    return null;
+  }
+  core10.info(`\u{1F4DD} Processing comment #${comment.id} from ${comment.user?.login}`);
+  const registry = getCommandRegistry();
+  const result = registry.parseComment(comment.body);
+  if (!result) {
+    core10.info("\u2139\uFE0F No @yofix command found in comment");
+    return null;
+  }
+  core10.info(`\u{1F3AF} Detected @yofix ${result.command.name} command`);
+  return {
+    isCommentCommand: true,
+    command: result,
+    commentId: comment.id,
+    commentUrl: `https://github.com/${context.owner}/${context.repo}/pull/${context.prNumber}#issuecomment-${comment.id}`
+  };
+}
+async function handleCommentCommand(stepData) {
+  return executeStep("Handle Comment Command", async () => {
+    const commandContext = detectCommentCommand();
+    if (!commandContext) {
+      core10.info("\u2139\uFE0F Not a comment command event, skipping command handler");
+      return {
+        ...stepData,
+        commandContext: {
+          isCommentCommand: false
+        }
+      };
+    }
+    core10.info("\u{1F440} Reacting to comment to indicate processing...");
+    if (commandContext.commentId) {
+      await reactToComment(commandContext.commentId, "eyes");
+    }
+    const { command: cmdResult, commentId } = commandContext;
+    if (!cmdResult) {
+      throw new Error("Command result is missing");
+    }
+    const { command, parsed } = cmdResult;
+    const validation = command.validate(parsed);
+    if (!validation.valid) {
+      core10.error(`\u274C Invalid command: ${validation.error}`);
+      if (commentId) {
+        await postErrorReply(commentId, validation.error);
+      }
+      throw new Error(`Invalid @yofix command: ${validation.error}`);
+    }
+    const githubService = GitHubServiceFactory.getService();
+    const context = githubService.getContext();
+    const comment = context.payload?.comment;
+    const execContext = {
+      commentId,
+      commentUrl: commandContext.commentUrl,
+      commentBody: comment?.body || "",
+      commentAuthor: comment?.user?.login || "unknown"
+    };
+    core10.info(`\u{1F680} Executing ${command.name} command...`);
+    const execResult = await command.execute(parsed, execContext, stepData);
+    if (!execResult.success) {
+      core10.error(`\u274C Command execution failed: ${execResult.error}`);
+      if (commentId) {
+        await postErrorReply(commentId, execResult.error);
+      }
+      throw new Error(`Command execution failed: ${execResult.error}`);
+    }
+    return {
+      ...stepData,
+      ...execResult.stepData,
+      commandContext: {
+        ...commandContext,
+        isCommentCommand: true
+      }
+    };
+  });
+}
+async function markCommandComplete(commentId) {
+  try {
+    core10.info("\u2705 Command completed, adding green check reaction");
+    await reactToComment(commentId, "+1");
+  } catch (error11) {
+    core10.warning(`Failed to mark command complete: ${error11}`);
+  }
+}
+
+// src/steps/1-analyze-routes.step.ts
+var core12 = __toESM(require_core());
 var import_path2 = __toESM(require("path"));
 init_GitHubServiceFactory();
 
 // src/core/analysis/ThirdPartyRouteImpactAnalyzer.ts
-var core8 = __toESM(require_core());
+var core11 = __toESM(require_core());
+var path4 = __toESM(require("path"));
+var fs4 = __toESM(require("fs/promises"));
 var import_analyzer = require("@yofix/analyzer");
+var import_storage = require("@yofix/storage");
 init_core();
 function createEmptyImpactTree(totalFilesChanged) {
   return {
@@ -27616,6 +27968,40 @@ function createEmptyImpactTree(totalFilesChanged) {
     totalRoutesAffected: 0,
     componentRouteMapping: /* @__PURE__ */ new Map()
   };
+}
+function getStorageConfig() {
+  const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
+  const firebaseCredentials = config.get("firebase-credentials");
+  const storageBucket = config.get("storage-bucket");
+  const s3Bucket = config.get("s3-bucket");
+  const awsRegion = config.get("aws-region", { defaultValue: "us-east-1" });
+  const awsAccessKeyId = config.get("aws-access-key-id");
+  const awsSecretAccessKey = config.get("aws-secret-access-key");
+  if (storageProvider === "firebase" && firebaseCredentials && storageBucket) {
+    return {
+      provider: "firebase",
+      config: {
+        credentials: firebaseCredentials,
+        bucket: storageBucket
+      }
+    };
+  } else if (storageProvider === "s3" && s3Bucket) {
+    return {
+      provider: "s3",
+      config: {
+        region: awsRegion,
+        bucket: s3Bucket,
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey
+      }
+    };
+  } else if (storageProvider === "github") {
+    return {
+      provider: "github",
+      config: {}
+    };
+  }
+  return null;
 }
 async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   const claudeApiKey = config.get("claude-api-key", { required: true });
@@ -27632,11 +28018,11 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     );
   }
   const changedFiles = prFiles.filter((file) => file.status !== "removed").map((file) => file.filename);
-  core8.info(
+  core11.info(
     `\u{1F9ED} route-impact-analyzer inspecting ${changedFiles.length} changed files`
   );
   if (changedFiles.length === 0) {
-    core8.info(
+    core11.info(
       "No changed files detected, skipping external route impact analysis."
     );
     const emptyTree = createEmptyImpactTree(0);
@@ -27649,12 +28035,39 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   }
   const forceRefresh = forceRefreshInput === "true" || forceRefreshInput === "True" || forceRefreshInput === "TRUE";
   const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
-  core8.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
-  core8.info(`  - Codebase path: ${codebasePath}`);
-  core8.info(`  - Changed files count: ${changedFiles.length}`);
-  core8.info(`  - Base URL: ${previewUrl}`);
-  core8.info(`  - Model: ${modelFromConfig}`);
-  core8.info(`  - Force refresh: ${forceRefresh}`);
+  const storageConfig = getStorageConfig();
+  const tmpDir = process.env.RUNNER_TEMP || process.env.TMPDIR || process.env.TMP || "/tmp";
+  const cacheFilePath = path4.join(tmpDir, "route-impact-cache.json");
+  const remoteCachePath = ".yofix/cache/pattern-cache.json";
+  if (storageConfig && !forceRefresh) {
+    try {
+      core11.info(`\u{1F4E5} Attempting to download cache from storage...`);
+      const downloadResult = await (0, import_storage.downloadFiles)({
+        storage: storageConfig,
+        files: [remoteCachePath],
+        verbose: false
+      });
+      if (downloadResult.success && downloadResult.files && downloadResult.files.length > 0) {
+        const cacheFile = downloadResult.files[0];
+        if (cacheFile.buffer) {
+          await fs4.writeFile(cacheFilePath, cacheFile.buffer);
+          core11.info(`\u2705 Cache downloaded from storage (${(cacheFile.size / 1024).toFixed(1)}KB)`);
+        }
+      } else {
+        core11.info(`\u2139\uFE0F No cache found in storage, will create new cache`);
+      }
+    } catch (error11) {
+      core11.warning(`\u26A0\uFE0F Failed to download cache from storage: ${error11}`);
+    }
+  }
+  core11.info(`\u{1F4CA} Calling route-impact-analyzer with:`);
+  core11.info(`  - Codebase path: ${codebasePath}`);
+  core11.info(`  - Changed files count: ${changedFiles.length}`);
+  core11.info(`  - Base URL: ${previewUrl}`);
+  core11.info(`  - Model: ${modelFromConfig}`);
+  core11.info(`  - Force refresh: ${forceRefresh}`);
+  core11.info(`  - Cache file: ${cacheFilePath}`);
+  core11.info(`  - Storage: ${storageConfig ? storageConfig.provider : "none"}`);
   const result = await (0, import_analyzer.analyzeRouteImpact)({
     codebase: { path: codebasePath },
     changedFiles,
@@ -27667,7 +28080,7 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
       },
       cache: {
         enabled: true,
-        provider: "file-system",
+        cacheFilePath,
         forceRefresh
       },
       analysis: {
@@ -27677,11 +28090,33 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
       }
     }
   });
-  core8.info(`\u{1F4CA} Route analysis result: success=${result.success}`);
+  if (storageConfig) {
+    try {
+      const stats = await fs4.stat(cacheFilePath);
+      if (stats.isFile()) {
+        core11.info(`\u{1F4E4} Uploading cache to storage (${(stats.size / 1024).toFixed(1)}KB)...`);
+        await (0, import_storage.uploadFiles)({
+          storage: storageConfig,
+          files: [
+            {
+              path: cacheFilePath,
+              destination: remoteCachePath,
+              contentType: "application/json"
+            }
+          ],
+          verbose: false
+        });
+        core11.info(`\u2705 Cache uploaded to storage successfully`);
+      }
+    } catch (error11) {
+      core11.warning(`\u26A0\uFE0F Failed to upload cache to storage: ${error11}`);
+    }
+  }
+  core11.info(`\u{1F4CA} Route analysis result: success=${result.success}`);
   if (!result.success) {
     const messages = result.errors?.map((err) => `${err.code}: ${err.message}`) || [];
     const errorMessage = messages.length > 0 ? messages.join("\n") : "route-impact-analyzer failed with unknown error";
-    core8.error(`\u274C Route impact analysis failed: ${errorMessage}`);
+    core11.error(`\u274C Route impact analysis failed: ${errorMessage}`);
     throw new Error(errorMessage);
   }
   const uniqueRoutes = /* @__PURE__ */ new Set();
@@ -27775,7 +28210,7 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
       }
     }
     if (impact.reason === "layout" && impactedRoutes.length > 1) {
-      core8.info(
+      core11.info(
         `\u{1F4CA} Layout impact for ${impact.changedFile}: Testing 1 of ${impactedRoutes.length} routes (${routesToInclude[0]})`
       );
     }
@@ -27788,7 +28223,7 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
     componentRouteMapping: routesToTestComponentMapping,
     framework: result.metadata?.framework
   };
-  core8.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
+  core11.info(`\u{1F4CA} Routes summary: ${uniqueRoutes.size} total affected, ${routesToTestMap.size} to test`);
   const basePreviewUrl = previewUrl.replace(/\/$/, "");
   const header = "## \u{1F310} Route Impact (route-impact-analyzer)\n";
   const summaryLines = [
@@ -27839,16 +28274,16 @@ async function analyzeRoutes(stepData) {
     let affectedRoutes = [];
     let components = ["App"];
     try {
-      core9.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
+      core12.info("\u{1F6F0}\uFE0F Using route-impact-analyzer to discover affected routes...");
       const githubToken = config.get("github-token");
       const github = GitHubServiceFactory.getService();
       if (githubToken) {
         await github.configure({ token: githubToken });
       }
       const prFiles = await github.listPullRequestFiles();
-      core9.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f) => f.filename).join(", ")}`);
+      core12.info(`\u{1F4DD} Analyzing ${prFiles.length} changed files: ${prFiles.map((f) => f.filename).join(", ")}`);
       const externalAnalysis = await analyzeRoutesWithExternalTool(prFiles, previewUrl);
-      core9.info(
+      core12.info(
         `\u{1F3AF} Route impact analysis complete: ${externalAnalysis.impactTree.totalRoutesAffected} routes affected, ${externalAnalysis.routesToTest.totalRoutesAffected} routes to test`
       );
       impactTree = externalAnalysis.impactTree;
@@ -27856,23 +28291,24 @@ async function analyzeRoutes(stepData) {
       affectedRoutes = extractRoutesFromImpactTree(routesToTest || impactTree);
       components = extractComponentsFromImpactTree(routesToTest || impactTree);
       logImpactTreeSummary(routesToTest || impactTree);
-    } catch (error10) {
-      core9.error(`\u274C Route impact analyzer error: ${error10}`);
-      await errorHandler.handleError(error10, {
+    } catch (error11) {
+      core12.error(`\u274C Route impact analyzer error: ${error11}`);
+      await errorHandler.handleError(error11, {
         severity: "medium" /* MEDIUM */,
         category: "package" /* PACKAGE */,
         location: "@yofix/analyzer",
         recoverable: true
       });
-      core9.warning("Route analyzer failed. Falling back to testing homepage only.");
+      core12.warning("Route analyzer failed. Falling back to testing homepage only.");
       affectedRoutes = ["/"];
     }
     if (affectedRoutes.length === 0) {
-      core9.info("\u2139\uFE0F No specific routes identified, defaulting to homepage");
-      affectedRoutes = ["/"];
+      core12.info("\u2139\uFE0F No routes affected by this PR - skipping visual testing");
+      core12.info("\u{1F4A1} Changes do not impact any routes (likely config/build files only)");
+    } else {
+      core12.info(`\u{1F4CD} Total routes to test: ${affectedRoutes.length}`);
     }
-    core9.info(`\u{1F4CD} Total routes to test: ${affectedRoutes.length}`);
-    core9.info(`\u{1F4E6} Components found: ${components.length}`);
+    core12.info(`\u{1F4E6} Components found: ${components.length}`);
     return {
       ...stepData,
       routes: {
@@ -27931,12 +28367,12 @@ function extractComponentsFromImpactTree(impactTree) {
 }
 function logImpactTreeSummary(impactTree) {
   if (impactTree.componentRouteMapping && impactTree.componentRouteMapping.size > 0) {
-    core9.info("\u{1F3AF} Component mappings found:");
+    core12.info("\u{1F3AF} Component mappings found:");
     for (const [component, routes] of impactTree.componentRouteMapping) {
-      core9.info(`  ${component} affects ${routes.length} routes:`);
+      core12.info(`  ${component} affects ${routes.length} routes:`);
       for (const route of routes) {
         if (route.routePath) {
-          core9.info(`    - ${route.routePath} (in ${route.routeFile || "unknown"})`);
+          core12.info(`    - ${route.routePath} (in ${route.routeFile || "unknown"})`);
         }
       }
     }
@@ -27954,33 +28390,33 @@ function logImpactTreeSummary(impactTree) {
     }
     const additionalRoutes = impactTree.affectedRoutes.filter((impact) => impact.route && !mappedRoutes.has(impact.route)).map((impact) => impact.route);
     if (additionalRoutes.length > 0) {
-      core9.info(`\u{1F3AF} Found ${additionalRoutes.length} additional routes from direct changes`);
+      core12.info(`\u{1F3AF} Found ${additionalRoutes.length} additional routes from direct changes`);
     }
   }
   const allRoutes = extractRoutesFromImpactTree(impactTree);
-  core9.info(`\u{1F4CD} Total unique routes: ${allRoutes.length}`);
+  core12.info(`\u{1F4CD} Total unique routes: ${allRoutes.length}`);
   if (allRoutes.length > 0 && allRoutes.length <= 20) {
-    core9.info(`\u{1F4CD} Routes: ${allRoutes.join(", ")}`);
+    core12.info(`\u{1F4CD} Routes: ${allRoutes.join(", ")}`);
   } else if (allRoutes.length > 20) {
-    core9.info(`\u{1F4CD} Routes: ${allRoutes.slice(0, 20).join(", ")} ... and ${allRoutes.length - 20} more`);
+    core12.info(`\u{1F4CD} Routes: ${allRoutes.slice(0, 20).join(", ")} ... and ${allRoutes.length - 20} more`);
   }
 }
 
 // src/steps/2-browse-routes.step.ts
-var core11 = __toESM(require_core());
+var core14 = __toESM(require_core());
 var import_fs2 = require("fs");
 var import_os = __toESM(require("os"));
 var import_path3 = __toESM(require("path"));
 
 // src/core/screenshot/BrowserScreenshotCapture.ts
-var core10 = __toESM(require_core());
+var core13 = __toESM(require_core());
 var import_browser = require("@yofix/browser");
 init_core();
 async function captureScreenshotsWithBrowser(options) {
   const claudeApiKey = config.get("claude-api-key", { required: true });
   const claudeModel = config.get("claude-model", { required: true });
-  core10.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? "EXISTS" : "NULL"}`);
-  core10.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || "NULL"}`);
+  core13.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? "EXISTS" : "NULL"}`);
+  core13.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || "NULL"}`);
   if (!claudeApiKey) {
     throw new Error(
       "Claude API key is required for route-impact-browser integration."
@@ -27991,10 +28427,10 @@ async function captureScreenshotsWithBrowser(options) {
       "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
     );
   }
-  core10.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
-  core10.info(`  - Routes: ${options.routes.length}`);
-  core10.info(`  - Base URL: ${options.baseUrl}`);
-  core10.info(`  - Viewports: ${options.viewports.length}`);
+  core13.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
+  core13.info(`  - Routes: ${options.routes.length}`);
+  core13.info(`  - Base URL: ${options.baseUrl}`);
+  core13.info(`  - Viewports: ${options.viewports.length}`);
   const startTime = Date.now();
   const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
   const result = await (0, import_browser.captureRouteScreenshots)({
@@ -28040,11 +28476,11 @@ async function captureScreenshotsWithBrowser(options) {
     }
   });
   const totalDuration = Date.now() - startTime;
-  core10.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
-  core10.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
-  core10.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
-  core10.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
-  core10.info(`  - Output directory: ${result.metadata.outputDirectory}`);
+  core13.info(`\u2705 Screenshot capture completed in ${(totalDuration / 1e3).toFixed(2)}s`);
+  core13.info(`  - Successful routes: ${result.metadata.successfulRoutes}`);
+  core13.info(`  - Failed routes: ${result.metadata.failedRoutes}`);
+  core13.info(`  - Total screenshots: ${result.metadata.totalScreenshots}`);
+  core13.info(`  - Output directory: ${result.metadata.outputDirectory}`);
   return {
     success: result.success,
     screenshots: result.screenshots,
@@ -28059,30 +28495,57 @@ init_core();
 async function browseRoutes(stepData) {
   return executeStep("Browse Routes & Capture Screenshots", async () => {
     const { previewUrl, routes } = stepData;
-    if (!routes || routes.affectedRoutes.length === 0) {
-      throw new Error("No routes available for screenshot capture. Run analyze-routes step first.");
+    if (!routes) {
+      throw new Error("Missing routes data. Run analyze-routes step first.");
     }
-    core11.info(`\u{1F4F8} Preparing to capture screenshots for ${routes.affectedRoutes.length} routes`);
-    const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
-    const viewports = viewportsConfig.split(",").map((viewport) => {
-      const [width, height] = viewport.trim().split("x").map(Number);
-      return { width, height, name: `${width}x${height}` };
-    });
-    core11.info(`\u{1F4F1} Using ${viewports.length} viewports: ${viewports.map((v) => v.name).join(", ")}`);
+    if (routes.affectedRoutes.length === 0) {
+      core14.info("\u2139\uFE0F No routes to capture - skipping screenshot step");
+      return {
+        ...stepData,
+        screenshots: {
+          files: [],
+          viewports: [],
+          timestamp: Date.now()
+        },
+        _internal: {
+          ...stepData._internal,
+          screenshotResult: {
+            success: true,
+            screenshots: [],
+            totalDuration: 0,
+            outputDirectory: "",
+            errors: []
+          }
+        }
+      };
+    }
+    core14.info(`\u{1F4F8} Preparing to capture screenshots for ${routes.affectedRoutes.length} routes`);
+    let viewports;
+    if (stepData.customViewports && stepData.customViewports.length > 0) {
+      viewports = stepData.customViewports;
+      core14.info(`\u{1F4F1} Using custom viewports from comment command: ${viewports.map((v) => v.name).join(", ")}`);
+    } else {
+      const viewportsConfig = config.get("viewports", { defaultValue: "1920x1080,768x1024,375x667" });
+      viewports = viewportsConfig.split(",").map((viewport) => {
+        const [width, height] = viewport.trim().split("x").map(Number);
+        return { width, height, name: `${width}x${height}` };
+      });
+      core14.info(`\u{1F4F1} Using default viewports: ${viewports.map((v) => v.name).join(", ")}`);
+    }
     const fullPage = config.getBoolean("full-page", true);
-    core11.info(`\u{1F4CF} Full-page capture: ${fullPage ? "Enabled (viewport width + full height)" : "Disabled (fixed viewport dimensions)"}`);
+    core14.info(`\u{1F4CF} Full-page capture: ${fullPage ? "Enabled (viewport width + full height)" : "Disabled (fixed viewport dimensions)"}`);
     const authEmail = config.get("auth-email");
     const authPassword = config.get("auth-password");
     const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
     const credentials = authEmail && authPassword ? { email: authEmail, password: authPassword } : void 0;
     if (credentials) {
-      core11.info(`\u{1F510} Authentication configured for: ${credentials.email}`);
+      core14.info(`\u{1F510} Authentication configured for: ${credentials.email}`);
     } else {
-      core11.info("\u2139\uFE0F No authentication configured");
+      core14.info("\u2139\uFE0F No authentication configured");
     }
     const outputDir = await import_fs2.promises.mkdtemp(import_path3.default.join(import_os.default.tmpdir(), "yofix-screenshots-"));
-    core11.info(`\u{1F4C1} Output directory: ${outputDir}`);
-    core11.info("\u{1F680} Starting screenshot capture...");
+    core14.info(`\u{1F4C1} Output directory: ${outputDir}`);
+    core14.info("\u{1F680} Starting screenshot capture...");
     const screenshotResult = await captureScreenshotsWithBrowser({
       routes: routes.affectedRoutes,
       baseUrl: previewUrl,
@@ -28096,9 +28559,9 @@ async function browseRoutes(stepData) {
       const errorMessage = screenshotResult.errors?.map((e) => e.message).join(", ");
       throw new Error(`Screenshot capture failed: ${errorMessage}`);
     }
-    core11.info(`\u2705 Successfully captured ${screenshotResult.screenshots.length} route screenshots`);
-    core11.info(`\u{1F4CA} Total screenshots: ${screenshotResult.screenshots.reduce((sum, r) => sum + r.screenshots.length, 0)}`);
-    core11.info(`\u23F1\uFE0F Capture duration: ${screenshotResult.totalDuration}ms`);
+    core14.info(`\u2705 Successfully captured ${screenshotResult.screenshots.length} route screenshots`);
+    core14.info(`\u{1F4CA} Total screenshots: ${screenshotResult.screenshots.reduce((sum, r) => sum + r.screenshots.length, 0)}`);
+    core14.info(`\u23F1\uFE0F Capture duration: ${screenshotResult.totalDuration}ms`);
     const screenshotFiles = screenshotResult.screenshots.flatMap(
       (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => screenshot.path)
     );
@@ -28120,22 +28583,22 @@ async function browseRoutes(stepData) {
 }
 
 // src/steps/2.5-compare-baselines.step.ts
-var core13 = __toESM(require_core());
+var core16 = __toESM(require_core());
 var import_fs3 = require("fs");
 var import_path4 = __toESM(require("path"));
 var import_os2 = __toESM(require("os"));
 var import_comparator = require("@yofix/comparator");
 
 // src/steps/shared/route.utils.ts
-var core12 = __toESM(require_core());
+var core15 = __toESM(require_core());
 function extractRoutePath(route, separator = "-") {
   let pathname = route;
   if (pathname.startsWith("http://") || pathname.startsWith("https://")) {
     try {
       const url = new URL(pathname);
       pathname = url.pathname;
-    } catch (error10) {
-      core12.debug(`Failed to parse route URL: ${pathname}`);
+    } catch (error11) {
+      core15.debug(`Failed to parse route URL: ${pathname}`);
     }
   }
   let sanitized;
@@ -28155,7 +28618,23 @@ async function compareWithBaselines(stepData) {
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error("No screenshots available for comparison. Run browse-routes step first.");
     }
-    core13.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
+    if (internal.screenshotResult.screenshots.length === 0) {
+      core16.info("\u2139\uFE0F No screenshots to compare - skipping baseline comparison");
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: "No screenshots to compare"
+        },
+        _internal: {
+          ...internal,
+          diffFiles: []
+        }
+      };
+    }
+    core16.info(`\u{1F50D} Starting baseline comparison for PR #${prNumber}`);
     const firebaseCredentials = config.get("firebase-credentials");
     const storageBucket = config.get("storage-bucket");
     const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
@@ -28164,20 +28643,20 @@ async function compareWithBaselines(stepData) {
     const allowHeightMismatch = config.getBoolean("allow-height-mismatch", false);
     const heightComparisonStrategy = config.get("height-comparison-strategy", { defaultValue: "pad" });
     const productionUrl = config.get("production-url");
-    core13.info(`\u{1F4C1} Storage directory: ${storageDirectory}/`);
+    core16.info(`\u{1F4C1} Storage directory: ${storageDirectory}/`);
     if (productionUrl) {
-      core13.info(`\u{1F310} Production URL configured: ${productionUrl}`);
-      core13.info(`   Baselines will be auto-created from production if missing`);
+      core16.info(`\u{1F310} Production URL configured: ${productionUrl}`);
+      core16.info(`   Baselines will be auto-created from production if missing`);
     } else {
-      core13.info(`\u2139\uFE0F  No production URL configured - new routes will be marked as NEW`);
+      core16.info(`\u2139\uFE0F  No production URL configured - new routes will be marked as NEW`);
     }
     const authEmail = config.get("auth-email");
     const authPassword = config.get("auth-password");
     const authLoginUrl = config.get("auth-login-url", { defaultValue: "/login" });
     const credentials = authEmail && authPassword ? { email: authEmail, password: authPassword } : void 0;
     if (!firebaseCredentials || !storageBucket) {
-      core13.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
-      core13.warning('   All screenshots will be marked as "new"');
+      core16.warning("\u26A0\uFE0F Storage not configured - skipping baseline comparison");
+      core16.warning('   All screenshots will be marked as "new"');
       return {
         ...stepData,
         comparison: {
@@ -28193,16 +28672,16 @@ async function compareWithBaselines(stepData) {
       };
     }
     const diffOutputDir = await import_fs3.promises.mkdtemp(import_path4.default.join(import_os2.default.tmpdir(), "yofix-diffs-"));
-    core13.info(`\u{1F4C1} Diff output directory: ${diffOutputDir}`);
-    const { downloadFiles, uploadFiles } = await import("@yofix/storage");
+    core16.info(`\u{1F4C1} Diff output directory: ${diffOutputDir}`);
+    const { downloadFiles: downloadFiles2, uploadFiles: uploadFiles2 } = await import("@yofix/storage");
     let credentialsBase64 = firebaseCredentials;
     if (firebaseCredentials.endsWith(".json")) {
       try {
         const credentialsContent = await import_fs3.promises.readFile(firebaseCredentials, "utf-8");
         credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
-        core13.info("  Using Firebase credentials from file");
-      } catch (error10) {
-        core13.debug(`Not a file path, treating as base64: ${error10}`);
+        core16.info("  Using Firebase credentials from file");
+      } catch (error11) {
+        core16.debug(`Not a file path, treating as base64: ${error11}`);
       }
     }
     const storageConfig = storageProvider === "firebase" ? {
@@ -28233,15 +28712,15 @@ async function compareWithBaselines(stepData) {
       for (const screenshot of routeScreenshot.screenshots) {
         const viewport = `${screenshot.width}x${screenshot.height}`;
         const baselineKey = `baselines/${sanitizedRoute}_${viewport}.png`;
-        core13.info(`  Checking baseline for ${route} (${viewport})`);
+        core16.info(`  Checking baseline for ${route} (${viewport})`);
         try {
-          const baselineResult = await downloadFiles({
+          const baselineResult = await downloadFiles2({
             storage: storageConfig,
             files: [baselineKey]
           });
           if (!baselineResult.success || baselineResult.files.length === 0) {
             if (productionUrl) {
-              core13.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${routePath}`);
+              core16.info(`    \u{1F4F8} No baseline found - capturing from production: ${productionUrl}${routePath}`);
               try {
                 const [actualWidth, actualHeight] = viewport.split("x").map(Number);
                 const viewportConfig = {
@@ -28264,8 +28743,8 @@ async function compareWithBaselines(stepData) {
                 }
                 const productionScreenshot = productionCapture.screenshots[0].screenshots[0];
                 const productionBuffer = await import_fs3.promises.readFile(productionScreenshot.path);
-                core13.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
-                const uploadResult = await uploadFiles({
+                core16.info(`    \u2601\uFE0F  Uploading production screenshot as baseline...`);
+                const uploadResult = await uploadFiles2({
                   storage: storageConfig,
                   files: [{
                     path: productionScreenshot.path,
@@ -28284,7 +28763,7 @@ async function compareWithBaselines(stepData) {
                 if (!uploadResult.success) {
                   throw new Error("Failed to upload baseline");
                 }
-                core13.info(`    \u2705 Baseline created from production`);
+                core16.info(`    \u2705 Baseline created from production`);
                 const comparisonKey2 = `${routePath}_${viewport}`;
                 const uploadedBaseline = uploadResult.files[0];
                 if (uploadedBaseline?.url) {
@@ -28304,9 +28783,9 @@ async function compareWithBaselines(stepData) {
                   current: currentBuffer2,
                   baseline: productionBuffer
                 });
-              } catch (error10) {
-                core13.warning(`    \u274C Failed to create baseline from production: ${error10}`);
-                core13.warning(`    Marking as NEW instead`);
+              } catch (error11) {
+                core16.warning(`    \u274C Failed to create baseline from production: ${error11}`);
+                core16.warning(`    Marking as NEW instead`);
                 newScreenshots++;
                 diffFilesInfo.push({
                   route: routePath,
@@ -28319,7 +28798,7 @@ async function compareWithBaselines(stepData) {
                 });
               }
             } else {
-              core13.info(`    \u26A0\uFE0F  No baseline found - marking as NEW`);
+              core16.info(`    \u26A0\uFE0F  No baseline found - marking as NEW`);
               newScreenshots++;
               diffFilesInfo.push({
                 route: routePath,
@@ -28352,8 +28831,8 @@ async function compareWithBaselines(stepData) {
             current: currentBuffer,
             baseline: baselineBuffer
           });
-        } catch (error10) {
-          core13.warning(`    \u274C Error fetching baseline: ${error10}`);
+        } catch (error11) {
+          core16.warning(`    \u274C Error fetching baseline: ${error11}`);
           diffFilesInfo.push({
             route: routePath,
             viewport,
@@ -28367,11 +28846,11 @@ async function compareWithBaselines(stepData) {
       }
     }
     if (newScreenshots > 0) {
-      core13.info(`
+      core16.info(`
 \u{1F4DD} ${newScreenshots} screenshot(s) have no baseline (new routes/viewports)`);
     }
     if (comparisonsToRun.length === 0) {
-      core13.info("\n\u2705 No baseline comparisons needed (all screenshots are new)");
+      core16.info("\n\u2705 No baseline comparisons needed (all screenshots are new)");
       return {
         ...stepData,
         comparison: {
@@ -28386,13 +28865,13 @@ async function compareWithBaselines(stepData) {
         }
       };
     }
-    core13.info(`
+    core16.info(`
 \u{1F4CA} Running ${comparisonsToRun.length} baseline comparison(s)...`);
-    core13.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
-    core13.info(`   Diff Format: side-by-side`);
-    core13.info(`   Parallel Processing: enabled (concurrency: 3)`);
+    core16.info(`   Threshold: ${(comparisonThreshold * 100).toFixed(1)}%`);
+    core16.info(`   Diff Format: side-by-side`);
+    core16.info(`   Parallel Processing: enabled (concurrency: 3)`);
     if (allowHeightMismatch) {
-      core13.info(`   Height Mismatch: allowed (strategy: ${heightComparisonStrategy})`);
+      core16.info(`   Height Mismatch: allowed (strategy: ${heightComparisonStrategy})`);
     }
     try {
       const result = await (0, import_comparator.compareBaselines)({
@@ -28415,9 +28894,9 @@ async function compareWithBaselines(stepData) {
         }
       });
       if (!result.success) {
-        core13.warning("Comparison failed:");
-        result.errors?.forEach((error10) => {
-          core13.warning(`  - ${error10.message}`);
+        core16.warning("Comparison failed:");
+        result.errors?.forEach((error11) => {
+          core16.warning(`  - ${error11.message}`);
         });
         return {
           ...stepData,
@@ -28440,9 +28919,9 @@ async function compareWithBaselines(stepData) {
         const diffFileName = `${sanitizedRoute}_${comparison.viewport}_diff.png`;
         const diffFilePath = import_path4.default.join(diffOutputDir, diffFileName);
         if (comparison.error) {
-          core13.warning(`
+          core16.warning(`
   \u26A0\uFE0F  ${comparison.route} (${comparison.viewport}):`);
-          core13.warning(`     Error: ${comparison.error}`);
+          core16.warning(`     Error: ${comparison.error}`);
           const comparisonKey2 = `${comparison.route}_${comparison.viewport}`;
           const baselineUrl2 = baselineUrlMap.get(comparisonKey2);
           const baselineMetadata2 = baselineMetadataMap.get(comparisonKey2);
@@ -28463,7 +28942,7 @@ async function compareWithBaselines(stepData) {
         }
         if (comparison.diff && comparison.diff.buffer) {
           await import_fs3.promises.writeFile(diffFilePath, comparison.diff.buffer);
-          core13.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);
+          core16.info(`  \u{1F4BE} Saved diff image: ${diffFileName}`);
         }
         const status = comparison.match ? "unchanged" : "changed";
         if (status === "changed") changedCount++;
@@ -28491,51 +28970,51 @@ async function compareWithBaselines(stepData) {
             regions: comparison.diff?.regions?.length || 0
           }
         });
-        core13.info(`
+        core16.info(`
   \u{1F4C8} ${comparison.route} (${comparison.viewport}):`);
-        core13.info(`     Status: ${status === "changed" ? "\u274C CHANGED" : "\u2705 UNCHANGED"}`);
-        core13.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
-        core13.info(`     Pixels Different: ${comparison.pixelDifference}`);
+        core16.info(`     Status: ${status === "changed" ? "\u274C CHANGED" : "\u2705 UNCHANGED"}`);
+        core16.info(`     Similarity: ${(comparison.similarity * 100).toFixed(2)}%`);
+        core16.info(`     Pixels Different: ${comparison.pixelDifference}`);
         if (comparison.metrics.perceptualHash) {
-          core13.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
+          core16.info(`     Hamming Distance: ${comparison.metrics.perceptualHash.hammingDistance}`);
         }
         if (comparison.metrics.psnr !== void 0) {
           const psnrValue = comparison.metrics.psnr === Infinity ? "\u221E (identical)" : `${comparison.metrics.psnr.toFixed(2)} dB`;
-          core13.info(`     PSNR: ${psnrValue}`);
+          core16.info(`     PSNR: ${psnrValue}`);
         }
         if (comparison.diff?.regions) {
           const critical = comparison.diff.regions.filter((r) => r.severity === "critical").length;
           const moderate = comparison.diff.regions.filter((r) => r.severity === "moderate").length;
-          core13.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
+          core16.info(`     Diff Regions: ${comparison.diff.regions.length} (${critical} critical, ${moderate} moderate)`);
         }
         if (comparison.dimensionDiff) {
           const { heightDiff, cropped, comparedHeight } = comparison.dimensionDiff;
           if (heightDiff !== 0) {
             if (cropped) {
-              core13.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (cropped to ${comparedHeight}px for comparison)`);
+              core16.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (cropped to ${comparedHeight}px for comparison)`);
             } else {
-              core13.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (padded to ${comparedHeight}px for comparison)`);
+              core16.info(`     \u{1F4CF} Height Difference: ${heightDiff}px (padded to ${comparedHeight}px for comparison)`);
             }
           }
         }
       }
       const totalComparisons = result.comparisons.length;
       const overallSimilarity = (result.summary.overallSimilarity * 100).toFixed(2);
-      core13.info(`
+      core16.info(`
 \u2705 Comparison complete:`);
-      core13.info(`   Total Comparisons: ${totalComparisons}`);
-      core13.info(`   New Screenshots: ${newScreenshots}`);
-      core13.info(`   Unchanged: ${unchangedCount}`);
-      core13.info(`   Changed: ${changedCount}`);
-      core13.info(`   Overall Similarity: ${overallSimilarity}%`);
-      core13.info(`   Duration: ${result.metadata.duration}ms`);
+      core16.info(`   Total Comparisons: ${totalComparisons}`);
+      core16.info(`   New Screenshots: ${newScreenshots}`);
+      core16.info(`   Unchanged: ${unchangedCount}`);
+      core16.info(`   Changed: ${changedCount}`);
+      core16.info(`   Overall Similarity: ${overallSimilarity}%`);
+      core16.info(`   Duration: ${result.metadata.duration}ms`);
       const summary = `Compared ${totalComparisons} screenshot(s): ${unchangedCount} unchanged, ${changedCount} changed${newScreenshots > 0 ? `, ${newScreenshots} new` : ""}`;
       return {
         ...stepData,
         comparison: {
           hasChanges: changedCount > 0,
           diffCount: changedCount,
-          diffFiles: diffFilesInfo.filter((d) => d.hasDifference).map((d) => d.localPath).filter((path7) => path7 !== void 0),
+          diffFiles: diffFilesInfo.filter((d) => d.hasDifference).map((d) => d.localPath).filter((path8) => path8 !== void 0),
           summary
         },
         _internal: {
@@ -28544,15 +29023,15 @@ async function compareWithBaselines(stepData) {
           diffOutputDir
         }
       };
-    } catch (error10) {
-      core13.error(`Error during comparison: ${error10}`);
-      throw error10;
+    } catch (error11) {
+      core16.error(`Error during comparison: ${error11}`);
+      throw error11;
     }
   });
 }
 
 // src/steps/3-upload-storage.step.ts
-var core14 = __toESM(require_core());
+var core17 = __toESM(require_core());
 var import_fs4 = require("fs");
 init_core();
 async function uploadToStorage(stepData) {
@@ -28561,14 +29040,26 @@ async function uploadToStorage(stepData) {
     if (!screenshots || !internal?.screenshotResult) {
       throw new Error("No screenshots available for upload. Run browse-routes step first.");
     }
+    if (screenshots.files.length === 0) {
+      core17.info("\u2139\uFE0F No screenshots to upload - skipping storage upload");
+      return {
+        ...stepData,
+        _internal: {
+          ...internal,
+          uploadedFiles: [],
+          storageUrl: "",
+          screenshotMetadataMap: {}
+        }
+      };
+    }
     const firebaseCredentials = config.get("firebase-credentials");
     const storageBucket = config.get("storage-bucket");
     const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
     if (!firebaseCredentials || !storageBucket) {
-      core14.warning("\u26A0\uFE0F Firebase storage not configured. Screenshots saved locally only.");
-      core14.warning(`  Firebase credentials present: ${!!firebaseCredentials}`);
-      core14.warning(`  Storage bucket configured: ${!!storageBucket}`);
+      core17.warning("\u26A0\uFE0F Firebase storage not configured. Screenshots saved locally only.");
+      core17.warning(`  Firebase credentials present: ${!!firebaseCredentials}`);
+      core17.warning(`  Storage bucket configured: ${!!storageBucket}`);
       return {
         ...stepData,
         _internal: {
@@ -28578,9 +29069,9 @@ async function uploadToStorage(stepData) {
         }
       };
     }
-    core14.info(`\u{1F4E4} Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
-    core14.info(`  Storage Bucket: ${storageBucket}`);
-    core14.info(`  Storage Directory: ${storageDirectory}/`);
+    core17.info(`\u{1F4E4} Uploading ${screenshots.files.length} screenshots to ${storageProvider} storage...`);
+    core17.info(`  Storage Bucket: ${storageBucket}`);
+    core17.info(`  Storage Directory: ${storageDirectory}/`);
     const screenshotMetadataMap = /* @__PURE__ */ new Map();
     const filesForUpload = internal.screenshotResult.screenshots.flatMap(
       (routeScreenshot) => routeScreenshot.screenshots.map((screenshot) => {
@@ -28603,7 +29094,7 @@ async function uploadToStorage(stepData) {
       })
     );
     if (internal.diffFiles && Array.isArray(internal.diffFiles)) {
-      core14.info(`\u{1F4CA} Adding ${internal.diffFiles.length} diff image(s) to upload`);
+      core17.info(`\u{1F4CA} Adding ${internal.diffFiles.length} diff image(s) to upload`);
       for (const diffFile of internal.diffFiles) {
         if (diffFile.hasDifference && diffFile.localPath) {
           filesForUpload.push({
@@ -28635,15 +29126,15 @@ async function uploadToStorage(stepData) {
       try {
         const credentialsContent = await import_fs4.promises.readFile(firebaseCredentials, "utf-8");
         credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
-        core14.info("  Using Firebase credentials from file");
-      } catch (error10) {
-        core14.debug(`Not a file path, treating as base64: ${error10}`);
+        core17.info("  Using Firebase credentials from file");
+      } catch (error11) {
+        core17.debug(`Not a file path, treating as base64: ${error11}`);
       }
     }
     let uploadedFiles = [];
     let storageUrl = "";
     try {
-      const { uploadFiles } = await import("@yofix/storage");
+      const { uploadFiles: uploadFiles2 } = await import("@yofix/storage");
       const storageConfig = storageProvider === "firebase" ? {
         provider: "firebase",
         config: {
@@ -28662,13 +29153,13 @@ async function uploadToStorage(stepData) {
         }
       };
       const basePath = storageDirectory ? `${storageDirectory}/pr-${prNumber}/screenshots` : `pr-${prNumber}/screenshots`;
-      const uploadResult = await uploadFiles({
+      const uploadResult = await uploadFiles2({
         storage: storageConfig,
         files: filesForUpload,
         verbose: true,
         onProgress: (progress) => {
           const percentage = (progress.filesUploaded / progress.totalFiles * 100).toFixed(1);
-          core14.info(`  Upload progress: ${progress.filesUploaded}/${progress.totalFiles} files (${percentage}%)`);
+          core17.info(`  Upload progress: ${progress.filesUploaded}/${progress.totalFiles} files (${percentage}%)`);
         }
       });
       if (!uploadResult.success) {
@@ -28676,14 +29167,14 @@ async function uploadToStorage(stepData) {
         throw new Error(`Upload failed: ${errorMessage}`);
       }
       uploadedFiles = uploadResult.files;
-      core14.info("\u2705 Screenshots uploaded successfully:");
+      core17.info("\u2705 Screenshots uploaded successfully:");
       uploadedFiles.slice(0, 5).forEach((file) => {
-        core14.info(`  \u{1F4F8} ${file.remotePath}: ${file.url || "pending"}`);
+        core17.info(`  \u{1F4F8} ${file.remotePath}: ${file.url || "pending"}`);
       });
       if (uploadedFiles.length > 5) {
-        core14.info(`  ... and ${uploadedFiles.length - 5} more files`);
+        core17.info(`  ... and ${uploadedFiles.length - 5} more files`);
       }
-      core14.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
+      core17.info(`  Total uploaded: ${uploadedFiles.length}/${filesForUpload.length}`);
       if (storageProvider === "firebase") {
         const projectId = storageBucket.split(".")[0] || "unknown";
         storageUrl = `https://console.firebase.google.com/project/${projectId}/storage/${storageBucket}`;
@@ -28691,12 +29182,12 @@ async function uploadToStorage(stepData) {
         const region = config.get("aws-region", { defaultValue: "us-east-1" });
         storageUrl = `https://s3.console.aws.amazon.com/s3/buckets/${storageBucket}?region=${region}`;
       }
-      core14.info(`
+      core17.info(`
 \u{1F517} View all screenshots: ${storageUrl}`);
-    } catch (error10) {
-      core14.warning(`Failed to upload screenshots: ${error10}`);
-      core14.warning("Screenshots are saved locally but not uploaded to cloud storage");
-      await errorHandler.handleError(error10, {
+    } catch (error11) {
+      core17.warning(`Failed to upload screenshots: ${error11}`);
+      core17.warning("Screenshots are saved locally but not uploaded to cloud storage");
+      await errorHandler.handleError(error11, {
         severity: "medium" /* MEDIUM */,
         category: "package" /* PACKAGE */,
         location: "@yofix/storage",
@@ -28717,10 +29208,10 @@ async function uploadToStorage(stepData) {
 }
 
 // src/steps/4-post-results.step.ts
-var core16 = __toESM(require_core());
+var core19 = __toESM(require_core());
 
 // src/github/PRReporter.ts
-var core15 = __toESM(require_core());
+var core18 = __toESM(require_core());
 init_core();
 init_GitHubServiceFactory();
 var PRReporter = class _PRReporter {
@@ -28730,7 +29221,7 @@ var PRReporter = class _PRReporter {
     const context = githubService.getContext();
     this.prNumber = context.prNumber;
     if (!this.prNumber) {
-      core15.warning("No PR number found, cannot post comment");
+      core18.warning("No PR number found, cannot post comment");
     }
   }
   static {
@@ -28753,27 +29244,41 @@ var PRReporter = class _PRReporter {
   }
   /**
    * Post comprehensive verification results to PR
+   *
+   * @param result - Verification result data
+   * @param storageConsoleUrl - Optional storage URL
+   * @param options - Optional posting options
+   * @param options.replyToCommentId - If provided, posts as a reply to this comment (for @yofix commands)
    */
-  async postResults(result, storageConsoleUrl) {
+  async postResults(result, storageConsoleUrl, options) {
     if (!this.prNumber) {
-      core15.warning("No PR number found, cannot post comment");
+      core18.warning("No PR number found, cannot post comment");
       return;
     }
     try {
-      core15.info(`Posting verification results to PR #${this.prNumber}...`);
+      core18.info(`Posting verification results to PR #${this.prNumber}...`);
       const comment = this.generateCommentBody(result, storageConsoleUrl);
-      await this.commentEngine.postComment(comment, {
-        updateExisting: true,
-        signature: "yofix-verification-results"
-      });
-      core15.info("Posted verification results to PR");
-    } catch (error10) {
-      await errorHandler.handleError(error10, {
+      if (options?.replyToCommentId) {
+        core18.info(`\u{1F4DD} Posting results as reply to comment #${options.replyToCommentId}`);
+        await this.commentEngine.postComment(comment, {
+          inReplyTo: options.replyToCommentId,
+          signature: `yofix-command-result-${options.replyToCommentId}`
+        });
+      } else {
+        core18.info("\u{1F4DD} Posting results as main YoFix comment");
+        await this.commentEngine.postComment(comment, {
+          updateExisting: true,
+          signature: "yofix-verification-results"
+        });
+      }
+      core18.info("Posted verification results to PR");
+    } catch (error11) {
+      await errorHandler.handleError(error11, {
         severity: "high" /* HIGH */,
         category: "github" /* GITHUB */,
         location: "pr-reporter"
       });
-      throw error10;
+      throw error11;
     }
   }
   /**
@@ -28781,7 +29286,7 @@ var PRReporter = class _PRReporter {
    */
   async postStatusUpdate(status, message) {
     if (!this.prNumber) {
-      core15.warning("No PR number found, cannot post status update");
+      core18.warning("No PR number found, cannot post status update");
       return;
     }
     try {
@@ -28798,8 +29303,8 @@ ${message}
         updateExisting: true,
         signature: "yofix-status-update"
       });
-    } catch (error10) {
-      await errorHandler.handleError(error10, {
+    } catch (error11) {
+      await errorHandler.handleError(error11, {
         severity: "medium" /* MEDIUM */,
         category: "github" /* GITHUB */,
         location: "pr-reporter",
@@ -28840,15 +29345,15 @@ ${message}
       comment += "\n\n";
     }
     if (screenshots.length > 0) {
-      core15.info(`Embedding ${screenshots.length} screenshots in PR comment`);
+      core18.info(`Embedding ${screenshots.length} screenshots in PR comment`);
       const screenshotsWithUrls = this.filterWithUrls(screenshots);
-      core15.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
+      core18.info(`Screenshots with Firebase URLs: ${screenshotsWithUrls.length}`);
       comment += this.generateVisualComparisonTable(screenshots, result);
     }
     if (videos.length > 0) {
-      core15.info(`Embedding ${videos.length} videos in PR comment`);
+      core18.info(`Embedding ${videos.length} videos in PR comment`);
       const videosWithUrls = this.filterWithUrls(videos);
-      core15.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
+      core18.info(`Videos with Firebase URLs: ${videosWithUrls.length}`);
       comment += this.generateEmbeddedVideos(videos);
     }
     comment += "<details>\n<summary><strong>View Detailed Results</strong></summary>\n\n";
@@ -28882,8 +29387,8 @@ ${message}
       comment += `Found ${consoleErrors.length} console error${consoleErrors.length !== 1 ? "s" : ""} during testing:
 
 `;
-      for (const error10 of consoleErrors.slice(0, 3)) {
-        comment += `- \`${error10.text.substring(0, 100)}${error10.text.length > 100 ? "..." : ""}\`
+      for (const error11 of consoleErrors.slice(0, 3)) {
+        comment += `- \`${error11.text.substring(0, 100)}${error11.text.length > 100 ? "..." : ""}\`
 `;
       }
       if (consoleErrors.length > 3) {
@@ -29208,12 +29713,26 @@ async function postResults(stepData) {
     if (!routes || !screenshots) {
       throw new Error("Missing routes or screenshots data. Run previous steps first.");
     }
+    if (!routes.affectedRoutes || routes.affectedRoutes.length === 0) {
+      core19.info("\u2139\uFE0F No routes affected by this PR - skipping PR comment");
+      core19.info("\u{1F4A1} No visual testing was performed as changes do not impact any routes");
+      core19.setOutput("success", true);
+      core19.setOutput("issues-found", 0);
+      core19.setOutput("critical-issues", 0);
+      core19.setOutput("warning-issues", 0);
+      core19.setOutput("total-tests", 0);
+      core19.setOutput("passed-tests", 0);
+      core19.setOutput("failed-tests", 0);
+      core19.setOutput("duration-ms", Date.now() - metadata.startTime);
+      core19.setOutput("duration-seconds", ((Date.now() - metadata.startTime) / 1e3).toFixed(2));
+      return stepData;
+    }
     const githubToken = config.get("github-token");
     const github = GitHubServiceFactory.getService();
     if (githubToken) {
       await github.configure({ token: githubToken });
     }
-    core16.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
+    core19.info(`\u{1F4DD} Preparing results for PR #${prNumber}`);
     const analysis = {
       hasUIChanges: routes.affectedRoutes.length > 0,
       changedPaths: routes.affectedRoutes,
@@ -29325,56 +29844,66 @@ async function postResults(stepData) {
         issuesFound: screenshotResult.errors?.map((e) => e.message) || []
       }
     };
-    core16.info(`\u{1F4CA} Verification Summary:`);
-    core16.info(`  Total tests: ${verificationResult.totalTests}`);
-    core16.info(`  Passed: ${verificationResult.passedTests}`);
-    core16.info(`  Failed: ${verificationResult.failedTests}`);
-    core16.info(`  Duration: ${(totalDuration / 1e3).toFixed(2)}s`);
+    core19.info(`\u{1F4CA} Verification Summary:`);
+    core19.info(`  Total tests: ${verificationResult.totalTests}`);
+    core19.info(`  Passed: ${verificationResult.passedTests}`);
+    core19.info(`  Failed: ${verificationResult.failedTests}`);
+    core19.info(`  Duration: ${(totalDuration / 1e3).toFixed(2)}s`);
     const timingSummary = await getStepDataManager().getTimingSummary();
     if (timingSummary) {
-      core16.info(`
+      core19.info(`
 ${timingSummary}`);
     }
-    core16.info("\u{1F4E4} Posting results to PR...");
+    core19.info("\u{1F4E4} Posting results to PR...");
     const reporter = new PRReporter();
+    const isCommentCommand = stepData.commandContext?.isCommentCommand;
+    const replyToCommentId = stepData.commandContext?.commentId;
+    if (isCommentCommand && replyToCommentId) {
+      core19.info(`\u{1F4AC} This was triggered by comment #${replyToCommentId} - results will be posted as a reply`);
+    }
     try {
       await Promise.race([
-        reporter.postResults(verificationResult, prNumber.toString()),
+        reporter.postResults(
+          verificationResult,
+          prNumber.toString(),
+          // Post as reply if triggered by comment command
+          isCommentCommand && replyToCommentId ? { replyToCommentId } : void 0
+        ),
         new Promise(
           (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 3e4)
         )
       ]);
-      core16.info(`\u2705 PR report posted successfully`);
-    } catch (error10) {
-      core16.warning(`Failed to post PR report: ${error10}`);
-      await errorHandler.handleError(error10, {
+      core19.info(`\u2705 PR report posted successfully`);
+    } catch (error11) {
+      core19.warning(`Failed to post PR report: ${error11}`);
+      await errorHandler.handleError(error11, {
         severity: "medium" /* MEDIUM */,
         category: "github" /* GITHUB */,
         location: "pr-reporter",
         recoverable: true
       });
     }
-    core16.setOutput("success", verificationResult.status === "success");
-    core16.setOutput("issues-found", screenshotResult.errors?.length || 0);
-    core16.setOutput("critical-issues", 0);
-    core16.setOutput("warning-issues", 0);
-    core16.setOutput("total-tests", verificationResult.totalTests);
-    core16.setOutput("passed-tests", verificationResult.passedTests);
-    core16.setOutput("failed-tests", verificationResult.failedTests);
-    core16.setOutput("duration-ms", totalDuration);
-    core16.setOutput("duration-seconds", (totalDuration / 1e3).toFixed(2));
+    core19.setOutput("success", verificationResult.status === "success");
+    core19.setOutput("issues-found", screenshotResult.errors?.length || 0);
+    core19.setOutput("critical-issues", 0);
+    core19.setOutput("warning-issues", 0);
+    core19.setOutput("total-tests", verificationResult.totalTests);
+    core19.setOutput("passed-tests", verificationResult.passedTests);
+    core19.setOutput("failed-tests", verificationResult.failedTests);
+    core19.setOutput("duration-ms", totalDuration);
+    core19.setOutput("duration-seconds", (totalDuration / 1e3).toFixed(2));
     if (verificationResult.status === "success") {
-      core16.info("\n\u2705 All visual tests completed successfully!");
+      core19.info("\n\u2705 All visual tests completed successfully!");
     } else {
-      core16.error("\n\u274C Visual tests completed with errors");
+      core19.error("\n\u274C Visual tests completed with errors");
     }
-    core16.info(`\u23F1\uFE0F Total execution time: ${(totalDuration / 1e3).toFixed(2)}s`);
+    core19.info(`\u23F1\uFE0F Total execution time: ${(totalDuration / 1e3).toFixed(2)}s`);
     return stepData;
   });
 }
 
 // src/steps/5-update-baselines.step.ts
-var core17 = __toESM(require_core());
+var core20 = __toESM(require_core());
 var import_fs5 = require("fs");
 init_core();
 async function updateBaselines(stepData) {
@@ -29392,11 +29921,11 @@ async function updateBaselines(stepData) {
         targetBranch = parsed[0];
         enabled = parsed[1] === "true" || parsed[1] === true;
       }
-    } catch (error10) {
-      core17.warning(`Failed to parse update-baselines-on-merge config: ${error10}`);
+    } catch (error11) {
+      core20.warning(`Failed to parse update-baselines-on-merge config: ${error11}`);
     }
     if (!enabled) {
-      core17.info("\u2139\uFE0F Baseline update disabled in configuration");
+      core20.info("\u2139\uFE0F Baseline update disabled in configuration");
       return {
         ...stepData,
         baselinesUpdated: 0,
@@ -29405,41 +29934,41 @@ async function updateBaselines(stepData) {
     }
     const currentBranch = process.env.GITHUB_REF?.replace("refs/heads/", "") || "";
     if (targetBranch && currentBranch !== targetBranch) {
-      core17.info(`\u2139\uFE0F Skipping baseline update - current branch: ${currentBranch}, target branch: ${targetBranch}`);
+      core20.info(`\u2139\uFE0F Skipping baseline update - current branch: ${currentBranch}, target branch: ${targetBranch}`);
       return {
         ...stepData,
         baselinesUpdated: 0,
         updateSummary: `Baseline update skipped - branch mismatch (current: ${currentBranch}, target: ${targetBranch})`
       };
     }
-    core17.info(`\u{1F504} Starting baseline update for merged PR #${prNumber}`);
-    core17.info(`   Branch: ${currentBranch}`);
+    core20.info(`\u{1F504} Starting baseline update for merged PR #${prNumber}`);
+    core20.info(`   Branch: ${currentBranch}`);
     const firebaseCredentials = config.get("firebase-credentials");
     const storageBucket = config.get("storage-bucket");
     const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
     if (!firebaseCredentials || !storageBucket) {
-      core17.warning("\u26A0\uFE0F Storage not configured - skipping baseline update");
+      core20.warning("\u26A0\uFE0F Storage not configured - skipping baseline update");
       return {
         ...stepData,
         baselinesUpdated: 0,
         updateSummary: "Baseline update skipped - no storage configured"
       };
     }
-    const { downloadFiles, uploadFiles } = await import("@yofix/storage");
+    const { downloadFiles: downloadFiles2, uploadFiles: uploadFiles2 } = await import("@yofix/storage");
     let credentialsBase64 = firebaseCredentials;
     if (firebaseCredentials.endsWith(".json")) {
       try {
         const credentialsContent = await import_fs5.promises.readFile(firebaseCredentials, "utf-8");
         credentialsBase64 = Buffer.from(credentialsContent).toString("base64");
-        core17.info("  Using Firebase credentials from file");
-      } catch (error10) {
-        core17.debug(`Not a file path, treating as base64: ${error10}`);
+        core20.info("  Using Firebase credentials from file");
+      } catch (error11) {
+        core20.debug(`Not a file path, treating as base64: ${error11}`);
       }
     }
     const baselinestoUpdate = [];
     let successCount = 0;
     let failureCount = 0;
-    core17.info(`\u{1F4E6} Preparing to update ${internal.screenshotResult.screenshots.length} route baselines...`);
+    core20.info(`\u{1F4E6} Preparing to update ${internal.screenshotResult.screenshots.length} route baselines...`);
     for (const routeScreenshot of internal.screenshotResult.screenshots) {
       const route = routeScreenshot.route;
       const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(route, "_");
@@ -29460,25 +29989,25 @@ async function updateBaselines(stepData) {
               updatedAt: Date.now().toString()
             }
           });
-          core17.info(`  \u2713 Queued: ${routePath} (${viewport})`);
-        } catch (error10) {
-          core17.warning(`  \u2717 Failed to read screenshot for ${route} (${viewport}): ${error10}`);
+          core20.info(`  \u2713 Queued: ${routePath} (${viewport})`);
+        } catch (error11) {
+          core20.warning(`  \u2717 Failed to read screenshot for ${route} (${viewport}): ${error11}`);
           failureCount++;
         }
       }
     }
     if (baselinestoUpdate.length === 0) {
-      core17.warning("\u26A0\uFE0F No baselines to update");
+      core20.warning("\u26A0\uFE0F No baselines to update");
       return {
         ...stepData,
         baselinesUpdated: 0,
         updateSummary: "No baselines to update"
       };
     }
-    core17.info(`
+    core20.info(`
 \u2601\uFE0F  Uploading ${baselinestoUpdate.length} baseline(s)...`);
     try {
-      const uploadResult = await uploadFiles({
+      const uploadResult = await uploadFiles2({
         storage: {
           provider: storageProvider,
           config: {
@@ -29490,7 +30019,7 @@ async function updateBaselines(stepData) {
         verbose: true,
         onProgress: (progress) => {
           const percentage = (progress.filesUploaded / progress.totalFiles * 100).toFixed(1);
-          core17.info(`  Progress: ${progress.filesUploaded}/${progress.totalFiles} (${percentage}%)`);
+          core20.info(`  Progress: ${progress.filesUploaded}/${progress.totalFiles} (${percentage}%)`);
         }
       });
       if (!uploadResult.success) {
@@ -29498,10 +30027,10 @@ async function updateBaselines(stepData) {
         throw new Error(`Baseline upload failed: ${errorMessage}`);
       }
       successCount = uploadResult.files.length;
-      core17.info(`
+      core20.info(`
 \u2705 Successfully updated ${successCount} baseline(s)`);
-    } catch (error10) {
-      core17.error(`Failed to update baselines: ${error10}`);
+    } catch (error11) {
+      core20.error(`Failed to update baselines: ${error11}`);
       failureCount += baselinestoUpdate.length;
     }
     const summary = `Updated ${successCount} baseline(s)${failureCount > 0 ? `, ${failureCount} failed` : ""}`;
@@ -29519,59 +30048,82 @@ async function main() {
   const workflowStartTime = Date.now();
   const manager = getStepDataManager();
   try {
-    core18.info("\u2501".repeat(60));
-    core18.info("\u{1F680} YoFix Visual Testing Action");
-    core18.info("\u2501".repeat(60));
+    core21.info("\u2501".repeat(60));
+    core21.info("\u{1F680} YoFix Visual Testing Action");
+    core21.info("\u2501".repeat(60));
     await manager.initialize();
-    core18.startGroup("\u{1F4CB} Step 0: Initialize Workflow");
+    core21.startGroup("\u{1F4CB} Step 0: Initialize Workflow");
     let stepData = await initialize();
     await manager.save(stepData);
-    core18.endGroup();
-    core18.startGroup("\u{1F50D} Step 1: Analyze Routes");
-    stepData = await analyzeRoutes(stepData);
+    core21.endGroup();
+    core21.startGroup("\u{1F4AC} Step 0.5: Handle Comment Command");
+    stepData = await handleCommentCommand(stepData);
     await manager.save(stepData);
-    core18.endGroup();
-    if (!stepData.routes || stepData.routes.affectedRoutes.length === 0) {
-      core18.warning("\u26A0\uFE0F  No routes to test. Skipping screenshot capture and comparison.");
-      core18.info("\n\u2705 YoFix workflow completed (no routes to test)");
-      return;
+    core21.endGroup();
+    const isCommentCommand = stepData.commandContext?.isCommentCommand || false;
+    const hasTestUrl = !!stepData.testUrl;
+    if (!hasTestUrl) {
+      core21.startGroup("\u{1F50D} Step 1: Analyze Routes");
+      stepData = await analyzeRoutes(stepData);
+      await manager.save(stepData);
+      core21.endGroup();
+      if (!stepData.routes || stepData.routes.affectedRoutes.length === 0) {
+        core21.warning("\u26A0\uFE0F  No routes to test. Skipping screenshot capture and comparison.");
+        core21.info("\n\u2705 YoFix workflow completed (no routes to test)");
+        return;
+      }
+    } else {
+      core21.info("\u2139\uFE0F Skipping route analysis - using explicit test URL from comment command");
+      stepData.routes = {
+        affectedRoutes: [stepData.testUrl],
+        impactTree: null,
+        routesToTest: null,
+        components: [],
+        metadata: {
+          totalRoutes: 1,
+          source: "comment-command"
+        }
+      };
     }
-    core18.startGroup("\u{1F4F8} Step 2: Browse Routes & Capture Screenshots");
+    core21.startGroup("\u{1F4F8} Step 2: Browse Routes & Capture Screenshots");
     stepData = await browseRoutes(stepData);
     await manager.save(stepData);
-    core18.endGroup();
-    core18.startGroup("\u{1F50D} Step 2.5: Compare Screenshots with Baselines");
+    core21.endGroup();
+    core21.startGroup("\u{1F50D} Step 2.5: Compare Screenshots with Baselines");
     stepData = await compareWithBaselines(stepData);
     await manager.save(stepData);
-    core18.endGroup();
-    core18.startGroup("\u2601\uFE0F  Step 3: Upload Screenshots to Storage");
+    core21.endGroup();
+    core21.startGroup("\u2601\uFE0F  Step 3: Upload Screenshots to Storage");
     stepData = await uploadToStorage(stepData);
     await manager.save(stepData);
-    core18.endGroup();
-    core18.startGroup("\u{1F4AC} Step 4: Post Results to GitHub PR");
+    core21.endGroup();
+    core21.startGroup("\u{1F4AC} Step 4: Post Results to GitHub PR");
     stepData = await postResults(stepData);
     await manager.save(stepData);
-    core18.endGroup();
-    core18.startGroup("\u{1F504} Step 5: Update Baselines (Post-Merge)");
+    core21.endGroup();
+    core21.startGroup("\u{1F504} Step 5: Update Baselines (Post-Merge)");
     stepData = await updateBaselines(stepData);
     await manager.save(stepData);
-    core18.endGroup();
+    core21.endGroup();
+    if (isCommentCommand && stepData.commandContext?.commentId) {
+      await markCommandComplete(stepData.commandContext.commentId);
+    }
     const workflowDuration = Date.now() - workflowStartTime;
-    core18.info("\n" + "\u2501".repeat(60));
-    core18.info("\u2705 YoFix Visual Testing Completed Successfully");
-    core18.info(`\u23F1\uFE0F  Total Duration: ${(workflowDuration / 1e3).toFixed(2)}s`);
-    core18.info("\u2501".repeat(60));
+    core21.info("\n" + "\u2501".repeat(60));
+    core21.info("\u2705 YoFix Visual Testing Completed Successfully");
+    core21.info(`\u23F1\uFE0F  Total Duration: ${(workflowDuration / 1e3).toFixed(2)}s`);
+    core21.info("\u2501".repeat(60));
     const timingSummary = await manager.getTimingSummary();
     if (timingSummary) {
-      core18.info("\n" + timingSummary);
+      core21.info("\n" + timingSummary);
     }
-  } catch (error10) {
+  } catch (error11) {
     const workflowDuration = Date.now() - workflowStartTime;
-    core18.error("\u2501".repeat(60));
-    core18.error("\u274C YoFix Visual Testing Failed");
-    core18.error(`\u23F1\uFE0F  Duration before failure: ${(workflowDuration / 1e3).toFixed(2)}s`);
-    core18.error("\u2501".repeat(60));
-    errorHandler.handleError(error10, {
+    core21.error("\u2501".repeat(60));
+    core21.error("\u274C YoFix Visual Testing Failed");
+    core21.error(`\u23F1\uFE0F  Duration before failure: ${(workflowDuration / 1e3).toFixed(2)}s`);
+    core21.error("\u2501".repeat(60));
+    errorHandler.handleError(error11, {
       severity: "critical" /* CRITICAL */,
       category: "orchestration" /* ORCHESTRATION */,
       userAction: "Review the error message and check your configuration",
@@ -29580,12 +30132,12 @@ async function main() {
         step: "unknown"
       }
     });
-    core18.setFailed(`YoFix workflow failed: ${error10 instanceof Error ? error10.message : String(error10)}`);
-    throw error10;
+    core21.setFailed(`YoFix workflow failed: ${error11 instanceof Error ? error11.message : String(error11)}`);
+    throw error11;
   }
 }
-main().catch((error10) => {
-  console.error("Fatal error in YoFix workflow:", error10);
+main().catch((error11) => {
+  console.error("Fatal error in YoFix workflow:", error11);
   process.exit(1);
 });
 /*! Bundled license information:

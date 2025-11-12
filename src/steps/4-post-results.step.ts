@@ -29,6 +29,25 @@ export async function postResults(stepData: StepData): Promise<StepData> {
       throw new Error('Missing routes or screenshots data. Run previous steps first.');
     }
 
+    // Skip posting if no routes were affected by the PR
+    if (!routes.affectedRoutes || routes.affectedRoutes.length === 0) {
+      core.info('ℹ️ No routes affected by this PR - skipping PR comment');
+      core.info('💡 No visual testing was performed as changes do not impact any routes');
+
+      // Set GitHub Action outputs
+      core.setOutput('success', true);
+      core.setOutput('issues-found', 0);
+      core.setOutput('critical-issues', 0);
+      core.setOutput('warning-issues', 0);
+      core.setOutput('total-tests', 0);
+      core.setOutput('passed-tests', 0);
+      core.setOutput('failed-tests', 0);
+      core.setOutput('duration-ms', Date.now() - metadata.startTime);
+      core.setOutput('duration-seconds', ((Date.now() - metadata.startTime) / 1000).toFixed(2));
+
+      return stepData;
+    }
+
     // Configure GitHub service with token (each step is a separate process)
     const githubToken = config.get('github-token');
     const github = GitHubServiceFactory.getService();
@@ -195,9 +214,24 @@ export async function postResults(stepData: StepData): Promise<StepData> {
     core.info('📤 Posting results to PR...');
     const reporter = new PRReporter();
 
+    // Check if this was triggered by a comment command
+    const isCommentCommand = stepData.commandContext?.isCommentCommand;
+    const replyToCommentId = stepData.commandContext?.commentId;
+
+    if (isCommentCommand && replyToCommentId) {
+      core.info(`💬 This was triggered by comment #${replyToCommentId} - results will be posted as a reply`);
+    }
+
     try {
       await Promise.race([
-        reporter.postResults(verificationResult, prNumber.toString()),
+        reporter.postResults(
+          verificationResult,
+          prNumber.toString(),
+          // Post as reply if triggered by comment command
+          isCommentCommand && replyToCommentId
+            ? { replyToCommentId }
+            : undefined
+        ),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('PR report posting timeout')), 30000)
         )

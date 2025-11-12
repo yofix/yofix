@@ -83,13 +83,14 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
       affectedRoutes = ['/'];
     }
 
-    // Ensure we have at least one route
+    // Check if we have routes to test
     if (affectedRoutes.length === 0) {
-      core.info('ℹ️ No specific routes identified, defaulting to homepage');
-      affectedRoutes = ['/'];
+      core.info('ℹ️ No routes affected by this PR - skipping visual testing');
+      core.info('💡 Changes do not impact any routes (likely config/build files only)');
+    } else {
+      core.info(`📍 Total routes to test: ${affectedRoutes.length}`);
     }
 
-    core.info(`📍 Total routes to test: ${affectedRoutes.length}`);
     core.info(`📦 Components found: ${components.length}`);
 
     // Update step data with results

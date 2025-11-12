@@ -25,20 +25,51 @@ export async function browseRoutes(stepData: StepData): Promise<StepData> {
   return executeStep('Browse Routes & Capture Screenshots', async () => {
     const { previewUrl, routes } = stepData;
 
-    if (!routes || routes.affectedRoutes.length === 0) {
-      throw new Error('No routes available for screenshot capture. Run analyze-routes step first.');
+    if (!routes) {
+      throw new Error('Missing routes data. Run analyze-routes step first.');
+    }
+
+    // Skip screenshot capture if no routes affected
+    if (routes.affectedRoutes.length === 0) {
+      core.info('ℹ️ No routes to capture - skipping screenshot step');
+
+      // Return step data with empty screenshots
+      return {
+        ...stepData,
+        screenshots: {
+          files: [],
+          viewports: [],
+          timestamp: Date.now()
+        },
+        _internal: {
+          ...stepData._internal,
+          screenshotResult: {
+            success: true,
+            screenshots: [],
+            totalDuration: 0,
+            outputDirectory: '',
+            errors: []
+          }
+        }
+      };
     }
 
     core.info(`📸 Preparing to capture screenshots for ${routes.affectedRoutes.length} routes`);
 
-    // Parse viewport configurations
-    const viewportsConfig = config.get('viewports', { defaultValue: '1920x1080,768x1024,375x667' });
-    const viewports = viewportsConfig.split(',').map(viewport => {
-      const [width, height] = viewport.trim().split('x').map(Number);
-      return { width, height, name: `${width}x${height}` };
-    });
-
-    core.info(`📱 Using ${viewports.length} viewports: ${viewports.map(v => v.name).join(', ')}`);
+    // Use custom viewports from comment command, or fall back to config
+    let viewports;
+    if (stepData.customViewports && stepData.customViewports.length > 0) {
+      viewports = stepData.customViewports;
+      core.info(`📱 Using custom viewports from comment command: ${viewports.map(v => v.name).join(', ')}`);
+    } else {
+      // Parse viewport configurations from action inputs
+      const viewportsConfig = config.get('viewports', { defaultValue: '1920x1080,768x1024,375x667' });
+      viewports = viewportsConfig.split(',').map(viewport => {
+        const [width, height] = viewport.trim().split('x').map(Number);
+        return { width, height, name: `${width}x${height}` };
+      });
+      core.info(`📱 Using default viewports: ${viewports.map(v => v.name).join(', ')}`);
+    }
 
     // Get fullPage configuration
     const fullPage = config.getBoolean('full-page', true);

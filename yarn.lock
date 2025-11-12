@@ -3314,10 +3314,10 @@
     typescript "^5.7.2"
     zod "^3.24.1"
 
-"@yofix/analyzer@^0.1.4":
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/@yofix/analyzer/-/analyzer-0.1.4.tgz#e6d4c9b02181eb4656967d6ffa24cc4fbc705722"
-  integrity sha512-p2sKWJe2rXp3fT+JUCga/Ymem5FN3rw5ys8Kjul9YvdE/3u+UEkbPe4GjEjnTyA6AgesDOdVuXNl6KH/4BYtAA==
+"@yofix/analyzer@^0.1.5":
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/@yofix/analyzer/-/analyzer-0.1.5.tgz#45886f72fdb64eed60fd8288874aa054f4a84559"
+  integrity sha512-8ebnKO0qaVkbJlqtd4/zizJil3LQ4l9CyQ3yPFIYEM2/27yq9cQzhZG9MMx4ggmlLmCgvW19lWvcJHYIdhkQrA==
   dependencies:
     "@actions/cache" "^3.2.4"
     "@actions/core" "^1.10.1"

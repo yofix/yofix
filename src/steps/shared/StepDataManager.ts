@@ -89,6 +89,16 @@ export interface InternalStepData {
   uploadedFiles?: any[];
   storageUrl?: string;
   screenshotMetadataMap?: Record<string, { route: string; viewport: any; metadata: any; duration?: number }>;
+  pageLoadMetrics?: {
+    url: string;
+    metrics: {
+      DOMContentLoaded: number;
+      Load: number;
+      FCP: number;
+      LCP: number;
+    };
+    timestamp: number;
+  };
 }
 
 /**
@@ -118,6 +128,20 @@ export interface StepData {
     region: string;
   };
 
+  // Comment command context (for @yofix commands)
+  commandContext?: {
+    isCommentCommand: boolean;
+    command?: any;
+    commentId?: number;
+    commentUrl?: string;
+  };
+
+  // Test URL override (from comment command)
+  testUrl?: string;
+
+  // Custom viewports (from comment command)
+  customViewports?: Array<{ width: number; height: number; name: string }>;
+
   // Route analysis results
   routes?: {
     affectedRoutes: string[];
@@ -125,6 +149,10 @@ export interface StepData {
     routesToTest: ExternalRouteImpactTree | null;
     components: string[];
     impactCommentBody?: string | null;
+    metadata?: {
+      totalRoutes: number;
+      source?: string;
+    };
   };
 
   // Screenshot results

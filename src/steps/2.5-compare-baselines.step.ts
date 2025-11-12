@@ -48,6 +48,25 @@ export async function compareWithBaselines(stepData: StepData): Promise<StepData
       throw new Error('No screenshots available for comparison. Run browse-routes step first.');
     }
 
+    // Skip comparison if no screenshots captured
+    if (internal.screenshotResult.screenshots.length === 0) {
+      core.info('ℹ️ No screenshots to compare - skipping baseline comparison');
+
+      return {
+        ...stepData,
+        comparison: {
+          hasChanges: false,
+          diffCount: 0,
+          diffFiles: [],
+          summary: 'No screenshots to compare'
+        },
+        _internal: {
+          ...internal,
+          diffFiles: []
+        }
+      };
+    }
+
     core.info(`🔍 Starting baseline comparison for PR #${prNumber}`);
 
     // Get storage configuration

@@ -1,5 +1,5 @@
 name: 'yofix'
-description: 'AI-powered visual issue detection and auto-fix for web applications'
+description: 'AI-powered visual issue detection and auto-fix for web applications. Supports comment commands: @yofix test <url> [viewports]'
 author: 'YoFix'
 
 branding:

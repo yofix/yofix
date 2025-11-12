@@ -1,5 +1,8 @@
 import * as core from "@actions/core";
+import * as path from "path";
+import * as fs from "fs/promises";
 import { analyzeRouteImpact } from "@yofix/analyzer";
+import { downloadFiles, uploadFiles } from "@yofix/storage";
 import { config } from "../index";
 
 export interface ExternalRouteImpact {
@@ -44,6 +47,46 @@ function createEmptyImpactTree(
       Array<{ routePath: string; routeFile: string }>
     >(),
   };
+}
+
+/**
+ * Get storage configuration from action inputs
+ */
+function getStorageConfig(): any | null {
+  const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' }) as 'firebase' | 's3' | 'github' | 'local';
+  const firebaseCredentials = config.get('firebase-credentials');
+  const storageBucket = config.get('storage-bucket');
+  const s3Bucket = config.get('s3-bucket');
+  const awsRegion = config.get('aws-region', { defaultValue: 'us-east-1' });
+  const awsAccessKeyId = config.get('aws-access-key-id');
+  const awsSecretAccessKey = config.get('aws-secret-access-key');
+
+  if (storageProvider === 'firebase' && firebaseCredentials && storageBucket) {
+    return {
+      provider: 'firebase' as const,
+      config: {
+        credentials: firebaseCredentials,
+        bucket: storageBucket,
+      }
+    };
+  } else if (storageProvider === 's3' && s3Bucket) {
+    return {
+      provider: 's3' as const,
+      config: {
+        region: awsRegion,
+        bucket: s3Bucket,
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
+      }
+    };
+  } else if (storageProvider === 'github') {
+    return {
+      provider: 'github' as const,
+      config: {}
+    };
+  }
+
+  return null;
 }
 
 export async function analyzeRoutesWithExternalTool(
@@ -97,13 +140,49 @@ export async function analyzeRoutesWithExternalTool(
   // Use GITHUB_WORKSPACE for user's repo, not action's installation directory
   const codebasePath = process.env.GITHUB_WORKSPACE || process.cwd();
 
+  // Get storage configuration
+  const storageConfig = getStorageConfig();
+
+  // Define cache file path in temp directory
+  const tmpDir = process.env.RUNNER_TEMP || process.env.TMPDIR || process.env.TMP || '/tmp';
+  const cacheFilePath = path.join(tmpDir, 'route-impact-cache.json');
+  const remoteCachePath = '.yofix/cache/pattern-cache.json';
+
+  // Step 1: Download cache from storage (if storage is configured and cache exists)
+  if (storageConfig && !forceRefresh) {
+    try {
+      core.info(`📥 Attempting to download cache from storage...`);
+      const downloadResult = await downloadFiles({
+        storage: storageConfig,
+        files: [remoteCachePath],
+        verbose: false
+      });
+
+      if (downloadResult.success && downloadResult.files && downloadResult.files.length > 0) {
+        const cacheFile = downloadResult.files[0];
+        if (cacheFile.buffer) {
+          // Write cache to local file for analyzer
+          await fs.writeFile(cacheFilePath, cacheFile.buffer);
+          core.info(`✅ Cache downloaded from storage (${(cacheFile.size / 1024).toFixed(1)}KB)`);
+        }
+      } else {
+        core.info(`ℹ️ No cache found in storage, will create new cache`);
+      }
+    } catch (error) {
+      core.warning(`⚠️ Failed to download cache from storage: ${error}`);
+    }
+  }
+
   core.info(`📊 Calling route-impact-analyzer with:`);
   core.info(`  - Codebase path: ${codebasePath}`);
   core.info(`  - Changed files count: ${changedFiles.length}`);
   core.info(`  - Base URL: ${previewUrl}`);
   core.info(`  - Model: ${modelFromConfig}`);
   core.info(`  - Force refresh: ${forceRefresh}`);
+  core.info(`  - Cache file: ${cacheFilePath}`);
+  core.info(`  - Storage: ${storageConfig ? storageConfig.provider : 'none'}`);
 
+  // Step 2: Call analyzer with cache file path
   const result = await analyzeRouteImpact({
     codebase: { path: codebasePath },
     changedFiles,
@@ -116,7 +195,7 @@ export async function analyzeRoutesWithExternalTool(
       },
       cache: {
         enabled: true,
-        provider: "file-system",
+        cacheFilePath,
         forceRefresh,
       },
       analysis: {
@@ -126,6 +205,33 @@ export async function analyzeRoutesWithExternalTool(
       },
     },
   });
+
+  // Step 3: Upload cache back to storage (if storage is configured and cache file exists)
+  if (storageConfig) {
+    try {
+      // Check if cache file was created/updated
+      const stats = await fs.stat(cacheFilePath);
+      if (stats.isFile()) {
+        core.info(`📤 Uploading cache to storage (${(stats.size / 1024).toFixed(1)}KB)...`);
+
+        await uploadFiles({
+          storage: storageConfig,
+          files: [
+            {
+              path: cacheFilePath,
+              destination: remoteCachePath,
+              contentType: 'application/json'
+            }
+          ],
+          verbose: false
+        });
+
+        core.info(`✅ Cache uploaded to storage successfully`);
+      }
+    } catch (error) {
+      core.warning(`⚠️ Failed to upload cache to storage: ${error}`);
+    }
+  }
 
   core.info(`📊 Route analysis result: success=${result.success}`);
 

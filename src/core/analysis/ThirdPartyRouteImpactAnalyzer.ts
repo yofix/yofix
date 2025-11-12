@@ -56,6 +56,7 @@ function getStorageConfig(): any | null {
   const storageProvider = config.get('storage-provider', { defaultValue: 'firebase' }) as 'firebase' | 's3' | 'github' | 'local';
   const firebaseCredentials = config.get('firebase-credentials');
   const storageBucket = config.get('storage-bucket');
+  const storageDirectory = config.get('storage-directory', { defaultValue: 'yofix' });
   const s3Bucket = config.get('s3-bucket');
   const awsRegion = config.get('aws-region', { defaultValue: 'us-east-1' });
   const awsAccessKeyId = config.get('aws-access-key-id');
@@ -67,6 +68,7 @@ function getStorageConfig(): any | null {
       config: {
         credentials: firebaseCredentials,
         bucket: storageBucket,
+        basePath: storageDirectory,
       }
     };
   } else if (storageProvider === 's3' && s3Bucket) {
@@ -77,6 +79,7 @@ function getStorageConfig(): any | null {
         bucket: s3Bucket,
         accessKeyId: awsAccessKeyId,
         secretAccessKey: awsSecretAccessKey,
+        basePath: storageDirectory,
       }
     };
   } else if (storageProvider === 'github') {
@@ -146,7 +149,7 @@ export async function analyzeRoutesWithExternalTool(
   // Define cache file path in temp directory
   const tmpDir = process.env.RUNNER_TEMP || process.env.TMPDIR || process.env.TMP || '/tmp';
   const cacheFilePath = path.join(tmpDir, 'route-impact-cache.json');
-  const remoteCachePath = '.yofix/cache/pattern-cache.json';
+  const remoteCachePath = 'cache/pattern-cache.json';
 
   // Step 1: Download cache from storage (if storage is configured and cache exists)
   if (storageConfig && !forceRefresh) {

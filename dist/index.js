@@ -27973,6 +27973,7 @@ function getStorageConfig() {
   const storageProvider = config.get("storage-provider", { defaultValue: "firebase" });
   const firebaseCredentials = config.get("firebase-credentials");
   const storageBucket = config.get("storage-bucket");
+  const storageDirectory = config.get("storage-directory", { defaultValue: "yofix" });
   const s3Bucket = config.get("s3-bucket");
   const awsRegion = config.get("aws-region", { defaultValue: "us-east-1" });
   const awsAccessKeyId = config.get("aws-access-key-id");
@@ -27982,7 +27983,8 @@ function getStorageConfig() {
       provider: "firebase",
       config: {
         credentials: firebaseCredentials,
-        bucket: storageBucket
+        bucket: storageBucket,
+        basePath: storageDirectory
       }
     };
   } else if (storageProvider === "s3" && s3Bucket) {
@@ -27992,7 +27994,8 @@ function getStorageConfig() {
         region: awsRegion,
         bucket: s3Bucket,
         accessKeyId: awsAccessKeyId,
-        secretAccessKey: awsSecretAccessKey
+        secretAccessKey: awsSecretAccessKey,
+        basePath: storageDirectory
       }
     };
   } else if (storageProvider === "github") {
@@ -28038,7 +28041,7 @@ async function analyzeRoutesWithExternalTool(prFiles, previewUrl) {
   const storageConfig = getStorageConfig();
   const tmpDir = process.env.RUNNER_TEMP || process.env.TMPDIR || process.env.TMP || "/tmp";
   const cacheFilePath = path4.join(tmpDir, "route-impact-cache.json");
-  const remoteCachePath = ".yofix/cache/pattern-cache.json";
+  const remoteCachePath = "cache/pattern-cache.json";
   if (storageConfig && !forceRefresh) {
     try {
       core11.info(`\u{1F4E5} Attempting to download cache from storage...`);

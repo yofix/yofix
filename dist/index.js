@@ -29466,13 +29466,32 @@ ${message}
     }
   }
   /**
+   * Deduplicate screenshots by keeping only the latest screenshot for each route+viewport combination
+   * This prevents duplicate rows when YoFix runs multiple times on the same PR
+   */
+  deduplicateScreenshots(screenshots) {
+    const screenshotMap = /* @__PURE__ */ new Map();
+    for (const screenshot of screenshots) {
+      const route = this.getRouteFromScreenshot(screenshot);
+      const viewportKey = `${screenshot.viewport.width}x${screenshot.viewport.height}`;
+      const key = `${route}::${viewportKey}`;
+      const existing = screenshotMap.get(key);
+      if (!existing || screenshot.timestamp > existing.timestamp) {
+        screenshotMap.set(key, screenshot);
+      }
+    }
+    return Array.from(screenshotMap.values());
+  }
+  /**
    * Generate visual comparison table with baseline vs current screenshots
    */
   generateVisualComparisonTable(screenshots, result) {
     if (screenshots.length === 0) {
       return "";
     }
-    const groupedByRoute = this.groupScreenshotsByRoute(screenshots);
+    const deduplicatedScreenshots = this.deduplicateScreenshots(screenshots);
+    core18.info(`Deduplicated screenshots: ${screenshots.length} \u2192 ${deduplicatedScreenshots.length}`);
+    const groupedByRoute = this.groupScreenshotsByRoute(deduplicatedScreenshots);
     const totalRoutes = Object.keys(groupedByRoute).length;
     const routesWithIssues = Object.values(groupedByRoute).filter(
       (screenshots2) => screenshots2.some((s) => s.comparison?.hasDifference || s.comparison?.issues?.length > 0)
@@ -29776,7 +29795,14 @@ async function postResults(stepData) {
           testName: `Route Test: ${r.route}`,
           status: r.success !== false ? "passed" : "failed",
           duration: r.timing?.totalTime || 0,
-          screenshots: uploadedFiles.filter((f) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes("/diffs/")).map((f) => {
+          screenshots: uploadedFiles.filter((f) => {
+            if (!f.remotePath || f.remotePath.includes("/diffs/")) {
+              return false;
+            }
+            const pathParts = f.remotePath.split("/");
+            const routeSegment = pathParts[pathParts.length - 2];
+            return routeSegment === sanitizedRoute;
+          }).map((f) => {
             const metadata2 = screenshotMetadataMap[f.localPath];
             const actualScreenshot = r.screenshots.find((s) => s.path === f.localPath);
             const viewport = actualScreenshot ? {

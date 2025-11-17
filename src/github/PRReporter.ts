@@ -303,6 +303,29 @@ ${message}
   }
 
   /**
+   * Deduplicate screenshots by keeping only the latest screenshot for each route+viewport combination
+   * This prevents duplicate rows when YoFix runs multiple times on the same PR
+   */
+  private deduplicateScreenshots(screenshots: any[]): any[] {
+    const screenshotMap = new Map<string, any>();
+
+    for (const screenshot of screenshots) {
+      // Create unique key from route + viewport
+      const route = this.getRouteFromScreenshot(screenshot);
+      const viewportKey = `${screenshot.viewport.width}x${screenshot.viewport.height}`;
+      const key = `${route}::${viewportKey}`;
+
+      // Keep the screenshot with the latest timestamp
+      const existing = screenshotMap.get(key);
+      if (!existing || screenshot.timestamp > existing.timestamp) {
+        screenshotMap.set(key, screenshot);
+      }
+    }
+
+    return Array.from(screenshotMap.values());
+  }
+
+  /**
    * Generate visual comparison table with baseline vs current screenshots
    */
   private generateVisualComparisonTable(screenshots: any[], result: VerificationResult): string {
@@ -310,8 +333,12 @@ ${message}
       return '';
     }
 
+    // Deduplicate screenshots - keep only the latest screenshot for each route+viewport combination
+    const deduplicatedScreenshots = this.deduplicateScreenshots(screenshots);
+    core.info(`Deduplicated screenshots: ${screenshots.length} → ${deduplicatedScreenshots.length}`);
+
     // Group screenshots by route
-    const groupedByRoute = this.groupScreenshotsByRoute(screenshots);
+    const groupedByRoute = this.groupScreenshotsByRoute(deduplicatedScreenshots);
 
     // Generate summary statistics
     const totalRoutes = Object.keys(groupedByRoute).length;

@@ -111,7 +111,19 @@ export async function postResults(stepData: StepData): Promise<StepData> {
           status: r.success !== false ? 'passed' : 'failed',
           duration: r.timing?.totalTime || 0,
           screenshots: uploadedFiles
-            .filter((f: any) => f.remotePath && f.remotePath.includes(sanitizedRoute) && !f.remotePath.includes('/diffs/'))
+            .filter((f: any) => {
+              if (!f.remotePath || f.remotePath.includes('/diffs/')) {
+                return false;
+              }
+
+              // Extract the route segment from the remote path (e.g., "tru-roi-evaluation" from "yofix/tru-roi-evaluation/1920x1080.png")
+              // The path structure is: {storageDirectory}/{sanitized-route}/{viewport}.png
+              const pathParts = f.remotePath.split('/');
+              const routeSegment = pathParts[pathParts.length - 2]; // Get second-to-last segment (before filename)
+
+              // Exact match only - prevents "tru-roi" from matching "tru-roi-evaluation"
+              return routeSegment === sanitizedRoute;
+            })
             .map((f: any) => {
               // Retrieve original metadata (screenshotMetadataMap is an object, not a Map)
               const metadata = screenshotMetadataMap[f.localPath];

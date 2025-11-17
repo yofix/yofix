@@ -58,7 +58,7 @@
     "@aws-sdk/s3-request-presigner": "^3.478.0",
     "@playwright/test": "^1.41.2",
     "@types/js-yaml": "^4.0.9",
-    "@yofix/analyzer": "^0.1.6",
+    "@yofix/analyzer": "^0.1.7",
     "@yofix/browser": "^1.0.11",
     "@yofix/comparator": "^1.0.2",
     "@yofix/storage": "^1.0.5",

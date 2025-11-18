@@ -26,8 +26,6 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
   return executeStep('Analyze Routes', async () => {
     const { previewUrl, prNumber, githubContext } = stepData;
 
-   
-
     let impactTree: ExternalRouteImpactTree | null = null;
     let routesToTest: ExternalRouteImpactTree | null = null;
     let affectedRoutes: string[] = [];
@@ -83,12 +81,33 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
       affectedRoutes = ['/'];
     }
 
+    // Apply max-routes limit
+    const maxRoutesConfig = config.get('max-routes', { defaultValue: '10' });
+    let maxRoutes = parseInt(maxRoutesConfig, 10);
+
+    // Validate max-routes is a valid positive number
+    if (isNaN(maxRoutes) || maxRoutes < 1) {
+      core.warning(`⚠️ Invalid max-routes value: "${maxRoutesConfig}", using default 10`);
+      maxRoutes = 10;
+    }
+
+    let limitedRoutes = affectedRoutes;
+    let skippedRoutes: string[] = [];
+
+    if (affectedRoutes.length > maxRoutes) {
+      core.warning(`⚠️ Found ${affectedRoutes.length} affected routes, limiting to ${maxRoutes} (max-routes)`);
+      limitedRoutes = affectedRoutes.slice(0, maxRoutes);
+      skippedRoutes = affectedRoutes.slice(maxRoutes);
+      core.info(`📍 Testing routes: ${limitedRoutes.join(', ')}`);
+      core.warning(`⏭️ Skipped routes (${skippedRoutes.length}): ${skippedRoutes.slice(0, 5).join(', ')}${skippedRoutes.length > 5 ? '...' : ''}`);
+    }
+
     // Check if we have routes to test
-    if (affectedRoutes.length === 0) {
+    if (limitedRoutes.length === 0) {
       core.info('ℹ️ No routes affected by this PR - skipping visual testing');
       core.info('💡 Changes do not impact any routes (likely config/build files only)');
     } else {
-      core.info(`📍 Total routes to test: ${affectedRoutes.length}`);
+      core.info(`📍 Total routes to test: ${limitedRoutes.length}`);
     }
 
     core.info(`📦 Components found: ${components.length}`);
@@ -97,11 +116,20 @@ export async function analyzeRoutes(stepData: StepData): Promise<StepData> {
     return {
       ...stepData,
       routes: {
-        affectedRoutes,
+        affectedRoutes: limitedRoutes,
+        allAffectedRoutes: affectedRoutes, // Keep full list for reference
         impactTree,
         routesToTest,
         components
-      }
+      },
+      // Track if routes were limited
+      routesLimited: skippedRoutes.length > 0 ? {
+        isLimited: true,
+        totalRoutes: affectedRoutes.length,
+        testedRoutes: limitedRoutes.length,
+        skippedRoutes,
+        reason: 'max-routes'
+      } : undefined
     };
   });
 }

@@ -85,6 +85,9 @@ export async function postResults(stepData: StepData): Promise<StepData> {
     // Calculate total duration
     const totalDuration = Date.now() - metadata.startTime;
 
+    // Check if routes were limited by max-routes
+    const isRoutesLimited = stepData.routesLimited?.isLimited || false;
+
     // Create verification result
     const verificationResult: VerificationResult = {
       status: screenshotResult.success ? 'success' : 'failure',
@@ -99,8 +102,15 @@ export async function postResults(stepData: StepData): Promise<StepData> {
       totalTests: screenshotResult.screenshots.length,
       passedTests: screenshotResult.screenshots.filter((r: any) => r.success !== false).length,
       failedTests: screenshotResult.screenshots.filter((r: any) => r.success === false).length,
-      skippedTests: 0,
+      skippedTests: isRoutesLimited ? stepData.routesLimited!.skippedRoutes.length : 0,
       duration: totalDuration,
+      partial: isRoutesLimited ? {
+        isPartial: true,
+        completedRoutes: stepData.routesLimited!.testedRoutes,
+        totalRoutes: stepData.routesLimited!.totalRoutes,
+        skippedRoutes: stepData.routesLimited!.skippedRoutes,
+        reason: 'max-routes'
+      } : undefined,
       testResults: screenshotResult.screenshots.map((r: any) => {
         // Extract pathname (for matching) and sanitized version (for filenames)
         const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(r.route, '-');
@@ -245,7 +255,7 @@ export async function postResults(stepData: StepData): Promise<StepData> {
             : undefined
         ),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('PR report posting timeout')), 30000)
+          setTimeout(() => reject(new Error('PR report posting timeout')), 60000)
         )
       ]);
       core.info(`✅ PR report posted successfully`);
@@ -300,7 +310,6 @@ export async function main(): Promise<void> {
   } catch (error) {
     hadError = true;
     mainError = error;
-    core.error(`❌ Step 4 failed: ${error}`);
 
     // Add to error handler
     await errorHandler.handleError(error as Error, {

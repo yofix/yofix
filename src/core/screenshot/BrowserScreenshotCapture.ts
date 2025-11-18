@@ -20,6 +20,7 @@ export interface BrowserScreenshotOptions {
   loginUrl?: string;
   fullPage?: boolean;
   verbose?: boolean;
+  timeout?: number; // Per-screenshot timeout in milliseconds
 }
 
 export interface BrowserScreenshotResult {
@@ -41,24 +42,9 @@ export interface BrowserScreenshotResult {
 export async function captureScreenshotsWithBrowser(
   options: BrowserScreenshotOptions
 ): Promise<BrowserScreenshotResult> {
-  // Get configuration using ConfigurationManager (proper way)
+  // Get configuration using ConfigurationManager (validates required fields automatically)
   const claudeApiKey = config.get('claude-api-key', { required: true });
   const claudeModel = config.get('claude-model', { required: true });
-
-  core.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? 'EXISTS' : 'NULL'}`);
-  core.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || 'NULL'}`);
-
-  if (!claudeApiKey) {
-    throw new Error(
-      "Claude API key is required for route-impact-browser integration."
-    );
-  }
-
-  if (!claudeModel) {
-    throw new Error(
-      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
-    );
-  }
 
   core.info(`📸 Capturing screenshots with route-impact-browser`);
   core.info(`  - Routes: ${options.routes.length}`);
@@ -103,7 +89,7 @@ export async function captureScreenshotsWithBrowser(
           },
       browser: {
         headless: true,
-        timeout: 60000,
+        timeout: options.timeout,
         waitUntil: "networkidle",
         fullPage: options.fullPage !== undefined ? options.fullPage : true,
       },

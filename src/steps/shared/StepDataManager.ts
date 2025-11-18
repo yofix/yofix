@@ -145,6 +145,7 @@ export interface StepData {
   // Route analysis results
   routes?: {
     affectedRoutes: string[];
+    allAffectedRoutes?: string[]; // Full list before max-routes limit
     impactTree: ExternalRouteImpactTree | null;
     routesToTest: ExternalRouteImpactTree | null;
     components: string[];
@@ -153,6 +154,15 @@ export interface StepData {
       totalRoutes: number;
       source?: string;
     };
+  };
+
+  // Routes limited by max-routes
+  routesLimited?: {
+    isLimited: boolean;
+    totalRoutes: number;
+    testedRoutes: number;
+    skippedRoutes: string[];
+    reason: string;
   };
 
   // Screenshot results

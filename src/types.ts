@@ -123,6 +123,13 @@ export interface VerificationResult {
     routesTested: string[];
     issuesFound: string[];
   };
+  partial?: {
+    isPartial: boolean;
+    completedRoutes: number;
+    totalRoutes: number;
+    skippedRoutes: string[];
+    reason: string;
+  };
 }
 
 export interface ActionInputs {

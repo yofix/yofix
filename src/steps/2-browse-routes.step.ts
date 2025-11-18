@@ -16,7 +16,7 @@ import os from 'os';
 import path from 'path';
 import { captureScreenshotsWithBrowser } from '../core/screenshot/BrowserScreenshotCapture';
 import { getStepDataManager, executeStep, StepData } from './shared/StepDataManager';
-import { ErrorSeverity, ErrorCategory, errorHandler, config } from '../core';
+import { ErrorSeverity, ErrorCategory, errorHandler, config, parseTimeout } from '../core';
 
 /**
  * Main step execution
@@ -94,6 +94,11 @@ export async function browseRoutes(stepData: StepData): Promise<StepData> {
     const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'yofix-screenshots-'));
     core.info(`📁 Output directory: ${outputDir}`);
 
+    // Get and parse test-timeout configuration (default from action.yml: '5m')
+    const testTimeoutConfig = config.get('test-timeout');
+    const testTimeout = parseTimeout(testTimeoutConfig);
+    core.info(`⏱️ Per-screenshot timeout: ${testTimeoutConfig} (${testTimeout}ms)`);
+
     // Capture screenshots using @yofix/browser
     core.info('🚀 Starting screenshot capture...');
     const screenshotResult = await captureScreenshotsWithBrowser({
@@ -103,12 +108,15 @@ export async function browseRoutes(stepData: StepData): Promise<StepData> {
       credentials,
       loginUrl: authLoginUrl,
       fullPage,
-      verbose: true
+      verbose: true,
+      timeout: testTimeout
     });
 
     if (!screenshotResult.success) {
-      const errorMessage = screenshotResult.errors?.map(e => e.message).join(', ');
-      throw new Error(`Screenshot capture failed: ${errorMessage}`);
+      const errorDetails = screenshotResult.errors?.map(e =>
+        `${e.route ? `[${e.route}]` : '[unknown]'} ${e.message}`
+      ).join('\n  ');
+      throw new Error(`Screenshot capture failed:\n  ${errorDetails || 'Unknown error'}`);
     }
 
     core.info(`✅ Successfully captured ${screenshotResult.screenshots.length} route screenshots`);

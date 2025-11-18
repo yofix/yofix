@@ -84,9 +84,9 @@ inputs:
     default: ''
   
   test-timeout:
-    description: 'Maximum time for tests to run (e.g., 5m, 300s)'
+    description: 'Timeout per screenshot capture (e.g., 30s, 1m). Total time = test-timeout x routes x viewports'
     required: false
-    default: '5m'
+    default: '30s'
   
   cleanup-days:
     description: 'Days to keep old screenshots before cleanup'

@@ -27288,6 +27288,23 @@ var init_ValidationPatterns = __esm({
 });
 
 // src/core/utils/AsyncUtilities.ts
+function parseTimeout(timeout) {
+  if (typeof timeout === "number") {
+    return timeout;
+  }
+  const match = timeout.match(/^(\d+)(ms|s|m|h)?$/);
+  if (!match) {
+    throw new Error(`Invalid timeout format: ${timeout}`);
+  }
+  const [, amount, unit = "ms"] = match;
+  const multipliers = {
+    ms: 1,
+    s: 1e3,
+    m: 6e4,
+    h: 36e5
+  };
+  return parseInt(amount, 10) * multipliers[unit];
+}
 var logger4;
 var init_AsyncUtilities = __esm({
   "src/core/utils/AsyncUtilities.ts"() {
@@ -28305,21 +28322,46 @@ async function analyzeRoutes(stepData) {
       core12.warning("Route analyzer failed. Falling back to testing homepage only.");
       affectedRoutes = ["/"];
     }
-    if (affectedRoutes.length === 0) {
+    const maxRoutesConfig = config.get("max-routes", { defaultValue: "10" });
+    let maxRoutes = parseInt(maxRoutesConfig, 10);
+    if (isNaN(maxRoutes) || maxRoutes < 1) {
+      core12.warning(`\u26A0\uFE0F Invalid max-routes value: "${maxRoutesConfig}", using default 10`);
+      maxRoutes = 10;
+    }
+    let limitedRoutes = affectedRoutes;
+    let skippedRoutes = [];
+    if (affectedRoutes.length > maxRoutes) {
+      core12.warning(`\u26A0\uFE0F Found ${affectedRoutes.length} affected routes, limiting to ${maxRoutes} (max-routes)`);
+      limitedRoutes = affectedRoutes.slice(0, maxRoutes);
+      skippedRoutes = affectedRoutes.slice(maxRoutes);
+      core12.info(`\u{1F4CD} Testing routes: ${limitedRoutes.join(", ")}`);
+      core12.warning(`\u23ED\uFE0F Skipped routes (${skippedRoutes.length}): ${skippedRoutes.slice(0, 5).join(", ")}${skippedRoutes.length > 5 ? "..." : ""}`);
+    }
+    if (limitedRoutes.length === 0) {
       core12.info("\u2139\uFE0F No routes affected by this PR - skipping visual testing");
       core12.info("\u{1F4A1} Changes do not impact any routes (likely config/build files only)");
     } else {
-      core12.info(`\u{1F4CD} Total routes to test: ${affectedRoutes.length}`);
+      core12.info(`\u{1F4CD} Total routes to test: ${limitedRoutes.length}`);
     }
     core12.info(`\u{1F4E6} Components found: ${components.length}`);
     return {
       ...stepData,
       routes: {
-        affectedRoutes,
+        affectedRoutes: limitedRoutes,
+        allAffectedRoutes: affectedRoutes,
+        // Keep full list for reference
         impactTree,
         routesToTest,
         components
-      }
+      },
+      // Track if routes were limited
+      routesLimited: skippedRoutes.length > 0 ? {
+        isLimited: true,
+        totalRoutes: affectedRoutes.length,
+        testedRoutes: limitedRoutes.length,
+        skippedRoutes,
+        reason: "max-routes"
+      } : void 0
     };
   });
 }
@@ -28418,18 +28460,6 @@ init_core();
 async function captureScreenshotsWithBrowser(options) {
   const claudeApiKey = config.get("claude-api-key", { required: true });
   const claudeModel = config.get("claude-model", { required: true });
-  core13.info(`[DEBUG] Retrieved claudeApiKey: ${claudeApiKey ? "EXISTS" : "NULL"}`);
-  core13.info(`[DEBUG] Retrieved claudeModel: ${claudeModel || "NULL"}`);
-  if (!claudeApiKey) {
-    throw new Error(
-      "Claude API key is required for route-impact-browser integration."
-    );
-  }
-  if (!claudeModel) {
-    throw new Error(
-      "Claude model is required. Please specify 'claude-model' input (e.g., claude-sonnet-4-5-20250929)."
-    );
-  }
   core13.info(`\u{1F4F8} Capturing screenshots with route-impact-browser`);
   core13.info(`  - Routes: ${options.routes.length}`);
   core13.info(`  - Base URL: ${options.baseUrl}`);
@@ -28467,7 +28497,7 @@ async function captureScreenshotsWithBrowser(options) {
       },
       browser: {
         headless: true,
-        timeout: 6e4,
+        timeout: options.timeout,
         waitUntil: "networkidle",
         fullPage: options.fullPage !== void 0 ? options.fullPage : true
       },
@@ -28548,6 +28578,9 @@ async function browseRoutes(stepData) {
     }
     const outputDir = await import_fs2.promises.mkdtemp(import_path3.default.join(import_os.default.tmpdir(), "yofix-screenshots-"));
     core14.info(`\u{1F4C1} Output directory: ${outputDir}`);
+    const testTimeoutConfig = config.get("test-timeout");
+    const testTimeout = parseTimeout(testTimeoutConfig);
+    core14.info(`\u23F1\uFE0F Per-screenshot timeout: ${testTimeoutConfig} (${testTimeout}ms)`);
     core14.info("\u{1F680} Starting screenshot capture...");
     const screenshotResult = await captureScreenshotsWithBrowser({
       routes: routes.affectedRoutes,
@@ -28556,11 +28589,15 @@ async function browseRoutes(stepData) {
       credentials,
       loginUrl: authLoginUrl,
       fullPage,
-      verbose: true
+      verbose: true,
+      timeout: testTimeout
     });
     if (!screenshotResult.success) {
-      const errorMessage = screenshotResult.errors?.map((e) => e.message).join(", ");
-      throw new Error(`Screenshot capture failed: ${errorMessage}`);
+      const errorDetails = screenshotResult.errors?.map(
+        (e) => `${e.route ? `[${e.route}]` : "[unknown]"} ${e.message}`
+      ).join("\n  ");
+      throw new Error(`Screenshot capture failed:
+  ${errorDetails || "Unknown error"}`);
     }
     core14.info(`\u2705 Successfully captured ${screenshotResult.screenshots.length} route screenshots`);
     core14.info(`\u{1F4CA} Total screenshots: ${screenshotResult.screenshots.reduce((sum, r) => sum + r.screenshots.length, 0)}`);
@@ -29334,6 +29371,35 @@ ${message}
     comment += ` \u2022 ${this.formatDuration(result.duration)}
 
 `;
+    if (result.partial?.isPartial) {
+      const { completedRoutes, totalRoutes, skippedRoutes, reason } = result.partial;
+      if (reason === "max-routes") {
+        comment += `> ${_PRReporter.STATUS_EMOJIS.partial} **Partial Results** - Found ${totalRoutes} affected routes, tested ${completedRoutes} (max-routes limit)
+`;
+      } else {
+        comment += `> ${_PRReporter.STATUS_EMOJIS.partial} **Partial Results** - Testing stopped early
+`;
+        comment += `> Completed ${completedRoutes} of ${totalRoutes} routes
+`;
+      }
+      if (skippedRoutes.length > 0) {
+        comment += `> 
+> \u23ED\uFE0F Skipped ${skippedRoutes.length} route${skippedRoutes.length !== 1 ? "s" : ""}: `;
+        comment += `${skippedRoutes.slice(0, 5).map((r) => `\`${r}\``).join(", ")}`;
+        if (skippedRoutes.length > 5) {
+          comment += ` and ${skippedRoutes.length - 5} more`;
+        }
+        comment += `
+>
+`;
+        if (reason === "max-routes") {
+          comment += `> \u{1F4A1} **Tip**: Increase \`max-routes\` to test more routes
+`;
+        }
+      }
+      comment += `
+`;
+    }
     const screenshots = result.testResults.flatMap((t) => t.screenshots);
     const videos = result.testResults.flatMap((t) => t.videos);
     if (screenshots.length > 0 || videos.length > 0) {
@@ -29773,6 +29839,7 @@ async function postResults(stepData) {
       throw new Error("Screenshot result not found in step data");
     }
     const totalDuration = Date.now() - metadata.startTime;
+    const isRoutesLimited = stepData.routesLimited?.isLimited || false;
     const verificationResult = {
       status: screenshotResult.success ? "success" : "failure",
       firebaseConfig: {
@@ -29786,8 +29853,15 @@ async function postResults(stepData) {
       totalTests: screenshotResult.screenshots.length,
       passedTests: screenshotResult.screenshots.filter((r) => r.success !== false).length,
       failedTests: screenshotResult.screenshots.filter((r) => r.success === false).length,
-      skippedTests: 0,
+      skippedTests: isRoutesLimited ? stepData.routesLimited.skippedRoutes.length : 0,
       duration: totalDuration,
+      partial: isRoutesLimited ? {
+        isPartial: true,
+        completedRoutes: stepData.routesLimited.testedRoutes,
+        totalRoutes: stepData.routesLimited.totalRoutes,
+        skippedRoutes: stepData.routesLimited.skippedRoutes,
+        reason: "max-routes"
+      } : void 0,
       testResults: screenshotResult.screenshots.map((r) => {
         const { pathname: routePath, sanitized: sanitizedRoute } = extractRoutePath(r.route, "-");
         return {
@@ -29899,7 +29973,7 @@ ${timingSummary}`);
           isCommentCommand && replyToCommentId ? { replyToCommentId } : void 0
         ),
         new Promise(
-          (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 3e4)
+          (_, reject) => setTimeout(() => reject(new Error("PR report posting timeout")), 6e4)
         )
       ]);
       core19.info(`\u2705 PR report posted successfully`);

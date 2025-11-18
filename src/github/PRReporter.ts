@@ -152,6 +152,32 @@ ${message}
     }
     comment += ` • ${this.formatDuration(result.duration)}\n\n`;
 
+    // Partial results warning (max-routes limit)
+    if (result.partial?.isPartial) {
+      const { completedRoutes, totalRoutes, skippedRoutes, reason } = result.partial;
+
+      if (reason === 'max-routes') {
+        comment += `> ${PRReporter.STATUS_EMOJIS.partial} **Partial Results** - Found ${totalRoutes} affected routes, tested ${completedRoutes} (max-routes limit)\n`;
+      } else {
+        comment += `> ${PRReporter.STATUS_EMOJIS.partial} **Partial Results** - Testing stopped early\n`;
+        comment += `> Completed ${completedRoutes} of ${totalRoutes} routes\n`;
+      }
+
+      if (skippedRoutes.length > 0) {
+        comment += `> \n> ⏭️ Skipped ${skippedRoutes.length} route${skippedRoutes.length !== 1 ? 's' : ''}: `;
+        comment += `${skippedRoutes.slice(0, 5).map(r => `\`${r}\``).join(', ')}`;
+        if (skippedRoutes.length > 5) {
+          comment += ` and ${skippedRoutes.length - 5} more`;
+        }
+        comment += `\n>\n`;
+
+        if (reason === 'max-routes') {
+          comment += `> 💡 **Tip**: Increase \`max-routes\` to test more routes\n`;
+        }
+      }
+      comment += `\n`;
+    }
+
     // Quick access links
     const screenshots = result.testResults.flatMap(t => t.screenshots);
     const videos = result.testResults.flatMap(t => t.videos);

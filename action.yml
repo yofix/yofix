@@ -136,11 +136,6 @@ inputs:
     required: false
     default: '/login'
 
-  clear-cache:
-    description: 'Clear route analysis cache before running'
-    required: false
-    default: 'false'
-
   update-baselines-on-merge:
     description: 'Update baselines after PR merge - tuple format: ["branch", "enabled"] (e.g., ["main", "true"])'
     required: false
@@ -263,5 +258,4 @@ runs:
         INPUT_AUTH_LOGIN_URL: ${{ inputs.auth-login-url }}
 
         # Workflow Configuration
-        INPUT_CLEAR_CACHE: ${{ inputs.clear-cache }}
         INPUT_UPDATE_BASELINES_ON_MERGE: ${{ inputs.update-baselines-on-merge }}

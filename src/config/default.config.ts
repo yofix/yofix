@@ -379,7 +379,6 @@ export const actionDefaults = {
   "enable-ai-navigation": "false",
   "enable-ai-test-generation": "false",
   "session-mode": "sharedAgent",
-  "clear-cache": "false",
   "engine-mode": "deterministic",
   "enable-llm-visual-analysis": "false",
 };
